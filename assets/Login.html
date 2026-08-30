@@ -195,7 +195,8 @@
           <button type="submit" class="btn-primary" id="btnLogin">
             <i class="fas fa-arrow-right-to-bracket"></i> Sign In
           </button>
-          <button type="button" class="btn-secondary" onclick="showAlert('Fitur register belum dibuka!', 'error')">
+          <!-- ⬅️ TAMBAHAN 1: id="registerBtn" + arahkan ke halaman Register -->
+          <button type="button" class="btn-secondary" id="registerBtn" onclick="window.location.href='/Register.html'">
             <i class="fas fa-user-plus"></i> Register Akun Baru
           </button>
         </form>
@@ -283,6 +284,19 @@
       msg.textContent = message;
       if (type === 'error') setTimeout(() => box.style.display = 'none', 5000);
     }
+
+    // ⬅️ TAMBAHAN 2: Cek status registrasi dari Authority Panel
+    // Jika Admin menutup pendaftaran → tombol register otomatis hilang
+    (async function checkRegistrationStatus() {
+      try {
+        const res = await fetch('/api/settings/registration/public');
+        if (!res.ok) return; // endpoint error → tombol tetap tampil (default aman)
+        const s = await res.json();
+        if (s.open === false) {
+          document.getElementById('registerBtn').style.display = 'none';
+        }
+      } catch (e) { /* koneksi gagal → tombol tetap tampil */ }
+    })();
   </script>
 </body>
 </html>
