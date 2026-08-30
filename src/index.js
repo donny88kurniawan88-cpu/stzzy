@@ -1,3 +1,359 @@
+// ============================================================
+// BANK LOGIC — PORT 1:1 DARI GOOGLE APPS SCRIPT
+// ============================================================
+
+// ---------- FORMATTER HELPERS (persis versi GAS) ----------
+function extractFormatterBankNameV2(raw) {
+  raw = raw.toUpperCase();
+  if (raw.includes("MANDIRI")) return "Bank Mandiri";
+  if (raw.includes("BCA")) return "Bank BCA";
+  if (raw.includes("BRI")) return "Bank BRI";
+  if (raw.includes("BNI")) return "Bank BNI";
+  if (raw.includes("DANAMON")) return "Bank Danamon";
+  if (raw.includes("CIMB")) return "Bank CIMB";
+  if (raw.includes("SINARMAS")) return "Bank Sinarmas";
+  if (raw.includes("BSI")) return "Bank BSI";
+  if (raw.includes("SEABANK")) return "Bank SeaBank";
+  if (raw.includes("JAGO")) return "Bank Jago";
+  return "Bank " + raw.charAt(0) + raw.slice(1).toLowerCase();
+}
+
+function extractFormatterBankName(text) {
+  var bankMappings = { 'BCA': ['BCA', 'KAS BCA'], 'BRI': ['BRI', 'BRI BIZ', 'IBBIZ BRI'], 'BNI': ['BNI'], 'DANAMON': ['DANAMON'], 'SINARMAS': ['SINARMAS'], 'MANDIRI': ['MANDIRI'], 'BSI': ['BSI'], 'SEABANK': ['SEABANK'], 'BANK JAGO': ['BANK JAGO', 'JAGO'] };
+  var upperText = text.toUpperCase();
+  for (var standardName in bankMappings) {
+    for (var i = 0; i < bankMappings[standardName].length; i++) {
+      if (upperText.includes(bankMappings[standardName][i].toUpperCase())) return extractFormatterBankNameV2(standardName);
+    }
+  }
+  return '';
+}
+
+function cleanNominalValue(value) {
+  if (!value) return '';
+  var cleaned = value.replace(/[^\d\.,]/g, '');
+  if (cleaned.includes('.') && cleaned.includes(',')) cleaned = cleaned.replace(/\./g, '').replace(/,/g, '');
+  else if (cleaned.includes(',') && !cleaned.includes('.')) cleaned = cleaned.replace(/,/g, '');
+  else if (cleaned.includes('.')) {
+    var parts = cleaned.split('.');
+    if (parts[parts.length - 1].length === 2 || parts[parts.length - 1].length === 3) cleaned = cleaned.replace(/\./g, '');
+  }
+  return cleaned.replace(/[^\d]/g, '');
+}
+
+function extractFormatterNominal(text) {
+  var patterns = [/Rp\.?\s*([\d\.,]+)\s*[,-]?/i, /Nominal\s*:\s*([\d\.,]+)/i, /([\d\.,]+)\s*[,-]$/, /:?\s*([\d\.,]+)/i];
+  for (var i = 0; i < patterns.length; i++) {
+    var match = text.match(patterns[i]);
+    if (match) {
+      var val = cleanNominalValue(match[1].trim());
+      if (val && val !== '0') return val;
+    }
+  }
+  return '';
+}
+
+function formatFormatterNominal(nominal) {
+  var clean = nominal.toString().replace(/[^\d]/g, '');
+  if (!clean || clean === '0') return { dotted: '0', comma: '0' };
+  return {
+    dotted: clean.replace(/\B(?=(\d{3})+(?!\d))/g, "."),
+    comma: clean.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+  };
+}
+
+function saveBankRecordComplete(bank, nama, noRek, info, nominal, results) {
+  if (bank && nama && noRek && nominal) {
+    var nominalNum = parseInt(nominal, 10);
+    if (isNaN(nominalNum) || nominalNum <= 0) return;
+    var nominalData = formatFormatterNominal(nominalNum.toString());
+    results.push({
+      bank: bank,
+      nama: nama.toUpperCase(),
+      noRek: noRek,
+      info: info || '',
+      nominal_comma: nominalData.comma,
+      nominal_dotted: nominalData.dotted
+    });
+  }
+}
+
+// ---------- FORMATTER UTAMA (persis versi GAS) ----------
+function processBankDataLogic(inputText) {
+  var lines = inputText.split('\n');
+  var results = [];
+  var currentBank = '', currentNama = '', currentNomor = '', currentInfo = '', currentNominal = '';
+  var isInTransactionBlock = false;
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (line === '') {
+      if (currentBank && currentNama && currentNomor && currentNominal) {
+        saveBankRecordComplete(currentBank, currentNama, currentNomor, currentInfo, currentNominal, results);
+        currentBank = ''; currentNama = ''; currentNomor = ''; currentNominal = '';
+      }
+      continue;
+    }
+
+    if (line.toLowerCase().startsWith('info :')) { currentInfo = line.replace(/Info\s*:\s*/i, '').trim(); continue; }
+    if (line.toLowerCase().startsWith('perihal :')) { isInTransactionBlock = true; continue; }
+    if (line.includes('@TogelUP') || line.includes('**********')) {
+      isInTransactionBlock = false;
+      if (currentBank && currentNama && currentNomor && currentNominal) {
+        saveBankRecordComplete(currentBank, currentNama, currentNomor, currentInfo, currentNominal, results);
+        currentBank = ''; currentNama = ''; currentNomor = ''; currentNominal = '';
+      }
+      continue;
+    }
+
+    if (isInTransactionBlock || !line.includes('@')) {
+      if ((line.toLowerCase().includes('bank') || line.toLowerCase().includes('kas ')) && !currentBank) {
+        var matchNewFormat = line.match(/KAS\s+([A-Z]+)\s*-/i);
+        if (matchNewFormat) {
+          currentBank = extractFormatterBankNameV2(matchNewFormat[1].trim());
+        } else {
+          var bn = extractFormatterBankName(line);
+          if (bn) { currentBank = bn; continue; }
+        }
+      }
+
+      if ((line.toLowerCase().includes('nama') || line.toLowerCase().includes('rekening') || line.toLowerCase().includes('a.n') || line.toLowerCase().includes('atas nama')) && !currentNama) {
+        var np = [/Nama\s*Rekening\s*:\s*(.+)/i, /NAMA\s*REKENING\s*:\s*(.+)/i, /Nama\s*:\s*(.+)/i, /a\.n\.?\s*(.+)/i, /Atas\s*Nama\s*:\s*(.+)/i];
+        for (var p = 0; p < np.length; p++) { var m = line.match(np[p]); if (m) { currentNama = m[1].trim(); break; } }
+        if (currentNama) continue;
+      }
+
+      if ((line.toLowerCase().includes('nomor') || line.toLowerCase().includes('no') || line.toLowerCase().includes('rekening') || line.match(/\d{10,}/)) && !currentNomor) {
+        var rp = [/Nomor\s*Rekening\s*:\s*(\d+)/i, /NOMOR\s*REKENING\s*:\s*(\d+)/i, /No\.?\s*Rek\.?\s*:\s*(\d+)/i, /No\.?\s*:\s*(\d+)/i, /:?\s*(\d{10,})/, /Rekening\s*:\s*(\d+)/i];
+        for (var p2 = 0; p2 < rp.length; p2++) { var m2 = line.match(rp[p2]); if (m2) { currentNomor = m2[1].trim(); break; } }
+        if (currentNomor) continue;
+      }
+
+      if ((line.toLowerCase().includes('nominal') || line.toLowerCase().includes('rp') || line.toLowerCase().includes('jumlah') || line.match(/(?:Rp|rp)/i))) {
+        var extractedNominal = extractFormatterNominal(line);
+        if (extractedNominal && extractedNominal !== '0') {
+          currentNominal = extractedNominal;
+          if (currentBank && currentNama && currentNomor && currentNominal) {
+            saveBankRecordComplete(currentBank, currentNama, currentNomor, currentInfo, currentNominal, results);
+            currentBank = ''; currentNama = ''; currentNomor = ''; currentNominal = '';
+          }
+        }
+      }
+    }
+  }
+
+  if (currentBank && currentNama && currentNomor && currentNominal) {
+    saveBankRecordComplete(currentBank, currentNama, currentNomor, currentInfo, currentNominal, results);
+  }
+
+  var output = '';
+  results.forEach(function (record, index) {
+    output += record.bank + '\t' + record.nama + '\t' + record.noRek + '\t' + record.nominal_comma;
+    if (index < results.length - 1) output += '\n';
+  });
+
+  return { success: true, data: output, count: results.length, records: results };
+}
+
+// ---------- VALIDATOR: CARI DI D1 (pengganti findInDatabase GAS) ----------
+async function findInDatabaseD1(cleanInput, env) {
+  var result = { found: false, bank: '', sheetName: '', cleanedRek: cleanInput, status: '', leadingZeroAdded: 0 };
+
+  var row = await env.DB.prepare("SELECT sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1").bind(cleanInput).first();
+  if (row) { result.found = true; result.sheetName = row.sheet; result.status = row.status; return result; }
+
+  // Auto-tambah 1-3 nol di depan (persis logika GAS)
+  for (var z = 1; z <= 3; z++) {
+    var withZero = '0'.repeat(z) + cleanInput;
+    row = await env.DB.prepare("SELECT sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1").bind(withZero).first();
+    if (row) {
+      result.found = true; result.sheetName = row.sheet; result.cleanedRek = withZero;
+      result.leadingZeroAdded = z; result.status = row.status;
+      return result;
+    }
+  }
+  return result;
+}
+
+// ---------- VALIDATOR UTAMA (persis versi GAS, DB dari D1) ----------
+async function processBankDataValidatorLogic(inputData, env) {
+  var lines = inputData.trim().split('\n');
+  var results = [];
+  var warnings = [];
+
+  for (var li = 0; li < lines.length; li++) {
+    var line = lines[li];
+    var parts = line.split('\t');
+    if (parts.length < 2) continue;
+
+    var inputNama = '', inputRek = '', inputNominal = '';
+    for (var p = 0; p < parts.length; p++) {
+      var cleanPart = parts[p].replace(/\D/g, '');
+      if (cleanPart.length >= 8 && !inputRek) inputRek = parts[p].trim();
+    }
+    if (parts.length >= 3) {
+      inputNama = parts[0].trim();
+      if (!inputRek) inputRek = parts[1].trim();
+      inputNominal = parts[2].trim();
+    } else if (parts.length === 2) {
+      inputNama = parts[0].trim();
+      if (!inputRek) inputRek = parts[1].trim();
+      inputNominal = '-';
+    }
+    if (!inputRek || inputRek.replace(/\D/g, '').length < 5) continue;
+
+    var matchResult = await findInDatabaseD1(inputRek.replace(/\D/g, ''), env);
+    var rawSheetName = matchResult.sheetName || '';
+    var finalBank = 'BANK TIDAK DIKETAHUI';
+    var finalStatus = 'TIDAK DITEMUKAN';
+    var finalRek = matchResult.cleanedRek || inputRek;
+    var warning = '';
+
+    if (!matchResult.found) {
+      finalStatus = 'TIDAK DITEMUKAN';
+      warning = 'TIDAK DITEMUKAN DI DB';
+    } else {
+      var sheetUpper = rawSheetName.toUpperCase();
+      var detectedBank = 'BANK';
+      if (sheetUpper.indexOf('BCA') !== -1) detectedBank = 'BCA';
+      else if (sheetUpper.indexOf('BRI') !== -1) detectedBank = 'BRI';
+      else if (sheetUpper.indexOf('MANDIRI') !== -1) detectedBank = 'MANDIRI';
+      else if (sheetUpper.indexOf('DANAMON') !== -1) detectedBank = 'DANAMON';
+      else if (sheetUpper.indexOf('BNI') !== -1) detectedBank = 'BNI';
+      else if (sheetUpper.indexOf('BSI') !== -1) detectedBank = 'BSI';
+      else if (sheetUpper.indexOf('CIMB') !== -1) detectedBank = 'CIMB';
+      else if (sheetUpper.indexOf('SINARMAS') !== -1) detectedBank = 'SINARMAS';
+      else if (sheetUpper.indexOf('SEABANK') !== -1) detectedBank = 'SEABANK';
+      else if (sheetUpper.indexOf('JAGO') !== -1) detectedBank = 'BANK JAGO';
+
+      finalStatus = matchResult.status || 'TERDAFTAR';
+      finalBank = 'KAS ' + detectedBank + ' (' + finalStatus + ')';
+    }
+
+    if (matchResult.leadingZeroAdded > 0) {
+      warning = 'Auto-tambah ' + matchResult.leadingZeroAdded + ' nol di depan';
+    }
+
+    results.push({
+      bank: finalBank,
+      nama: inputNama.toUpperCase(),
+      noRek: finalRek,
+      nominal: inputNominal,
+      status: finalStatus,
+      warning: warning,
+      found: matchResult.found
+    });
+
+    if (warning && finalStatus === 'TIDAK DITEMUKAN') warnings.push(warning);
+  }
+
+  return { success: true, results: results, warnings: warnings, count: results.length };
+}
+
+// ---------- SHEET SYNC (pengganti buildValidatorDatabase / SpreadsheetApp) ----------
+const VALIDATOR_SHEET_IDS = [
+  '1GdC17R2pzPu_aileNn8pnxiY0bLncIlDA9wFdQ9YI5I',
+  '1_uHytMjQ3_RbX9GUk8CEMSCeTMksmYJvXNqqNNFY4Ps',
+  '1E5cn45Bv4TGF7cltm9L7H4PFVoPEY4I1FeIiQLtIE7M'
+];
+
+function parseCsvSimple(text) {
+  const rows = []; let row = [], cur = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+      else cur += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',') { row.push(cur); cur = ''; }
+      else if (ch === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+      else if (ch !== '\r') cur += ch;
+    }
+  }
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+
+async function fetchSheetNames(sheetId) {
+  try {
+    const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/htmlview`);
+    if (!res.ok) return [];
+    const html = await res.text();
+    const names = [];
+    const re = /sheet-button-\d+[\s\S]*?>([^<>]+)<\/a>/g;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      const nm = m[1].trim();
+      if (nm && !names.includes(nm)) names.push(nm);
+    }
+    return names;
+  } catch (e) { return []; }
+}
+
+// Bangun database { sheetName: [{cleaned, status}] } dari 3 Google Sheets
+async function buildValidatorDatabaseFromSheets() {
+  const db = {};
+  for (const id of VALIDATOR_SHEET_IDS) {
+    try {
+      let names = await fetchSheetNames(id);
+      if (!names.length) names = [''];
+      for (const name of names) {
+        const csvUrl = name
+          ? `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`
+          : `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
+        const res = await fetch(csvUrl);
+        if (!res.ok) continue;
+        const values = parseCsvSimple(await res.text());
+
+        // === SCAN LABEL STATUS (persis GAS: KAS BERSIH / KAS KOTOR per baris) ===
+        const statusMap = {};
+        for (let r = 0; r < values.length; r++) {
+          for (let c = 0; c < values[r].length; c++) {
+            const cellStr = String(values[r][c] || '').trim().toUpperCase();
+            if (cellStr.indexOf('KAS BERSIH') !== -1) statusMap[r] = 'BERSIH';
+            else if (cellStr.indexOf('KAS KOTOR') !== -1) statusMap[r] = 'KOTOR';
+          }
+        }
+
+        // === EKSTRAK REKENING (persis GAS) ===
+        let currentCategory = (name || 'SHEET').toUpperCase();
+        let currentStatus = '';
+        for (let r2 = 0; r2 < values.length; r2++) {
+          if (statusMap[r2]) { currentStatus = statusMap[r2]; continue; }
+          const row2 = values[r2];
+          let hasLongNumber = false, rekening = '';
+          for (let c2 = 0; c2 < row2.length; c2++) {
+            const cleanNum = String(row2[c2] || '').replace(/\D/g, '');
+            if (cleanNum.length >= 8 && cleanNum.length <= 20) {
+              hasLongNumber = true; rekening = cleanNum; break;
+            }
+          }
+          if (hasLongNumber) {
+            if (!db[currentCategory]) db[currentCategory] = [];
+            db[currentCategory].push({ cleaned: rekening, status: currentStatus });
+          } else {
+            for (let c3 = 0; c3 < row2.length; c3++) {
+              const cellTxt = String(row2[c3] || '').trim().toUpperCase();
+              if (cellTxt !== '' && cellTxt.length < 100) {
+                const keywords = ['BCA', 'BRI', 'MANDIRI', 'DANAMON', 'BNI', 'BSI', 'CIMB', 'KAS ', 'WD ', 'SINARMAS', 'JAGO', 'REKENING', 'DEPOSIT'];
+                if (keywords.some(k => cellTxt.includes(k))) {
+                  if (!statusMap[r2]) currentCategory = cellTxt.split('\n')[0].trim();
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (e) { /* skip sheet yang gagal */ }
+  }
+  return db;
+}
+
+// ============================================================
+// MAIN WORKER
+// ============================================================
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -13,18 +369,13 @@ export default {
     if (path === '/syair' || path === '/Syair.html') return env.ASSETS.fetch(new Request(new URL('/Syair.html', request.url), request));
     if (path === '/prediksi' || path === '/Prediksi.html') return env.ASSETS.fetch(new Request(new URL('/Prediksi.html', request.url), request));
     if (path === '/validator' || path === '/Validator.html') return env.ASSETS.fetch(new Request(new URL('/Validator.html', request.url), request));
-    // ⬇️ BARU: Data Comparison Analyzer
     if (path === '/analyzer' || path === '/Analyzer.html') return env.ASSETS.fetch(new Request(new URL('/Analyzer.html', request.url), request));
-    // ⬇️ BARU: PG Soft Calculator
     if (path === '/pgreport' || path === '/PgReport.html') return env.ASSETS.fetch(new Request(new URL('/PgReport.html', request.url), request));
-    // ⬇️ BARU: Bank Formatter & Validator
     if (path === '/bank' || path === '/Bank.html') return env.ASSETS.fetch(new Request(new URL('/Bank.html', request.url), request));
 
     // ============================================
     // HELPERS
     // ============================================
-
-    // Fungsi helper untuk cek role admin/master dari header
     async function isAdmin(req) {
       const username = req.headers.get('x-auth-token');
       if (!username) return false;
@@ -32,7 +383,6 @@ export default {
       return !!(user && (user.role === 'ADMIN' || user.role === 'MASTER'));
     }
 
-    // Helper: cek user login valid (semua role boleh akses modul Bank)
     async function isUser(req) {
       const username = req.headers.get('x-auth-token');
       if (!username) return false;
@@ -40,10 +390,6 @@ export default {
       return !!user;
     }
 
-    // Helper: format angka dengan koma (1000000 → 1,000,000)
-    function dotted(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
-
-    // Fungsi helper: ambil konfigurasi registrasi dari tabel settings
     async function getRegisSetting() {
       const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'registration'").first();
       return row ? JSON.parse(row.value) : { open: true, defaultRole: 'MEMBER', requireApproval: false };
@@ -59,10 +405,9 @@ export default {
       try {
         const { username, password } = await request.json();
         const { results } = await env.DB.prepare("SELECT * FROM users WHERE username = ? AND password = ?").bind(username, password).all();
-        
+
         if (results.length > 0) {
           const user = results[0];
-          // Tolak akun yang masih menunggu persetujuan admin
           if (user.status === 'PENDING') {
             return Response.json({ success: false, error: 'Akun Anda menunggu persetujuan admin!' }, { status: 403 });
           }
@@ -76,7 +421,7 @@ export default {
     }
 
     // ============================================
-    // 3. API GET USERS (Hanya Admin) + status & access untuk Authority Panel
+    // 3. API GET USERS (Hanya Admin)
     // ============================================
     if (path === '/api/users' && request.method === 'GET') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
@@ -102,7 +447,7 @@ export default {
       try {
         const { username, password, role } = await request.json();
         if (!username || !password || !role) return Response.json({ error: 'Data tidak lengkap' }, { status: 400 });
-        
+
         const access = JSON.stringify({ dashboard: true, authority: false, user_management: false, registration_control: false });
         await env.DB.prepare("INSERT INTO users (username, password, role, status, access) VALUES (?, ?, ?, 'ACTIVE', ?)").bind(username, password, role, access).run();
         return Response.json({ success: true, message: 'User berhasil ditambahkan' });
@@ -112,18 +457,16 @@ export default {
     }
 
     // ============================================
-    // 5. API DELETE USER (Hanya Admin) — proteksi diri sendiri & MASTER
+    // 5. API DELETE USER (Hanya Admin)
     // ============================================
     if (path.startsWith('/api/users/') && !path.endsWith('/access') && request.method === 'DELETE') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
         const usernameToDelete = decodeURIComponent(path.split('/').pop());
-        
-        // Keamanan: Jangan biarkan admin menghapus dirinya sendiri
+
         const reqUser = request.headers.get('x-auth-token');
         if (reqUser === usernameToDelete) return Response.json({ error: 'Anda tidak bisa menghapus akun sendiri!' }, { status: 400 });
 
-        // Keamanan: Akun MASTER tidak boleh dihapus
         const target = await env.DB.prepare("SELECT role FROM users WHERE username = ?").bind(usernameToDelete).first();
         if (target && target.role === 'MASTER') return Response.json({ error: 'Akun MASTER tidak dapat dihapus!' }, { status: 403 });
 
@@ -135,7 +478,7 @@ export default {
     }
 
     // ============================================
-    // 6. API PUBLIC: STATUS REGISTRASI (dipakai Login.html, tanpa token)
+    // 6. API PUBLIC: STATUS REGISTRASI
     // ============================================
     if (path === '/api/settings/registration/public' && request.method === 'GET') {
       const setting = await getRegisSetting();
@@ -143,7 +486,7 @@ export default {
     }
 
     // ============================================
-    // 7. API GET KONFIGURASI REGISTRASI (Hanya Admin)
+    // 7. API GET KONFIGURASI REGISTRASI
     // ============================================
     if (path === '/api/settings/registration' && request.method === 'GET') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
@@ -151,7 +494,7 @@ export default {
     }
 
     // ============================================
-    // 8. API SIMPAN KONFIGURASI REGISTRASI (Hanya Admin)
+    // 8. API SIMPAN KONFIGURASI REGISTRASI
     // ============================================
     if (path === '/api/settings/registration' && request.method === 'PUT') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
@@ -170,7 +513,7 @@ export default {
     }
 
     // ============================================
-    // 9. API EDIT ACCESS CONTROL USER (Hanya Admin/Master)
+    // 9. API EDIT ACCESS CONTROL USER
     // ============================================
     const accessMatch = path.match(/^\/api\/users\/([^/]+)\/access$/);
     if (accessMatch && request.method === 'PUT') {
@@ -197,7 +540,7 @@ export default {
     }
 
     // ============================================
-    // 10. API DAFTAR REGISTRASI PENDING (Hanya Admin)
+    // 10. API DAFTAR REGISTRASI PENDING
     // ============================================
     if (path === '/api/registrations/pending' && request.method === 'GET') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
@@ -210,7 +553,7 @@ export default {
     }
 
     // ============================================
-    // 11. API APPROVE / REJECT REGISTRASI (Hanya Admin)
+    // 11. API APPROVE / REJECT REGISTRASI
     // ============================================
     const regisMatch = path.match(/^\/api\/registrations\/([^/]+)$/);
     if (regisMatch && request.method === 'PUT') {
@@ -233,7 +576,7 @@ export default {
     }
 
     // ============================================
-    // 12. API REGISTER (Publik — otomatis dicek status buka/tutup)
+    // 12. API REGISTER (Publik)
     // ============================================
     if (path === '/api/register' && request.method === 'POST') {
       try {
@@ -262,29 +605,19 @@ export default {
     // 13. API PENCAIRAN / SALDO KAS (Hanya Admin)
     // ============================================
 
-    // 13a. GET: ambil data per tanggal (dipakai tombol CEK SALDO di Dashboard)
+    // 13a. GET: data per tanggal
     if (path === '/api/pencairan' && request.method === 'GET') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
         const date = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
-        const { results } = await env.DB.prepare(
-          "SELECT * FROM pencairan WHERE date = ? ORDER BY id ASC"
-        ).bind(date).all();
+        const { results } = await env.DB.prepare("SELECT * FROM pencairan WHERE date = ? ORDER BY id ASC").bind(date).all();
 
         const rows = (results || []).map(r => ({
-          id: r.id,
-          sheet: r.sheet,
-          nama: r.nama,
-          rek: r.rek,
-          saldoN9: r.saldo_n9,
-          pending: r.pending,
-          saldoAsli: r.saldo_asli,
-          cair: r.cair,
-          status: r.status,
-          ket: r.ket
+          id: r.id, sheet: r.sheet, nama: r.nama, rek: r.rek,
+          saldoN9: r.saldo_n9, pending: r.pending, saldoAsli: r.saldo_asli,
+          cair: r.cair, status: r.status, ket: r.ket
         }));
 
-        // Hitung totals server-side
         const totals = rows.reduce((acc, r) => ({
           totalN9: acc.totalN9 + r.saldoN9,
           totalPending: acc.totalPending + r.pending,
@@ -299,7 +632,7 @@ export default {
       }
     }
 
-    // 13b. POST: tambah data (1 baris atau array massal)
+    // 13b. POST: tambah data (1 baris atau array)
     if (path === '/api/pencairan' && request.method === 'POST') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
@@ -313,18 +646,10 @@ export default {
           await env.DB.prepare(
             "INSERT INTO pencairan (date, sheet, nama, rek, saldo_n9, pending, saldo_asli, cair, status, ket, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
           ).bind(
-            item.date,
-            item.sheet || '',
-            item.nama || '',
-            item.rek || '',
-            parseInt(item.saldoN9) || 0,
-            parseInt(item.pending) || 0,
-            parseInt(item.saldoAsli) || 0,
-            parseInt(item.cair) || 0,
-            item.status || 'PENDING',
-            item.ket || '',
-            createdBy,
-            Date.now()
+            item.date, item.sheet || '', item.nama || '', item.rek || '',
+            parseInt(item.saldoN9) || 0, parseInt(item.pending) || 0,
+            parseInt(item.saldoAsli) || 0, parseInt(item.cair) || 0,
+            item.status || 'PENDING', item.ket || '', createdBy, Date.now()
           ).run();
           inserted++;
         }
@@ -335,7 +660,7 @@ export default {
       }
     }
 
-    // 13c. PUT: update baris pencairan by id (ubah status, nominal, dll)
+    // 13c. PUT: update baris by id
     const cairMatch = path.match(/^\/api\/pencairan\/(\d+)$/);
     if (cairMatch && request.method === 'PUT') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
@@ -367,7 +692,7 @@ export default {
       }
     }
 
-    // 13d. DELETE: hapus baris pencairan by id
+    // 13d. DELETE: hapus baris by id
     if (cairMatch && request.method === 'DELETE') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
@@ -379,7 +704,7 @@ export default {
     }
 
     // ============================================
-    // 14. API BANK FORMATTER (parse teks mentah → 4 kolom) — BARU
+    // 14. API BANK FORMATTER — logika GAS asli 1:1
     // ============================================
     if (path === '/api/bank/format' && request.method === 'POST') {
       if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
@@ -387,51 +712,15 @@ export default {
         const body = await request.json();
         const input = (body.input || '').trim();
         if (!input) return Response.json({ success: false, error: 'Input kosong' }, { status: 400 });
-
-        const records = [];
-        let cur = { bank: '', nama: '', noRek: '', nominal: 0 };
-
-        const flush = () => {
-          if (cur.nama || cur.noRek || cur.nominal > 0) {
-            records.push({
-              bank: cur.bank || '-',
-              nama: cur.nama || '-',
-              noRek: cur.noRek || '-',
-              nominal: String(cur.nominal),
-              nominal_dotted: dotted(cur.nominal)
-            });
-          }
-          cur = { bank: '', nama: '', noRek: '', nominal: 0 };
-        };
-
-        for (const raw of input.split(/\r?\n/)) {
-          const line = raw.trim();
-          if (!line) { flush(); continue; }
-          const m = line.match(/^([^:]+?)\s*:\s*(.*)$/);
-          if (m) {
-            const key = m[1].toLowerCase();
-            const val = m[2].trim();
-            if (key.includes('bank')) { flush(); cur.bank = val; }
-            else if (key.includes('nama') && key.includes('rek')) cur.nama = val;
-            else if (key.includes('rekening') || key.includes('norek') || key.includes('no rek')) cur.noRek = val;
-            else if (key.includes('nominal') || key.includes('jumlah') || key.includes('amount')) cur.nominal = parseInt(val.replace(/[^\d]/g, '')) || 0;
-            // label lain (Info, Perihal, dll) diabaikan
-          } else if (!cur.bank && /[A-Za-z]/.test(line) && !/\d{6,}/.test(line)) {
-            // Baris berdiri sendiri = nama bank (mis. "KAS MANDIRI - BERSIH")
-            flush(); cur.bank = line;
-          }
-        }
-        flush();
-
-        const data = records.map(r => `${r.bank}\t${r.nama}\t${r.noRek}\t${r.nominal_dotted}`).join('\n');
-        return Response.json({ success: true, count: records.length, records: records, data: data });
+        const out = processBankDataLogic(input);
+        return Response.json(out);
       } catch (err) {
         return Response.json({ success: false, error: 'Gagal format: ' + err.message }, { status: 500 });
       }
     }
 
     // ============================================
-    // 15. API BANK VALIDATOR (cocokkan NoRek ke tabel bank_accounts) — BARU
+    // 15. API BANK VALIDATOR — logika GAS asli 1:1 (DB: D1)
     // ============================================
     if (path === '/api/bank/validate' && request.method === 'POST') {
       if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
@@ -439,99 +728,50 @@ export default {
         const body = await request.json();
         const input = (body.input || '').trim();
         if (!input) return Response.json({ success: false, error: 'Input kosong' }, { status: 400 });
-
-        const results = [];
-        const warnings = [];
-
-        for (const raw of input.split(/\r?\n/)) {
-          const line = raw.trim();
-          if (!line) continue;
-          const parts = line.split(/\t+/);
-          const nama = (parts[0] || '').trim();
-          const noRek = (parts[1] || '').trim();
-          const nominal = (parts[2] || '0').trim();
-          if (!noRek) continue;
-
-          const row = await env.DB.prepare(
-            "SELECT bank, nama, sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1"
-          ).bind(noRek).first();
-
-          let warning = '';
-          if (row && row.nama && nama && row.nama.toLowerCase() !== nama.toLowerCase()) {
-            warning = 'Nama beda dengan DB: ' + row.nama;
-            warnings.push(noRek + ' → ' + warning);
-          }
-
-          results.push({
-            bank: row ? (row.bank || '-') : '-',
-            nama: nama,
-            noRek: noRek,
-            nominal: nominal,
-            found: !!row,
-            status: row ? (row.status || row.sheet || 'DITEMUKAN') : null,
-            warning: warning
-          });
-        }
-
-        return Response.json({ success: true, count: results.length, results: results, warnings: warnings });
+        const out = await processBankDataValidatorLogic(input, env);
+        return Response.json(out);
       } catch (err) {
         return Response.json({ success: false, error: 'Gagal validasi: ' + err.message }, { status: 500 });
       }
     }
 
     // ============================================
-    // 15b. API BANK ACCOUNTS — CRUD database rekening (Hanya Admin) — BARU
+    // 15b. SYNC DATABASE DARI 3 GOOGLE SHEETS → D1
+    //      (pengganti buildValidatorDatabase + CacheService)
     // ============================================
+    if (path === '/api/bank/sync' && request.method === 'POST') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        const db = await buildValidatorDatabaseFromSheets();
+        let total = 0, sheets = [];
+        for (const sheetName in db) { sheets.push(sheetName + ' (' + db[sheetName].length + ')'); total += db[sheetName].length; }
 
-    // GET: list semua rekening terdaftar
+        if (total === 0) {
+          return Response.json({ success: false, error: '0 rekening tersinkron — pastikan 3 Google Sheets di-share "Anyone with link: Viewer"', sheets: sheets }, { status: 500 });
+        }
+
+        await env.DB.prepare("DELETE FROM bank_accounts").run();
+        for (const sheetName in db) {
+          for (const rec of db[sheetName]) {
+            await env.DB.prepare(
+              "INSERT INTO bank_accounts (bank, nama, no_rek, sheet, status, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+            ).bind('', '', rec.cleaned, sheetName, rec.status, Date.now()).run();
+          }
+        }
+        return Response.json({ success: true, total: total, sheets: sheets, message: 'Database validator tersinkron: ' + total + ' rekening' });
+      } catch (err) {
+        return Response.json({ error: 'Gagal sync: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // 15c. List rekening (admin) — cek hasil sync
     if (path === '/api/bank/accounts' && request.method === 'GET') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
-        const { results } = await env.DB.prepare("SELECT * FROM bank_accounts ORDER BY id DESC").all();
+        const { results } = await env.DB.prepare("SELECT * FROM bank_accounts ORDER BY id DESC LIMIT 500").all();
         return Response.json(results || []);
       } catch (err) {
         return Response.json({ error: 'Gagal mengambil data: ' + err.message }, { status: 500 });
-      }
-    }
-
-    // POST: tambah rekening (1 atau array massal)
-    if (path === '/api/bank/accounts' && request.method === 'POST') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
-      try {
-        const body = await request.json();
-        const items = Array.isArray(body) ? body : [body];
-        let inserted = 0;
-
-        for (const item of items) {
-          if (!item.noRek) continue;
-          await env.DB.prepare(
-            "INSERT INTO bank_accounts (bank, nama, no_rek, sheet, status, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-          ).bind(
-            item.bank || '',
-            item.nama || '',
-            item.noRek,
-            item.sheet || '',
-            item.status || item.sheet || '',
-            Date.now()
-          ).run();
-          inserted++;
-        }
-
-        return Response.json({ success: true, inserted: inserted, message: inserted + ' rekening ditambahkan' });
-      } catch (err) {
-        return Response.json({ error: 'Gagal: ' + err.message }, { status: 500 });
-      }
-    }
-
-    // DELETE: hapus rekening by id
-    const bankAccMatch = path.match(/^\/api\/bank\/accounts\/(\d+)$/);
-    if (bankAccMatch && request.method === 'DELETE') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
-      try {
-        await env.DB.prepare("DELETE FROM bank_accounts WHERE id = ?").bind(bankAccMatch[1]).run();
-        return Response.json({ success: true, message: 'Rekening dihapus' });
-      } catch (err) {
-        return Response.json({ error: 'Gagal menghapus: ' + err.message }, { status: 500 });
       }
     }
 
