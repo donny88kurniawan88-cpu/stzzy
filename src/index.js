@@ -187,7 +187,7 @@ export default {
       }
     }
 
-    // 12. API REGISTER (Publik — otomatis dicek status buka/tutup)
+    // 12. API REGISTER (Publik — otomatis dicek statusbuka/tutup)
     if (url.pathname === '/api/register' && request.method === 'POST') {
       try {
         const setting = await getRegisSetting();
