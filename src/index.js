@@ -210,9 +210,9 @@ async function processBankDataValidatorLogic(inputData, env) {
     if (!matchResult.found) {
       finalStatus = 'TIDAK DITEMUKAN';
       warning = 'TIDAK DITEMUKAN DI DB';
-    } else {
+      } else {
       finalStatus = matchResult.status || 'TERDAFTAR';
-      finalBank = (matchResult.bank || 'BANK') + ' (' + finalStatus + ')';
+      finalBank = matchResult.bank || 'BANK TIDAK DIKETAHUI';
     }
 
     if (matchResult.leadingZeroAdded > 0) {
