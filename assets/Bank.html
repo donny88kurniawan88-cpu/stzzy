@@ -78,7 +78,7 @@
     .format-note { font-size: 10px; color: var(--text-muted); font-style: italic; border-top: 1px solid var(--border-dim); padding-top: 8px; }
     .input-area { width: 100%; height: 120px; background: rgba(10, 10, 16, 0.6); border: 1px solid var(--border-dim); border-radius: 8px; padding: 12px; color: var(--text-primary); font-size: 12px; line-height: 1.5; resize: none; outline: none; transition: 0.3s; font-family: 'JetBrains Mono', monospace; }
     .input-area:focus { border-color: var(--neon-purple); box-shadow: 0 0 0 3px var(--neon-purple-dim), 0 0 15px var(--neon-purple-dim); }
-    .btn-row { margin-top: 16px; display: flex; gap: 10px; }
+    .btn-row { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: 0.3s; position: relative; overflow: hidden; }
     .btn-primary { background: linear-gradient(135deg, var(--neon-purple), #7c3aed); color: #fff; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4); flex: 1; }
     .btn-primary:hover { box-shadow: 0 6px 25px rgba(139, 92, 246, 0.6); transform: translateY(-2px); }
@@ -264,15 +264,16 @@
               <div class="format-list">
                 <div class="format-item"><i class="fas fa-circle"></i> Input: Nama\tNoRek\tNominal</div>
                 <div class="format-item"><i class="fas fa-circle"></i> Auto cocok ke database</div>
-                <div class="format-item"><i class="fas fa-circle"></i> Deteksi KOTOR / BERSIH</div>
+                <div class="format-item"><i class="fas fa-circle"></i> Status = nama sheet</div>
                 <div class="format-item"><i class="fas fa-circle"></i> Output siap salin</div>
               </div>
-              <div class="format-note">Nomor rekening dicocokkan ke tabel bank_accounts (D1). Status diambil dari kolom sheet/status.</div>
+              <div class="format-note">Nomor rekening dicocokkan ke tabel bank_accounts (D1). Bank dari blok KAS BCA/BNI/BRI/MANDIRI, status dari nama sheet.</div>
             </div>
             <textarea id="valInput" class="input-area" placeholder="Romli&#9;714401012026506&#9;49,999,885&#10;Sri Wahyuni&#9;1150010924027&#9;49,999,122"></textarea>
             <div class="btn-row">
               <button class="btn btn-primary" id="btnVal" onclick="runValidate()"><i class="fas fa-shield-halved"></i> Validasi Sekarang</button>
               <button class="btn btn-ghost" onclick="loadValExample()"><i class="fas fa-flask"></i> Load</button>
+              <button class="btn btn-secondary" id="btnSync" onclick="syncBankDb(this)"><i class="fas fa-sync"></i> Sync DB</button>
               <button class="btn btn-danger" onclick="clearVal()"><i class="fas fa-trash"></i> Clear</button>
             </div>
           </div>
@@ -421,9 +422,10 @@
     }
 
     function buildValModalRow(i, r, statusText) {
+      // Urutan penting: BERMASALAH/CABUT/KOTOR dicek DULUAN (status mengandung kombinasi kata)
       var statusColorClass = 'purple';
       var statusBadgeStyle = 'badge-bank';
-      if (statusText.indexOf('KOTOR') !== -1 || statusText.indexOf('BERMASALAH') !== -1 || statusText.indexOf('CABUT') !== -1) { statusColorClass = 'amber'; statusBadgeStyle = 'badge-kotor'; }
+      if (statusText.indexOf('BERMASALAH') !== -1 || statusText.indexOf('CABUT') !== -1 || statusText.indexOf('KOTOR') !== -1) { statusColorClass = 'amber'; statusBadgeStyle = 'badge-kotor'; }
       else if (statusText.indexOf('BERSIH') !== -1) { statusColorClass = 'green'; statusBadgeStyle = 'badge-bersih'; }
       else if (statusText.indexOf('DEPOSIT') !== -1) { statusColorClass = 'cyan'; statusBadgeStyle = 'badge-deposit'; }
       else if (statusText === 'TIDAK DITEMUKAN') { statusColorClass = 'red'; statusBadgeStyle = 'badge-notfound'; }
@@ -453,6 +455,30 @@
       if (r.warning) raw += '\nCatatan : ' + r.warning;
       copyClip(raw);
       showToast('Data baris #' + (realIdx + 1) + ' disalin', 'info');
+    }
+
+    /* ===== SYNC DATABASE ===== */
+    async function syncBankDb(btn) {
+      var original = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Syncing...';
+      try {
+        var res = await fetch('/api/bank/sync', {
+          method: 'POST',
+          headers: { 'x-auth-token': authToken }
+        });
+        var out = await res.json();
+        if (out.success) {
+          showToast('Sync sukses: ' + out.total + ' rekening | ' + (out.sheets || []).join(', '), 'success');
+        } else {
+          showToast('Sync gagal: ' + out.error, 'error');
+        }
+      } catch (err) {
+        showToast('Gagal sync: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+      }
     }
 
     /* ===== FORMATTER LOGIC (Workers API) ===== */
@@ -539,14 +565,13 @@
       results.forEach(function(r, i) {
         var statusText = (r.status) ? r.status.toString().trim() : 'TIDAK DITEMUKAN';
         var stBadge = '';
-        if (statusText.indexOf('KOTOR') !== -1) {
-          stBadge = '<span class="badge badge-kotor"><i class="fas fa-circle" style="font-size:5px;vertical-align:middle;margin-right:3px;"></i>' + esc(statusText) + '</span>';
+        // Urutan penting: BERMASALAH/CABUT/KOTOR dicek DULUAN
+        if (statusText.indexOf('BERMASALAH') !== -1 || statusText.indexOf('CABUT') !== -1 || statusText.indexOf('KOTOR') !== -1) {
+          stBadge = '<span class="badge badge-kotor"><i class="fas fa-exclamation-triangle" style="font-size:7px;vertical-align:middle;margin-right:3px;"></i>' + esc(statusText) + '</span>';
         } else if (statusText.indexOf('BERSIH') !== -1) {
           stBadge = '<span class="badge badge-bersih"><i class="fas fa-circle" style="font-size:5px;vertical-align:middle;margin-right:3px;"></i>' + esc(statusText) + '</span>';
         } else if (statusText.indexOf('DEPOSIT') !== -1) {
           stBadge = '<span class="badge badge-deposit"><i class="fas fa-circle" style="font-size:5px;vertical-align:middle;margin-right:3px;"></i>' + esc(statusText) + '</span>';
-        } else if (statusText.indexOf('BERMASALAH') !== -1 || statusText.indexOf('CABUT') !== -1) {
-          stBadge = '<span class="badge badge-kotor"><i class="fas fa-exclamation-triangle" style="font-size:7px;vertical-align:middle;margin-right:3px;"></i>' + esc(statusText) + '</span>';
         } else if (statusText === 'TIDAK DITEMUKAN') {
           stBadge = '<span class="badge badge-notfound"><i class="fas fa-times-circle" style="font-size:7px;vertical-align:middle;margin-right:3px;"></i>TIDAK DITEMUKAN</span>';
         } else {
