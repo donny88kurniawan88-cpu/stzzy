@@ -162,7 +162,6 @@ async function findInDatabaseD1(cleanInput, env) {
   var row = await env.DB.prepare("SELECT bank, nama, sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1").bind(cleanInput).first();
   if (row) { result.found = true; result.bank = row.bank; result.nama = row.nama; result.sheetName = row.sheet; result.status = row.status; return result; }
 
-  // Auto-tambah 1-3 nol di depan (persis logika GAS)
   for (var z = 1; z <= 3; z++) {
     var withZero = '0'.repeat(z) + cleanInput;
     row = await env.DB.prepare("SELECT bank, nama, sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1").bind(withZero).first();
@@ -212,7 +211,6 @@ async function processBankDataValidatorLogic(inputData, env) {
       finalStatus = 'TIDAK DITEMUKAN';
       warning = 'TIDAK DITEMUKAN DI DB';
     } else {
-      // Bank langsung dari hasil parsing sheet (mis. "KAS BCA") + status = nama sheet
       finalStatus = matchResult.status || 'TERDAFTAR';
       finalBank = (matchResult.bank || 'BANK') + ' (' + finalStatus + ')';
     }
@@ -238,9 +236,23 @@ async function processBankDataValidatorLogic(inputData, env) {
 }
 
 // ---------- SHEET SYNC ----------
-// ⬇️ SUMBER DATABASE: spreadsheet Anda (semua tab dibaca otomatis)
+// ⬇️ SUMBER DATABASE: spreadsheet Anda
 const VALIDATOR_SHEET_IDS = [
   '1r6EgJuTN2PL_hQGaU-dtMa4SctG-AeIYHJzs2RmeefI'
+];
+
+// ============================================================
+// ⬇️ FALLBACK NAMA TAB — WAJIB SESUAIKAN DENGAN SPREADSHEET ANDA
+// Copy PERSIS nama tab di bagian bawah Google Sheets
+// (spasi, kurung, tanda + harus sama). Tab yang tidak ada akan
+// otomatis dilewati (404 dari Google), jadi aman kalau berlebih.
+// ============================================================
+const FALLBACK_SHEET_NAMES = [
+  'KAS BERSIH (AKTIF)',
+  'KAS BERSIH (BERMASALAH+CABUT KAS1)',
+  'KAS KOTOR',
+  'WD BERSIH (BERMASALAH+CABUT KAS1)',
+  'REKENING DEPOSIT (AKTIF)'
 ];
 
 function parseCsvSimple(text) {
@@ -261,27 +273,23 @@ function parseCsvSimple(text) {
   return rows;
 }
 
-async function fetchSheetNames(sheetId) {
-  // Metode 1: JSON metadata gviz (paling andal)
+// Deteksi otomatis nama tab (internal)
+async function detectSheetNames(sheetId) {
+  // Metode 1: JSON metadata gviz
   try {
     const res = await fetch('https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:json');
     if (res.ok) {
       const text = await res.text();
-      const m = text.match(/"sheetNames":\s*\[(.*?)\]/s) || text.match(/\{\"title\":\"([^\"]+)\"/);
-      if (m) {
-        // Ambil semua "title":"..." dari tableDescription/Sheet1 dst
-        const titles = [...text.matchAll(/\"title\":\"((?:[^\"\\]|\\.)*)\"/g)].map(x => x[1].replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))));
-        if (titles.length) return [...new Set(titles)];
-      }
+      const titles = [...text.matchAll(/\"title\":\"((?:[^\"\\]|\\.)*)\"/g)].map(x => x[1].replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))));
+      if (titles.length) return [...new Set(titles)];
     }
   } catch (e) {}
-  // Metode 2: fallback htmlview lama
+  // Metode 2: htmlview
   try {
     const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/htmlview`);
     if (!res.ok) return [];
     const html = await res.text();
     const names = [];
-    // pola lama & baru Google Sheets
     const patterns = [
       /sheet-button-\d+[^>]*>([^<>]+)<\/a>/g,
       /"name":"([^"]+)","gid":\d+/g,
@@ -298,6 +306,17 @@ async function fetchSheetNames(sheetId) {
     }
     return names;
   } catch (e) { return []; }
+}
+
+// fetchSheetNames — deteksi otomatis; kalau hasil ≤1 tab (gagal), pakai FALLBACK
+async function fetchSheetNames(sheetId) {
+  const detected = await detectSheetNames(sheetId);
+  if (detected.length > 1) {
+    console.log('[SYNC] Nama tab terdeteksi otomatis: ' + detected.length + ' tab');
+    return detected;
+  }
+  console.log('[SYNC] Deteksi otomatis gagal (' + detected.length + ' tab) → pakai FALLBACK_SHEET_NAMES (' + FALLBACK_SHEET_NAMES.length + ' tab)');
+  return FALLBACK_SHEET_NAMES;
 }
 
 // ============================================================
@@ -319,7 +338,7 @@ async function buildValidatorDatabaseFromSheets() {
           ? `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`
           : `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
         const res = await fetch(csvUrl);
-        if (!res.ok) continue;
+        if (!res.ok) continue; // tab tidak ada / beda nama → skip
         const values = parseCsvSimple(await res.text());
         if (!values.length) continue;
 
@@ -355,9 +374,7 @@ async function buildValidatorDatabaseFromSheets() {
             if (rekClean === '') {
               const digits = cell.replace(/\D/g, '');
               const isThousandSeparated = /^\d{1,3}([.,]\d{3})+([.,]\d{3})*$/.test(cell.replace(/Rp\.?\s*/i, ''));
-              // cell seperti "5380343217" atau "BCA 5380343217" — digits 8-20
               if (!isThousandSeparated && digits.length >= 8 && digits.length <= 20) {
-                // Hindari cell keterangan campur banyak teks panjang + angka (mis. "POIET ON 123")
                 const letters = (cell.match(/[A-Za-z]/g) || []).length;
                 if (letters <= 8 || digits.length >= 10) {
                   rekClean = digits;
@@ -375,10 +392,8 @@ async function buildValidatorDatabaseFromSheets() {
 
           // === 3. BARIS DATA (punya rekening valid) ===
           if (rekClean !== '') {
-            // Kalau di baris yang sama ada label KAS → update currentBank dulu
             if (kasLabel !== '') currentBank = kasLabel;
 
-            // Nama: prioritas kolom tetap (E/F), fallback = cell teks terbaik sebelum kolom rekening
             let namaFinal = String(row[COL_NAMA] || '').trim();
             if (!namaFinal || !/[A-Za-z]/.test(namaFinal)) {
               namaFinal = '';
@@ -386,10 +401,9 @@ async function buildValidatorDatabaseFromSheets() {
               for (let c2 = 0; c2 < row.length; c2++) {
                 if (c2 === rekCol) continue;
                 const t = String(row[c2] || '').trim();
-                // Cell teks berhuruf (bukan angka, bukan label KAS, panjang wajar nama orang)
                 if (t !== '' && /[A-Za-z]{3,}/.test(t) && !t.toUpperCase().includes('KAS') && !/\d{5,}/.test(t) && t.length <= 40) {
-                  if (c2 < rekCol && t.length > best.length) best = t;      // teks di kiri rekening = prioritas
-                  else if (best === '' && t.length > best.length) best = t;  // fallback apa pun
+                  if (c2 < rekCol && t.length > best.length) best = t;
+                  else if (best === '' && t.length > best.length) best = t;
                 }
               }
               namaFinal = best;
@@ -399,7 +413,6 @@ async function buildValidatorDatabaseFromSheets() {
             if (!db[cat]) db[cat] = [];
             db[cat].push({ cleaned: rekClean, status: status, nama: namaFinal.toUpperCase(), sheet: sheetNameUpper });
           }
-          // Baris tanpa rekening & tanpa label → diabaikan
         }
       }
     } catch (e) { /* skip sheet gagal */ }
@@ -760,7 +773,7 @@ export default {
     }
 
     // ============================================
-    // 14. API BANK FORMATTER — logika GAS asli 1:1
+    // 14. API BANK FORMATTER
     // ============================================
     if (path === '/api/bank/format' && request.method === 'POST') {
       if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
@@ -776,7 +789,7 @@ export default {
     }
 
     // ============================================
-    // 15. API BANK VALIDATOR — bank & status dari DB hasil parsing
+    // 15. API BANK VALIDATOR
     // ============================================
     if (path === '/api/bank/validate' && request.method === 'POST') {
       if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
@@ -793,7 +806,6 @@ export default {
 
     // ============================================
     // 15b. SYNC DATABASE DARI GOOGLE SHEET → D1
-    //      Parser ketat: kolom A = blok bank, E/F = nama, F/G = rek, status = nama sheet
     // ============================================
     if (path === '/api/bank/sync' && request.method === 'POST') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
@@ -803,7 +815,7 @@ export default {
         for (const cat in db) { sheets.push(cat + ' (' + db[cat].length + ')'); total += db[cat].length; }
 
         if (total === 0) {
-          return Response.json({ success: false, error: '0 rekening tersinkron — pastikan Google Sheet di-share "Anyone with link: Viewer"', sheets: sheets }, { status: 500 });
+          return Response.json({ success: false, error: '0 rekening tersinkron — cek FALLBACK_SHEET_NAMES sesuai nama tab spreadsheet Anda', sheets: sheets }, { status: 500 });
         }
 
         await env.DB.prepare("DELETE FROM bank_accounts").run();
@@ -820,7 +832,7 @@ export default {
       }
     }
 
-    // 15c. List rekening (admin) — cek hasil sync
+    // 15c. List rekening (admin)
     if (path === '/api/bank/accounts' && request.method === 'GET') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
@@ -830,20 +842,20 @@ export default {
         return Response.json({ error: 'Gagal mengambil data: ' + err.message }, { status: 500 });
       }
     }
-    // 15d. DEBUG parser — lihat 15 baris pertama tiap sheet apa adanya
+
+    // 15d. DEBUG parser — preview per tab (sekarang termasuk FALLBACK)
     if (path === '/api/bank/sync-debug' && request.method === 'POST') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
       try {
         const id = VALIDATOR_SHEET_IDS[0];
         let names = await fetchSheetNames(id);
-        if (!names.length) names = [''];
-        const out = { sheetNames: names, previews: {} };
-        for (const name of names.slice(0, 5)) {
+        const out = { sheetNames: names, source: names === FALLBACK_SHEET_NAMES ? 'FALLBACK' : 'AUTO-DETECT', previews: {} };
+        for (const name of names.slice(0, 10)) {
           const csvUrl = name
             ? `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`
             : `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
           const res = await fetch(csvUrl);
-          if (!res.ok) { out.previews[name || 'DEFAULT'] = 'FETCH FAIL ' + res.status; continue; }
+          if (!res.ok) { out.previews[name || 'DEFAULT'] = 'FETCH FAIL ' + res.status + ' (nama tab mungkin salah)'; continue; }
           const values = parseCsvSimple(await res.text());
           out.previews[name || 'DEFAULT'] = values.slice(0, 15).map((row, i) =>
             i + ': [' + row.slice(0, 8).map(c => String(c).substring(0, 20)).join(' | ') + ']'
@@ -854,6 +866,7 @@ export default {
         return Response.json({ error: err.message }, { status: 500 });
       }
     }
+
     // ============================================
     // FALLBACK: serve static assets
     // ============================================
