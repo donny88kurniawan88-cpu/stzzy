@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PG Report - AURA.OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* ===== TEMA AURA.OS (match Dashboard) ===== */
+            --primary: #3b82f6;                     /* biru aksen utama */
+            --primary-dark: #2563eb;
+            --primary-glow: rgba(59, 130, 246, 0.35);
+            --secondary: #0a0a0f;
+            --accent: #00f0ff;                      /* neon cyan — angka hasil */
+            --accent-glow: rgba(0, 240, 255, 0.35);
+            --accent-blue: #8b5cf6;                 /* ungu — buyspin */
+            --accent-purple: #ec4899;
+            --accent-red: #ff3048;                  /* neon red */
+            --accent-green: #00ffb3;                /* neon green */
+            --accent-yellow: #ffd166;               /* neon yellow */
+            --bg-dark: #0a0a0f;
+            --bg-surface: #111118;
+            --bg-elevated: #1a1a24;
+            --card-bg: rgba(15, 15, 22, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.07);
+            --text-light: #f1f5f9;
+            --text-dim: #94a3b8;
+            --border-glow: rgba(59, 130, 246, 0.6);
+            --shadow-gold: rgba(59, 130, 246, 0.4);
+            --shadow-accent: rgba(0, 240, 255, 0.4);
+            --font-body: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --neon-purple: #b46cff; --neon-cyan: #00f0ff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ===== BACKGROUND GLOW — SAMA SEPERTI DASHBOARD ===== */
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: -2;
+            background:
+                radial-gradient(ellipse 600px 400px at 15% 20%, rgba(59,130,246,0.10) 0%, transparent 70%),
+                radial-gradient(ellipse 500px 500px at 85% 70%, rgba(139,92,246,0.08) 0%, transparent 70%),
+                radial-gradient(ellipse 400px 300px at 50% 90%, rgba(0,240,255,0.06) 0%, transparent 70%),
+                linear-gradient(160deg, #0c0c16 0%, #0a0a0f 40%, #0e0e18 100%);
+        }
+        body::after {
+            content: '';
+            position: fixed; inset: 0; z-index: -1;
+            background:
+                radial-gradient(circle 200px at 25% 35%, rgba(59,130,246,0.05) 0%, transparent 100%),
+                radial-gradient(circle 180px at 75% 65%, rgba(139,92,246,0.04) 0%, transparent 100%);
+            animation: glowDrift 25s ease-in-out infinite alternate;
+        }
+        @keyframes glowDrift {
+            0% { transform: translate(0,0) scale(1); }
+            50% { transform: translate(15px,-10px) scale(1.03); }
+            100% { transform: translate(-10px,5px) scale(0.99); }
+        }
+
+        /* MAIN CONTAINER */
+        .main-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* NEON HEADER — kartu glass ala Dashboard */
+        .neon-header {
+            background: linear-gradient(135deg, rgba(15,15,22,0.92) 0%, rgba(18,18,28,0.88) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 30px 40px;
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+                0 20px 40px rgba(0, 0, 0, 0.5),
+                0 0 60px rgba(59, 130, 246, 0.08),
+                inset 0 0 20px rgba(255, 255, 255, 0.03);
+        }
+
+        .neon-header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 24px;
+            padding: 2px;
+            background: linear-gradient(45deg,
+                var(--neon-cyan),
+                var(--accent-blue),
+                var(--accent-purple),
+                var(--neon-cyan));
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            -webkit-mask-composite: exclude;
+            animation: borderRotate 10s linear infinite;
+        }
+
+        @keyframes borderRotate {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        .header-content { position: relative; z-index: 2; }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .logo-icon {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem;
+            color: white;
+            position: relative;
+            animation: logoGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes logoGlow {
+            0% { box-shadow: 0 0 20px var(--primary), 0 0 40px var(--primary), 0 0 60px rgba(59,130,246,0.4); }
+            100% { box-shadow: 0 0 30px var(--accent-blue), 0 0 60px var(--accent-blue), 0 0 90px rgba(139,92,246,0.4); }
+        }
+
+        .logo-title h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--neon-purple), var(--accent-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            line-height: 1.2;
+            letter-spacing: -1px;
+            animation: textShimmer 3s ease-in-out infinite alternate;
+            font-family: var(--font-mono);
+        }
+
+        @keyframes textShimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .logo-title p { color: var(--text-dim); font-size: 0.95rem; }
+
+        .live-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(15,15,22,0.92) 0%, rgba(18,18,28,0.88) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 25px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent-blue));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .stat-card:hover::before { transform: scaleX(1); }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(59, 130, 246, 0.25);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .stat-label i { color: var(--neon-cyan); }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--neon-cyan);
+            font-family: var(--font-mono);
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
+        }
+
+        /* MAIN PANELS */
+        .main-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-panels { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: linear-gradient(135deg, rgba(15,15,22,0.92) 0%, rgba(18,18,28,0.88) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 35px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent-blue), var(--accent-purple));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .panel:hover::before { transform: scaleX(1); }
+
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--text-light);
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .panel-title i {
+            color: var(--neon-cyan);
+            font-size: 1.6rem;
+            filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.5));
+            animation: iconPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .panel-badge {
+            background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+            color: white;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            font-family: var(--font-mono);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .panel-badge::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%);
+            transform: rotate(45deg);
+            animation: badgeShine 3s infinite linear;
+        }
+
+        @keyframes badgeShine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        /* ENHANCED TEXTAREA */
+        .data-input-section { margin-bottom: 30px; }
+
+        .input-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-dim);
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .input-label i { color: var(--primary); font-size: 1.2rem; }
+
+        .enhanced-textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 20px;
+            background: rgba(10, 10, 16, 0.6);
+            color: var(--text-light);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            resize: vertical;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .enhanced-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            background: rgba(10, 10, 16, 0.85);
+        }
+
+        /* 3D BUTTONS — versi AURA */
+        .button-group-3d {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .btn-3d {
+            padding: 18px 25px;
+            border: none;
+            border-radius: 14px;
+            font-family: var(--font-body);
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 1px;
+        }
+
+        .btn-3d:hover { transform: translateY(-4px); }
+        .btn-3d:active { transform: translateY(0); }
+
+        .btn-primary-3d {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3), 0 6px 0 rgba(30, 100, 220, 0.7);
+        }
+
+        .btn-primary-3d:hover {
+            box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4), 0 8px 0 rgba(30, 100, 220, 0.9);
+        }
+
+        .btn-danger-3d {
+            background: linear-gradient(135deg, #ff3048, #e01f36);
+            color: white;
+            box-shadow: 0 10px 20px rgba(255, 48, 72, 0.3), 0 6px 0 rgba(180, 20, 40, 0.7);
+        }
+
+        .btn-danger-3d:hover {
+            box-shadow: 0 15px 30px rgba(255, 48, 72, 0.4), 0 8px 0 rgba(180, 20, 40, 0.9);
+        }
+
+        .btn-success-3d {
+            background: linear-gradient(135deg, #00c8d4, #009aa8);
+            color: #052023;
+            box-shadow: 0 10px 20px rgba(0, 240, 255, 0.25), 0 6px 0 rgba(0, 140, 155, 0.7);
+        }
+
+        .btn-success-3d:hover {
+            box-shadow: 0 15px 30px rgba(0, 240, 255, 0.35), 0 8px 0 rgba(0, 140, 155, 0.9);
+        }
+
+        .btn-secondary-3d {
+            background: linear-gradient(135deg, var(--accent-blue), #7c3aed);
+            color: white;
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3), 0 6px 0 rgba(110, 60, 210, 0.7);
+        }
+
+        .btn-secondary-3d:hover {
+            box-shadow: 0 15px 30px rgba(139, 92, 246, 0.4), 0 8px 0 rgba(110, 60, 210, 0.9);
+        }
+
+        /* RESULT CARDS */
+        .result-card-glass {
+            background: linear-gradient(135deg, rgba(15,15,22,0.92) 0%, rgba(18,18,28,0.88) 100%);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 25px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .result-card-glass:hover {
+            border-color: rgba(0, 240, 255, 0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .result-label {
+            color: var(--text-light);
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .result-value {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: var(--neon-cyan);
+            font-family: var(--font-mono);
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.5), 0 0 40px rgba(0, 240, 255, 0.25);
+            animation: numberGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes numberGlow {
+            0% { text-shadow: 0 0 20px rgba(0, 240, 255, 0.5), 0 0 40px rgba(0, 240, 255, 0.25); }
+            100% { text-shadow: 0 0 30px rgba(0, 240, 255, 0.8), 0 0 60px rgba(0, 240, 255, 0.4); }
+        }
+
+        /* MANUAL SECTION — panel ungu aksen */
+        .manual-section {
+            background: linear-gradient(135deg, rgba(15,15,22,0.92) 0%, rgba(18,18,28,0.88) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            border-radius: 18px;
+            padding: 30px;
+            margin-top: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .manual-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent 0%, var(--accent-blue) 50%, transparent 100%);
+        }
+
+        .manual-input-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .manual-input-group { grid-template-columns: 1fr; }
+        }
+
+        .enhanced-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(10, 10, 16, 0.7);
+            color: var(--text-light);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .enhanced-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+            background: rgba(10, 10, 16, 0.9);
+        }
+
+        /* INFO GRID */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        @media (max-width: 1024px) { .info-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .info-grid { grid-template-columns: 1fr; } }
+
+        .info-item-glass {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 20px;
+            transition: all 0.25s ease;
+        }
+
+        .info-item-glass:hover {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.35);
+            transform: translateY(-3px);
+        }
+
+        .info-label {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: var(--neon-cyan);
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+
+        /* FORMULA DISPLAY */
+        .formula-display-neon {
+            background: rgba(6, 6, 10, 0.9);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: var(--font-mono);
+            color: var(--neon-cyan);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .formula-display-neon::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.05) 50%, transparent 100%);
+            animation: formulaShine 3s infinite linear;
+        }
+
+        @keyframes formulaShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* PROGRESS BAR */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin: 25px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-liquid {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--neon-cyan) 50%, var(--accent-blue) 100%);
+            width: 0%;
+            border-radius: 10px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar-liquid::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+            animation: progressShine 2s infinite linear;
+        }
+
+        @keyframes progressShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* NOTIFICATION SYSTEM */
+        .notification-container {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 10000;
+        }
+
+        .notification-glass {
+            background: linear-gradient(135deg, rgba(22,22,34,0.98) 0%, rgba(18,18,28,0.98) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 20px 25px;
+            margin-bottom: 15px;
+            max-width: 400px;
+            transform: translateX(120%);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--text-light);
+        }
+
+        .notification-icon { font-size: 1.4rem; }
+
+        .notification-success { border-left: 4px solid var(--accent-green); }
+        .notification-success .notification-icon { color: var(--accent-green); }
+
+        .notification-error { border-left: 4px solid var(--accent-red); }
+        .notification-error .notification-icon { color: var(--accent-red); }
+
+        .notification-warning { border-left: 4px solid var(--accent-yellow); }
+        .notification-warning .notification-icon { color: var(--accent-yellow); }
+
+        .notification-info { border-left: 4px solid var(--primary); }
+        .notification-info .notification-icon { color: var(--primary); }
+
+        /* BACK BUTTON */
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .back-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-family: var(--font-body);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+        }
+
+        /* FOOTER */
+        .neon-footer {
+            text-align: center;
+            padding: 40px 20px;
+            opacity: 0.6;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1024px) {
+            .main-panels { grid-template-columns: 1fr; }
+            .live-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .logo-title h1 { font-size: 2rem; }
+            .logo-icon { width: 60px; height: 60px; font-size: 2rem; }
+            .panel { padding: 25px; }
+            .result-value { font-size: 2.2rem; }
+            .live-stats { grid-template-columns: 1fr; }
+            .back-button { top: 10px; left: 10px; }
+            .back-btn { padding: 10px 18px; font-size: 0.8rem; }
+        }
+
+        @media (max-width: 480px) {
+            .logo-title h1 { font-size: 1.6rem; }
+            .panel-title { font-size: 1.2rem; }
+            .button-group-3d { grid-template-columns: 1fr; }
+            .neon-header { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ======== AUTH CHECK AURA.OS (Workers) ======== -->
+    <script>
+        const authToken = localStorage.getItem('aura_auth_token');
+        if (!authToken) window.location.href = '/Login.html';
+    </script>
+
+    <!-- BACK TO DASHBOARD -->
+    <div class="back-button">
+        <button class="back-btn" onclick="goBackToDashboard()">
+            <i class="fas fa-arrow-left"></i>
+            Back to Dashboard
+        </button>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="main-container">
+        <!-- HEADER -->
+        <div class="neon-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <div class="logo-title">
+                        <h1>PG REPORT ENGINE</h1>
+                        <p style="margin-top: 10px;">
+                            <i class="fas fa-bolt"></i> Quantum Calculation Engine • Real-time Analytics
+                        </p>
+                    </div>
+                </div>
+
+                <!-- LIVE STATS -->
+                <div class="live-stats">
+                    <div class="stat-card">
+                        <div class="stat-label">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Total Credit</span>
+                        </div>
+                        <div class="stat-value" id="totalCreditStat">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Total Debit</span>
+                        </div>
+                        <div class="stat-value" id="totalDebitStat">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">
+                            <i class="fas fa-coins"></i>
+                            <span>Balance</span>
+                        </div>
+                        <div class="stat-value" id="sisaStat">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROGRESS BAR -->
+        <div class="progress-container">
+            <div class="progress-bar-liquid" id="calculationProgress"></div>
+        </div>
+
+        <!-- MAIN PANELS -->
+        <div class="main-panels">
+            <!-- LEFT PANEL: DATA INPUT -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-database"></i>
+                        <span>Data Input &amp; Analysis</span>
+                    </div>
+                    <div class="panel-badge">ANALYZER</div>
+                </div>
+
+                <div class="data-input-section">
+                    <div class="input-label">
+                        <i class="fas fa-paste"></i>
+                        <span>Paste Seamless Data</span>
+                    </div>
+                    <textarea class="enhanced-textarea" id="rawData" placeholder="Paste your Seamless data here..."></textarea>
+                </div>
+
+                <div class="button-group-3d">
+                    <button class="btn-3d btn-primary-3d" onclick="hitungCredit()" id="calculateBtn">
+                        <i class="fas fa-calculator"></i>
+                        <span>CALCULATE CREDIT</span>
+                    </button>
+                    <button class="btn-3d btn-danger-3d" onclick="clearData()" id="clearBtn">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>CLEAR ALL</span>
+                    </button>
+                </div>
+
+                <!-- TOTAL CREDIT RESULT -->
+                <div class="result-card-glass">
+                    <div class="result-header">
+                        <div class="result-label">
+                            <i class="fas fa-money-check-alt"></i>
+                            <span>TOTAL CREDIT</span>
+                        </div>
+                        <div class="result-value" id="totalCredit">0</div>
+                    </div>
+                </div>
+
+                <!-- INFO GRID -->
+                <div class="info-grid">
+                    <div class="info-item-glass">
+                        <div class="info-label">User ID</div>
+                        <div class="info-value" id="userID">-</div>
+                    </div>
+                    <div class="info-item-glass">
+                        <div class="info-label">Period</div>
+                        <div class="info-value" id="periode">-</div>
+                    </div>
+                    <div class="info-item-glass">
+                        <div class="info-label">Game Name</div>
+                        <div class="info-value" id="gameName">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: CALCULATIONS -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-sliders-h"></i>
+                        <span>Advanced Calculations</span>
+                    </div>
+                    <div class="panel-badge">CALCULATOR</div>
+                </div>
+
+                <!-- FREESPIN SECTION -->
+                <div class="data-input-section">
+                    <div class="input-label">
+                        <i class="fas fa-gift"></i>
+                        <span>Freespin Calculation (20%)</span>
+                    </div>
+                    <button class="btn-3d btn-success-3d" onclick="hitungSpin(0.2)" id="freespinBtn">
+                        <i class="fas fa-percentage"></i>
+                        <span>CALCULATE 20%</span>
+                    </button>
+
+                    <div class="result-card-glass">
+                        <div class="result-header">
+                            <div class="result-label">
+                                <i class="fas fa-star"></i>
+                                <span>Freespin Result</span>
+                            </div>
+                            <div class="result-value" id="freespin">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BUYSPIN SECTION -->
+                <div class="data-input-section">
+                    <div class="input-label">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>Buyspin Calculation (25%)</span>
+                    </div>
+                    <button class="btn-3d btn-secondary-3d" onclick="hitungSpin(0.25)" id="buyspinBtn">
+                        <i class="fas fa-cart-plus"></i>
+                        <span>CALCULATE 25%</span>
+                    </button>
+
+                    <div class="result-card-glass">
+                        <div class="result-header">
+                            <div class="result-label">
+                                <i class="fas fa-tags"></i>
+                                <span>Buyspin Result</span>
+                            </div>
+                            <div class="result-value" id="buyspin">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MANUAL CALCULATION -->
+                <div class="manual-section">
+                    <div class="panel-header" style="border-bottom: none; padding-bottom: 0;">
+                        <div class="panel-title">
+                            <i class="fas fa-edit"></i>
+                            <span>Manual Calculation</span>
+                        </div>
+                    </div>
+
+                    <div class="input-label">
+                        <i class="fas fa-keyboard"></i>
+                        <span>Enter Amount</span>
+                    </div>
+
+                    <div class="manual-input-group">
+                        <input type="number" class="enhanced-input" id="manualNominal" placeholder="e.g., 50000">
+                        <button class="btn-3d btn-primary-3d" onclick="kurangiNominal()" id="minusBtn">
+                            <i class="fas fa-minus"></i>
+                            <span>SUBTRACT</span>
+                        </button>
+                        <button class="btn-3d btn-success-3d" onclick="hitungManualFreespin()" id="manualFreespinBtn">
+                            <i class="fas fa-percentage"></i>
+                            <span>20%</span>
+                        </button>
+                    </div>
+
+                    <div class="button-group-3d" style="margin-top: 20px;">
+                        <button class="btn-3d btn-secondary-3d" onclick="hitungManualBuyspin()" id="manualBuyspinBtn">
+                            <i class="fas fa-cart-plus"></i>
+                            <span>BUYSPIN 25%</span>
+                        </button>
+                        <button class="btn-3d btn-danger-3d" onclick="clearManual()" id="resetManualBtn">
+                            <i class="fas fa-times"></i>
+                            <span>RESET</span>
+                        </button>
+                    </div>
+
+                    <div class="result-card-glass" style="margin-top: 20px;">
+                        <div class="result-header">
+                            <div class="result-label">
+                                <i class="fas fa-calculator"></i>
+                                <span>Manual Result</span>
+                            </div>
+                            <div class="result-value" id="hasilKurang">0</div>
+                        </div>
+                    </div>
+
+                    <div class="formula-display-neon" id="formulaDisplay">
+                        Formula: (Total Credit - Total Debit) × Percentage = Result
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="neon-footer">
+            <p>© 2024 AURA.OS // PG REPORT ENGINE v5.0 — Cloudflare Edition</p>
+            <p style="margin-top: 10px; font-size: 0.85rem; opacity: 0.6;">
+                <i class="fas fa-code"></i> Built with advanced visual technologies • No sound effects
+            </p>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION CONTAINER -->
+    <div class="notification-container" id="notificationContainer"></div>
+
+    <script>
+        // ======== BACK TO DASHBOARD (Workers version) ========
+        function goBackToDashboard() {
+            window.location.href = '/Dashboard.html';
+        }
+
+        // ======== NOTIFICATION SYSTEM ========
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification-glass notification-${type}`;
+
+            let icon = 'info-circle';
+            if (type === 'success') icon = 'check-circle';
+            else if (type === 'error') icon = 'exclamation-circle';
+            else if (type === 'warning') icon = 'exclamation-triangle';
+
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas fa-${icon} notification-icon"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+
+            container.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+                notification.style.opacity = '1';
+            }, 10);
+
+            setTimeout(() => {
+                notification.style.transform = 'translateX(120%)';
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 500);
+            }, 5000);
+        }
+
+        // ======== PROGRESS BAR ANIMATION ========
+        function animateProgress(start, end, duration = 600) {
+            const progressBar = document.getElementById('calculationProgress');
+            const startTime = performance.now();
+
+            function updateProgress(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+                const currentProgress = start + (end - start) * easeOutCubic;
+                progressBar.style.width = currentProgress + '%';
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateProgress);
+                } else if (end === 100) {
+                    setTimeout(() => { progressBar.style.width = '0%'; }, 300);
+                }
+            }
+
+            requestAnimationFrame(updateProgress);
+        }
+
+        // ======== FORMAT ANGKA DENGAN KOMA ========
+        function formatAngkaKoma(n) {
+            if (isNaN(n) || n === null || n === undefined) return "0";
+            let isNeg = n < 0;
+            let absNum = Math.abs(Math.round(n));
+            return (isNeg ? "-" : "") + absNum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // ======== ANIMATE VALUE ========
+        function animateValue(element, start, end, duration = 800) {
+            const startTime = performance.now();
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+                const current = start + (end - start) * easeOutQuart;
+                element.textContent = formatAngkaKoma(Math.floor(current));
+                if (progress < 1) requestAnimationFrame(update);
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        // ======== GLOBAL VARIABLES ========
+        let totalCredit = 0;
+        let totalDebit = 0;
+        let userID = "";
+        let periode = "";
+        let gameName = "";
+        let hasilKurang = 0;
+
+        function parseCurrentVal(elId) {
+            return parseInt((document.getElementById(elId).textContent || '0').replace(/,/g, '')) || 0;
+        }
+
+        // ======== UPDATE STATS ========
+        function updateStats() {
+            animateValue(document.getElementById('totalCreditStat'), parseCurrentVal('totalCreditStat'), totalCredit);
+            animateValue(document.getElementById('totalDebitStat'), parseCurrentVal('totalDebitStat'), totalDebit);
+            animateValue(document.getElementById('sisaStat'), parseCurrentVal('sisaStat'), totalCredit - totalDebit);
+        }
+
+        // ======== HITUNG CREDIT & DEBIT ========
+        function hitungCredit() {
+            animateProgress(0, 30);
+
+            const raw = document.getElementById("rawData").value.trim();
+            if (!raw) {
+                showNotification("Please paste Seamless data first!", "error");
+                return;
+            }
+
+            const btn = document.getElementById('calculateBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>PROCESSING...</span>';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                const lines = raw.split(/\r?\n/);
+                let credit = 0;
+                let debit = 0;
+
+                gameName = lines[0] || "-";
+                userID = "";
+                periode = "";
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+
+                    // 1. CARI CREDIT
+                    if (line.toLowerCase() === "credit") {
+                        const nextLine = lines[i + 1] || "";
+                        const match = nextLine.match(/idr\s*([\d.,]+)/i);
+                        if (match) {
+                            let angka = match[1].replace(/\./g, "").replace(/,/g, "");
+                            credit += parseInt(angka, 10) || 0;
+                        }
+                    }
+
+                    // 2. CARI DEBIT
+                    if (line.toLowerCase() === "debit") {
+                        const nextLine = lines[i + 1] || "";
+                        const match = nextLine.match(/idr\s*([\d.,]+)/i);
+                        if (match) {
+                            let angka = match[1].replace(/\./g, "").replace(/,/g, "");
+                            debit += parseInt(angka, 10) || 0;
+                        }
+                    }
+
+                    // 3. CARI PERIODE
+                    if (i === 2 && line.includes('-')) {
+                        const parts = line.split('-');
+                        if (parts.length >= 2) periode = parts[1];
+                    }
+
+                    // 4. CARI USER ID
+                    if ((line.includes("Ext. ID :") || line.includes("Ext. ID:")) && !userID && i + 1 < lines.length) {
+                        const nextLine = lines[i + 1].trim();
+                        if (nextLine && nextLine.length > 0 &&
+                            !nextLine.toLowerCase().includes("credit") &&
+                            !nextLine.toLowerCase().includes("debit") &&
+                            !nextLine.toLowerCase().includes("balance") &&
+                            !nextLine.includes("ITWLB5") &&
+                            !nextLine.includes(" - ")) {
+                            userID = nextLine;
+                        }
+                    }
+                }
+
+                animateProgress(30, 80);
+
+                totalCredit = credit;
+                totalDebit = debit;
+                hasilKurang = 0;
+
+                animateValue(document.getElementById("totalCredit"), parseCurrentVal('totalCredit'), totalCredit);
+                document.getElementById("userID").textContent = userID || "-";
+                document.getElementById("periode").textContent = periode || "-";
+                document.getElementById("gameName").textContent = gameName || "-";
+
+                updateStats();
+
+                document.getElementById("freespin").textContent = "0";
+                document.getElementById("buyspin").textContent = "0";
+                document.getElementById("hasilKurang").textContent = "0";
+
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+
+                animateProgress(80, 100);
+                showNotification(`Analysis complete! Total: ${formatAngkaKoma(totalCredit)}`, "success");
+
+            }, 500);
+        }
+
+        // ======== HITUNG SPIN ========
+        function hitungSpin(persen) {
+            if (totalCredit === 0) {
+                showNotification("Please calculate credit first!", "warning");
+                return;
+            }
+
+            const btn = persen === 0.2 ? document.getElementById('freespinBtn') : document.getElementById('buyspinBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>CALCULATING...</span>';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                let sisa = totalCredit - totalDebit;
+                let hasil = Math.floor(sisa * persen);
+
+                if (hasil > 400000) {
+                    hasil = 400000;
+                    showNotification("Result reached maximum limit of 400,000", "info");
+                }
+
+                if (persen === 0.2) {
+                    animateValue(document.getElementById("freespin"), parseCurrentVal('freespin'), hasil);
+                    const formula = `(${formatAngkaKoma(totalCredit)} - ${formatAngkaKoma(totalDebit)}) × 20% = ${formatAngkaKoma(hasil)}`;
+                    document.getElementById("formulaDisplay").innerHTML =
+                        `<span style="color: var(--accent-green);">Freespin Formula:</span><br>${formula}`;
+                    showNotification(`Freespin 20%: ${formatAngkaKoma(hasil)}`, "success");
+                } else {
+                    animateValue(document.getElementById("buyspin"), parseCurrentVal('buyspin'), hasil);
+                    const formula = `(${formatAngkaKoma(totalCredit)} - ${formatAngkaKoma(totalDebit)}) × 25% = ${formatAngkaKoma(hasil)}`;
+                    document.getElementById("formulaDisplay").innerHTML =
+                        `<span style="color: var(--neon-purple);">Buyspin Formula:</span><br>${formula}`;
+                    showNotification(`Buyspin 25%: ${formatAngkaKoma(hasil)}`, "success");
+                }
+
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+
+            }, 400);
+        }
+
+        // ======== KURANGI NOMINAL ========
+        function kurangiNominal() {
+            const manual = parseInt(document.getElementById("manualNominal").value || 0);
+
+            if (manual === 0) {
+                showNotification("Please enter an amount first!", "warning");
+                return;
+            }
+
+            const btn = document.getElementById('minusBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>...</span>';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                const base = hasilKurang > 0 ? hasilKurang : (totalCredit - totalDebit);
+                hasilKurang = base - manual;
+
+                animateValue(document.getElementById("hasilKurang"), parseCurrentVal('hasilKurang'), hasilKurang);
+
+                const formula = `${formatAngkaKoma(base)} - ${formatAngkaKoma(manual)} = ${formatAngkaKoma(hasilKurang)}`;
+                document.getElementById("formulaDisplay").innerHTML =
+                    `<span style="color: var(--neon-cyan);">Subtract Formula:</span><br>${formula}`;
+
+                showNotification(`Result: ${formatAngkaKoma(hasilKurang)}`, hasilKurang < 0 ? "warning" : "success");
+
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 300);
+        }
+
+        // ======== MANUAL FREESPIN ========
+        function hitungManualFreespin() {
+            const manual = parseInt(document.getElementById("manualNominal").value || 0);
+
+            if (manual === 0) {
+                showNotification("Please enter an amount first!", "warning");
+                return;
+            }
+
+            let hasil = Math.floor(manual * 0.2);
+            if (hasil > 400000) {
+                hasil = 400000;
+                showNotification("Result reached maximum limit of 400,000", "info");
+            }
+
+            animateValue(document.getElementById("hasilKurang"), parseCurrentVal('hasilKurang'), hasil);
+            hasilKurang = hasil;
+
+            const formula = `${formatAngkaKoma(manual)} × 20% = ${formatAngkaKoma(hasil)}`;
+            document.getElementById("formulaDisplay").innerHTML =
+                `<span style="color: var(--accent-green);">Manual Freespin Formula:</span><br>${formula}`;
+
+            showNotification(`Manual Freespin 20%: ${formatAngkaKoma(hasil)}`, "success");
+        }
+
+        // ======== MANUAL BUYSPIN ========
+        function hitungManualBuyspin() {
+            const manual = parseInt(document.getElementById("manualNominal").value || 0);
+
+            if (manual === 0) {
+                showNotification("Please enter an amount first!", "warning");
+                return;
+            }
+
+            let hasil = Math.floor(manual * 0.25);
+            if (hasil > 400000) {
+                hasil = 400000;
+                showNotification("Result reached maximum limit of 400,000", "info");
+            }
+
+            animateValue(document.getElementById("hasilKurang"), parseCurrentVal('hasilKurang'), hasil);
+            hasilKurang = hasil;
+
+            const formula = `${formatAngkaKoma(manual)} × 25% = ${formatAngkaKoma(hasil)}`;
+            document.getElementById("formulaDisplay").innerHTML =
+                `<span style="color: var(--neon-purple);">Manual Buyspin Formula:</span><br>${formula}`;
+
+            showNotification(`Manual Buyspin 25%: ${formatAngkaKoma(hasil)}`, "success");
+        }
+
+        // ======== CLEAR MANUAL ========
+        function clearManual() {
+            document.getElementById("manualNominal").value = "";
+            document.getElementById("hasilKurang").textContent = "0";
+            hasilKurang = 0;
+            document.getElementById("formulaDisplay").innerHTML =
+                "Formula: (Total Credit - Total Debit) × Percentage = Result";
+            showNotification("Manual calculation reset!", "info");
+        }
+
+        // ======== CLEAR ALL ========
+        function clearData() {
+            document.getElementById("rawData").value = "";
+            document.getElementById("totalCredit").textContent = "0";
+            document.getElementById("totalCreditStat").textContent = "0";
+            document.getElementById("totalDebitStat").textContent = "0";
+            document.getElementById("sisaStat").textContent = "0";
+            document.getElementById("freespin").textContent = "0";
+            document.getElementById("buyspin").textContent = "0";
+            document.getElementById("hasilKurang").textContent = "0";
+            document.getElementById("userID").textContent = "-";
+            document.getElementById("periode").textContent = "-";
+            document.getElementById("gameName").textContent = "-";
+            document.getElementById("manualNominal").value = "";
+            document.getElementById("formulaDisplay").innerHTML =
+                "Formula: (Total Credit - Total Debit) × Percentage = Result";
+
+            totalCredit = 0; totalDebit = 0; hasilKurang = 0;
+            userID = ""; periode = ""; gameName = "";
+
+            showNotification("All data cleared!", "success");
+        }
+    </script>
+</body>
+</html>
