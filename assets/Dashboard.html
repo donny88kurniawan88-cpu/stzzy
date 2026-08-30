@@ -209,7 +209,7 @@
     .saldoKasBadge { display: inline-flex; align-items: center; justify-content: center; max-width: 100%; padding: 6px 12px; border-radius: 999px; font-size: 10px; font-weight: 950; white-space: nowrap; letter-spacing: .5px; }
     .saldoKasBadge.bad { background: rgba(255,48,72,0.1); border: 1px solid var(--neon-red); color: var(--neon-red); box-shadow: 0 0 8px rgba(255,48,72,0.3); }
     .saldoKasBadge.ok { background: rgba(0,255,179,0.1); border: 1px solid var(--neon-green); color: var(--neon-green); box-shadow: 0 0 8px rgba(0,255,179,0.3); }
-    .saldoKasBadge.warn { background: rgba(255,209,102,0.1); border: 1px solid var(--neon-yellow); color: var(--neon-yellow; box-shadow: 0 0 8px rgba(255,209,102,0.3); }
+    .saldoKasBadge.warn { background: rgba(255,209,102,0.1); border: 1px solid var(--neon-yellow); color: var(--neon-yellow); box-shadow: 0 0 8px rgba(255,209,102,0.3); }
     .saldoKasCopyCell { display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; width: 100%; cursor: pointer; transition: all 0.2s; }
     .saldoKasCopyCell span.val { overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; color: var(--neon-purple); font-weight: 950; }
     .copy-icon { font-size: 12px; opacity: 0.6; transition: all 0.2s; }
@@ -258,7 +258,8 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" data-action="appInfo">Bank Formatter</div>
+            <!-- ⬇️ BANK PROCESSOR → /Bank.html -->
+            <div class="submenu-item" onclick="window.location.href='/Bank.html'">Bank Processor</div>
           </div>
         </div>
       </div>
@@ -297,7 +298,7 @@
       <div id="dashboardView">
         <div class="hero-section"><h1 class="hero-title">Welcome back, <span id="userName">User</span></h1><p class="hero-subtitle">Quantum interface loaded. All systems operational.</p></div>
         <div class="stats-grid">
-          <div class="stat-card"><div class="stat-label">Active Modules</div><div class="stat-value">14</div><div class="stat-trend positive">+4 this week</div></div>
+          <div class="stat-card"><div class="stat-label">Active Modules</div><div class="stat-value">15</div><div class="stat-trend positive">+5 this week</div></div>
           <div class="stat-card"><div class="stat-label">Total Transactions</div><div class="stat-value">1,284</div><div class="stat-trend positive">+18%</div></div>
           <div class="stat-card"><div class="stat-label">Pending Validation</div><div class="stat-value">23</div><div class="stat-trend negative">-5</div></div>
           <div class="stat-card"><div class="stat-label">System Health</div><div class="stat-value">98%</div><div class="stat-trend positive">Optimal</div></div>
@@ -312,7 +313,8 @@
           <div class="module-card" data-color="teal" onclick="window.location.href='/Validator.html'"><div class="module-icon">🏦</div><div class="module-name">Rek. Validator</div><div class="module-desc">Cross-check 4 databases</div><div class="module-badge">v1.5.0</div></div>
           <!-- ⬇️ DATA COMPARE → /Analyzer.html -->
           <div class="module-card" data-color="pink" onclick="window.location.href='/Analyzer.html'"><div class="module-icon">📈</div><div class="module-name">Data Compare</div><div class="module-desc">P2M vs Zonamain vs Report analysis</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="blue" data-action="appInfo"><div class="module-icon">💰</div><div class="module-name">Bank Formatter</div><div class="module-desc">Convert multi-format bank data</div><div class="module-badge">v1.0.0</div></div>
+          <!-- ⬇️ BANK PROCESSOR → /Bank.html -->
+          <div class="module-card" data-color="blue" onclick="window.location.href='/Bank.html'"><div class="module-icon">💰</div><div class="module-name">Bank Processor</div><div class="module-desc">Formatter &amp; validator rekening bank</div><div class="module-badge">v2.0.0</div></div>
           <div class="module-card" data-color="teal" data-action="loadPencairan"><div class="module-icon">💸</div><div class="module-name">Menu Pencairan</div><div class="module-desc">Monitor rekening &amp; pending transactions</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="red" data-action="appInfo"><div class="module-icon">🎰</div><div class="module-name">Gas Slot Engine</div><div class="module-desc">AI Slot Gacor Predictor System</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="red" onclick="window.location.href='/Authority.html'"><div class="module-icon">🛡️</div><div class="module-name">Authority Panel</div><div class="module-desc">Admin access &amp; user management</div><div class="module-badge">Restricted</div></div>
@@ -380,10 +382,10 @@
     function playSound() { try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); var o = audioCtx.createOscillator(); var g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.type = 'sine'; o.frequency.setValueAtTime(600, audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1); g.gain.setValueAtTime(0.1, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3); o.start(); o.stop(audioCtx.currentTime + 0.3); } catch (e) {} }
 
     // ============================================
-    // === REKONSTRUKSI: POPUP & PANEL HANDLERS ===
-    // (ganti dengan versi asli Anda jika berbeda)
+    // INIT HANDLERS
     // ============================================
     document.addEventListener('DOMContentLoaded', function() {
+      // Popup buttons
       $('popupCloseBtn').addEventListener('click', closePopup);
       $('popupCancelBtn').addEventListener('click', closePopup);
       $('popupConfirmBtn').addEventListener('click', confirmPopup);
@@ -399,15 +401,36 @@
       $('statusBadge').addEventListener('click', testConnection);
 
       // Default date = hari ini
-      var today = new Date(); var dd = String(today.getDate()).padStart(2, '0'); var mm = String(today.getMonth() + 1).padStart(2, '0');
+      var today = new Date();
+      var dd = String(today.getDate()).padStart(2, '0');
+      var mm = String(today.getMonth() + 1).padStart(2, '0');
       $('skDateInput').value = today.getFullYear() + '-' + mm + '-' + dd;
+
+      // Saldo Kas handlers
+      $('skLoadBtn').addEventListener('click', loadSaldoKas);
+      $('skSearchInput').addEventListener('input', function() {
+        var q = this.value.toLowerCase();
+        var filtered = skCacheData.filter(function(r) {
+          return JSON.stringify(r).toLowerCase().includes(q);
+        });
+        if (skCacheData.length) renderSaldoKas(filtered);
+      });
+      $('skCopyAllBtn').addEventListener('click', function() {
+        if (!skCacheData.length) return showToast('Belum ada data untuk disalin', 'warning');
+        var text = skCacheData.map(function(r, i) {
+          return (i + 1) + '\t' + (r.sheet || '-') + '\t' + (r.nama || '') + '\t' + (r.rek || '-') + '\t' + (r.cair || 0);
+        }).join('\n');
+        copyText(text);
+        var btn = $('skCopyAllBtn'); btn.classList.add('copied');
+        setTimeout(function() { btn.classList.remove('copied'); }, 2000);
+      });
 
       addTerminalLog('[AUTH] Session verified: ' + authToken + ' (' + (userRole || 'USER') + ')');
       addTerminalLog('[NET] Connected to AURA.OS Cloudflare Workers');
     });
 
     // ============================================
-    // === REKONSTRUKSI: NAV & MODULE HANDLERS ===
+    // NAV & MODULE HANDLERS
     // ============================================
     document.addEventListener('click', function(e) {
       var el = e.target.closest('[data-action], [data-menu]');
@@ -438,8 +461,8 @@
         '<div style="font-size:14px; line-height:2; color: var(--text-secondary);">' +
         '<strong style="color: var(--text-primary);">AURA.OS</strong> v3.0.1 — Cloudflare Edition<br>' +
         'Runtime: Cloudflare Workers + D1<br>' +
-        'Module: ' + escapeHtml('Reserved for future release') + '<br>' +
-        'Access: ' + escapeHtml(authToken) + ' (' + escapeHtml(userRole || 'USER') + ')' +
+        'Endpoint API: 22 route aktif<br>' +
+        'User: ' + escapeHtml(authToken) + ' (' + escapeHtml(userRole || 'USER') + ')' +
         '</div>', false);
       addTerminalLog('[INFO] App info requested');
     }
@@ -467,12 +490,8 @@
     }
 
     // ============================================
-    // === REKONSTRUKSI: SALDO KAS LOGIC ===
-    // ⚠️ Panggil /api/pencairan — jika endpoint ini
-    // belum ada di worker, akan tampil pesan gracefully.
-    // Ganti dengan kode asli Anda jika berbeda.
+    // SALDO KAS — LOAD dari /api/pencairan
     // ============================================
-    $('skLoadBtn').addEventListener('click', loadSaldoKas);
     var skCacheData = [];
 
     async function loadSaldoKas() {
@@ -480,21 +499,32 @@
       $('skLastUpdate').textContent = 'Memuat data... ' + date;
       $('skTableBody').innerHTML = '<tr><td colspan="8" class="saldoKasCenter" style="padding:40px; color: rgba(255,255,255,0.4);">Memuat data...</td></tr>';
       try {
-        var res = await fetch('/api/pencairan?date=' + encodeURIComponent(date));
-        if (!res.ok) throw new Error('Endpoint belum tersedia');
+        var res = await fetch('/api/pencairan?date=' + encodeURIComponent(date), {
+          headers: { 'x-auth-token': authToken }
+        });
+        if (!res.ok) {
+          if (res.status === 403) { showToast('Akses ditolak — hanya Admin', 'error'); $('skLastUpdate').textContent = 'Akses ditolak'; }
+          else throw new Error('HTTP ' + res.status);
+          $('skTableBody').innerHTML = '<tr><td colspan="8" class="saldoKasCenter" style="padding:40px; color: var(--neon-red);">Gagal memuat data.</td></tr>';
+          return;
+        }
         var data = await res.json();
         skCacheData = data.rows || [];
-        renderSaldoKas(skCacheData);
-        $('skLastUpdate').textContent = 'Update: ' + new Date().toLocaleString('id-ID');
+        renderSaldoKas(skCacheData, data.totals);
+
+        $('skLastUpdate').textContent = 'Update: ' + new Date().toLocaleString('id-ID') + ' • ' + (data.count || 0) + ' baris';
+        addTerminalLog('[SALDO] Loaded ' + (data.count || 0) + ' rows for ' + date);
+        if (!skCacheData.length) showToast('Tidak ada data untuk tanggal ini', 'warning');
+        else showToast('Data pencairan dimuat: ' + data.count + ' baris', 'success');
       } catch (err) {
-        $('skTableBody').innerHTML = '<tr><td colspan="8" class="saldoKasCenter" style="padding:40px; color: var(--neon-yellow);">Endpoint /api/pencairan belum tersedia di backend.<br>Hubungkan worker atau ganti dengan kode loader asli Anda.</td></tr>';
+        $('skTableBody').innerHTML = '<tr><td colspan="8" class="saldoKasCenter" style="padding:40px; color: var(--neon-yellow);">Gagal terhubung ke server. Pastikan tabel pencairan sudah dibuat di D1.</td></tr>';
         $('skLastUpdate').textContent = 'Gagal memuat data';
-        showToast('Data pencairan belum terhubung ke backend', 'warning');
+        showToast('Gagal memuat data pencairan', 'error');
         addTerminalLog('[SALDO] Load failed: ' + err.message);
       }
     }
 
-    function renderSaldoKas(rows) {
+    function renderSaldoKas(rows, totals) {
       var totalN9 = 0, totalPending = 0, totalAsli = 0, totalCair = 0, totalBelum = 0;
       var html = '';
       rows.forEach(function(r, i) {
@@ -506,49 +536,35 @@
           '<td class="saldoKasNum">' + (r.saldoN9 || 0).toLocaleString('id-ID') + '</td>' +
           '<td class="saldoKasNum">' + (r.pending || 0).toLocaleString('id-ID') + '</td>' +
           '<td class="saldoKasNum">' + (r.saldoAsli || 0).toLocaleString('id-ID') + '</td>' +
-          '<td class="saldoKasNum saldoKasCopyCell" onclick="copyText(\'' + (r.cair || 0) + '\')"><span class="val">' + (r.cair || 0).toLocaleString('id-ID') + '</span><i class="fas fa-copy copy-icon"></i></td>' +
+          '<td class="saldoKasNum"><div class="saldoKasCopyCell" onclick="copyText(\'' + (r.cair || 0) + '\')" title="Klik untuk salin"><span class="val">' + (r.cair || 0).toLocaleString('id-ID') + '</span><i class="fas fa-copy copy-icon"></i></div></td>' +
           '<td class="saldoKasCenter"><span class="saldoKasBadge ' + (r.status === 'OK' ? 'ok' : 'bad') + '">' + escapeHtml(r.status || '-') + '</span></td>' +
-          '<td><span class="saldoKasNote">' + escapeHtml(r.ket || '-') + '</span></td>' +
+          '<td><span class="saldoKasNote" title="' + escapeHtml(r.ket || '') + '">' + escapeHtml(r.ket || '-') + '</span></td>' +
         '</tr>';
       });
       if (!rows.length) html = '<tr><td colspan="8" class="saldoKasCenter" style="padding:40px; color: rgba(255,255,255,0.4);">Tidak ada data untuk tanggal ini.</td></tr>';
       $('skTableBody').innerHTML = html;
-      $('skTotalN9').textContent = totalN9.toLocaleString('id-ID');
-      $('skTotalPending').textContent = totalPending.toLocaleString('id-ID');
-      $('skTotalAsli').textContent = totalAsli.toLocaleString('id-ID');
-      $('skTotalCair').textContent = totalCair.toLocaleString('id-ID');
-      $('skTotalBelum').textContent = totalBelum.toLocaleString('id-ID');
-      $('skTotalCacing').textContent = totalCair > 0 ? Math.floor(totalCair * 0.03).toLocaleString('id-ID') : '0';
+
+      // Pakai totals dari server kalau ada, kalau tidak hitung lokal
+      var t = totals || { totalN9: totalN9, totalPending: totalPending, totalAsli: totalAsli, totalCair: totalCair, belumProses: totalBelum };
+      $('skTotalN9').textContent = (t.totalN9 || 0).toLocaleString('id-ID');
+      $('skTotalPending').textContent = (t.totalPending || 0).toLocaleString('id-ID');
+      $('skTotalAsli').textContent = (t.totalAsli || 0).toLocaleString('id-ID');
+      $('skTotalCair').textContent = (t.totalCair || 0).toLocaleString('id-ID');
+      $('skTotalBelum').textContent = (t.belumProses || 0).toLocaleString('id-ID');
+      $('skTotalCacing').textContent = t.totalCair > 0 ? Math.floor(t.totalCair * 0.03).toLocaleString('id-ID') : '0';
     }
 
-    // Search filter
-    $('skSearchInput').addEventListener('input', function() {
-      var q = this.value.toLowerCase();
-      var filtered = skCacheData.filter(function(r) {
-        return JSON.stringify(r).toLowerCase().includes(q);
-      });
-      if (skCacheData.length) renderSaldoKas(filtered);
-    });
-
-    // Copy All
-    $('skCopyAllBtn').addEventListener('click', function() {
-      if (!skCacheData.length) return showToast('Belum ada data untuk disalin', 'warning');
-      var text = skCacheData.map(function(r, i) {
-        return (i + 1) + '\t' + (r.sheet || '-') + '\t' + (r.nama || '') + '\t' + (r.rek || '-') + '\t' + (r.cair || 0);
-      }).join('\n');
-      copyText(text);
-      var btn = $('skCopyAllBtn'); btn.classList.add('copied');
-      setTimeout(function() { btn.classList.remove('copied'); }, 2000);
-    });
-
+    // ============================================
+    // COPY UTILS
+    // ============================================
     function copyText(text) {
       if (navigator.clipboard) {
         navigator.clipboard.writeText(String(text)).then(function() { showToast('Disalin: ' + text, 'success'); }).catch(function() { fallbackCopyText(String(text)); });
       } else { fallbackCopyText(String(text)); }
     }
     function fallbackCopyText(text) {
-      var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
-      ta.select(); document.execCommand('copy'); ta.remove(); showToast('Disalin ke clipboard', 'success');
+      var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); showToast('Disalin ke clipboard', 'success');
     }
   </script>
 </body>
