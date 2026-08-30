@@ -17,6 +17,8 @@ export default {
     if (path === '/analyzer' || path === '/Analyzer.html') return env.ASSETS.fetch(new Request(new URL('/Analyzer.html', request.url), request));
     // ⬇️ BARU: PG Soft Calculator
     if (path === '/pgreport' || path === '/PgReport.html') return env.ASSETS.fetch(new Request(new URL('/PgReport.html', request.url), request));
+    // ⬇️ BARU: Bank Formatter & Validator
+    if (path === '/bank' || path === '/Bank.html') return env.ASSETS.fetch(new Request(new URL('/Bank.html', request.url), request));
 
     // ============================================
     // HELPERS
@@ -29,6 +31,17 @@ export default {
       const user = await env.DB.prepare("SELECT role FROM users WHERE username = ?").bind(username).first();
       return !!(user && (user.role === 'ADMIN' || user.role === 'MASTER'));
     }
+
+    // Helper: cek user login valid (semua role boleh akses modul Bank)
+    async function isUser(req) {
+      const username = req.headers.get('x-auth-token');
+      if (!username) return false;
+      const user = await env.DB.prepare("SELECT username FROM users WHERE username = ?").bind(username).first();
+      return !!user;
+    }
+
+    // Helper: format angka dengan koma (1000000 → 1,000,000)
+    function dotted(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
     // Fungsi helper: ambil konfigurasi registrasi dari tabel settings
     async function getRegisSetting() {
@@ -246,7 +259,7 @@ export default {
     }
 
     // ============================================
-    // 13. API PENCAIRAN / SALDO KAS (Hanya Admin) — BARU
+    // 13. API PENCAIRAN / SALDO KAS (Hanya Admin)
     // ============================================
 
     // 13a. GET: ambil data per tanggal (dipakai tombol CEK SALDO di Dashboard)
@@ -360,6 +373,163 @@ export default {
       try {
         await env.DB.prepare("DELETE FROM pencairan WHERE id = ?").bind(cairMatch[1]).run();
         return Response.json({ success: true, message: 'Data pencairan dihapus' });
+      } catch (err) {
+        return Response.json({ error: 'Gagal menghapus: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ============================================
+    // 14. API BANK FORMATTER (parse teks mentah → 4 kolom) — BARU
+    // ============================================
+    if (path === '/api/bank/format' && request.method === 'POST') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        const body = await request.json();
+        const input = (body.input || '').trim();
+        if (!input) return Response.json({ success: false, error: 'Input kosong' }, { status: 400 });
+
+        const records = [];
+        let cur = { bank: '', nama: '', noRek: '', nominal: 0 };
+
+        const flush = () => {
+          if (cur.nama || cur.noRek || cur.nominal > 0) {
+            records.push({
+              bank: cur.bank || '-',
+              nama: cur.nama || '-',
+              noRek: cur.noRek || '-',
+              nominal: String(cur.nominal),
+              nominal_dotted: dotted(cur.nominal)
+            });
+          }
+          cur = { bank: '', nama: '', noRek: '', nominal: 0 };
+        };
+
+        for (const raw of input.split(/\r?\n/)) {
+          const line = raw.trim();
+          if (!line) { flush(); continue; }
+          const m = line.match(/^([^:]+?)\s*:\s*(.*)$/);
+          if (m) {
+            const key = m[1].toLowerCase();
+            const val = m[2].trim();
+            if (key.includes('bank')) { flush(); cur.bank = val; }
+            else if (key.includes('nama') && key.includes('rek')) cur.nama = val;
+            else if (key.includes('rekening') || key.includes('norek') || key.includes('no rek')) cur.noRek = val;
+            else if (key.includes('nominal') || key.includes('jumlah') || key.includes('amount')) cur.nominal = parseInt(val.replace(/[^\d]/g, '')) || 0;
+            // label lain (Info, Perihal, dll) diabaikan
+          } else if (!cur.bank && /[A-Za-z]/.test(line) && !/\d{6,}/.test(line)) {
+            // Baris berdiri sendiri = nama bank (mis. "KAS MANDIRI - BERSIH")
+            flush(); cur.bank = line;
+          }
+        }
+        flush();
+
+        const data = records.map(r => `${r.bank}\t${r.nama}\t${r.noRek}\t${r.nominal_dotted}`).join('\n');
+        return Response.json({ success: true, count: records.length, records: records, data: data });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal format: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ============================================
+    // 15. API BANK VALIDATOR (cocokkan NoRek ke tabel bank_accounts) — BARU
+    // ============================================
+    if (path === '/api/bank/validate' && request.method === 'POST') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        const body = await request.json();
+        const input = (body.input || '').trim();
+        if (!input) return Response.json({ success: false, error: 'Input kosong' }, { status: 400 });
+
+        const results = [];
+        const warnings = [];
+
+        for (const raw of input.split(/\r?\n/)) {
+          const line = raw.trim();
+          if (!line) continue;
+          const parts = line.split(/\t+/);
+          const nama = (parts[0] || '').trim();
+          const noRek = (parts[1] || '').trim();
+          const nominal = (parts[2] || '0').trim();
+          if (!noRek) continue;
+
+          const row = await env.DB.prepare(
+            "SELECT bank, nama, sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1"
+          ).bind(noRek).first();
+
+          let warning = '';
+          if (row && row.nama && nama && row.nama.toLowerCase() !== nama.toLowerCase()) {
+            warning = 'Nama beda dengan DB: ' + row.nama;
+            warnings.push(noRek + ' → ' + warning);
+          }
+
+          results.push({
+            bank: row ? (row.bank || '-') : '-',
+            nama: nama,
+            noRek: noRek,
+            nominal: nominal,
+            found: !!row,
+            status: row ? (row.status || row.sheet || 'DITEMUKAN') : null,
+            warning: warning
+          });
+        }
+
+        return Response.json({ success: true, count: results.length, results: results, warnings: warnings });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal validasi: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ============================================
+    // 15b. API BANK ACCOUNTS — CRUD database rekening (Hanya Admin) — BARU
+    // ============================================
+
+    // GET: list semua rekening terdaftar
+    if (path === '/api/bank/accounts' && request.method === 'GET') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        const { results } = await env.DB.prepare("SELECT * FROM bank_accounts ORDER BY id DESC").all();
+        return Response.json(results || []);
+      } catch (err) {
+        return Response.json({ error: 'Gagal mengambil data: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // POST: tambah rekening (1 atau array massal)
+    if (path === '/api/bank/accounts' && request.method === 'POST') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        const body = await request.json();
+        const items = Array.isArray(body) ? body : [body];
+        let inserted = 0;
+
+        for (const item of items) {
+          if (!item.noRek) continue;
+          await env.DB.prepare(
+            "INSERT INTO bank_accounts (bank, nama, no_rek, sheet, status, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+          ).bind(
+            item.bank || '',
+            item.nama || '',
+            item.noRek,
+            item.sheet || '',
+            item.status || item.sheet || '',
+            Date.now()
+          ).run();
+          inserted++;
+        }
+
+        return Response.json({ success: true, inserted: inserted, message: inserted + ' rekening ditambahkan' });
+      } catch (err) {
+        return Response.json({ error: 'Gagal: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // DELETE: hapus rekening by id
+    const bankAccMatch = path.match(/^\/api\/bank\/accounts\/(\d+)$/);
+    if (bankAccMatch && request.method === 'DELETE') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        await env.DB.prepare("DELETE FROM bank_accounts WHERE id = ?").bind(bankAccMatch[1]).run();
+        return Response.json({ success: true, message: 'Rekening dihapus' });
       } catch (err) {
         return Response.json({ error: 'Gagal menghapus: ' + err.message }, { status: 500 });
       }
