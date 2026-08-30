@@ -251,10 +251,9 @@ async function processBankDataValidatorLogic(inputData, env) {
 }
 
 // ---------- SHEET SYNC (pengganti buildValidatorDatabase / SpreadsheetApp) ----------
+// ⬇️ SUMBER DATABASE: spreadsheet baru Anda (semua tab dibaca otomatis)
 const VALIDATOR_SHEET_IDS = [
-  '1GdC17R2pzPu_aileNn8pnxiY0bLncIlDA9wFdQ9YI5I',
-  '1_uHytMjQ3_RbX9GUk8CEMSCeTMksmYJvXNqqNNFY4Ps',
-  '1E5cn45Bv4TGF7cltm9L7H4PFVoPEY4I1FeIiQLtIE7M'
+  '1r6EgJuTN2PL_hQGaU-dtMa4SctG-AeIYHJzs2RmeefI'
 ];
 
 function parseCsvSimple(text) {
@@ -291,7 +290,7 @@ async function fetchSheetNames(sheetId) {
   } catch (e) { return []; }
 }
 
-// Bangun database { sheetName: [{cleaned, status}] } dari 3 Google Sheets
+// Bangun database { sheetName: [{cleaned, status}] } dari spreadsheet
 async function buildValidatorDatabaseFromSheets() {
   const db = {};
   for (const id of VALIDATOR_SHEET_IDS) {
@@ -736,8 +735,7 @@ export default {
     }
 
     // ============================================
-    // 15b. SYNC DATABASE DARI 3 GOOGLE SHEETS → D1
-    //      (pengganti buildValidatorDatabase + CacheService)
+    // 15b. SYNC DATABASE DARI GOOGLE SHEET → D1
     // ============================================
     if (path === '/api/bank/sync' && request.method === 'POST') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
@@ -747,7 +745,7 @@ export default {
         for (const sheetName in db) { sheets.push(sheetName + ' (' + db[sheetName].length + ')'); total += db[sheetName].length; }
 
         if (total === 0) {
-          return Response.json({ success: false, error: '0 rekening tersinkron — pastikan 3 Google Sheets di-share "Anyone with link: Viewer"', sheets: sheets }, { status: 500 });
+          return Response.json({ success: false, error: '0 rekening tersinkron — pastikan Google Sheet di-share "Anyone with link: Viewer"', sheets: sheets }, { status: 500 });
         }
 
         await env.DB.prepare("DELETE FROM bank_accounts").run();
