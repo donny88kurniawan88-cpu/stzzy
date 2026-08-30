@@ -792,7 +792,30 @@ export default {
         return Response.json({ error: 'Gagal mengambil data: ' + err.message }, { status: 500 });
       }
     }
-
+    // 15d. DEBUG parser — lihat 15 baris pertama tiap sheet apa adanya
+    if (path === '/api/bank/sync-debug' && request.method === 'POST') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
+      try {
+        const id = VALIDATOR_SHEET_IDS[0];
+        let names = await fetchSheetNames(id);
+        if (!names.length) names = [''];
+        const out = { sheetNames: names, previews: {} };
+        for (const name of names.slice(0, 5)) {
+          const csvUrl = name
+            ? `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`
+            : `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
+          const res = await fetch(csvUrl);
+          if (!res.ok) { out.previews[name || 'DEFAULT'] = 'FETCH FAIL ' + res.status; continue; }
+          const values = parseCsvSimple(await res.text());
+          out.previews[name || 'DEFAULT'] = values.slice(0, 15).map((row, i) =>
+            i + ': [' + row.slice(0, 8).map(c => String(c).substring(0, 20)).join(' | ') + ']'
+          );
+        }
+        return Response.json(out);
+      } catch (err) {
+        return Response.json({ error: err.message }, { status: 500 });
+      }
+    }
     // ============================================
     // FALLBACK: serve static assets
     // ============================================
