@@ -5,10 +5,13 @@ export default {
     // 1. Routing Halaman HTML
     if (url.pathname === '/') return env.ASSETS.fetch(new Request(new URL('/Dashboard.html', request.url), request));
     if (url.pathname === '/login' || url.pathname === '/Login.html') return env.ASSETS.fetch(new Request(new URL('/Login.html', request.url), request));
+    if (url.pathname === '/register' || url.pathname === '/Register.html') return env.ASSETS.fetch(new Request(new URL('/Register.html', request.url), request));
     if (url.pathname === '/authority' || url.pathname === '/Authority.html') return env.ASSETS.fetch(new Request(new URL('/Authority.html', request.url), request));
     if (url.pathname === '/syair' || url.pathname === '/Syair.html') return env.ASSETS.fetch(new Request(new URL('/Syair.html', request.url), request));
     if (url.pathname === '/prediksi' || url.pathname === '/Prediksi.html') return env.ASSETS.fetch(new Request(new URL('/Prediksi.html', request.url), request));
     if (url.pathname === '/validator' || url.pathname === '/Validator.html') return env.ASSETS.fetch(new Request(new URL('/Validator.html', request.url), request));
+    // ⬇️ BARU: Data Comparison Analyzer
+    if (url.pathname === '/analyzer' || url.pathname === '/Analyzer.html') return env.ASSETS.fetch(new Request(new URL('/Analyzer.html', request.url), request));
 
     // Fungsi helper untuk cek role admin/master dari header
     async function isAdmin(req) {
@@ -187,7 +190,7 @@ export default {
       }
     }
 
-    // 12. API REGISTER (Publik — otomatis dicek statusbuka/tutup)
+    // 12. API REGISTER (Publik — otomatis dicek status buka/tutup)
     if (url.pathname === '/api/register' && request.method === 'POST') {
       try {
         const setting = await getRegisSetting();
