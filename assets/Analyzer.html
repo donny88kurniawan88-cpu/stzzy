@@ -15,21 +15,21 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   
   <style>
-        :root {
-      --bg-deep: #0a0a0f;                                      /* ⬅️ match Dashboard --bg-primary */
-      --bg-surface: #111118;                                    /* ⬅️ match Dashboard --bg-secondary */
-      --bg-elevated: #1a1a24;                                   /* ⬅️ match Dashboard --bg-tertiary */
+    :root {
+      --bg-deep: #0a0a0f;
+      --bg-surface: #111118;
+      --bg-elevated: #1a1a24;
       --primary: #6366f1;
       --accent-cyan: #00f0ff;
       --accent-pink: #ff2dfd;
       --accent-violet: #bc13fe;
       --accent-green: #00ff88;
       --accent-orange: #ff6b35;
-      --glass-border: rgba(255, 255, 255, 0.07);                /* ⬅️ match Dashboard --border */
-      --text-main: #f1f5f9;                                     /* ⬅️ match Dashboard --text-primary */
-      --text-dim: #94a3b8;                                      /* ⬅️ match Dashboard --text-secondary */
-      --font-head: 'JetBrains Mono', monospace;                 /* ⬅️ match Dashboard --font-mono */
-      --font-body: 'Inter', -apple-system, 'Segoe UI', sans-serif;  /* ⬅️ match Dashboard --font-sans */
+      --glass-border: rgba(255, 255, 255, 0.07);
+      --text-main: #f1f5f9;
+      --text-dim: #94a3b8;
+      --font-head: 'JetBrains Mono', monospace;
+      --font-body: 'Inter', -apple-system, 'Segoe UI', sans-serif;
       --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.3);
       --shadow-glow-cyan: 0 0 25px rgba(0, 240, 255, 0.4);
       --radius-lg: 0.75rem; --radius-xl: 1rem; --radius-2xl: 1.5rem;
@@ -202,7 +202,7 @@
         <div class="input-card">
           <div class="input-header"><div class="input-title"><span class="input-icon" style="color: var(--accent-cyan);"><i class="fas fa-database"></i></span> P2M Data</div><span class="input-count" id="p2mCount">0 lines</span></div>
           <div class="input-body">
-            <div class="upload-area" onclick="document.getElementById('p2mFile').click()"><input type="file" id="p2mFile" accept=".txt,.csv,.tsv" style="display: none;" onchange="handleFileUpload(this, 'p2m')"><i class="fas fa-cloud-upload-alt"></i><span>Click to upload P2M file<br>Supported: .txt, .csv, .tsv</span></div>
+            <div class="upload-area" onclick="document.getElementById('p2mFile').click()"><input type="file" id="p2mFile" accept=".txt,.csv,.tsv,.xlsx,.xls,.xlsm,.xlsb,.json,.xml,.html,.htm,.dat,.prn,.tab" style="display: none;" onchange="handleFileUpload(this, 'p2m')"><i class="fas fa-cloud-upload-alt"></i><span>Click to upload P2M file<br>Supported: ALL — txt, csv, tsv, xlsx, xls, json, xml, html</span></div>
             <div class="file-info" id="p2mFileInfo"><div class="file-name" id="p2mFileName"></div><div class="file-stats"><span><i class="fas fa-calendar"></i> <span id="p2mFileDate"></span></span><span><i class="fas fa-file-lines"></i> <span id="p2mFileSize"></span></span></div></div>
             <div class="input-help"><strong>Format:</strong> Merchant, Order ID, RRN, Amount, Fee, Total, Memo</div>
           </div>
@@ -210,7 +210,7 @@
         <div class="input-card">
           <div class="input-header"><div class="input-title"><span class="input-icon" style="color: var(--accent-violet);"><i class="fas fa-server"></i></span> Zonamain Data</div><span class="input-count" id="zonaCount">0 lines</span></div>
           <div class="input-body">
-            <div class="upload-area" onclick="document.getElementById('zonaFile').click()"><input type="file" id="zonaFile" accept=".txt,.csv,.tsv" style="display: none;" onchange="handleFileUpload(this, 'zona')"><i class="fas fa-cloud-upload-alt"></i><span>Click to upload Zonamain file<br>Supported: .txt, .csv, .tsv</span></div>
+            <div class="upload-area" onclick="document.getElementById('zonaFile').click()"><input type="file" id="zonaFile" accept=".txt,.csv,.tsv,.xlsx,.xls,.xlsm,.xlsb,.json,.xml,.html,.htm,.dat,.prn,.tab" style="display: none;" onchange="handleFileUpload(this, 'zona')"><i class="fas fa-cloud-upload-alt"></i><span>Click to upload Zonamain file<br>Supported: ALL — txt, csv, tsv, xlsx, xls, json, xml, html</span></div>
             <div class="file-info" id="zonaFileInfo"><div class="file-name" id="zonaFileName"></div><div class="file-stats"><span><i class="fas fa-calendar"></i> <span id="zonaFileDate"></span></span><span><i class="fas fa-file-lines"></i> <span id="zonaFileSize"></span></span></div></div>
             <div class="input-help"><strong>Format:</strong> Tanggal, Order ID, RRN, User ID, Jumlah, PPN, Total</div>
           </div>
@@ -218,7 +218,7 @@
         <div class="input-card">
           <div class="input-header"><div class="input-title"><span class="input-icon" style="color: var(--accent-green);"><i class="fas fa-file-alt"></i></span> Report Data</div><span class="input-count" id="reportCount">0 lines</span></div>
           <div class="input-body">
-            <div class="upload-area" onclick="document.getElementById('reportFile').click()"><input type="file" id="reportFile" accept=".txt,.csv,.tsv" style="display: none;" onchange="handleFileUpload(this, 'report')"><i class="fas fa-cloud-upload-alt"></i><span>Click to upload Report file<br>Supported: .txt, .csv, .tsv</span></div>
+            <div class="upload-area" onclick="document.getElementById('reportFile').click()"><input type="file" id="reportFile" accept=".txt,.csv,.tsv,.xlsx,.xls,.xlsm,.xlsb,.json,.xml,.html,.htm,.dat,.prn,.tab" style="display: none;" onchange="handleFileUpload(this, 'report')"><i class="fas fa-cloud-upload-alt"></i><span>Click to upload Report file<br>Supported: ALL — txt, csv, tsv, xlsx, xls, json, xml, html</span></div>
             <div class="file-info" id="reportFileInfo"><div class="file-name" id="reportFileName"></div><div class="file-stats"><span><i class="fas fa-calendar"></i> <span id="reportFileDate"></span></span><span><i class="fas fa-file-lines"></i> <span id="reportFileSize"></span></span></div></div>
             <div class="input-help"><strong>Format:</strong> Date, Info, TO (User), BY, Coin</div>
           </div>
@@ -423,20 +423,95 @@
     }
 
     // ============================================
-    // 4. FILE UPLOAD HANDLER
+    // 4. FILE UPLOAD HANDLER — SUPPORT SEMUA FORMAT
     // ============================================
+    const EXCEL_EXT = ['xlsx', 'xls', 'xlsm', 'xlsb'];
+
+    function getExt(name) {
+      return (name.split('.').pop() || '').toLowerCase();
+    }
+
     function handleFileUpload(inputElement, type) {
       const file = inputElement.files[0];
       if (!file) return;
+      const ext = getExt(file.name);
+
+      // --- ROUTE 1: FILE EXCEL → parse via SheetJS ---
+      if (EXCEL_EXT.includes(ext)) {
+        if (typeof XLSX === 'undefined') return showToast('Library Excel belum termuat', 'error');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const wb = XLSX.read(e.target.result, { type: 'array' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+            const text = rows.map(r => r.join('\t')).join('\n').trim();
+            finishUpload(type, text, file, 'Excel');
+          } catch (err) {
+            showToast('Gagal membaca Excel: ' + err.message, 'error');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+        return;
+      }
+
+      // --- ROUTE 2: JSON → convert ke tab-delimited ---
+      if (ext === 'json') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const arr = JSON.parse(e.target.result);
+            if (!Array.isArray(arr) || !arr.length) throw new Error('JSON bukan array data');
+            const headers = Object.keys(arr[0]);
+            const lines = [headers.join('\t')];
+            arr.forEach(o => lines.push(headers.map(h => o[h] ?? '').join('\t')));
+            finishUpload(type, lines.join('\n'), file, 'JSON');
+          } catch (err) {
+            showToast('Gagal membaca JSON: ' + err.message, 'error');
+          }
+        };
+        reader.readAsText(file);
+        return;
+      }
+
+      // --- ROUTE 3: HTML table → ambil isi <table> jadi tab-delimited ---
+      if (ext === 'html' || ext === 'htm') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const doc = new DOMParser().parseFromString(e.target.result, 'text/html');
+            const table = doc.querySelector('table');
+            if (!table) throw new Error('Tidak ada <table> di file HTML');
+            const lines = [...table.querySelectorAll('tr')].map(tr =>
+              [...tr.querySelectorAll('th,td')].map(td => td.textContent.trim()).join('\t')
+            );
+            finishUpload(type, lines.join('\n'), file, 'HTML');
+          } catch (err) {
+            showToast('Gagal membaca HTML: ' + err.message, 'error');
+          }
+        };
+        reader.readAsText(file);
+        return;
+      }
+
+      // --- ROUTE 4 (DEFAULT): txt / csv / tsv / dat / prn / xml / lainnya ---
       const reader = new FileReader();
       reader.onload = function(e) {
-        let text = e.target.result.replace(/^\uFEFF/, '').trim();
-        if (type === 'p2m') { p2mData = parseP2M(text); document.getElementById('p2mCount').textContent = p2mData.length + ' lines'; showFileInfo('p2m', file); }
-        else if (type === 'zona') { zonaData = parseZonamain(text); document.getElementById('zonaCount').textContent = zonaData.length + ' lines'; showFileInfo('zona', file); }
-        else if (type === 'report') { reportData = parseReport(text); document.getElementById('reportCount').textContent = reportData.length + ' lines'; showFileInfo('report', file); }
-        showToast(file.name + ' loaded (' + (type === 'p2m' ? p2mData.length : type === 'zona' ? zonaData.length : reportData.length) + ' lines)', 'success');
+        const text = e.target.result.replace(/^\uFEFF/, '').trim();
+        finishUpload(type, text, file, ext.toUpperCase() || 'TXT');
       };
       reader.readAsText(file);
+    }
+
+    // Pemrosesan akhir setelah file jadi text (shared oleh semua route)
+    function finishUpload(type, text, file, srcLabel) {
+      if (type === 'p2m') { p2mData = parseP2M(text); document.getElementById('p2mCount').textContent = p2mData.length + ' lines'; }
+      else if (type === 'zona') { zonaData = parseZonamain(text); document.getElementById('zonaCount').textContent = zonaData.length + ' lines'; }
+      else if (type === 'report') { reportData = parseReport(text); document.getElementById('reportCount').textContent = reportData.length + ' lines'; }
+      showFileInfo(type, file);
+      const count = type === 'p2m' ? p2mData.length : type === 'zona' ? zonaData.length : reportData.length;
+      showToast(file.name + ' [' + srcLabel + '] loaded — ' + count + ' lines', count > 0 ? 'success' : 'warning');
+      if (count === 0) showToast('File terbaca tapi 0 baris — cek format kolom/header', 'warning');
     }
 
     function showFileInfo(type, file) {
@@ -831,7 +906,7 @@
     function fmtHTML(rows, headers, title) {
       const th = headers.map(h => `<th>${h}</th>`).join('');
       const tr = rows.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('');
-      return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>body{font-family:'Segoe UI',Arial;background:#0f172a;color:#f8fafc;padding:40px}h1{color:#00f0ff}table{border-collapse:collapse;width:100%;margin-top:20px}th{background:#1e293b;color:#00f0ff;padding:10px;text-align:left;border-bottom:2px solid #6366f1}td{padding:8px 10px;border-bottom:1px solid #334155}tr:hover{background:#1e293b}</style></head><body><h1>AURA.OS — ${title}</h1><p>Generated: ${new Date().toLocaleString('id-ID')}</p><table><tr>${th}</tr>${tr}</table></body></html>`;
+      return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>body{font-family:'Inter',Arial;background:#0a0a0f;color:#f1f5f9;padding:40px}h1{color:#00f0ff;font-family:'JetBrains Mono',monospace}table{border-collapse:collapse;width:100%;margin-top:20px}th{background:#1a1a24;color:#00f0ff;padding:10px;text-align:left;border-bottom:2px solid #6366f1}td{padding:8px 10px;border-bottom:1px solid #1a1a24}tr:hover{background:#1a1a24}</style></head><body><h1>AURA.OS — ${title}</h1><p>Generated: ${new Date().toLocaleString('id-ID')}</p><table><tr>${th}</tr>${tr}</table></body></html>`;
     }
 
     function buildSheetAOA(elementId) {
