@@ -1,5 +1,5 @@
 // ============================================================
-// BANK LOGIC — PORT 1:1 DARI GOOGLE APPS SCRIPT
+// BANK LOGIC — PORT DARI GOOGLE APPS SCRIPT
 // ============================================================
 
 // ---------- FORMATTER HELPERS (persis versi GAS) ----------
@@ -155,19 +155,19 @@ function processBankDataLogic(inputText) {
   return { success: true, data: output, count: results.length, records: results };
 }
 
-// ---------- VALIDATOR: CARI DI D1 (pengganti findInDatabase GAS) ----------
+// ---------- VALIDATOR: CARI DI D1 (bawa bank + nama) ----------
 async function findInDatabaseD1(cleanInput, env) {
-  var result = { found: false, bank: '', sheetName: '', cleanedRek: cleanInput, status: '', leadingZeroAdded: 0 };
+  var result = { found: false, bank: '', nama: '', sheetName: '', cleanedRek: cleanInput, status: '', leadingZeroAdded: 0 };
 
-  var row = await env.DB.prepare("SELECT sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1").bind(cleanInput).first();
-  if (row) { result.found = true; result.sheetName = row.sheet; result.status = row.status; return result; }
+  var row = await env.DB.prepare("SELECT bank, nama, sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1").bind(cleanInput).first();
+  if (row) { result.found = true; result.bank = row.bank; result.nama = row.nama; result.sheetName = row.sheet; result.status = row.status; return result; }
 
   // Auto-tambah 1-3 nol di depan (persis logika GAS)
   for (var z = 1; z <= 3; z++) {
     var withZero = '0'.repeat(z) + cleanInput;
-    row = await env.DB.prepare("SELECT sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1").bind(withZero).first();
+    row = await env.DB.prepare("SELECT bank, nama, sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1").bind(withZero).first();
     if (row) {
-      result.found = true; result.sheetName = row.sheet; result.cleanedRek = withZero;
+      result.found = true; result.bank = row.bank; result.nama = row.nama; result.sheetName = row.sheet; result.cleanedRek = withZero;
       result.leadingZeroAdded = z; result.status = row.status;
       return result;
     }
@@ -175,7 +175,7 @@ async function findInDatabaseD1(cleanInput, env) {
   return result;
 }
 
-// ---------- VALIDATOR UTAMA (persis versi GAS, DB dari D1) ----------
+// ---------- VALIDATOR UTAMA (bank & status dari DB) ----------
 async function processBankDataValidatorLogic(inputData, env) {
   var lines = inputData.trim().split('\n');
   var results = [];
@@ -203,7 +203,6 @@ async function processBankDataValidatorLogic(inputData, env) {
     if (!inputRek || inputRek.replace(/\D/g, '').length < 5) continue;
 
     var matchResult = await findInDatabaseD1(inputRek.replace(/\D/g, ''), env);
-    var rawSheetName = matchResult.sheetName || '';
     var finalBank = 'BANK TIDAK DIKETAHUI';
     var finalStatus = 'TIDAK DITEMUKAN';
     var finalRek = matchResult.cleanedRek || inputRek;
@@ -213,21 +212,9 @@ async function processBankDataValidatorLogic(inputData, env) {
       finalStatus = 'TIDAK DITEMUKAN';
       warning = 'TIDAK DITEMUKAN DI DB';
     } else {
-      var sheetUpper = rawSheetName.toUpperCase();
-      var detectedBank = 'BANK';
-      if (sheetUpper.indexOf('BCA') !== -1) detectedBank = 'BCA';
-      else if (sheetUpper.indexOf('BRI') !== -1) detectedBank = 'BRI';
-      else if (sheetUpper.indexOf('MANDIRI') !== -1) detectedBank = 'MANDIRI';
-      else if (sheetUpper.indexOf('DANAMON') !== -1) detectedBank = 'DANAMON';
-      else if (sheetUpper.indexOf('BNI') !== -1) detectedBank = 'BNI';
-      else if (sheetUpper.indexOf('BSI') !== -1) detectedBank = 'BSI';
-      else if (sheetUpper.indexOf('CIMB') !== -1) detectedBank = 'CIMB';
-      else if (sheetUpper.indexOf('SINARMAS') !== -1) detectedBank = 'SINARMAS';
-      else if (sheetUpper.indexOf('SEABANK') !== -1) detectedBank = 'SEABANK';
-      else if (sheetUpper.indexOf('JAGO') !== -1) detectedBank = 'BANK JAGO';
-
+      // Bank langsung dari hasil parsing sheet (mis. "KAS BCA") + status = nama sheet
       finalStatus = matchResult.status || 'TERDAFTAR';
-      finalBank = 'KAS ' + detectedBank + ' (' + finalStatus + ')';
+      finalBank = (matchResult.bank || 'BANK') + ' (' + finalStatus + ')';
     }
 
     if (matchResult.leadingZeroAdded > 0) {
@@ -250,8 +237,8 @@ async function processBankDataValidatorLogic(inputData, env) {
   return { success: true, results: results, warnings: warnings, count: results.length };
 }
 
-// ---------- SHEET SYNC (pengganti buildValidatorDatabase / SpreadsheetApp) ----------
-// ⬇️ SUMBER DATABASE: spreadsheet baru Anda (semua tab dibaca otomatis)
+// ---------- SHEET SYNC ----------
+// ⬇️ SUMBER DATABASE: spreadsheet Anda (semua tab dibaca otomatis)
 const VALIDATOR_SHEET_IDS = [
   '1r6EgJuTN2PL_hQGaU-dtMa4SctG-AeIYHJzs2RmeefI'
 ];
@@ -290,7 +277,14 @@ async function fetchSheetNames(sheetId) {
   } catch (e) { return []; }
 }
 
-// Bangun database { sheetName: [{cleaned, status}] } dari spreadsheet
+// ============================================================
+// PARSER KETAT sesuai struktur sheet:
+// - Kolom A: label KAS BCA/BNI/BRI/MANDIRI menandai blok;
+//   baris di bawahnya yang kolom A berisi angka urut = baris data
+// - Nama rekening: kolom E (biasa) / F (sheet BERMASALAH & DEPOSIT)
+// - Nomor rekening: kolom F (biasa) / G (sheet BERMASALAH & DEPOSIT)
+// - Status = nama sheet
+// ============================================================
 async function buildValidatorDatabaseFromSheets() {
   const db = {};
   for (const id of VALIDATOR_SHEET_IDS) {
@@ -304,48 +298,73 @@ async function buildValidatorDatabaseFromSheets() {
         const res = await fetch(csvUrl);
         if (!res.ok) continue;
         const values = parseCsvSimple(await res.text());
+        if (!values.length) continue;
 
-        // === SCAN LABEL STATUS (persis GAS: KAS BERSIH / KAS KOTOR per baris) ===
-        const statusMap = {};
+        const sheetNameUpper = (name || 'SHEET').toUpperCase();
+        const status = sheetNameUpper; // STATUS = NAMA SHEET (sesuai spesifikasi)
+
+        // Sheet dengan kolom mundur 1 (nama F, rek G)
+        const isShifted = sheetNameUpper.includes('BERMASASAH') || sheetNameUpper.includes('BERMASALAH') || sheetNameUpper.includes('DEPOSIT');
+        const COL_NAMA = isShifted ? 5 : 4; // E=4 / F=5 (index 0-based)
+        const COL_REK = isShifted ? 6 : 5;  // F=5 / G=6 (index 0-based)
+
+        let currentBank = '';
+
         for (let r = 0; r < values.length; r++) {
-          for (let c = 0; c < values[r].length; c++) {
-            const cellStr = String(values[r][c] || '').trim().toUpperCase();
-            if (cellStr.indexOf('KAS BERSIH') !== -1) statusMap[r] = 'BERSIH';
-            else if (cellStr.indexOf('KAS KOTOR') !== -1) statusMap[r] = 'KOTOR';
-          }
-        }
+          const row = values[r] || [];
+          const colA = String(row[0] || '').trim();
+          if (colA === '') continue;
 
-        // === EKSTRAK REKENING (persis GAS) ===
-        let currentCategory = (name || 'SHEET').toUpperCase();
-        let currentStatus = '';
-        for (let r2 = 0; r2 < values.length; r2++) {
-          if (statusMap[r2]) { currentStatus = statusMap[r2]; continue; }
-          const row2 = values[r2];
-          let hasLongNumber = false, rekening = '';
-          for (let c2 = 0; c2 < row2.length; c2++) {
-            const cleanNum = String(row2[c2] || '').replace(/\D/g, '');
-            if (cleanNum.length >= 8 && cleanNum.length <= 20) {
-              hasLongNumber = true; rekening = cleanNum; break;
+          // === BARIS LABEL BANK: kolom A berisi teks mengandung KAS/BANK ===
+          if (/[A-Za-z]/.test(colA)) {
+            const label = colA.toUpperCase().split('\n')[0].trim();
+            if (label.includes('KAS') || label.includes('BANK')) {
+              currentBank = label; // mis. "KAS BCA"
             }
+            // baris teks lain (header dsb): tidak diproses, currentBank tetap
+            continue;
           }
-          if (hasLongNumber) {
-            if (!db[currentCategory]) db[currentCategory] = [];
-            db[currentCategory].push({ cleaned: rekening, status: currentStatus });
-          } else {
-            for (let c3 = 0; c3 < row2.length; c3++) {
-              const cellTxt = String(row2[c3] || '').trim().toUpperCase();
-              if (cellTxt !== '' && cellTxt.length < 100) {
-                const keywords = ['BCA', 'BRI', 'MANDIRI', 'DANAMON', 'BNI', 'BSI', 'CIMB', 'KAS ', 'WD ', 'SINARMAS', 'JAGO', 'REKENING', 'DEPOSIT'];
-                if (keywords.some(k => cellTxt.includes(k))) {
-                  if (!statusMap[r2]) currentCategory = cellTxt.split('\n')[0].trim();
+
+          // === BARIS DATA: kolom A berisi nomor urut ("1", "2", "1.") ===
+          if (/^\d+\.?$/.test(colA)) {
+            const namaCell = String(row[COL_NAMA] || '').trim();
+            let rekClean = String(row[COL_REK] || '').replace(/\D/g, '');
+
+            // Fallback anti-skip: kalau kolom target tidak valid, scan seluruh baris
+            // cari cell 8-20 digit yang BUKAN angka berpemisah ribuan (nominal)
+            if (rekClean.length < 8 || rekClean.length > 20) {
+              rekClean = '';
+              for (let c = 0; c < row.length; c++) {
+                const cell = String(row[c] || '').trim();
+                const digits = cell.replace(/\D/g, '');
+                const isThousandSeparated = /^\d{1,3}([.,]\d{3})+/.test(cell);
+                if (!isThousandSeparated && digits.length >= 8 && digits.length <= 20) {
+                  rekClean = digits;
                   break;
                 }
               }
             }
+
+            if (rekClean.length >= 8 && rekClean.length <= 20) {
+              // Fallback nama: kalau kolom nama kosong, ambil teks terpanjang di baris
+              let namaFinal = namaCell;
+              if (!namaFinal) {
+                let best = '';
+                for (let c2 = 0; c2 < row.length; c2++) {
+                  const t = String(row[c2] || '').trim();
+                  if (t.length > best.length && /[A-Za-z]/.test(t) && !t.toUpperCase().includes('KAS')) best = t;
+                }
+                namaFinal = best;
+              }
+
+              const cat = currentBank || sheetNameUpper; // kategori = label blok KAS BCA
+              if (!db[cat]) db[cat] = [];
+              db[cat].push({ cleaned: rekClean, status: status, nama: namaFinal.toUpperCase(), sheet: sheetNameUpper });
+            }
           }
         }
       }
-    } catch (e) { /* skip sheet yang gagal */ }
+    } catch (e) { /* skip sheet gagal */ }
   }
   return db;
 }
@@ -719,7 +738,7 @@ export default {
     }
 
     // ============================================
-    // 15. API BANK VALIDATOR — logika GAS asli 1:1 (DB: D1)
+    // 15. API BANK VALIDATOR — bank & status dari DB hasil parsing
     // ============================================
     if (path === '/api/bank/validate' && request.method === 'POST') {
       if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
@@ -736,24 +755,25 @@ export default {
 
     // ============================================
     // 15b. SYNC DATABASE DARI GOOGLE SHEET → D1
+    //      Parser ketat: kolom A = blok bank, E/F = nama, F/G = rek, status = nama sheet
     // ============================================
     if (path === '/api/bank/sync' && request.method === 'POST') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
         const db = await buildValidatorDatabaseFromSheets();
         let total = 0, sheets = [];
-        for (const sheetName in db) { sheets.push(sheetName + ' (' + db[sheetName].length + ')'); total += db[sheetName].length; }
+        for (const cat in db) { sheets.push(cat + ' (' + db[cat].length + ')'); total += db[cat].length; }
 
         if (total === 0) {
           return Response.json({ success: false, error: '0 rekening tersinkron — pastikan Google Sheet di-share "Anyone with link: Viewer"', sheets: sheets }, { status: 500 });
         }
 
         await env.DB.prepare("DELETE FROM bank_accounts").run();
-        for (const sheetName in db) {
-          for (const rec of db[sheetName]) {
+        for (const cat in db) {
+          for (const rec of db[cat]) {
             await env.DB.prepare(
               "INSERT INTO bank_accounts (bank, nama, no_rek, sheet, status, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-            ).bind('', '', rec.cleaned, sheetName, rec.status, Date.now()).run();
+            ).bind(cat, rec.nama || '', rec.cleaned, rec.sheet || cat, rec.status || cat, Date.now()).run();
           }
         }
         return Response.json({ success: true, total: total, sheets: sheets, message: 'Database validator tersinkron: ' + total + ' rekening' });
