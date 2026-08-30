@@ -278,11 +278,11 @@ async function fetchSheetNames(sheetId) {
 }
 
 // ============================================================
-// PARSER KETAT sesuai struktur sheet:
-// - Kolom A: label KAS BCA/BNI/BRI/MANDIRI menandai blok;
-//   baris di bawahnya yang kolom A berisi angka urut = baris data
-// - Nama rekening: kolom E (biasa) / F (sheet BERMASALAH & DEPOSIT)
-// - Nomor rekening: kolom F (biasa) / G (sheet BERMASALAH & DEPOSIT)
+// PARSER KETAT v3 — berbasis konten (sesuai struktur sheet asli):
+// - Blok bank: baris yang punya cell "KAS BCA / KAS BNI / KAS BRI / KAS MANDIRI / dll"
+// - Baris data: baris yang MEMILIKI nomor rekening (cell 8-20 digit, bukan nominal ribuan)
+// - Nama: cell teks berhuruf pada baris data (prioritas kolom E/F, fallback scan)
+// - Rekening: kolom F/G (sesuai sheet), fallback scan seluruh baris
 // - Status = nama sheet
 // ============================================================
 async function buildValidatorDatabaseFromSheets() {
@@ -301,67 +301,82 @@ async function buildValidatorDatabaseFromSheets() {
         if (!values.length) continue;
 
         const sheetNameUpper = (name || 'SHEET').toUpperCase();
-        const status = sheetNameUpper; // STATUS = NAMA SHEET (sesuai spesifikasi)
+        const status = sheetNameUpper; // STATUS = NAMA SHEET
 
         // Sheet dengan kolom mundur 1 (nama F, rek G)
-        const isShifted = sheetNameUpper.includes('BERMASASAH') || sheetNameUpper.includes('BERMASALAH') || sheetNameUpper.includes('DEPOSIT');
-        const COL_NAMA = isShifted ? 5 : 4; // E=4 / F=5 (index 0-based)
-        const COL_REK = isShifted ? 6 : 5;  // F=5 / G=6 (index 0-based)
+        const isShifted = sheetNameUpper.includes('BERMASALAH') || sheetNameUpper.includes('DEPOSIT');
+        const COL_NAMA = isShifted ? 5 : 4; // E / F
+        const COL_REK = isShifted ? 6 : 5;  // F / G
 
         let currentBank = '';
 
         for (let r = 0; r < values.length; r++) {
           const row = values[r] || [];
-          const colA = String(row[0] || '').trim();
-          if (colA === '') continue;
+          if (row.length === 0) continue;
 
-          // === BARIS LABEL BANK: kolom A berisi teks mengandung KAS/BANK ===
-          if (/[A-Za-z]/.test(colA)) {
-            const label = colA.toUpperCase().split('\n')[0].trim();
-            if (label.includes('KAS') || label.includes('BANK')) {
-              currentBank = label; // mis. "KAS BCA"
+          // === 1. SCAN BARIS INI: cari rekening & teks "KAS <bank>" ===
+          let rekClean = '';
+          let rekCol = -1;
+          let kasLabel = '';
+
+          for (let c = 0; c < row.length; c++) {
+            const cell = String(row[c] || '').trim();
+            if (cell === '') continue;
+
+            // Label blok: "KAS BCA" / "KAS MANDIRI" dst di cell mana pun
+            if (kasLabel === '' && /KAS\s+[A-Z]{2,}/i.test(cell) && !/\d{6,}/.test(cell)) {
+              kasLabel = cell.toUpperCase().split('\n')[0].trim();
             }
-            // baris teks lain (header dsb): tidak diproses, currentBank tetap
+
+            // Kandidat rekening: 8-20 digit murni, BUKAN angka berpemisah ribuan (nominal)
+            if (rekClean === '') {
+              const digits = cell.replace(/\D/g, '');
+              const isThousandSeparated = /^\d{1,3}([.,]\d{3})+([.,]\d{3})*$/.test(cell.replace(/Rp\.?\s*/i, ''));
+              // cell seperti "5380343217" atau "BCA 5380343217" — digits 8-20
+              if (!isThousandSeparated && digits.length >= 8 && digits.length <= 20) {
+                // Hindari cell keterangan campur banyak teks panjang + angka (mis. "POIET ON 123")
+                const letters = (cell.match(/[A-Za-z]/g) || []).length;
+                if (letters <= 8 || digits.length >= 10) {
+                  rekClean = digits;
+                  rekCol = c;
+                }
+              }
+            }
+          }
+
+          // === 2. BARIS LABEL BLOK (punya "KAS XXX", tanpa rekening) ===
+          if (kasLabel !== '' && rekClean === '') {
+            currentBank = kasLabel;
             continue;
           }
 
-          // === BARIS DATA: kolom A berisi nomor urut ("1", "2", "1.") ===
-          if (/^\d+\.?$/.test(colA)) {
-            const namaCell = String(row[COL_NAMA] || '').trim();
-            let rekClean = String(row[COL_REK] || '').replace(/\D/g, '');
+          // === 3. BARIS DATA (punya rekening valid) ===
+          if (rekClean !== '') {
+            // Kalau di baris yang sama ada label KAS → update currentBank dulu
+            if (kasLabel !== '') currentBank = kasLabel;
 
-            // Fallback anti-skip: kalau kolom target tidak valid, scan seluruh baris
-            // cari cell 8-20 digit yang BUKAN angka berpemisah ribuan (nominal)
-            if (rekClean.length < 8 || rekClean.length > 20) {
-              rekClean = '';
-              for (let c = 0; c < row.length; c++) {
-                const cell = String(row[c] || '').trim();
-                const digits = cell.replace(/\D/g, '');
-                const isThousandSeparated = /^\d{1,3}([.,]\d{3})+/.test(cell);
-                if (!isThousandSeparated && digits.length >= 8 && digits.length <= 20) {
-                  rekClean = digits;
-                  break;
+            // Nama: prioritas kolom tetap (E/F), fallback = cell teks terbaik sebelum kolom rekening
+            let namaFinal = String(row[COL_NAMA] || '').trim();
+            if (!namaFinal || !/[A-Za-z]/.test(namaFinal)) {
+              namaFinal = '';
+              let best = '';
+              for (let c2 = 0; c2 < row.length; c2++) {
+                if (c2 === rekCol) continue;
+                const t = String(row[c2] || '').trim();
+                // Cell teks berhuruf (bukan angka, bukan label KAS, panjang wajar nama orang)
+                if (t !== '' && /[A-Za-z]{3,}/.test(t) && !t.toUpperCase().includes('KAS') && !/\d{5,}/.test(t) && t.length <= 40) {
+                  if (c2 < rekCol && t.length > best.length) best = t;      // teks di kiri rekening = prioritas
+                  else if (best === '' && t.length > best.length) best = t;  // fallback apa pun
                 }
               }
+              namaFinal = best;
             }
 
-            if (rekClean.length >= 8 && rekClean.length <= 20) {
-              // Fallback nama: kalau kolom nama kosong, ambil teks terpanjang di baris
-              let namaFinal = namaCell;
-              if (!namaFinal) {
-                let best = '';
-                for (let c2 = 0; c2 < row.length; c2++) {
-                  const t = String(row[c2] || '').trim();
-                  if (t.length > best.length && /[A-Za-z]/.test(t) && !t.toUpperCase().includes('KAS')) best = t;
-                }
-                namaFinal = best;
-              }
-
-              const cat = currentBank || sheetNameUpper; // kategori = label blok KAS BCA
-              if (!db[cat]) db[cat] = [];
-              db[cat].push({ cleaned: rekClean, status: status, nama: namaFinal.toUpperCase(), sheet: sheetNameUpper });
-            }
+            const cat = currentBank || sheetNameUpper;
+            if (!db[cat]) db[cat] = [];
+            db[cat].push({ cleaned: rekClean, status: status, nama: namaFinal.toUpperCase(), sheet: sheetNameUpper });
           }
+          // Baris tanpa rekening & tanpa label → diabaikan
         }
       }
     } catch (e) { /* skip sheet gagal */ }
