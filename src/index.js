@@ -887,27 +887,119 @@ export default {
       }
     }
 
-    // 15d. DEBUG parser — preview per tab
-    if (path === '/api/bank/sync-debug' && request.method === 'POST') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
+        // ============================================
+    // 16. API VALIDATOR REKENING (halaman /validator)
+    //     Format input fleksibel: "BANK, NAMA, REK" / rekening polos
+    //     Output shape identik ekspektasi frontend
+    // ============================================
+    if (path === '/api/validate-rekening' && request.method === 'POST') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
       try {
-        const id = VALIDATOR_SHEET_IDS[0];
-        let names = await fetchSheetNames(id);
-        const out = { sheetNames: names, source: names === FALLBACK_SHEET_NAMES ? 'FALLBACK' : 'AUTO-DETECT', previews: {} };
-        for (const name of names.slice(0, 10)) {
-          const csvUrl = name
-            ? `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`
-            : `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
-          const res = await fetch(csvUrl);
-          if (!res.ok) { out.previews[name || 'DEFAULT'] = 'FETCH FAIL ' + res.status + ' (nama tab mungkin salah)'; continue; }
-          const values = parseCsvSimple(await res.text());
-          out.previews[name || 'DEFAULT'] = values.slice(0, 15).map((row, i) =>
-            i + ': [' + row.slice(0, 8).map(c => String(c).substring(0, 20)).join(' | ') + ']'
-          );
+        const body = await request.json();
+        const input = String(body.input || '').trim();
+        if (!input) return Response.json({ success: false, error: 'Input kosong' }, { status: 400 });
+
+        // Parse input fleksibel (mirror parseInputData frontend)
+        const lines = input.split(/[\n;]+/);
+        const parsed = [];
+        for (const rawLine of lines) {
+          const line = rawLine.trim();
+          if (!line) continue;
+          let bank = '', nama = '', rek = '';
+          if (line.includes(',')) {
+            const parts = line.split(',').map(p => p.trim()).filter(p => p);
+            if (parts.length >= 3) { bank = parts[0]; nama = parts[1]; rek = parts[2].replace(/\D/g, ''); }
+            else if (parts.length === 2) {
+              if (/\d{5,}/.test(parts[1])) { nama = parts[0]; rek = parts[1].replace(/\D/g, ''); }
+              else { bank = parts[0]; nama = parts[1]; }
+            } else {
+              const m = line.match(/\d{5,}/); if (m) rek = m[0];
+            }
+          } else {
+            const m = line.match(/\d{5,}/);
+            if (m) { rek = m[0]; nama = line.replace(m[0], '').trim(); }
+          }
+          if (rek || nama || bank) parsed.push({ bank, nama, rekening: rek });
         }
-        return Response.json(out);
+        if (parsed.length === 0) return Response.json({ success: false, error: 'Tidak ada data valid di input' }, { status: 400 });
+
+        const results = [];
+        let foundCount = 0, lzCount = 0;
+
+        for (const p of parsed) {
+          const clean = (p.rekening || '').replace(/\D/g, '');
+          const matches = [];
+
+          if (clean) {
+            const rows = await env.DB.prepare(
+              "SELECT no_rek, bank, nama, sheet, status FROM bank_accounts WHERE no_rek IN (?, ?, ?, ?)"
+            ).bind(clean, '0' + clean, '00' + clean, '000' + clean).all();
+
+            for (const row of (rows.results || [])) {
+              matches.push({
+                category: row.sheet && row.bank && row.sheet !== row.bank
+                  ? row.bank + ' — ' + row.sheet
+                  : (row.bank || row.sheet || 'TERDAFTAR'),
+                label: row.bank || row.sheet || 'TERDAFTAR',
+                jenisBank: row.bank || '-',
+                row: 0,
+                dbNama: row.nama || '',
+                status: row.status || '',
+                dbRek: row.no_rek
+              });
+            }
+
+            // Fallback dua arah: strip leading zero dari input
+            if (matches.length === 0) {
+              const stripped = clean.replace(/^0+/, '');
+              if (stripped !== clean && stripped.length >= 5) {
+                const r2 = await env.DB.prepare(
+                  "SELECT no_rek, bank, nama, sheet, status FROM bank_accounts WHERE no_rek = ?"
+                ).bind(stripped).first();
+                if (r2) {
+                  matches.push({ category: r2.bank || r2.sheet || 'TERDAFTAR', label: r2.bank || 'TERDAFTAR', jenisBank: r2.bank || '-', row: 0, dbNama: r2.nama || '', status: r2.status || '', dbRek: r2.no_rek, strippedZero: true });
+                }
+              }
+            }
+          }
+
+          const found = matches.length > 0;
+          let leadingZeroAdded = 0;
+          if (found) {
+            const firstDb = matches[0].dbRek || clean;
+            leadingZeroAdded = firstDb.length - clean.length;
+          }
+          const foundWithLeadingZero = found && leadingZeroAdded !== 0;
+          if (found) foundCount++;
+          if (foundWithLeadingZero) lzCount++;
+
+          results.push({
+            input: p.rekening,
+            rekening: found ? (matches[0].dbRek || p.rekening) : p.rekening,
+            found: found,
+            foundWithLeadingZero: foundWithLeadingZero,
+            leadingZeroAdded: leadingZeroAdded,
+            categories: [...new Set(matches.map(m => m.category))],
+            matches: matches,
+            inputBank: p.bank,
+            inputNama: p.nama
+          });
+        }
+
+        return Response.json({
+          success: true,
+          inputCount: parsed.length,
+          results: results,
+          leadingZeroCount: lzCount,
+          statistics: {
+            total: parsed.length,
+            found: foundCount,
+            notFound: parsed.length - foundCount,
+            foundPercentage: parsed.length ? Math.round((foundCount / parsed.length) * 100) : 0
+          }
+        });
       } catch (err) {
-        return Response.json({ error: err.message }, { status: 500 });
+        return Response.json({ success: false, error: 'Gagal validasi: ' + err.message }, { status: 500 });
       }
     }
 
