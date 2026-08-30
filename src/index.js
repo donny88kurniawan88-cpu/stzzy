@@ -262,16 +262,39 @@ function parseCsvSimple(text) {
 }
 
 async function fetchSheetNames(sheetId) {
+  // Metode 1: JSON metadata gviz (paling andal)
+  try {
+    const res = await fetch('https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:json');
+    if (res.ok) {
+      const text = await res.text();
+      const m = text.match(/"sheetNames":\s*\[(.*?)\]/s) || text.match(/\{\"title\":\"([^\"]+)\"/);
+      if (m) {
+        // Ambil semua "title":"..." dari tableDescription/Sheet1 dst
+        const titles = [...text.matchAll(/\"title\":\"((?:[^\"\\]|\\.)*)\"/g)].map(x => x[1].replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))));
+        if (titles.length) return [...new Set(titles)];
+      }
+    }
+  } catch (e) {}
+  // Metode 2: fallback htmlview lama
   try {
     const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/htmlview`);
     if (!res.ok) return [];
     const html = await res.text();
     const names = [];
-    const re = /sheet-button-\d+[\s\S]*?>([^<>]+)<\/a>/g;
-    let m;
-    while ((m = re.exec(html)) !== null) {
-      const nm = m[1].trim();
-      if (nm && !names.includes(nm)) names.push(nm);
+    // pola lama & baru Google Sheets
+    const patterns = [
+      /sheet-button-\d+[^>]*>([^<>]+)<\/a>/g,
+      /"name":"([^"]+)","gid":\d+/g,
+      /aria-label="([^"]+)"[^>]*class="[^"]*sheet-button/g,
+      /<option[^>]*value="\d+"[^>]*>([^<]+)<\/option>/g
+    ];
+    for (const re of patterns) {
+      let m;
+      while ((m = re.exec(html)) !== null) {
+        const nm = m[1].trim().replace(/&amp;/g, '&');
+        if (nm && !names.includes(nm)) names.push(nm);
+      }
+      if (names.length) break;
     }
     return names;
   } catch (e) { return []; }
