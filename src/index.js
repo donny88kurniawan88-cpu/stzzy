@@ -155,26 +155,28 @@ function processBankDataLogic(inputText) {
   return { success: true, data: output, count: results.length, records: results };
 }
 
-// ---------- VALIDATOR: CARI DI D1 (bawa bank + nama) ----------
+// ---------- VALIDATOR: CARI DI D1 (1 query, index no_rek) ----------
 async function findInDatabaseD1(cleanInput, env) {
   var result = { found: false, bank: '', nama: '', sheetName: '', cleanedRek: cleanInput, status: '', leadingZeroAdded: 0 };
 
-  var row = await env.DB.prepare("SELECT bank, nama, sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1").bind(cleanInput).first();
-  if (row) { result.found = true; result.bank = row.bank; result.nama = row.nama; result.sheetName = row.sheet; result.status = row.status; return result; }
+  // ⚡ OPTIMASI: 1 query untuk 4 varian (asli + 1-3 nol tambahan), bukan 4 query berurutan
+  var row = await env.DB.prepare(
+    "SELECT no_rek, bank, nama, sheet, status FROM bank_accounts WHERE no_rek IN (?, ?, ?, ?) LIMIT 1"
+  ).bind(cleanInput, '0' + cleanInput, '00' + cleanInput, '000' + cleanInput).first();
 
-  for (var z = 1; z <= 3; z++) {
-    var withZero = '0'.repeat(z) + cleanInput;
-    row = await env.DB.prepare("SELECT bank, nama, sheet, status FROM bank_accounts WHERE no_rek = ? LIMIT 1").bind(withZero).first();
-    if (row) {
-      result.found = true; result.bank = row.bank; result.nama = row.nama; result.sheetName = row.sheet; result.cleanedRek = withZero;
-      result.leadingZeroAdded = z; result.status = row.status;
-      return result;
-    }
+  if (row) {
+    result.found = true;
+    result.bank = row.bank;
+    result.nama = row.nama;
+    result.sheetName = row.sheet;
+    result.status = row.status;
+    result.cleanedRek = row.no_rek;
+    result.leadingZeroAdded = row.no_rek.length - cleanInput.length;
   }
   return result;
 }
 
-// ---------- VALIDATOR UTAMA (bank & status dari DB) ----------
+// ---------- VALIDATOR UTAMA (bank murni dari DB, status terpisah) ----------
 async function processBankDataValidatorLogic(inputData, env) {
   var lines = inputData.trim().split('\n');
   var results = [];
@@ -210,7 +212,7 @@ async function processBankDataValidatorLogic(inputData, env) {
     if (!matchResult.found) {
       finalStatus = 'TIDAK DITEMUKAN';
       warning = 'TIDAK DITEMUKAN DI DB';
-      } else {
+    } else {
       finalStatus = matchResult.status || 'TERDAFTAR';
       finalBank = matchResult.bank || 'BANK TIDAK DIKETAHUI';
     }
@@ -242,10 +244,7 @@ const VALIDATOR_SHEET_IDS = [
 ];
 
 // ============================================================
-// ⬇️ FALLBACK NAMA TAB — WAJIB SESUAIKAN DENGAN SPREADSHEET ANDA
-// Copy PERSIS nama tab di bagian bawah Google Sheets
-// (spasi, kurung, tanda + harus sama). Tab yang tidak ada akan
-// otomatis dilewati (404 dari Google), jadi aman kalau berlebih.
+// ⬇️ FALLBACK NAMA TAB — sesuaikan dengan nama tab spreadsheet Anda
 // ============================================================
 const FALLBACK_SHEET_NAMES = [
   'KAS BERSIH (AKTIF)',
@@ -259,6 +258,23 @@ const FALLBACK_SHEET_NAMES = [
   'REKENING DEPOSIT (AKTIF)',
   'REKENING DEPOSIT (BERMASALAH+CABUT KAS1)'
 ];
+
+// ============================================================
+// DETEKSI LABEL BLOK BANK — BERLAKU UNTUK SEMUA POLA:
+// "KAS BCA", "WD BRI", "KAS MANDIRI", "BCA", "MANDIRI KOTOR", dll.
+// Word-boundary supaya nama orang (Sabrina, Brian) tidak salah deteksi.
+// ============================================================
+const BANK_LABEL_KEYWORDS = ['BCA', 'BRI', 'BNI', 'MANDIRI', 'DANAMON', 'BSI', 'CIMB', 'SINARMAS', 'SEABANK', 'JAGO', 'PANIN', 'PERMATA', 'MEGA', 'BTPN', 'SAHABAT', 'SAMBA', 'JENIUS', 'NEO'];
+const LABEL_HEADER_EXCLUDE = ['NAMA', 'NOMOR', 'STATUS', 'KETERANGAN', 'KET.', 'SALDO', 'PENDING', 'TOTAL', 'NO.', 'HEADER', 'JUMLAH', 'REKENING', 'DEPOSIT'];
+
+function isBankBlockLabel(cell) {
+  const up = cell.toUpperCase().split('\n')[0].trim();
+  if (up === '' || up.length > 45) return false;
+  if (/\d{6,}/.test(up)) return false;
+  if (LABEL_HEADER_EXCLUDE.some(w => up.includes(w))) return false;
+  if (/^(KAS|WD)\s+\S+/i.test(up)) return true;
+  return BANK_LABEL_KEYWORDS.some(k => new RegExp('\\b' + k + '\\b').test(up));
+}
 
 function parseCsvSimple(text) {
   const rows = []; let row = [], cur = '', inQ = false;
@@ -280,7 +296,6 @@ function parseCsvSimple(text) {
 
 // Deteksi otomatis nama tab (internal)
 async function detectSheetNames(sheetId) {
-  // Metode 1: JSON metadata gviz
   try {
     const res = await fetch('https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:json');
     if (res.ok) {
@@ -289,7 +304,6 @@ async function detectSheetNames(sheetId) {
       if (titles.length) return [...new Set(titles)];
     }
   } catch (e) {}
-  // Metode 2: htmlview
   try {
     const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/htmlview`);
     if (!res.ok) return [];
@@ -313,24 +327,14 @@ async function detectSheetNames(sheetId) {
   } catch (e) { return []; }
 }
 
-// fetchSheetNames — deteksi otomatis; kalau hasil ≤1 tab (gagal), pakai FALLBACK
 async function fetchSheetNames(sheetId) {
   const detected = await detectSheetNames(sheetId);
-  if (detected.length > 1) {
-    console.log('[SYNC] Nama tab terdeteksi otomatis: ' + detected.length + ' tab');
-    return detected;
-  }
-  console.log('[SYNC] Deteksi otomatis gagal (' + detected.length + ' tab) → pakai FALLBACK_SHEET_NAMES (' + FALLBACK_SHEET_NAMES.length + ' tab)');
+  if (detected.length > 1) return detected;
   return FALLBACK_SHEET_NAMES;
 }
 
 // ============================================================
-// PARSER KETAT v3 — berbasis konten (sesuai struktur sheet asli):
-// - Blok bank: baris yang punya cell "KAS BCA / KAS BNI / KAS BRI / KAS MANDIRI / dll"
-// - Baris data: baris yang MEMILIKI nomor rekening (cell 8-20 digit, bukan nominal ribuan)
-// - Nama: cell teks berhuruf pada baris data (prioritas kolom E/F, fallback scan)
-// - Rekening: kolom F/G (sesuai sheet), fallback scan seluruh baris
-// - Status = nama sheet
+// PARSER v4 — konten + label SEMUA pola bank + fetch PARALEL
 // ============================================================
 async function buildValidatorDatabaseFromSheets() {
   const db = {};
@@ -338,22 +342,30 @@ async function buildValidatorDatabaseFromSheets() {
     try {
       let names = await fetchSheetNames(id);
       if (!names.length) names = [''];
-      for (const name of names) {
+
+      // ⚡ OPTIMASI: download semua tab SECARA PARALEL (bukan satu per satu)
+      const fetched = await Promise.all(names.map(async (name) => {
         const csvUrl = name
           ? `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`
           : `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
-        const res = await fetch(csvUrl);
-        if (!res.ok) continue; // tab tidak ada / beda nama → skip
-        const values = parseCsvSimple(await res.text());
-        if (!values.length) continue;
+        try {
+          const res = await fetch(csvUrl);
+          if (!res.ok) return null;
+          return { name, values: parseCsvSimple(await res.text()) };
+        } catch (e) { return null; }
+      }));
+
+      for (const sheetData of fetched) {
+        if (!sheetData || !sheetData.values.length) continue;
+        const name = sheetData.name;
+        const values = sheetData.values;
 
         const sheetNameUpper = (name || 'SHEET').toUpperCase();
         const status = sheetNameUpper; // STATUS = NAMA SHEET
 
-        // Sheet dengan kolom mundur 1 (nama F, rek G)
         const isShifted = sheetNameUpper.includes('BERMASALAH') || sheetNameUpper.includes('DEPOSIT');
-        const COL_NAMA = isShifted ? 5 : 4; // E / F
-        const COL_REK = isShifted ? 6 : 5;  // F / G
+        const COL_NAMA = isShifted ? 5 : 4;
+        const COL_REK = isShifted ? 6 : 5;
 
         let currentBank = '';
 
@@ -361,21 +373,21 @@ async function buildValidatorDatabaseFromSheets() {
           const row = values[r] || [];
           if (row.length === 0) continue;
 
-          // === 1. SCAN BARIS INI: cari rekening & teks "KAS <bank>" ===
+          // === 1. SCAN BARIS: cari rekening + label blok bank (semua pola) ===
           let rekClean = '';
           let rekCol = -1;
           let kasLabel = '';
+          let labelCol = -1;
 
           for (let c = 0; c < row.length; c++) {
             const cell = String(row[c] || '').trim();
             if (cell === '') continue;
 
-            // Label blok: "KAS BCA" / "KAS MANDIRI" dst di cell mana pun
-            if (kasLabel === '' && /KAS\s+[A-Z]{2,}/i.test(cell) && !/\d{6,}/.test(cell)) {
+            if (kasLabel === '' && isBankBlockLabel(cell)) {
               kasLabel = cell.toUpperCase().split('\n')[0].trim();
+              labelCol = c;
             }
 
-            // Kandidat rekening: 8-20 digit murni, BUKAN angka berpemisah ribuan (nominal)
             if (rekClean === '') {
               const digits = cell.replace(/\D/g, '');
               const isThousandSeparated = /^\d{1,3}([.,]\d{3})+([.,]\d{3})*$/.test(cell.replace(/Rp\.?\s*/i, ''));
@@ -389,15 +401,16 @@ async function buildValidatorDatabaseFromSheets() {
             }
           }
 
-          // === 2. BARIS LABEL BLOK (punya "KAS XXX", tanpa rekening) ===
+          // === 2. BARIS LABEL BLOK ===
           if (kasLabel !== '' && rekClean === '') {
             currentBank = kasLabel;
             continue;
           }
 
-          // === 3. BARIS DATA (punya rekening valid) ===
+          // === 3. BARIS DATA ===
           if (rekClean !== '') {
-            if (kasLabel !== '') currentBank = kasLabel;
+            // Label sebaris hanya valid kalau DI KIRI rekening (bukan nama orang di kanan)
+            if (kasLabel !== '' && labelCol !== -1 && labelCol < rekCol) currentBank = kasLabel;
 
             let namaFinal = String(row[COL_NAMA] || '').trim();
             if (!namaFinal || !/[A-Za-z]/.test(namaFinal)) {
@@ -406,7 +419,7 @@ async function buildValidatorDatabaseFromSheets() {
               for (let c2 = 0; c2 < row.length; c2++) {
                 if (c2 === rekCol) continue;
                 const t = String(row[c2] || '').trim();
-                if (t !== '' && /[A-Za-z]{3,}/.test(t) && !t.toUpperCase().includes('KAS') && !/\d{5,}/.test(t) && t.length <= 40) {
+                if (t !== '' && /[A-Za-z]{3,}/.test(t) && !isBankBlockLabel(t) && !/\d{5,}/.test(t) && t.length <= 40) {
                   if (c2 < rekCol && t.length > best.length) best = t;
                   else if (best === '' && t.length > best.length) best = t;
                 }
@@ -810,28 +823,54 @@ export default {
     }
 
     // ============================================
-    // 15b. SYNC DATABASE DARI GOOGLE SHEET → D1
+    // 15b. SYNC DATABASE — ⚡ VERSI CEPAT (batch insert)
     // ============================================
     if (path === '/api/bank/sync' && request.method === 'POST') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
+        const t0 = Date.now();
         const db = await buildValidatorDatabaseFromSheets();
+        const tFetch = Date.now();
+
         let total = 0, sheets = [];
-        for (const cat in db) { sheets.push(cat + ' (' + db[cat].length + ')'); total += db[cat].length; }
+        const statements = [];
+        const now = Date.now();
 
-        if (total === 0) {
-          return Response.json({ success: false, error: '0 rekening tersinkron — cek FALLBACK_SHEET_NAMES sesuai nama tab spreadsheet Anda', sheets: sheets }, { status: 500 });
-        }
-
-        await env.DB.prepare("DELETE FROM bank_accounts").run();
         for (const cat in db) {
+          sheets.push(cat + ' (' + db[cat].length + ')');
           for (const rec of db[cat]) {
-            await env.DB.prepare(
-              "INSERT INTO bank_accounts (bank, nama, no_rek, sheet, status, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-            ).bind(cat, rec.nama || '', rec.cleaned, rec.sheet || cat, rec.status || cat, Date.now()).run();
+            total++;
+            statements.push(
+              env.DB.prepare(
+                "INSERT INTO bank_accounts (bank, nama, no_rek, sheet, status, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+              ).bind(cat, rec.nama || '', rec.cleaned, rec.sheet || cat, rec.status || cat, now)
+            );
           }
         }
-        return Response.json({ success: true, total: total, sheets: sheets, message: 'Database validator tersinkron: ' + total + ' rekening' });
+
+        if (total === 0) {
+          return Response.json({ success: false, error: '0 rekening tersinkron — cek FALLBACK_SHEET_NAMES / share sheet (Viewer)', sheets: sheets }, { status: 500 });
+        }
+
+        // ⚡ OPTIMASI: hapus + buat index + insert dalam BATCH (bukan satu-satu)
+        await env.DB.batch([
+          env.DB.prepare("DELETE FROM bank_accounts"),
+          env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_bank_accounts_norek ON bank_accounts(no_rek)")
+        ]);
+
+        // Insert per chunk 100 statement (aman untuk batas D1 batch)
+        for (let i = 0; i < statements.length; i += 100) {
+          await env.DB.batch(statements.slice(i, i + 100));
+        }
+
+        const tDone = Date.now();
+        return Response.json({
+          success: true,
+          total: total,
+          sheets: sheets,
+          timing: { fetchSheets: (tFetch - t0) + 'ms', writeDb: (tDone - tFetch) + 'ms', total: (tDone - t0) + 'ms' },
+          message: 'Sync selesai: ' + total + ' rekening dalam ' + (tDone - t0) + 'ms'
+        });
       } catch (err) {
         return Response.json({ error: 'Gagal sync: ' + err.message }, { status: 500 });
       }
@@ -848,7 +887,7 @@ export default {
       }
     }
 
-    // 15d. DEBUG parser — preview per tab (sekarang termasuk FALLBACK)
+    // 15d. DEBUG parser — preview per tab
     if (path === '/api/bank/sync-debug' && request.method === 'POST') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
       try {
