@@ -144,6 +144,11 @@
   </style>
 </head>
 <body>
+  <!-- AUTH CHECK AURA.OS -->
+  <script>
+    if (!localStorage.getItem('aura_auth_token')) window.location.href = '/Login.html';
+  </script>
+
   <div class="noise-overlay"></div>
   <div class="bg-glow glow-1"></div>
   <div class="bg-glow glow-2"></div>
@@ -183,7 +188,7 @@
         <div class="logo-icon"><i class="fas fa-search-dollar"></i></div>
         <div class="logo-text">
           <h1>REKENING VALIDATOR</h1>
-          <p>Validasi multi-database dengan leading zero detection</p>
+          <p>Validasi database dengan leading zero detection 2 arah</p>
         </div>
       </div>
       <a href="/Dashboard.html" class="btn-back">
@@ -277,7 +282,7 @@ Atau cukup masukkan nomor rekening saja:
                 <div style="font-weight: 700; color: var(--accent-violet);">Leading Zero Detection Active</div>
               </div>
               <div style="color: var(--text-dim); font-size: 14px;">
-                Sistem otomatis mencoba menambahkan 1-5 angka nol di depan untuk rekening yang tidak ditemukan dengan nomor asli.
+                Sistem otomatis mencocokkan dengan menambah 1-3 nol di depan ATAU menghapus nol dari input (dua arah).
                 <div style="margin-top: 8px; color: var(--accent-violet); font-weight: 600;"><span id="leadingZeroMatches">0</span> rekening ditemukan dengan leading zero</div>
               </div>
             </div>
@@ -291,20 +296,23 @@ Atau cukup masukkan nomor rekening saja:
         <div class="card-icon"><i class="fas fa-database"></i></div>
         <div>
           <div class="card-title">Sumber Database</div>
-          <div class="card-subtitle">3 spreadsheet dengan deteksi sub-judul otomatis (KAS BCA, KAS MANDIRI, dll)</div>
+          <div class="card-subtitle">1 spreadsheet multi-tab → D1 cache via Sync DB (Bank Processor) + leading zero 2 arah</div>
         </div>
       </div>
       <div class="card-body">
         <div class="db-grid">
-          <div class="db-item db-1"><div class="db-title"><i class="fas fa-server"></i> DB Rekening 1</div><div class="db-desc">Sumber Utama - Multi Sheet Dinamis</div></div>
-          <div class="db-item db-2"><div class="db-title"><i class="fas fa-server"></i> DB Rekening 2</div><div class="db-desc">Sumber Sekunder - Multi Sheet Dinamis</div></div>
-          <div class="db-item db-3"><div class="db-title"><i class="fas fa-server"></i> DB Rekening 3</div><div class="db-desc">Sumber Tambahan - Multi Sheet Dinamis</div></div>
+          <div class="db-item db-1"><div class="db-title"><i class="fas fa-server"></i> Master Database</div><div class="db-desc">Google Sheet multi-tab (KAS BERSIH/KOTOR, WD, DEPOSIT)</div></div>
+          <div class="db-item db-2"><div class="db-title"><i class="fas fa-database"></i> D1 Cache</div><div class="db-desc">Snapshot tersinkron via tombol Sync DB di Bank Processor</div></div>
+          <div class="db-item db-3"><div class="db-title"><i class="fas fa-magic"></i> Leading Zero Engine</div><div class="db-desc">Auto-match tambah nol (1-3x) &amp; strip nol — dua arah</div></div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
+    // ===== AUTH CHECK =====
+    if (!localStorage.getItem('aura_auth_token')) window.location.href = '/Login.html';
+
     let currentResults = null;
     let isProcessing = false;
     let modalRawText = '';
@@ -313,7 +321,7 @@ Atau cukup masukkan nomor rekening saja:
       updateInputStats();
       document.getElementById('inputRekening').focus();
       setupEventListeners();
-      setTimeout(() => { showToast('🚀 Sistem Validator Dinamis siap!', 'success'); }, 1000);
+      setTimeout(() => { showToast('🚀 Sistem Validator siap! (data: D1 sync)', 'success'); }, 1000);
     });
 
     function setupEventListeners() {
@@ -368,7 +376,6 @@ Atau cukup masukkan nomor rekening saja:
       filtered.forEach((r, i) => {
         const isFound = r.found || (r.categories && r.categories.length > 0);
         const statusText = isFound ? 'DITEMUKAN' : 'TIDAK DITEMUKAN';
-        const statusColor = isFound ? 'green' : 'red';
         let displayBank = r.inputBank || '-';
         if (r.matches && r.matches.length > 0) {
           let banks = [...new Set(r.matches.map(m => m.jenisBank).filter(Boolean))];
@@ -416,13 +423,12 @@ Atau cukup masukkan nomor rekening saja:
       if (!r) return;
       const isFound = r.found || (r.categories && r.categories.length > 0);
       const statusText = isFound ? 'DITEMUKAN' : 'TIDAK DITEMUKAN';
-      const statusColor = isFound ? 'green' : 'red';
       let displayBank = r.inputBank || '-';
       if (r.matches && r.matches.length > 0) { let banks = [...new Set(r.matches.map(m => m.jenisBank).filter(Boolean))]; if (banks.length > 0) displayBank = banks.join(' / '); }
       let matchText = '-'; if (r.categories && r.categories.length > 0) matchText = r.categories.join(', ');
       let chipsHtml = '';
       if (r.matches && r.matches.length > 0) {
-        r.matches.forEach(m => { const col = m.category || m.label || ''; const color = m.color || getCategoryColor(col); chipsHtml += '<span style="display:inline-block;padding:4px 12px;background:' + color + '20;color:' + color + ';border-radius:12px;font-size:11px;font-weight:600;border:1px solid ' + color + '40;white-space:nowrap;margin:3px 4px 3px 0;">' + esc(col.replace(/_/g, ' ')) + (m.row ? ' (baris ' + m.row + ')' : '') + '</span>'; });
+        r.matches.forEach(m => { const col = m.category || m.label || ''; const color = m.color || getCategoryColor(col); chipsHtml += '<span style="display:inline-block;padding:4px 12px;background:' + color + '20;color:' + color + ';border-radius:12px;font-size:11px;font-weight:600;border:1px solid ' + color + '40;white-space:nowrap;margin:3px 4px 3px 0;">' + esc(col.replace(/_/g, ' ')) + '</span>'; });
       }
       const html = '<div class="modal-row" onclick="copySingleRowData(' + idx + ')">' +
         '<div class="modal-row-header"><span class="modal-row-index">#' + (idx + 1) + '</span>' +
@@ -431,11 +437,11 @@ Atau cukup masukkan nomor rekening saja:
         '<div class="modal-row-field"><span class="modal-row-label">Jenis Bank</span><span class="modal-row-value cyan">' + esc(displayBank) + '</span></div>' +
         '<div class="modal-row-field"><span class="modal-row-label">Nama Rekening</span><span class="modal-row-value">' + esc(r.inputNama || '-') + '</span></div>' +
         '<div class="modal-row-field"><span class="modal-row-label">Nomor Rekening</span><span class="modal-row-value cyan">' + esc(r.rekening || r.input || 'N/A') + '</span></div>' +
-        (r.foundWithLeadingZero ? '<div class="modal-row-field"><span class="modal-row-label">Leading Zero</span><span class="modal-row-value violet">+' + (r.leadingZeroAdded || '?') + ' nol di depan</span></div>' : '') +
+        (r.foundWithLeadingZero ? '<div class="modal-row-field"><span class="modal-row-label">Leading Zero</span><span class="modal-row-value violet">' + (r.leadingZeroAdded > 0 ? '+' + r.leadingZeroAdded + ' nol' : 'strip nol (' + r.leadingZeroAdded + ')') + '</span></div>' : '') +
         '<div class="modal-row-field"><span class="modal-row-label">Ditemukan di</span><span class="modal-row-value">' + esc(matchText) + '</span></div>' +
         (chipsHtml ? '<div class="modal-row-field"><span class="modal-row-label">Detail Lokasi</span><div style="display:flex;flex-wrap:wrap;gap:0;">' + chipsHtml + '</div></div>' : '') +
         '</div>';
-      const raw = 'Bank: ' + displayBank + '\nNama: ' + (r.inputNama || '-') + '\nRekening: ' + (r.rekening || r.input || 'N/A') + (r.foundWithLeadingZero ? '\nLeading Zero: +' + (r.leadingZeroAdded || '?') + ' nol' : '') + '\nStatus: ' + statusText + '\nDitemukan di: ' + matchText;
+      const raw = 'Bank: ' + displayBank + '\nNama: ' + (r.inputNama || '-') + '\nRekening: ' + (r.rekening || r.input || 'N/A') + (r.foundWithLeadingZero ? '\nLeading Zero: ' + (r.leadingZeroAdded > 0 ? '+' + r.leadingZeroAdded + ' nol' : 'strip nol') : '') + '\nStatus: ' + statusText + '\nDitemukan di: ' + matchText;
       openModal('fa-id-card', 'Detail Rekening #' + (idx + 1), html, raw, '1 data');
     }
 
@@ -445,12 +451,12 @@ Atau cukup masukkan nomor rekening saja:
       let displayBank = r.inputBank || '-';
       if (r.matches && r.matches.length > 0) { let banks = [...new Set(r.matches.map(m => m.jenisBank).filter(Boolean))]; if (banks.length > 0) displayBank = banks.join(' / '); }
       let matchText = '-'; if (r.categories && r.categories.length > 0) matchText = r.categories.join(', ');
-      const raw = 'Bank: ' + displayBank + '\nNama: ' + (r.inputNama || '-') + '\nRekening: ' + (r.rekening || r.input || 'N/A') + (r.foundWithLeadingZero ? '\nLeading Zero: +' + (r.leadingZeroAdded || '?') + ' nol' : '') + '\nStatus: ' + (isFound ? 'DITEMUKAN' : 'TIDAK DITEMUKAN') + '\nDitemukan di: ' + matchText;
+      const raw = 'Bank: ' + displayBank + '\nNama: ' + (r.inputNama || '-') + '\nRekening: ' + (r.rekening || r.input || 'N/A') + (r.foundWithLeadingZero ? '\nLeading Zero: ' + (r.leadingZeroAdded > 0 ? '+' + r.leadingZeroAdded + ' nol' : 'strip nol') : '') + '\nStatus: ' + (isFound ? 'DITEMUKAN' : 'TIDAK DITEMUKAN') + '\nDitemukan di: ' + matchText;
       copyToClipboard(raw);
       showToast('📋 Data #' + (idx + 1) + ' disalin', 'success');
     }
 
-    /* ===== ORIGINAL FUNCTIONS (MODIFIED STATS & TABLE) ===== */
+    /* ===== INPUT FUNCTIONS ===== */
     function updateInputStats() {
       const input = document.getElementById('inputRekening').value;
       const parsed = parseInputData(input);
@@ -492,6 +498,7 @@ Atau cukup masukkan nomor rekening saja:
     function formatInput() { const input = document.getElementById('inputRekening'); input.value = input.value.replace(/\s+/g, ' ').trim(); updateInputStats(); showToast('✨ Input telah diformat', 'success'); }
     function copyInput() { const input = document.getElementById('inputRekening'); input.select(); document.execCommand('copy'); showToast('📋 Input disalin ke clipboard', 'success'); }
 
+    /* ===== VALIDASI — BACKEND ASLI (D1) ===== */
     async function validateRekening() {
       if (isProcessing) return;
       const input = document.getElementById('inputRekening').value.trim();
@@ -499,44 +506,18 @@ Atau cukup masukkan nomor rekening saja:
       if (parsed.length === 0) { showToast('❌ Masukkan data rekening terlebih dahulu!', 'error'); return; }
       isProcessing = true;
       showLoading(`Memvalidasi ${parsed.length} data rekening...`);
-      
+
       try {
-        // SIMULASI FRONTEND UNTUK CLOUDFLARE WORKERS
-        // Jika Anda sudah memiliki API Backend, ganti blok ini dengan: fetch('/api/validate-rekening', { method: 'POST', body: input }).then(res => res.json()).then(handleValidationSuccess)
-        setTimeout(() => {
-          const mockResults = parsed.map(p => {
-            const isFound = Math.random() > 0.5;
-            const isLeadingZero = !isFound && Math.random() > 0.8;
-            
-            return {
-              input: p.rekening,
-              rekening: p.rekening,
-              found: isFound || isLeadingZero,
-              foundWithLeadingZero: isLeadingZero,
-              leadingZeroAdded: isLeadingZero ? Math.floor(Math.random() * 3) + 1 : 0,
-              categories: isFound ? ['DB 1 - KAS BCA'] : [],
-              matches: isFound ? [{ category: 'DB 1 - KAS BCA', row: Math.floor(Math.random()*100), jenisBank: p.bank }] : []
-            };
-          });
-          
-          const response = {
-            success: true,
-            inputCount: parsed.length,
-            results: mockResults,
-            leadingZeroCount: mockResults.filter(r => r.foundWithLeadingZero).length,
-            statistics: {
-              total: parsed.length,
-              found: mockResults.filter(r => r.found).length,
-              notFound: mockResults.filter(r => !r.found).length,
-              foundPercentage: Math.round((mockResults.filter(r => r.found).length / parsed.length) * 100)
-            }
-          };
-          
-          handleValidationSuccess(response);
-        }, 1500);
-        
-      } catch (error) { 
-        handleValidationError(error); 
+        const res = await fetch('/api/validate-rekening', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('aura_auth_token') },
+          body: JSON.stringify({ input: input })
+        });
+        const response = await res.json();
+        if (!response.success) { throw new Error(response.error || 'Server error'); }
+        handleValidationSuccess(response);
+      } catch (error) {
+        handleValidationError(error);
       }
     }
 
@@ -547,8 +528,8 @@ Atau cukup masukkan nomor rekening saja:
       const inputParsed = parseInputData(document.getElementById('inputRekening').value);
       response.results.forEach((res, idx) => {
         const matchedInput = inputParsed.find(p => p.rekening === (res.rekening || res.input));
-        if (matchedInput) { res.inputBank = matchedInput.bank || '-'; res.inputNama = matchedInput.nama || '-'; }
-        else { res.inputBank = '-'; res.inputNama = '-'; }
+        if (matchedInput) { if (!res.inputBank) res.inputBank = matchedInput.bank || '-'; if (!res.inputNama) res.inputNama = matchedInput.nama || '-'; }
+        else { if (!res.inputBank) res.inputBank = '-'; if (!res.inputNama) res.inputNama = '-'; }
       });
       currentResults = response;
       document.getElementById('emptyState').style.display = 'none';
@@ -558,7 +539,7 @@ Atau cukup masukkan nomor rekening saja:
       document.getElementById('filterStatus').value = 'ALL';
       document.getElementById('searchRekening').value = '';
       filterAndRenderResults();
-      const leadingZeroCount = response.leadingZeroCount || (response.statistics && response.statistics.foundWithLeadingZero) || 0;
+      const leadingZeroCount = response.leadingZeroCount || 0;
       if (leadingZeroCount > 0) { document.getElementById('leadingZeroInfo').style.display = 'block'; document.getElementById('leadingZeroMatches').textContent = leadingZeroCount; }
       else { document.getElementById('leadingZeroInfo').style.display = 'none'; }
       const stats = response.statistics || {};
@@ -649,85 +630,82 @@ Atau cukup masukkan nomor rekening saja:
         if (result.matches && result.matches.length > 0) {
           result.matches.forEach(match => {
             const col = match.category || match.label || '';
-            const color = match.color || getCategoryColor(col);
-            chipsHtml += `<span style="display:inline-block;padding:4px 12px;background:${color}20;color:${color};border-radius:12px;font-size:11px;font-weight:600;border:1px solid ${color}40;white-space:nowrap;">${col.replace(/_/g, ' ')} ${match.row ? `(baris ${match.row})` : ''}</span>`;
+            const color = getCategoryColor(col);
+            chipsHtml += `<span style="display:inline-block;padding:4px 10px;background:${color}20;color:${color};border-radius:10px;font-size:10px;font-weight:600;border:1px solid ${color}40;white-space:nowrap;margin:2px;">${esc(col)}</span>`;
           });
-        } else if (result.categories && result.categories.length > 0) {
-          result.categories.forEach(col => { const color = getCategoryColor(col); chipsHtml += `<span style="display:inline-block;padding:4px 12px;background:${color}20;color:${color};border-radius:12px;font-size:11px;font-weight:600;border:1px solid ${color}40;white-space:nowrap;">${col.replace(/_/g, ' ')}</span>`; });
         }
-        let columnChips = chipsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">${chipsHtml}</div>` : '<span style="color: var(--text-dim);">-</span>';
+        const displayNama = result.inputNama || (result.matches && result.matches[0] && result.matches[0].dbNama) || '-';
         row.innerHTML = `
-          <td style="font-weight: 700; color: var(--accent-cyan);">${index + 1}</td>
-          <td><div style="font-weight: 600; color: ${getCategoryColor(displayJenisBank)};">${displayJenisBank}</div></td>
-          <td><div style="font-weight: 500;">${result.inputNama || '-'}</div></td>
-          <td><div style="font-family: 'Courier New', monospace; font-weight: 600;">${result.rekening || result.input || 'N/A'}</div>${foundWithLeadingZero ? `<div style="font-size: 11px; color: var(--accent-violet); margin-top: 4px; font-weight: 600;"><i class="fas fa-exchange-alt"></i> +${result.leadingZeroAdded || '?'} Nol</div>` : ''}</td>
+          <td style="color: var(--text-dim);">${index + 1}</td>
+          <td style="font-weight: 600; color: var(--accent-cyan); font-size: 13px;">${esc(displayJenisBank)}</td>
+          <td>${esc(displayNama)}</td>
+          <td style="font-family: 'Courier New', monospace; letter-spacing: 0.5px;">${esc(result.rekening || result.input || 'N/A')}</td>
           <td>${statusBadge}</td>
-          <td>${columnChips}</td>`;
+          <td><div style="display:flex; flex-wrap: wrap; gap: 2px;">${chipsHtml || '<span style="color: var(--text-dim);">—</span>'}</div></td>
+        `;
         tbody.appendChild(row);
       });
     }
 
+    /* ===== EXPORT CSV ===== */
     function exportResults() {
-      if (!currentResults) { showToast('⚠️ Tidak ada hasil untuk diexport', 'warning'); return; }
-      showLoading('Membuat file CSV...');
-      let csvContent = "No,Jenis Bank,Nama Rekening,Nomor Rekening,Status,Jumlah Match,Ditemukan di\n";
-      currentResults.results.forEach((result, index) => {
-        let displayJenisBank = result.inputBank || '';
-        if (result.matches && result.matches.length > 0) { let banks = [...new Set(result.matches.map(m => m.jenisBank).filter(Boolean))]; if (banks.length > 0) displayJenisBank = banks.join(' / '); }
-        const nama = result.inputNama || '';
-        const rekening = result.rekening || result.input || '';
-        const status = result.found ? "DITEMUKAN" : "TIDAK DITEMUKAN";
-        const matchCount = result.categories ? result.categories.length : 0;
-        const categories = result.categories ? result.categories.join(', ') : '';
-        csvContent += `${index + 1},"${displayJenisBank}","${nama}","${rekening}",${status},${matchCount},"${categories}"\n`;
+      if (!currentResults || !currentResults.results) return;
+      const rows = [['#', 'Jenis Bank', 'Nama Rekening', 'Nomor Rekening', 'Status', 'Leading Zero', 'Ditemukan Di', 'Nama di DB', 'Status Sheet']];
+      currentResults.results.forEach((r, i) => {
+        const isFound = r.found || (r.categories && r.categories.length > 0);
+        let displayBank = r.inputBank || '-';
+        if (r.matches && r.matches.length > 0) { let banks = [...new Set(r.matches.map(m => m.jenisBank).filter(Boolean))]; if (banks.length > 0) displayBank = banks.join(' / '); }
+        const dbNama = (r.matches && r.matches[0] && r.matches[0].dbNama) || '';
+        const dbStatus = (r.matches && r.matches[0] && r.matches[0].status) || '';
+        rows.push([i + 1, displayBank, r.inputNama || '-', r.rekening || r.input || 'N/A', isFound ? 'DITEMUKAN' : 'TIDAK DITEMUKAN', r.foundWithLeadingZero ? ((r.leadingZeroAdded > 0 ? '+' + r.leadingZeroAdded : 'strip') + ' nol') : '', (r.categories || []).join(' | '), dbNama, dbStatus]);
       });
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
-      const filename = `rekening_validasi_${timestamp}.csv`;
-      link.href = url; link.download = filename; link.style.display = 'none';
-      document.body.appendChild(link); link.click(); document.body.removeChild(link);
-      hideLoading();
-      showToast(`📥 File ${filename} berhasil diunduh`, 'success');
+      const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'validasi_rekening_' + new Date().toISOString().slice(0, 10) + '.csv';
+      a.click();
+      showToast('📤 Hasil validasi diexport ke CSV!', 'success');
     }
 
-    function showLoading(message) {
+    /* ===== UTILS ===== */
+    function showLoading(text) {
       const overlay = document.getElementById('loadingOverlay');
-      document.getElementById('loadingText').textContent = 'Memproses Validasi';
-      document.getElementById('loadingSubtext').textContent = message || 'Harap tunggu sebentar...';
+      document.getElementById('loadingText').textContent = text || 'Memproses';
       overlay.style.display = 'flex';
       let progress = 0;
-      const interval = setInterval(() => { progress += 3; document.getElementById('loadingProgress').style.width = `${progress}%`; if (progress >= 90) clearInterval(interval); }, 200);
+      const interval = setInterval(() => {
+        progress = Math.min(progress + Math.random() * 20, 90);
+        document.getElementById('loadingProgress').style.width = progress + '%';
+        if (progress >= 90) clearInterval(interval);
+      }, 200);
     }
     function hideLoading() {
-      document.getElementById('loadingOverlay').style.display = 'none';
       document.getElementById('loadingProgress').style.width = '100%';
-      setTimeout(() => { document.getElementById('loadingProgress').style.width = '0%'; }, 500);
+      setTimeout(() => { document.getElementById('loadingOverlay').style.display = 'none'; }, 300);
     }
-
     function showToast(message, type = 'info') {
       const toast = document.getElementById('toast');
-      const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
-      toast.className = `toast ${type}`;
-      toast.innerHTML = `<i class="fas ${icons[type] || icons.info}" style="color: ${type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : type === 'warning' ? '#f39c12' : 'var(--accent-cyan)'}; font-size: 20px; margin-right: 15px;"></i><div style="flex: 1;"><div style="font-weight: 700; margin-bottom: 4px;">${type.charAt(0).toUpperCase() + type.slice(1)}</div><div style="font-size: 14px; color: var(--text-dim);">${message}</div></div><i class="fas fa-times" style="cursor:pointer;margin-left:15px;opacity:0.7;" onclick="hideToast()"></i>`;
-      toast.classList.add('show');
-      setTimeout(hideToast, 5000);
+      toast.textContent = message;
+      toast.className = 'toast show ' + type;
+      clearTimeout(toast._timeout);
+      toast._timeout = setTimeout(() => toast.classList.remove('show'), 4000);
     }
-    function hideToast() { document.getElementById('toast').classList.remove('show'); }
-
     function copyToClipboard(text) {
       if (navigator.clipboard) { navigator.clipboard.writeText(text).catch(() => fallbackCopy(text)); }
-      else { fallbackCopy(text); }
+      else fallbackCopy(text);
     }
-    function fallbackCopy(t) {
+    function fallbackCopy(text) {
       const ta = document.createElement('textarea');
-      ta.value = t; ta.style.position = 'fixed'; ta.style.left = '-9999px';
-      document.body.appendChild(ta); ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
+      ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
     }
-    function esc(s) { if (s === null || s === undefined) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+    function esc(s) {
+      if (s === null || s === undefined) return '';
+      const d = document.createElement('div');
+      d.textContent = String(s);
+      return d.innerHTML;
+    }
   </script>
 </body>
 </html>
