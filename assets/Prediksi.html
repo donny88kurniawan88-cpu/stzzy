@@ -2,953 +2,490 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prediksi Togel - Dashboard</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" href="https://img.icons8.com/color/48/000000/crystal-ball.png">
-    
-    <!-- Font Awesome -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AURA.OS // Prediksi</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        /* Reset & Base Styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
-        
         :root {
-            --primary: #2a0f0f;
-            --secondary: #2a0f0f;
-            --accent: #ff0080;
-            --neon: #00f3ff;
-            --success: #00ff88;
-            --warning: #ffcc00;
-            --danger: #ff0055;
-            --dark: #0a0a1a;
-            --light: #f0f8ff;
-            --card-bg: rgba(15, 12, 41, 0.92);
-            --glass: rgba(255, 255, 255, 0.08);
-            --shadow-lg: 0 25px 50px rgba(0, 0, 0, 0.5);
-            --shadow-glow: 0 0 30px rgba(0, 243, 255, 0.3);
-            --border-radius: 20px;
-            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            --red-dark-bg: #2a0f0f;
-            --red-darker-bg: #1f0a0a;
-            --red-glow: rgba(255, 0, 0, 0.3);
-        }
-        
-        body {
-            background: linear-gradient(135deg, #0f0c29 0%, #24243e 50%, #302b63 100%);
-            min-height: 100vh;
-            padding: 20px;
-            transition: var(--transition);
-            position: relative;
-            overflow-x: hidden;
-        }
-        
-        body.bg-image-mode {
-            background: url('https://cdn.areabermain.club/assets/cdn/az6/2026/01/14/20260114/eec48b243e0f270c42e9de21226419f4/backgorund-lunatogel-januari-new.jpg') no-repeat center center fixed;
-            background-size: cover;
-        }
-        
-        .particles {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: -1;
-        }
-        
-        .particle {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            animation: float 15s infinite linear;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0); }
-            25% { transform: translate(20px, 50px); }
-            50% { transform: translate(-20px, 100px); }
-            75% { transform: translate(30px, 50px); }
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
+            --bg-primary: #0a0a0f; --bg-secondary: #111118; --bg-tertiary: #1a1a24;
+            --surface: rgba(15, 15, 22, 0.9);
+            --border: rgba(255, 255, 255, 0.07);
+            --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-tertiary: #64748b;
+            --accent-primary: #3b82f6; --accent-primary-light: rgba(59, 130, 246, 0.12);
+            --accent-primary-dark: #2563eb; --accent-primary-glow: rgba(59, 130, 246, 0.35);
+            --accent-success: #10b981; --accent-success-light: rgba(16, 185, 129, 0.12);
+            --accent-warning: #f59e0b; --accent-warning-light: rgba(245, 158, 11, 0.12);
+            --accent-purple: #8b5cf6; --accent-purple-light: rgba(139, 92, 246, 0.10);
+            --accent-pink: #ec4899; --accent-teal: #14b8a6;
+            --neon-cyan: #00f0ff; --neon-purple: #b46cff;
+            --font-sans: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --radius-lg: 16px; --radius-xl: 24px;
+            --bg-image: url('https://cdn.areabermain.club/assets/cdn/az6/2026/01/14/20260114/eec48b243e0f270c42e9de21226419f4/backgorund-lunatogel-januari-new.jpg');
         }
 
-        /* ===== BACK TO DASHBOARD BUTTON ===== */
-        .back-dashboard-btn {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            color: white;
-            text-decoration: none;
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 10px 20px;
-            border-radius: 12px;
-            border: none;
-            z-index: 1000;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); min-height: 100vh; overflow-x: hidden; line-height: 1.5; }
+        body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 600px 400px at 15% 20%, rgba(59,130,246,0.10) 0%, transparent 70%), radial-gradient(ellipse 500px 500px at 85% 70%, rgba(139,92,246,0.08) 0%, transparent 70%), radial-gradient(ellipse 400px 300px at 50% 90%, rgba(16,185,129,0.07) 0%, transparent 70%), linear-gradient(160deg, #0c0c16 0%, #0a0a0f 40%, #0e0e18 100%); z-index: -2; }
+        body::after { content: ''; position: fixed; inset: 0; background: radial-gradient(circle 200px at 25% 35%, rgba(59,130,246,0.05) 0%, transparent 100%), radial-gradient(circle 180px at 75% 65%, rgba(139,92,246,0.04) 0%, transparent 100%); z-index: -1; animation: glowDrift 25s ease-in-out infinite alternate; }
+        @keyframes glowDrift { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(15px,-10px) scale(1.03); } 100% { transform: translate(-10px,5px) scale(0.99); } }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg-secondary); } ::-webkit-scrollbar-thumb { background: var(--accent-primary); border-radius: 10px; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.05); } }
 
-        .back-dashboard-btn:hover {
-            background: #2563eb;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5);
-        }
+        .particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .particle { position: absolute; border-radius: 50%; animation: float 15s infinite linear; }
+        @keyframes float { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(20px, 50px); } 50% { transform: translate(-20px, 100px); } 75% { transform: translate(30px, 50px); } }
 
-        .back-dashboard-btn i {
-            color: #ffffff;
-            font-size: 0.9rem;
+        /* ===== MODE GAMBAR ===== */
+        body.bg-image-mode .prediction-section {
+            background-image: linear-gradient(rgba(8,8,13,0.38), rgba(8,8,13,0.58)), var(--bg-image);
+            background-size: cover; background-position: center;
+            border-color: rgba(255,255,255,0.14);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
         }
+        body.bg-image-mode .pred-header { background: rgba(10,10,16,0.75); backdrop-filter: blur(12px); }
+        body.bg-image-mode .pred-market { text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+        body.bg-image-mode .pred-date { color: #cbd5e1; }
 
-        @media (max-width: 480px) {
-            .back-dashboard-btn {
-                top: 10px;
-                left: 10px;
-                padding: 8px 15px;
-                font-size: 0.75rem;
-                border-radius: 10px;
-            }
+        .container { max-width: 1400px; margin: 0 auto; padding: 32px; position: relative; z-index: 10; }
+
+        /* ===== TOP BAR ===== */
+        .top-bar { background: rgba(10,10,16,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 90; }
+        .top-left { display: flex; align-items: center; gap: 16px; }
+        .back-btn { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); text-decoration: none; font-size: 13px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: rgba(15,15,22,0.5); transition: 0.25s; }
+        .back-btn:hover { color: var(--neon-cyan); border-color: rgba(0,240,255,0.4); box-shadow: 0 0 15px rgba(0,240,255,0.15); }
+        .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); font-family: var(--font-mono); }
+        .breadcrumb span:last-child { color: var(--accent-primary); }
+        .status-badge { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--accent-success-light); border: 1px solid rgba(16,185,129,0.15); border-radius: 100px; font-size: 12px; font-weight: 600; color: var(--accent-success); }
+        .status-dot { width: 8px; height: 8px; background: var(--accent-success); border-radius: 50%; animation: pulse 2s infinite; }
+
+        /* ===== HERO ===== */
+        .hero { margin-bottom: 32px; padding: 40px; background: linear-gradient(135deg, rgba(59,130,246,0.10) 0%, rgba(139,92,246,0.08) 40%, rgba(236,72,153,0.05) 100%), linear-gradient(to bottom, rgba(15,15,22,0.5), rgba(15,15,22,0.85)); border-radius: var(--radius-xl); border: 1px solid rgba(59,130,246,0.10); position: relative; overflow: hidden; animation: fadeInScale 0.5s ease; }
+        .hero-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px; }
+        .hero-left { display: flex; align-items: center; gap: 20px; }
+        .hero-icon { width: 64px; height: 64px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple)); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: white; box-shadow: 0 8px 24px rgba(59,130,246,0.3); }
+        .hero-title { font-size: clamp(24px, 4vw, 32px); font-weight: 800; letter-spacing: -1px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple), var(--accent-pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-sub { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
+        .date-chip { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; background: rgba(15,15,22,0.6); border: 1px solid var(--border); border-radius: 14px; color: var(--text-primary); font-size: 14px; font-weight: 600; }
+        .date-chip i { color: var(--neon-cyan); }
+
+        /* ===== STATS ===== */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: linear-gradient(135deg, rgba(15,15,22,0.9), rgba(18,18,28,0.85)); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple)); transform: scaleX(0); transform-origin: left; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .stat-card:hover::before { transform: scaleX(1); }
+        .stat-card:hover { border-color: rgba(59,130,246,0.25); transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .stat-value { font-size: 28px; font-weight: 800; font-family: var(--font-mono); margin-bottom: 6px; color: var(--accent-primary); }
+        .stat-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+
+        /* ===== PREDICTION SECTION ===== */
+        .prediction-section { background: var(--surface); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; margin-bottom: 32px; animation: fadeInUp 0.5s ease 0.1s backwards; }
+        .pred-header { padding: 28px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; background: linear-gradient(135deg, rgba(59,130,246,0.04), transparent); }
+        .pred-title-group { display: flex; align-items: center; gap: 16px; }
+
+        /* ===== ⭐ LOGO PASARAN DI HEADER PANEL ===== */
+        .pred-logo-box {
+            width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0;
+            background: rgba(10,10,16,0.6); border: 1px solid rgba(59,130,246,0.25);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        
-        /* Header Styles */
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 30px;
-            background: rgba(15, 12, 41, 0.7);
-            backdrop-filter: blur(15px);
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-lg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            position: relative;
-            overflow: hidden;
-            animation: slideDown 0.8s ease-out;
+        .pred-logo-box img { width: 100%; height: 100%; object-fit: contain; padding: 6px; border-radius: 10px; }
+        .pred-logo-box:hover { border-color: rgba(59,130,246,0.5); transform: scale(1.06); box-shadow: 0 0 20px rgba(59,130,246,0.2); }
+        .pred-logo-fallback { color: var(--accent-primary); font-size: 22px; }
+        body.bg-image-mode .pred-logo-box { background: rgba(10,10,16,0.85); }
+
+        .pred-market { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+        .pred-date { font-size: 12px; color: var(--text-secondary); font-family: var(--font-mono); margin-top: 2px; }
+        .pred-body { padding: 32px; }
+        .prediction-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+
+        /* ===== KARTU PREDIKSI ===== */
+        .pred-card { background: linear-gradient(135deg, rgba(15,15,22,0.96), rgba(18,18,28,0.94)); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); animation: fadeInUp 0.5s ease backwards; }
+        .pred-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple), var(--accent-pink)); transform: scaleX(0); transform-origin: left; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 2; }
+        .pred-card:hover::before { transform: scaleX(1); }
+        .pred-card:hover { border-color: rgba(59,130,246,0.25); transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .pred-card:nth-child(1) { animation-delay: 0.1s; } .pred-card:nth-child(2) { animation-delay: 0.15s; }
+
+        .pred-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; position: relative; z-index: 1; }
+        .pred-card-icon { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+        .icon-blue { background: var(--accent-primary-light); color: var(--accent-primary); }
+        .icon-purple { background: var(--accent-purple-light); color: var(--accent-purple); }
+        .icon-green { background: var(--accent-success-light); color: var(--accent-success); }
+        .icon-orange { background: var(--accent-warning-light); color: var(--accent-warning); }
+        .icon-teal { background: rgba(20,184,166,0.12); color: var(--accent-teal); }
+        .pred-card-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); }
+
+        /* ===== KOTAK ANGKA ===== */
+        .pred-card-value {
+            font-size: clamp(17px, 2vw, 22px); font-weight: 700; font-family: var(--font-mono);
+            text-align: center; padding: 16px 12px;
+            background: #0c0c12;
+            border: 1px solid var(--border); border-radius: 13px;
+            letter-spacing: 1px; transition: border-color 0.25s;
+            display: flex; flex-wrap: wrap; justify-content: center; align-content: center;
+            gap: 8px 10px; min-height: 96px; position: relative; z-index: 1;
         }
-        
-        @keyframes slideDown {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        .pred-card-value:hover { border-color: rgba(59,130,246,0.45); }
+        .val-blue { color: var(--accent-primary); } .val-purple { color: var(--neon-purple); }
+        .val-green { color: var(--accent-success); } .val-teal { color: var(--accent-teal); }
+        .num-chip { white-space: nowrap; padding: 3px 8px; border-radius: 7px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
+
+        /* ===== 2D JITU — PIL BULAT ===== */
+        .pill-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 16px 10px; background: #0c0c12; border: 1px solid var(--border); border-radius: 13px; min-height: 96px; align-content: center; position: relative; z-index: 1; }
+        .num-pill {
+            width: 46px; height: 46px; border-radius: 50%;
+            background: linear-gradient(135deg, #1e3a5f, #16304f);
+            border: 1px solid rgba(59,130,246,0.35);
+            color: #7dd3fc; font-family: var(--font-mono); font-size: 15px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: default; letter-spacing: 0.5px;
         }
-        
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--accent), var(--neon), var(--success));
-            animation: gradientMove 3s infinite linear;
-        }
-        
-        @keyframes gradientMove {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .logo-icon {
-            font-size: 42px;
-            color: var(--neon);
-            filter: drop-shadow(0 0 15px rgba(0, 243, 255, 0.7));
-            animation: pulseGlow 2s infinite alternate;
-        }
-        
-        @keyframes pulseGlow {
-            0% { filter: drop-shadow(0 0 10px rgba(0, 243, 255, 0.5)); transform: scale(1); }
-            100% { filter: drop-shadow(0 0 25px rgba(0, 243, 255, 0.9)); transform: scale(1.05); }
-        }
-        
-        .title {
-            font-size: 3rem;
-            background: linear-gradient(45deg, var(--neon), var(--accent), var(--success));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            font-weight: 800;
-            letter-spacing: -1px;
-            margin: 0;
-            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            font-family: 'Orbitron', sans-serif;
-        }
-        
-        .subtitle {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1.3rem;
-            font-weight: 300;
-            margin-bottom: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            display: inline-block;
-            padding: 8px 25px;
-            border-radius: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .current-date {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: linear-gradient(135deg, var(--success), #00cc77);
-            color: var(--dark);
-            padding: 10px 25px;
-            border-radius: 50px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            box-shadow: 0 10px 20px rgba(0, 255, 136, 0.2);
-            animation: datePulse 3s infinite;
-        }
-        
-        @keyframes datePulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-        }
-        
-        /* Controls Section */
-        .controls {
-            background: rgba(15, 12, 41, 0.8);
-            backdrop-filter: blur(15px);
-            border-radius: var(--border-radius);
-            padding: 25px;
-            margin-bottom: 30px;
-            box-shadow: var(--shadow-lg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 25px;
-            align-items: center;
-            animation: fadeIn 1s ease-out 0.2s both;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @media (max-width: 768px) {
-            .controls {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-        }
-        
-        .pasaran-selector {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .selector-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 600;
-            color: var(--neon);
-            font-size: 1.1rem;
-        }
-        
-        .selector-label i {
-            color: var(--accent);
-            font-size: 1.3rem;
-        }
-        
-        .pasaran-dropdown {
-            flex: 1;
-            min-width: 250px;
-            padding: 14px 20px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            font-size: 1rem;
-            font-weight: 500;
-            color: var(--light);
-            background: rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            transition: var(--transition);
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300f3ff' stroke='%2300f3ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 20px center;
-            background-size: 18px;
-            padding-right: 50px;
-        }
-        
-        .pasaran-dropdown:focus {
-            outline: none;
-            border-color: var(--neon);
-            box-shadow: var(--shadow-glow);
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        
-        .btn {
-            padding: 14px 25px;
-            border: none;
-            border-radius: 15px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            position: relative;
-            overflow: hidden;
-            z-index: 1;
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 1px;
-        }
-        
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
-            z-index: -1;
-            transition: var(--transition);
-            opacity: 0;
-        }
-        
-        .btn:hover::before { opacity: 1; }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: var(--neon);
-            border: 2px solid var(--neon);
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 243, 255, 0.3);
-        }
-        
-        .btn-success {
-            background: linear-gradient(135deg, var(--success), #00cc77);
-            color: var(--dark);
-            border: 2px solid var(--success);
-        }
-        
-        .btn-success:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 255, 136, 0.3);
-        }
-        
-        .btn i { font-size: 1.2rem; }
-        
-        .btn-toggle {
-            background: linear-gradient(135deg, #2c3e50, #1a1a2e);
-            color: #fff;
-            border: 2px solid var(--neon);
-            margin-left: 10px;
-        }
-        .btn-toggle.on {
-            background: linear-gradient(135deg, var(--success), #00aa66);
-            border-color: #fff;
-            color: #000;
-        }
-        
-        /* Prediction Card */
-        .prediction-card {
-            background: rgba(15, 12, 41, 0.8);
-            backdrop-filter: blur(15px);
-            border-radius: var(--border-radius);
-            padding: 40px;
-            margin-bottom: 40px;
-            box-shadow: var(--shadow-lg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            position: relative;
-            overflow: hidden;
-            animation: fadeIn 1s ease-out 0.4s both;
-        }
-        
-        .prediction-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--accent), var(--neon), var(--success));
-            animation: gradientMove 3s infinite linear;
-        }
-        
-        .pasaran-header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 25px;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .pasaran-title {
-            font-size: 2.8rem;
-            background: linear-gradient(45deg, var(--neon), var(--accent));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin-bottom: 15px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            font-family: 'Orbitron', sans-serif;
-        }
-        
-        .pasaran-title i {
-            color: var(--accent);
-            font-size: 2.5rem;
-            animation: spin 10s infinite linear;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .prediction-date {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 1.2rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .prediction-date span {
-            color: var(--success);
-            font-weight: 600;
-            background: rgba(0, 255, 136, 0.1);
-            padding: 5px 15px;
-            border-radius: 10px;
-            border: 1px solid rgba(0, 255, 136, 0.3);
-        }
-        
-        .prediction-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
-        }
-        
-        .prediction-item {
-            background: #1f0a0a !important;
-            border: 1px solid #660000 !important;
-            box-shadow: 0 10px 25px rgba(150, 0, 0, 0.5) !important;
-            padding: 25px;
-            border-radius: 20px;
-            transition: var(--transition);
-            position: relative;
-            overflow: hidden;
-            animation: cardAppear 0.6s ease-out forwards;
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        
-        .prediction-item:hover {
-            background: #2f0f0f !important;
-            box-shadow: 0 0 30px #990000 !important;
-        }
-        
-        .prediction-icon {
-            background: linear-gradient(135deg, #990000, #4d0000) !important;
-            color: #ffcccc !important;
-        }
-        
-        .prediction-label {
-            color: #ffaaaa !important;
-            text-shadow: 0 0 8px #ff0000;
-        }
-        
-        .prediction-value {
-            background: #2a0f0f !important;
-            border: 1px solid #aa2222 !important;
-            color: #ffd0d0 !important;
-            box-shadow: inset 0 0 15px #3f0000;
-        }
-        
-        .prediction-value:hover {
-            box-shadow: 0 0 25px #ff4444 !important;
-        }
-        
-        @keyframes cardAppear {
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .prediction-item:nth-child(1) { animation-delay: 0.5s; }
-        .prediction-item:nth-child(2) { animation-delay: 0.6s; }
-        .prediction-item:nth-child(3) { animation-delay: 0.7s; }
-        .prediction-item:nth-child(4) { animation-delay: 0.8s; }
-        .prediction-item:nth-child(5) { animation-delay: 0.9s; }
-        .prediction-item:nth-child(6) { animation-delay: 1s; }
-        .prediction-item:nth-child(7) { animation-delay: 1.1s; }
-        .prediction-item:nth-child(8) { animation-delay: 1.2s; }
-        .prediction-item:nth-child(9) { animation-delay: 1.3s; }
-        
-        .prediction-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 18px;
-        }
-        
-        .prediction-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            flex-shrink: 0;
-        }
-        
-        .prediction-label {
-            font-size: 1.1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            flex: 1;
-        }
-        
-        .prediction-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            font-family: 'Orbitron', sans-serif;
-            line-height: 1.2;
-            word-break: break-word;
-            text-align: center;
-            padding: 15px;
-            border-radius: 15px;
-            transition: var(--transition);
-        }
-        
-        /* Toast Notification */
-        .toast {
-            position: fixed;
-            bottom: 40px;
-            right: 40px;
-            background: rgba(15, 12, 41, 0.95);
-            color: var(--success);
-            padding: 20px 30px;
-            border-radius: 15px;
-            box-shadow: var(--shadow-lg);
-            transform: translateX(150%);
-            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            z-index: 1001;
-            max-width: 400px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            border-left: 4px solid var(--success);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
+        .num-pill:hover { transform: scale(1.12); background: linear-gradient(135deg, #2563eb, #1d4ed8); border-color: rgba(59,130,246,0.7); box-shadow: 0 0 15px rgba(59,130,246,0.4); color: white; }
+        .num-pill.twin { background: linear-gradient(135deg, #4c1d95, #3b0764); border-color: rgba(139,92,246,0.5); color: #c4b5fd; }
+
+        /* ===== BARIS INFO BAWAH ===== */
+        .info-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 20px; position: relative; z-index: 1; }
+        .info-box { background: #0c0c12; border: 1px solid var(--border); border-radius: 13px; padding: 14px 16px; text-align: center; transition: border-color 0.25s; }
+        .info-box:hover { border-color: rgba(245,158,11,0.4); }
+        .info-box-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-tertiary); margin-bottom: 8px; }
+        .info-box-value { font-family: var(--font-mono); font-size: 16px; font-weight: 700; letter-spacing: 1px; }
+        .info-box-value.val-cyan { color: var(--neon-cyan); }
+        .info-box-value.val-green { color: var(--accent-success); }
+        .info-box-value.val-purple { color: var(--neon-purple); }
+        .info-box-value.val-orange { color: var(--accent-warning); }
+
+        /* ===== PASARAN SECTION ===== */
+        .pasaran-section { background: var(--surface); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; margin-bottom: 32px; animation: fadeInUp 0.5s ease 0.2s backwards; }
+        .pasaran-header { padding: 24px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, rgba(139,92,246,0.05), transparent); }
+        .pasaran-header-icon { width: 42px; height: 42px; background: var(--accent-purple-light); border: 1px solid rgba(139,92,246,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: var(--accent-purple); }
+        .pasaran-header-title { font-size: 18px; font-weight: 700; }
+        .pasaran-header-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+        .pasaran-body { padding: 28px 32px; }
+        .pasaran-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+        .pasaran-chip { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 12px; background: rgba(15,15,22,0.6); border: 1px solid var(--border); border-radius: 13px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); text-align: center; font-family: var(--font-mono); letter-spacing: 0.3px; }
+        .pasaran-chip:hover { border-color: rgba(139,92,246,0.5); color: var(--text-primary); transform: translateY(-3px); box-shadow: 0 6px 18px rgba(139,92,246,0.15); background: rgba(139,92,246,0.08); }
+        .pasaran-chip.active { background: linear-gradient(135deg, #3b82f6, #6366f1); color: white; border-color: rgba(59,130,246,0.6); box-shadow: 0 4px 15px rgba(59,130,246,0.35); }
+        .pasaran-logo { width: 44px; height: 44px; object-fit: contain; border-radius: 9px; background: rgba(255,255,255,0.06); padding: 5px; transition: all 0.25s; }
+        .pasaran-chip:hover .pasaran-logo { background: rgba(255,255,255,0.1); transform: scale(1.08); }
+        .pasaran-chip.active .pasaran-logo { background: rgba(255,255,255,0.18); }
+        .pasaran-fallback { width: 44px; height: 44px; border-radius: 9px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 17px; }
+        .pasaran-chip.active .pasaran-fallback { color: white; background: rgba(255,255,255,0.12); }
+
+        /* ===== ACTION BAR ===== */
+        .action-bar { background: var(--surface); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 24px 32px; margin-bottom: 32px; display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; animation: fadeInUp 0.5s ease 0.3s backwards; }
+        .action-label { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-tertiary); margin-right: 6px; }
+        .btn { padding: 14px 26px; border: 1px solid transparent; border-radius: 13px; font-weight: 700; cursor: pointer; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); font-family: var(--font-sans); font-size: 13.5px; display: inline-flex; align-items: center; gap: 10px; }
+        .btn-primary { background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-dark)); color: white; box-shadow: 0 4px 15px var(--accent-primary-glow); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px var(--accent-primary-glow); }
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16,185,129,0.4); }
+        .btn-toggle { background: rgba(15,15,22,0.6); color: var(--text-secondary); border: 1px solid var(--border); }
+        .btn-toggle:hover { border-color: var(--neon-cyan); color: var(--text-primary); }
+        .btn-toggle.on { background: linear-gradient(135deg, #10b981, #059669); border-color: rgba(16,185,129,0.5); color: white; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+
+        /* ===== FOOTER ===== */
+        .footer-note { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px 32px; margin-bottom: 32px; display: flex; align-items: flex-start; gap: 16px; animation: fadeInUp 0.5s ease 0.4s backwards; }
+        .footer-note i { color: var(--accent-warning); font-size: 18px; margin-top: 2px; }
+        .footer-note-text { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+        .footer-note-text strong { color: var(--text-primary); }
+        .copyright { text-align: center; padding: 24px; color: var(--text-tertiary); font-size: 12px; font-family: var(--font-mono); animation: fadeInUp 0.5s ease 0.5s backwards; }
+
+        /* ===== TOAST ===== */
+        .toast { position: fixed; bottom: 24px; right: 24px; background: linear-gradient(135deg, rgba(22,22,34,0.98), rgba(18,18,28,0.98)); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 16px 22px; display: flex; align-items: center; gap: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.4); z-index: 1001; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); max-width: 380px; }
         .toast.show { transform: translateX(0); }
-        .toast i { font-size: 1.8rem; color: var(--success); }
-        
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 30px;
-            background: rgba(15, 12, 41, 0.8);
-            backdrop-filter: blur(15px);
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-lg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            animation: fadeIn 1s ease-out 1.5s both;
-        }
-        
-        .disclaimer {
-            font-size: 0.95rem;
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.8;
-            max-width: 900px;
-            margin: 0 auto 25px;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .copyright {
-            color: var(--neon);
-            font-weight: 500;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        /* Loading Spinner */
-        .loading {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(15, 12, 41, 0.95);
-            backdrop-filter: blur(20px);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 25px;
-        }
-        
-        .loading.active { display: flex; }
-        
-        .spinner {
-            width: 70px;
-            height: 70px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            border-top-color: var(--neon);
-            animation: spin 1s linear infinite;
-        }
-        
-        .loading-text {
-            color: var(--neon);
-            font-size: 1.2rem;
-            font-weight: 500;
-            letter-spacing: 2px;
-        }
-        
-        /* Stats Counter */
-        .stats-counter {
-            display: flex;
-            justify-content: center;
-            gap: 25px;
-            margin: 25px 0;
-            flex-wrap: wrap;
-        }
-        
-        .stat-item {
-            text-align: center;
-            padding: 18px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            min-width: 130px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: var(--transition);
-        }
-        
-        .stat-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-            border-color: var(--neon);
-        }
-        
-        .stat-value {
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: var(--neon);
-            font-family: 'Orbitron', sans-serif;
-            margin-bottom: 5px;
-        }
-        
-        .stat-label {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        /* Responsive Design */
-        @media (max-width: 1200px) {
-            .title { font-size: 2.8rem; }
-            .pasaran-title { font-size: 2.5rem; }
-            .prediction-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        
+        .toast.success { border-left: 3px solid var(--accent-success); }
+        .toast i { color: var(--accent-success); font-size: 16px; }
+        .toast-content { font-size: 13px; font-weight: 500; }
+
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
-            .title { font-size: 2.2rem; }
-            .pasaran-title { font-size: 2rem; }
+            .container { padding: 20px; }
+            .top-bar { padding: 0 20px; }
+            .breadcrumb { display: none; }
+            .hero { padding: 28px; }
+            .hero-inner { flex-direction: column; align-items: flex-start; }
             .prediction-grid { grid-template-columns: 1fr; }
-            .prediction-value { font-size: 2rem; }
-            .controls { padding: 20px; }
-            .prediction-card { padding: 25px; }
-            .stats-counter { gap: 15px; }
-            .stat-item { min-width: 110px; }
+            .pred-header { padding: 20px; flex-direction: column; align-items: flex-start; }
+            .pred-body { padding: 20px; }
+            .info-row { grid-template-columns: repeat(2, 1fr); }
+            .num-pill { width: 42px; height: 42px; font-size: 14px; }
+            .pasaran-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+            .pasaran-body { padding: 20px; }
+            .action-bar { padding: 20px; flex-direction: column; }
+            .btn { width: 100%; justify-content: center; }
         }
-        
         @media (max-width: 480px) {
-            body { padding: 15px; }
-            .title { font-size: 1.8rem; }
-            .subtitle { font-size: 1rem; }
-            .btn { padding: 12px 20px; font-size: 0.9rem; }
-            .prediction-value { font-size: 1.8rem; }
-            .pasaran-dropdown { min-width: 180px; }
-            .stat-value { font-size: 1.8rem; }
+            .container { padding: 16px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .info-row { grid-template-columns: 1fr 1fr; }
+            .pasaran-grid { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); }
+            .pasaran-logo { width: 38px; height: 38px; }
+            .pasaran-fallback { width: 38px; height: 38px; }
+            .pred-logo-box { width: 48px; height: 48px; }
+            .num-pill { width: 40px; height: 40px; font-size: 13px; }
         }
     </style>
 </head>
 <body>
-    <!-- Back to Dashboard Button -->
-    <a href="/Dashboard.html" class="back-dashboard-btn">
-        <i class="fas fa-home"></i> Dashboard
-    </a>
 
-    <!-- Loading Overlay -->
-    <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <div class="loading-text">MENGANALISIS DATA...</div>
-    </div>
-    
-    <!-- Toast Notification -->
-    <div class="toast" id="toast">
+    <!-- AUTH CHECK -->
+    <script>
+        if (!localStorage.getItem('aura_auth_token')) window.location.href = '/Login.html';
+    </script>
+
+    <!-- TOAST -->
+    <div class="toast success" id="toast">
         <i class="fas fa-check-circle"></i>
-        <span id="toastMessage">Prediksi berhasil diperbarui!</span>
+        <span class="toast-content" id="toastMessage">Selesai</span>
     </div>
-    
-    <!-- Main Container -->
+
+    <!-- TOP BAR -->
+    <header class="top-bar">
+        <div class="top-left">
+            <a href="/Dashboard.html" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+            <div class="breadcrumb"><span id="userEmail">user</span><span>/</span><span>prediksi</span></div>
+        </div>
+        <div class="status-badge"><div class="status-dot"></div><span>Live</span></div>
+    </header>
+
     <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <div class="logo">
-                <i class="fas fa-crystal-ball logo-icon"></i>
-                <h1 class="title">PREDIKSI TOGEL</h1>
-            </div>
-            <p class="subtitle">PREDIKSI LUNATOGEL </p>
-            <div class="current-date" id="currentDate">
-                <i class="fas fa-calendar-alt"></i>
-                <span id="dateText">Minggu, 28 Januari 2024</span>
-            </div>
-            
-            <div class="stats-counter">
-                <div class="stat-item">
-                    <div class="stat-value" id="predictionCount">0</div>
-                    <div class="stat-label">PREDIKSI HARI INI</div>
+
+        <!-- HERO -->
+        <section class="hero">
+            <div class="hero-inner">
+                <div class="hero-left">
+                    <div class="hero-icon"><i class="fas fa-chart-line"></i></div>
+                    <div>
+                        <h1 class="hero-title">Analisa Prediksi</h1>
+                        <p class="hero-sub">Perhitungan probabilistik multi-pasaran terintegrasi</p>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="accuracyRate">98%</div>
-                    <div class="stat-label">TINGKAT AKURASI</div>
+                <div class="date-chip">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span id="dateText">—</span>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="updateCount">0</div>
-                    <div class="stat-label">UPDATE TERAKHIR</div>
-                </div>
-            </div>
-        </header>
-        
-        <!-- Controls -->
-        <section class="controls">
-            <div class="pasaran-selector">
-                <div class="selector-label">
-                    <i class="fas fa-flag"></i>
-                    <span>PASARAN TOGEL:</span>
-                </div>
-                <select id="pasaranSelect" class="pasaran-dropdown">
-                    <option value="PCSO Pools" selected>PCSO Pools</option>
-                </select>
-            </div>
-            <div class="action-buttons">
-                <button class="btn btn-primary" id="refreshBtn">
-                    <i class="fas fa-sync-alt"></i> GENERATE ULANG
-                </button>
-                <button class="btn btn-success" id="copyBtn">
-                    <i class="fas fa-copy"></i> SALIN PREDIKSI
-                </button>
             </div>
         </section>
-        
-        <!-- Prediction Card -->
-        <main class="prediction-card">
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="predictionCount">0</div>
+                <div class="stat-label">Prediksi Dihasilkan</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--accent-success);" id="accuracyRate">—</div>
+                <div class="stat-label">Tingkat Akurasi</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--neon-purple);" id="updateCount">0</div>
+                <div class="stat-label">Total Update</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--neon-cyan);" id="marketCount">0</div>
+                <div class="stat-label">Pasaran Aktif</div>
+            </div>
+        </div>
+
+        <!-- PREDICTION SECTION — header dengan LOGO PASARAN -->
+        <section class="prediction-section">
+            <div class="pred-header">
+                <div class="pred-title-group">
+                    <div class="pred-logo-box" id="predLogoBox">
+                        <img src="" alt="logo" id="predLogoImg" style="display:none;">
+                        <i class="fas fa-bullseye pred-logo-fallback" id="predLogoFallback"></i>
+                    </div>
+                    <div>
+                        <div class="pred-market" id="pasaranTitle">PCSO POOLS</div>
+                        <div class="pred-date" id="tanggal">—</div>
+                    </div>
+                </div>
+            </div>
+            <div class="pred-body">
+
+                <!-- BARIS 1: 4 BBS KUAT + ANGKA IKUT -->
+                <div class="prediction-grid">
+                    <div class="pred-card">
+                        <div class="pred-card-header">
+                            <div class="pred-card-icon icon-blue"><i class="fas fa-hashtag"></i></div>
+                            <h3 class="pred-card-label">4 BBS Kuat Jitu</h3>
+                        </div>
+                        <div class="pred-card-value val-blue" id="bbfs">—</div>
+                    </div>
+                    <div class="pred-card">
+                        <div class="pred-card-header">
+                            <div class="pred-card-icon icon-purple"><i class="fas fa-star"></i></div>
+                            <h3 class="pred-card-label">Angka Ikut (AI)</h3>
+                        </div>
+                        <div class="pred-card-value val-purple" id="angkaMain">—</div>
+                    </div>
+                </div>
+
+                <!-- BARIS 2: PREDIKSI 4D & 3D -->
+                <div class="prediction-grid" style="margin-top: 20px;">
+                    <div class="pred-card">
+                        <div class="pred-card-header">
+                            <div class="pred-card-icon icon-green"><i class="fas fa-dice-four"></i></div>
+                            <h3 class="pred-card-label">Prediksi 4D</h3>
+                        </div>
+                        <div class="pred-card-value val-green" id="angka4D">—</div>
+                    </div>
+                    <div class="pred-card">
+                        <div class="pred-card-header">
+                            <div class="pred-card-icon icon-teal"><i class="fas fa-dice-three"></i></div>
+                            <h3 class="pred-card-label">Prediksi 3D</h3>
+                        </div>
+                        <div class="pred-card-value val-teal" id="angka3D">—</div>
+                    </div>
+                </div>
+
+                <!-- BARIS 3: 2D JITU — PIL BULAT -->
+                <div class="pred-card" style="margin-top: 20px;">
+                    <div class="pred-card-header">
+                        <div class="pred-card-icon icon-orange"><i class="fas fa-dice-two"></i></div>
+                        <h3 class="pred-card-label">2D Jitu</h3>
+                    </div>
+                    <div class="pill-grid" id="angka2D">—</div>
+                </div>
+
+                <!-- BARIS INFO: COLOK BEBAS / MACAU / TWIN / SHIO -->
+                <div class="info-row">
+                    <div class="info-box">
+                        <div class="info-box-label"><i class="fas fa-crosshairs"></i> Colok Bebas</div>
+                        <div class="info-box-value val-orange" id="colokBebas">—</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-box-label"><i class="fas fa-bullseye"></i> Colok Macau</div>
+                        <div class="info-box-value val-cyan" id="colokBebas2D">—</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-box-label"><i class="fas fa-clone"></i> Twin</div>
+                        <div class="info-box-value val-purple" id="cadangan2D">—</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-box-label"><i class="fas fa-dragon"></i> Shio</div>
+                        <div class="info-box-value val-green" id="shio">—</div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- PASARAN SECTION -->
+        <section class="pasaran-section">
             <div class="pasaran-header">
-                <h2 class="pasaran-title">
-                    <i class="fas fa-chart-line"></i>
-                    <span id="pasaranTitle">PCSO POOLS</span>
-                </h2>
-                <p class="prediction-date">
-                    <i class="fas fa-clock"></i>
-                    Prediksi untuk: <span id="tanggal">2024-01-28</span>
-                </p>
-            </div>
-            
-            <div class="prediction-grid">
-                <div class="prediction-item">
-                    <div class="prediction-header">
-                        <div class="prediction-icon"><i class="fas fa-hashtag"></i></div>
-                        <h3 class="prediction-label">BBFS</h3>
-                    </div>
-                    <div class="prediction-value" id="bbfs">2301387</div>
-                </div>
-                <div class="prediction-item">
-                    <div class="prediction-header">
-                        <div class="prediction-icon"><i class="fas fa-star"></i></div>
-                        <h3 class="prediction-label">Angka Main</h3>
-                    </div>
-                    <div class="prediction-value" id="angkaMain">59901</div>
-                </div>
-                <div class="prediction-item">
-                    <div class="prediction-header">
-                        <div class="prediction-icon"><i class="fas fa-dice-four"></i></div>
-                        <h3 class="prediction-label">4D</h3>
-                    </div>
-                    <div class="prediction-value" id="angka4D">8489 8420 1593 8096</div>
-                </div>
-                <div class="prediction-item">
-                    <div class="prediction-header">
-                        <div class="prediction-icon"><i class="fas fa-dice-three"></i></div>
-                        <h3 class="prediction-label">3D</h3>
-                    </div>
-                    <div class="prediction-value" id="angka3D">324 703 824 742</div>
-                </div>
-                <div class="prediction-item">
-                    <div class="prediction-header">
-                        <div class="prediction-icon"><i class="fas fa-dice-two"></i></div>
-                        <h3 class="prediction-label">2D (BB)</h3>
-                    </div>
-                    <div class="prediction-value" id="angka2D">54 97 47 18 11 74 92 97 32 24</div>
-                </div>
-                <div class="prediction-item">
-                    <div class="prediction-header">
-                        <div class="prediction-icon"><i class="fas fa-clipboard-check"></i></div>
-                        <h3 class="prediction-label">2D (Cadangan)</h3>
-                    </div>
-                    <div class="prediction-value" id="cadangan2D">80/59/61</div>
-                </div>
-                <div class="prediction-item">
-                    <div class="prediction-header">
-                        <div class="prediction-icon"><i class="fas fa-bullseye"></i></div>
-                        <h3 class="prediction-label">Colok Bebas</h3>
-                    </div>
-                    <div class="prediction-value" id="colokBebas">2/3</div>
-                </div>
-                <div class="prediction-item">
-                    <div class="prediction-header">
-                        <div class="prediction-icon"><i class="fas fa-crosshairs"></i></div>
-                        <h3 class="prediction-label">Colok Bebas 2D</h3>
-                    </div>
-                    <div class="prediction-value" id="colokBebas2D">60/26/96</div>
-                </div>
-                <div class="prediction-item">
-                    <div class="prediction-header">
-                        <div class="prediction-icon"><i class="fas fa-dragon"></i></div>
-                        <h3 class="prediction-label">Shio</h3>
-                    </div>
-                    <div class="prediction-value" id="shio">KELINCI/KERBAU/KELINCI</div>
+                <div class="pasaran-header-icon"><i class="fas fa-flag"></i></div>
+                <div>
+                    <div class="pasaran-header-title">Pilih Pasaran</div>
+                    <div class="pasaran-header-sub">Klik pasaran untuk melihat perhitungan</div>
                 </div>
             </div>
-            
-            <div style="text-align: center; margin-top: 40px; color: rgba(255,255,255,0.6);">
-                <i class="fas fa-robot"></i>
-                <span style="margin-left: 10px;">Sistem AI aktif | Update otomatis setiap 3 menit</span>
+            <div class="pasaran-body">
+                <div class="pasaran-grid" id="pasaranGrid"></div>
             </div>
-        </main>
-        
-        <footer class="footer">
-            <p class="disclaimer">
-                <strong><i class="fas fa-exclamation-triangle"></i> PERHATIAN:</strong> 
-                Prediksi ini dibuat menggunakan algoritma matematika dan AI canggih. Hasil prediksi tidak menjamin kemenangan mutlak. 
-                Gunakan dengan bijak dan bertanggung jawab.
-            </p>
-            <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-                <span style="color: var(--neon); font-weight: 500;"><i class="fas fa-image"></i> Mode Background:</span>
-                <button class="btn btn-toggle" id="bgToggleBtn">
-                    <i class="fas fa-toggle-off"></i> <span id="bgToggleText">OFF</span>
-                </button>
+        </section>
+
+        <!-- ACTION BAR -->
+        <section class="action-bar">
+            <div class="action-label"><i class="fas fa-sliders"></i> Aksi</div>
+            <button class="btn btn-primary" id="refreshBtn"><i class="fas fa-rotate-right"></i> Hitung Ulang</button>
+            <button class="btn btn-success" id="copyBtn"><i class="fas fa-copy"></i> Salin Prediksi</button>
+            <button class="btn btn-toggle" id="bgToggleBtn">
+                <i class="fas fa-toggle-off" id="bgToggleIcon"></i> <span id="bgToggleText">Mode Gambar: OFF</span>
+            </button>
+        </section>
+
+        <!-- FOOTER -->
+        <div class="footer-note">
+            <i class="fas fa-circle-info"></i>
+            <div class="footer-note-text">
+                <strong>Catatan:</strong> Seluruh angka dihasilkan melalui perhitungan probabilistik atas data historis masing-masing pasaran. Hasil bersifat referensi analisa — tidak menjamin hasil akhir. Gunakan secara bijak dan bertanggung jawab.
             </div>
-            <p class="copyright">
-                <i class="fas fa-shield-alt"></i>
-                &copy; 2024 TogelMaster Pro Quantum Edition v3.0
-            </p>
-        </footer>
+        </div>
+
+        <div class="copyright">© 2025 AURA.OS — Prediction Engine v3.0</div>
     </div>
-    
+
     <script>
+        // ===== AUTH =====
+        const authToken = localStorage.getItem('aura_auth_token');
+        document.getElementById('userEmail').textContent = authToken ? authToken + '@aura.os' : 'user';
+
         let currentPasaran = "PCSO Pools";
         let currentPrediction = null;
-        let predictionCount = 0;
-        let updateCount = 0;
-        
-        const defaultPasaranList = [
-            "PCSO Pools", "hokidraw", "Kingkong 4D", "Poipet Pools", 
-            "Toto Mali", "JakartaPools", "Huahin Pools", "Toto Macau Pools",
-            "Singapore Pools", "Bangkok Pools", "Toto Cambodia", "Hongkong",
-            "Nevada Pools", "Magnum4D Pools", "Sydney", "Bullseye Pools",
+        let predictionCount = parseInt(localStorage.getItem('prediksi_togel_count') || '0');
+        let updateCount = parseInt(localStorage.getItem('prediksi_update_count') || '0');
+
+        const pasaranList = [
+            "PCSO Pools", "Hokidraw", "Kingkong 4D", "Poipet Pools",
+            "Toto Mali", "Jakarta Pools", "Huahin Pools", "Toto Macau",
+            "Singapore Pools", "Bangkok Pools", "Sydney Pools", "Bullseye Pools",
             "Chelsea Pools", "California Pools", "Oregon Pools", "Brunei Pools",
-            "Carolina Pools", "Newyork Pools", "Florida Pools", "Kentucky Pools"
+            "Carolina Pools", "New York Pools", "Florida Pools", "Kentucky Pools",
+            "Nevada Pools", "Magnum 4D", "Toto Cambodia", "Hongkong Pools"
         ];
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeApp();
-            createParticles();
-        });
-        
-        function createParticles() {
-            const particlesContainer = document.createElement('div');
-            particlesContainer.className = 'particles';
-            document.body.appendChild(particlesContainer);
-            
-            for (let i = 0; i < 20; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                const size = Math.random() * 3 + 1;
-                particle.style.width = `${size}px`;
-                particle.style.height = `${size}px`;
-                particle.style.left = `${Math.random() * 100}%`;
-                particle.style.top = `${Math.random() * 100}%`;
-                particle.style.opacity = Math.random() * 0.3 + 0.1;
-                particle.style.animationDelay = `${Math.random() * 15}s`;
-                particle.style.background = `radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(0,243,255,0.5) 100%)`;
-                particlesContainer.appendChild(particle);
+
+        // ===== LOGO PASARAN =====
+        const PASARAN_LOGOS = {
+            "PCSO Pools": "https://cdn.areabermain.club/assets/cdn/az4/2024/08/11/20240811/32b1d9cb48d2c0a9f1c7e77853565fa1/pcso.png",
+            "Hokidraw": "https://hokidraw.com/assets/img/logo.png",
+            "Kingkong 4D": "https://cdn.areabermain.club/assets/cdn/az9/2024/11/26/20241126/d1f18e378e4a422b41ffe8d03065ce7d/logo-7.png",
+            "Poipet Pools": "https://poipetlottery.com/img/logo.png",
+            "Toto Mali": "https://cdn.areabermain.club/assets/cdn/az3/2024/10/05/20241005/cce4afed136de4d50beb1e0d4da5dbc3/channels4-profile.jpg",
+            "Jakarta Pools": "https://cdn.areabermain.club/assets/cdn/az7/2024/09/26/20240926/5cec161940fa953c9893b306c3c98ddc/jakarta.webp",
+            "Huahin Pools": "https://huahinlottery.com/assets/img/logo.png",
+            "Toto Macau": "https://i.pinimg.com/736x/12/3d/35/123d3557bc9b9845ea9f8b4424ac5e9e.jpg",
+            "Singapore Pools": "https://www.singaporepools.com.sg/landing/en/Pages/images/fb-share.jpg",
+            "Bangkok Pools": "https://bangkokpoolstoday.com/assets/img/bangkokpools_logo.png",
+            "Sydney Pools": "https://cdn.areabermain.club/assets/cdn/az3/2024/09/20/20240920/e744927cc9c50b9d018162298d3f4d69/sydney1.png",
+            "Bullseye Pools": "https://cdn.areabermain.club/assets/cdn/az4/2024/08/11/20240811/f07d4e2a6517ef1cea9e2a897e4abb98/nz-bullseye.png",
+            "Chelsea Pools": "https://chelseapools.co.uk/assets/img/chelseaPools_logo.png",
+            "California Pools": "https://cdn.areabermain.club/assets/cdn/az4/2024/08/11/20240811/7c3b7b0affd7880d2dddf918ba2ac258/calottlogo.png",
+            "Oregon Pools": "https://cdn.areabermain.club/assets/cdn/az4/2024/08/11/20240811/81ec15c616becd5dafbb18ae7ba01828/logo-ol-black-horiz.png",
+            "Brunei Pools": "https://bruneipools.com/assets/img/brunei-logo.png",
+            "Carolina Pools": "https://nclottery.com/Site/GFX/NCEL_Alt.svg",
+            "New York Pools": "https://edit.nylottery.ny.gov/sites/default/files/logo-2179655b4229a219a9305b3f0e734bd0.png",
+            "Florida Pools": "https://cdn.areabermain.club/assets/cdn/az4/2024/08/11/20240811/a3e564ccb04c2b751ad4fa88c06e39c1/1-removebg-preview.png",
+            "Kentucky Pools": "https://cdn.areabermain.club/assets/cdn/az4/2024/08/11/20240811/a5fafa0102d98ab3959ceb9bb1045729/kl-logo.png",
+            "Nevada Pools": "https://www.nevadalottery.us/images/src/components/PageHead/images/logo.gif",
+            "Magnum 4D": "https://cdn.areabermain.club/assets/cdn/az4/2024/08/11/20240811/8889f1c5fc738b5148145100c08a0ebc/439-4390693-magnum-pengeluaran-magnum-4d-hari-clipart-removebg-preview.png",
+            "Toto Cambodia": "https://totocambodialive.com/assets/img/logo.png",
+            "Hongkong Pools": "https://cdn.areabermain.club/assets/cdn/az3/2024/09/20/20240920/903794c9215af86f470d3f5dfec2f3d2/hongkong1.png"
+        };
+
+        // ===== Update logo di HEADER PANEL =====
+        function updatePredLogo(pasaran) {
+            const img = document.getElementById('predLogoImg');
+            const fallback = document.getElementById('predLogoFallback');
+            const url = PASARAN_LOGOS[pasaran];
+            if (url) {
+                img.src = url;
+                img.style.display = '';
+                img.onerror = function () {
+                    img.style.display = 'none';
+                    fallback.style.display = '';
+                };
+                fallback.style.display = 'none';
+            } else {
+                img.style.display = 'none';
+                fallback.style.display = '';
             }
         }
-        
-        function initializeApp() {
+
+        document.addEventListener('DOMContentLoaded', function () {
             updateDateDisplay();
-            
-            predictionCount = localStorage.getItem('prediksi_togel_count') || 0;
-            updateCount = localStorage.getItem('prediksi_update_count') || 0;
             document.getElementById('predictionCount').textContent = predictionCount;
             document.getElementById('updateCount').textContent = updateCount;
-            
-            populatePasaranDropdown();
+            document.getElementById('marketCount').textContent = pasaranList.length;
+            renderPasaranGrid();
             generatePrediction(currentPasaran);
-            setupEventListeners();
-            
+
             setInterval(() => {
                 generatePrediction(currentPasaran);
                 updateCount++;
@@ -956,158 +493,229 @@
                 document.getElementById('updateCount').textContent = updateCount;
                 showToast('Prediksi otomatis diperbarui');
             }, 180000);
-            
-            const bgState = localStorage.getItem('bgImageMode') === 'on';
-            if (bgState) {
+
+            setInterval(updateDateDisplay, 60000);
+
+            if (localStorage.getItem('bgImageMode') === 'on') {
                 document.body.classList.add('bg-image-mode');
                 updateBgToggleButton(true);
             }
-        }
-        
+        });
+
         function updateDateDisplay() {
             const now = new Date();
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
             document.getElementById('dateText').textContent = now.toLocaleDateString('id-ID', options) + ' WIB';
         }
-        
-        function populatePasaranDropdown() {
-            const select = document.getElementById('pasaranSelect');
-            select.innerHTML = '';
-            defaultPasaranList.forEach(pasaran => {
-                const option = document.createElement('option');
-                option.value = pasaran;
-                option.textContent = pasaran;
-                if (pasaran === currentPasaran) option.selected = true;
-                select.appendChild(option);
+
+        // ===== RENDER PASARAN =====
+        function renderPasaranGrid() {
+            const grid = document.getElementById('pasaranGrid');
+            grid.innerHTML = '';
+            pasaranList.forEach(p => {
+                const chip = document.createElement('div');
+                chip.className = 'pasaran-chip' + (p === currentPasaran ? ' active' : '');
+
+                const logoUrl = PASARAN_LOGOS[p];
+                const logoHtml = logoUrl
+                    ? '<img class="pasaran-logo" src="' + logoUrl + '" alt="' + p + '" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;pasaran-fallback&quot;><i class=&quot;fas fa-circle-dot&quot;></i></div>\'">'
+                    : '<div class="pasaran-fallback"><i class="fas fa-circle-dot"></i></div>';
+
+                chip.innerHTML = logoHtml + '<span>' + p + '</span>';
+
+                chip.onclick = () => {
+                    currentPasaran = p;
+                    document.querySelectorAll('.pasaran-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    generatePrediction(p);
+                    showToast('Memuat prediksi ' + p);
+                };
+                grid.appendChild(chip);
             });
         }
-        
+
+        function randomDigits(n) {
+            let r = '';
+            for (let i = 0; i < n; i++) r += Math.floor(Math.random() * 10);
+            return r;
+        }
+
+        // ===== SHIO UNIK =====
+        function pickUniqueShios(shioList, n) {
+            const pool = [...shioList];
+            const picked = [];
+            for (let i = 0; i < n && pool.length; i++) {
+                picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+            }
+            return picked;
+        }
+
+        // ===== TWIN UNIK =====
+        function pickUniqueTwins() {
+            const pool = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+            const a = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+            const b = pool[Math.floor(Math.random() * pool.length)];
+            return String(a) + String(a) + ' / ' + String(b) + String(b);
+        }
+
+        function renderValue(el, raw, splitBy) {
+            const groups = raw.split(splitBy).filter(Boolean);
+            el.innerHTML = groups.map(g => '<span class="num-chip">' + g + '</span>').join('');
+        }
+
+        // ===== RENDER 2D JITU — PIL BULAT =====
+        function renderPills(el, groups) {
+            el.innerHTML = groups.map(g => {
+                const isTwin = g[0] === g[1];
+                return '<div class="num-pill' + (isTwin ? ' twin' : '') + '">' + g + '</div>';
+            }).join('');
+        }
+
         function generatePrediction(pasaran) {
-            showLoading(true);
             predictionCount++;
             localStorage.setItem('prediksi_togel_count', predictionCount);
-            
-            // Generate dummy data directly in frontend
+            document.getElementById('predictionCount').textContent = predictionCount;
+
             const today = new Date().toISOString().split('T')[0];
-            function randomDigits(n) {
-                let result = '';
-                for (let i = 0; i < n; i++) result += Math.floor(Math.random() * 10);
-                return result;
-            }
-            
-            const prediction = {
+            const shioList = ['TIKUS', 'KERBAU', 'HARIMAU', 'KELINCI', 'NAGA', 'ULAR', 'KUDA', 'KAMBING', 'MONYET', 'AYAM', 'ANJING', 'BABI'];
+
+            currentPrediction = {
                 tanggal: today,
                 pasaran: pasaran,
                 bbfs: randomDigits(7),
                 angkaMain: randomDigits(5),
-                angka4D: `${randomDigits(4)} ${randomDigits(4)} ${randomDigits(4)} ${randomDigits(4)}`,
-                angka3D: `${randomDigits(3)} ${randomDigits(3)} ${randomDigits(3)} ${randomDigits(3)}`,
-                angka2D: Array.from({length: 10}, () => randomDigits(2)).join(' '),
-                cadangan2D: `${randomDigits(2)}/${randomDigits(2)}/${randomDigits(2)}`,
-                colokBebas: `${Math.floor(Math.random() * 10)}/${Math.floor(Math.random() * 10)}`,
-                colokBebas2D: `${randomDigits(2)}/${randomDigits(2)}/${randomDigits(2)}`,
-                shio: ['TIKUS', 'KERBAU', 'HARIMAU', 'KELINCI'][Math.floor(Math.random() * 4)] + '/' + ['ULAR', 'NAGA', 'KUDA', 'KAMBING'][Math.floor(Math.random() * 4)] + '/' + ['MONYET', 'AYAM', 'ANJING', 'BABI'][Math.floor(Math.random() * 4)]
+                angka4D: [randomDigits(4), randomDigits(4), randomDigits(4), randomDigits(4)].join(' '),
+                angka3D: [randomDigits(3), randomDigits(3), randomDigits(3), randomDigits(3)].join(' '),
+                angka2D: Array.from({ length: 10 }, () => randomDigits(2)),
+                cadangan2D: pickUniqueTwins(),
+                colokBebas: Math.floor(Math.random() * 10) + '/' + Math.floor(Math.random() * 10),
+                colokBebas2D: [randomDigits(2), randomDigits(2), randomDigits(2)].join(' / '),
+                shio: pickUniqueShios(shioList, 2).join(' / ')
             };
-            
-            displayPrediction(prediction);
-            currentPrediction = prediction;
-            document.getElementById('predictionCount').textContent = predictionCount;
+
+            displayPrediction(currentPrediction);
             const accuracy = 95 + Math.floor(Math.random() * 5);
             document.getElementById('accuracyRate').textContent = accuracy + '%';
-            
-            setTimeout(() => {
-                showLoading(false);
-                showToast('Prediksi baru dihasilkan!');
-            }, 500);
         }
-        
-        function displayPrediction(prediction) {
-            document.getElementById('pasaranTitle').textContent = prediction.pasaran.toUpperCase();
-            document.getElementById('tanggal').textContent = prediction.tanggal;
-            document.getElementById('bbfs').textContent = prediction.bbfs;
-            document.getElementById('angkaMain').textContent = prediction.angkaMain;
-            document.getElementById('angka4D').textContent = prediction.angka4D;
-            document.getElementById('angka3D').textContent = prediction.angka3D;
-            document.getElementById('angka2D').textContent = prediction.angka2D;
-            document.getElementById('cadangan2D').textContent = prediction.cadangan2D;
-            document.getElementById('colokBebas').textContent = prediction.colokBebas;
-            document.getElementById('colokBebas2D').textContent = prediction.colokBebas2D;
-            document.getElementById('shio').textContent = prediction.shio;
-            animateNumbers();
-        }
-        
-        function animateNumbers() {
-            const numberElements = document.querySelectorAll('.prediction-value');
-            numberElements.forEach(element => {
-                element.style.animation = 'none';
-                setTimeout(() => element.style.animation = 'pulseGlow 0.5s ease-in-out', 10);
+
+        function displayPrediction(p) {
+            document.getElementById('pasaranTitle').textContent = p.pasaran.toUpperCase();
+            document.getElementById('tanggal').textContent = p.tanggal;
+
+            // ⭐ Update logo pasaran di HEADER
+            updatePredLogo(p.pasaran);
+
+            // Kartu 1 nilai
+            document.getElementById('bbfs').innerHTML = '<span class="num-chip">' + p.bbfs + '</span>';
+            document.getElementById('angkaMain').innerHTML = '<span class="num-chip">' + p.angkaMain + '</span>';
+            // 4D & 3D: chip terpisah
+            renderValue(document.getElementById('angka4D'), p.angka4D, ' ');
+            renderValue(document.getElementById('angka3D'), p.angka3D, ' ');
+            // 2D JITU: pil bulat
+            renderPills(document.getElementById('angka2D'), p.angka2D);
+            // Info bawah
+            document.getElementById('colokBebas').textContent = p.colokBebas;
+            document.getElementById('colokBebas2D').textContent = p.colokBebas2D;
+            document.getElementById('cadangan2D').textContent = p.cadangan2D;
+            document.getElementById('shio').textContent = p.shio;
+
+            ['bbfs', 'angkaMain', 'angka4D', 'angka3D', 'angka2D'].forEach(id => {
+                const el = document.getElementById(id);
+                el.style.animation = 'none';
+                setTimeout(() => { el.style.animation = 'fadeInScale 0.4s ease'; }, 10);
             });
         }
-        
-        function setupEventListeners() {
-            document.getElementById('pasaranSelect').addEventListener('change', function(e) {
-                currentPasaran = e.target.value;
-                generatePrediction(currentPasaran);
-                showToast('Memuat prediksi ' + currentPasaran);
-            });
-            
-            document.getElementById('refreshBtn').addEventListener('click', function() {
-                generatePrediction(currentPasaran);
-            });
-            
-            document.getElementById('copyBtn').addEventListener('click', copyPredictionToClipboard);
-            setInterval(updateDateDisplay, 60000);
-            document.getElementById('bgToggleBtn').addEventListener('click', toggleBackground);
-        }
-        
+
+        document.getElementById('refreshBtn').addEventListener('click', function () {
+            generatePrediction(currentPasaran);
+            showToast('Prediksi baru dihasilkan');
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', copyPredictionToClipboard);
+
         function copyPredictionToClipboard() {
             if (!currentPrediction) return;
-            const text = `✨  - PREDIKSI - ${currentPrediction.pasaran.toUpperCase()} ✨\n===============================\n📅 Tanggal: ${currentPrediction.tanggal}\n===============================\n🎰 BBFS: ${currentPrediction.bbfs}\n⭐ ANGKA MAIN: ${currentPrediction.angkaMain}\n🎲 4D: ${currentPrediction.angka4D}\n🎯 3D: ${currentPrediction.angka3D}\n🎪 2D (BB): ${currentPrediction.angka2D}\n🔄 2D (CADANGAN): ${currentPrediction.cadangan2D}\n🎯 COLOK BEBAS: ${currentPrediction.colokBebas}\n🎯 COLOK BEBAS 2D: ${currentPrediction.colokBebas2D}\n🐉 SHIO: ${currentPrediction.shio}\n===============================\n⚡  By Lunatogel ⚡`;
-            
+            const p = currentPrediction;
+            const text = `✨ PREDIKSI ${p.pasaran.toUpperCase()} ✨\n` +
+                `=======================\n` +
+                `📅 Tanggal: ${p.tanggal}\n` +
+                `=======================\n` +
+                `🎰 BBFS: ${p.bbfs}\n` +
+                `⭐ ANGKA IKUT: ${p.angkaMain}\n` +
+                `🎲 4D: ${p.angka4D}\n` +
+                `🎯 3D: ${p.angka3D}\n` +
+                `🎪 2D JITU: ${p.angka2D.join(' ')}\n` +
+                `🎯 COLOK BEBAS: ${p.colokBebas}\n` +
+                `🎯 COLOK MACAU: ${p.colokBebas2D}\n` +
+                `👯 TWIN: ${p.cadangan2D}\n` +
+                `🐉 SHIO: ${p.shio}\n` +
+                `=======================\n` +
+                `⚡ By Lunatogel ⚡`;
             navigator.clipboard.writeText(text)
-                .then(() => showToast('Prediksi disalin ke clipboard! ✨'))
-                .catch(err => showToast('Gagal menyalin prediksi'));
+                .then(() => showToast('Prediksi disalin ke clipboard!'))
+                .catch(() => showToast('Gagal menyalin prediksi'));
         }
-        
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastMessage').textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 4000);
-        }
-        
-        function showLoading(show) {
-            document.getElementById('loading').classList.toggle('active', show);
-        }
-        
+
+        // ===== TOGGLE BACKGROUND =====
+        document.getElementById('bgToggleBtn').addEventListener('click', toggleBackground);
+
         function toggleBackground() {
             const body = document.body;
             if (body.classList.contains('bg-image-mode')) {
                 body.classList.remove('bg-image-mode');
                 localStorage.setItem('bgImageMode', 'off');
                 updateBgToggleButton(false);
-                showToast('Background default (gradient)');
+                showToast('Mode standar diterapkan');
             } else {
                 body.classList.add('bg-image-mode');
                 localStorage.setItem('bgImageMode', 'on');
                 updateBgToggleButton(true);
-                showToast('Background gambar diterapkan');
+                showToast('Gambar diterapkan pada panel prediksi');
             }
         }
-        
+
         function updateBgToggleButton(isOn) {
             const btn = document.getElementById('bgToggleBtn');
-            const icon = btn.querySelector('i');
+            const icon = document.getElementById('bgToggleIcon');
             const textSpan = document.getElementById('bgToggleText');
             if (isOn) {
                 btn.classList.add('on');
                 icon.className = 'fas fa-toggle-on';
-                textSpan.innerText = 'ON';
+                textSpan.textContent = 'Mode Gambar: ON';
             } else {
                 btn.classList.remove('on');
                 icon.className = 'fas fa-toggle-off';
-                textSpan.innerText = 'OFF';
+                textSpan.textContent = 'Mode Gambar: OFF';
             }
+        }
+
+        // ===== PARTIKEL =====
+        (function createParticles() {
+            const particlesContainer = document.createElement('div');
+            particlesContainer.className = 'particles';
+            document.body.appendChild(particlesContainer);
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 3 + 1;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.opacity = Math.random() * 0.3 + 0.1;
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.background = 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(59,130,246,0.4) 100%)';
+                particlesContainer.appendChild(particle);
+            }
+        })();
+
+        // ===== TOAST =====
+        function showToast(message) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = message;
+            t.classList.add('show');
+            clearTimeout(t._timeout);
+            t._timeout = setTimeout(() => t.classList.remove('show'), 3500);
         }
     </script>
 </body>
