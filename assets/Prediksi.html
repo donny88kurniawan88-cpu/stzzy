@@ -88,7 +88,14 @@
         .stat-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
         /* ===== PREDICTION SECTION — HEADER GRADIENT ===== */
-        .prediction-section { background: var(--surface); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; margin-bottom: 32px; animation: fadeInUp 0.5s ease 0.1s backwards; }
+        .prediction-section {
+            background: var(--surface);
+            border: 1px solid #0f0f18;  /* ⬅️ SOLID, bukan rgba transparan — ini biang cela sebenarnya */
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            margin-bottom: 32px;
+            animation: fadeInUp 0.5s ease 0.1s backwards;
+        }
         .pred-header { padding: 32px 36px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; background: linear-gradient(120deg, rgba(59,130,246,0.16) 0%, rgba(139,92,246,0.12) 35%, rgba(236,72,153,0.08) 70%, rgba(20,184,166,0.10) 100%); background-size: 200% 200%; animation: gradientShift 8s ease infinite; position: relative; }
         .pred-header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple), var(--accent-pink), var(--accent-teal)); background-size: 200% 200%; animation: gradientShift 6s ease infinite; }
         .pred-header::after { content: ''; position: absolute; top: -60%; left: -5%; width: 350px; height: 350px; border-radius: 50%; background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%); pointer-events: none; }
