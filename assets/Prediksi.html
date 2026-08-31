@@ -11,13 +11,13 @@
         :root {
             --bg-primary: #0a0a0f; --bg-secondary: #111118; --bg-tertiary: #1a1a24;
             --surface: rgba(15, 15, 22, 0.9);
-            --border: rgba(255, 255, 255, 0.07);
+            --border: rgba(255, 255, 255, 0.07); --border-focus: rgba(255, 255, 255, 0.14);
             --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-tertiary: #64748b;
             --accent-primary: #3b82f6; --accent-primary-light: rgba(59, 130, 246, 0.12);
             --accent-primary-dark: #2563eb; --accent-primary-glow: rgba(59, 130, 246, 0.35);
             --accent-success: #10b981; --accent-success-light: rgba(16, 185, 129, 0.12);
             --accent-warning: #f59e0b; --accent-warning-light: rgba(245, 158, 11, 0.12);
-            --accent-purple: #8b5cf6; --accent-purple-light: rgba(139, 92, 246, 0.10);
+            --accent-purple: #8b5cf6; --accent-purple-light: rgba(139, 92, 246, 0.12);
             --accent-pink: #ec4899; --accent-teal: #14b8a6;
             --neon-cyan: #00f0ff; --neon-purple: #b46cff;
             --font-sans: 'Inter', -apple-system, 'Segoe UI', sans-serif;
@@ -28,21 +28,22 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); min-height: 100vh; overflow-x: hidden; line-height: 1.5; }
+        /* Background glow — persis Dashboard */
         body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 600px 400px at 15% 20%, rgba(59,130,246,0.10) 0%, transparent 70%), radial-gradient(ellipse 500px 500px at 85% 70%, rgba(139,92,246,0.08) 0%, transparent 70%), radial-gradient(ellipse 400px 300px at 50% 90%, rgba(16,185,129,0.07) 0%, transparent 70%), linear-gradient(160deg, #0c0c16 0%, #0a0a0f 40%, #0e0e18 100%); z-index: -2; }
         body::after { content: ''; position: fixed; inset: 0; background: radial-gradient(circle 200px at 25% 35%, rgba(59,130,246,0.05) 0%, transparent 100%), radial-gradient(circle 180px at 75% 65%, rgba(139,92,246,0.04) 0%, transparent 100%); z-index: -1; animation: glowDrift 25s ease-in-out infinite alternate; }
         @keyframes glowDrift { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(15px,-10px) scale(1.03); } 100% { transform: translate(-10px,5px) scale(0.99); } }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg-secondary); } ::-webkit-scrollbar-thumb { background: var(--accent-primary); border-radius: 10px; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 10px; } ::-webkit-scrollbar-thumb { background: var(--accent-primary); border-radius: 10px; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.05); } }
         @keyframes logoGlow { 0%,100% { box-shadow: 0 0 18px rgba(59,130,246,0.35), 0 0 40px rgba(59,130,246,0.15); } 50% { box-shadow: 0 0 28px rgba(139,92,246,0.5), 0 0 60px rgba(139,92,246,0.25); } }
-        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } } 
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
         .particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
         .particle { position: absolute; border-radius: 50%; animation: float 15s infinite linear; }
         @keyframes float { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(20px, 50px); } 50% { transform: translate(-20px, 100px); } 75% { transform: translate(30px, 50px); } }
 
-        /* ===== MODE GAMBAR ===== */
+        /* ===== MODE GAMBAR — di PREDICTION SECTION ===== */
         body.bg-image-mode .prediction-section {
             background-image: linear-gradient(rgba(8,8,13,0.38), rgba(8,8,13,0.58)), var(--bg-image);
             background-size: cover; background-position: center;
@@ -51,22 +52,23 @@
         }
         body.bg-image-mode .pred-header { background: rgba(8,8,13,0.82); backdrop-filter: blur(14px); }
         body.bg-image-mode .pred-market { text-shadow: 0 3px 12px rgba(0,0,0,0.9); }
+        body.bg-image-mode .pred-date { color: #cbd5e1; }
         body.bg-image-mode .pred-logo-box { background: rgba(8,8,13,0.9); }
 
         .container { max-width: 1400px; margin: 0 auto; padding: 32px; position: relative; z-index: 10; }
 
-        /* ===== TOP BAR ===== */
+        /* ===== TOP BAR (ala Dashboard) ===== */
         .top-bar { background: rgba(10,10,16,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 90; }
         .top-left { display: flex; align-items: center; gap: 16px; }
         .back-btn { display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; text-decoration: none; font-size: 13px; font-weight: 600; padding: 10px 20px; border-radius: 12px; border: none; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35); }
-        .back-btn:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5); color: white; }
+        .back-btn:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5); }
         .back-btn i { color: #ffffff; }
         .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); font-family: var(--font-mono); }
         .breadcrumb span:last-child { color: var(--accent-primary); }
         .status-badge { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--accent-success-light); border: 1px solid rgba(16,185,129,0.15); border-radius: 100px; font-size: 12px; font-weight: 600; color: var(--accent-success); }
         .status-dot { width: 8px; height: 8px; background: var(--accent-success); border-radius: 50%; animation: pulse 2s infinite; }
 
-        /* ===== HERO ===== */
+        /* ===== HERO (ala Dashboard) ===== */
         .hero { margin-bottom: 32px; padding: 40px; background: linear-gradient(135deg, rgba(59,130,246,0.10) 0%, rgba(139,92,246,0.08) 40%, rgba(236,72,153,0.05) 100%), linear-gradient(to bottom, rgba(15,15,22,0.5), rgba(15,15,22,0.85)); border-radius: var(--radius-xl); border: 1px solid rgba(59,130,246,0.10); position: relative; overflow: hidden; animation: fadeInScale 0.5s ease; }
         .hero-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px; }
         .hero-left { display: flex; align-items: center; gap: 20px; }
@@ -76,7 +78,7 @@
         .date-chip { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; background: rgba(15,15,22,0.6); border: 1px solid var(--border); border-radius: 14px; color: var(--text-primary); font-size: 14px; font-weight: 600; }
         .date-chip i { color: var(--neon-cyan); }
 
-        /* ===== STATS ===== */
+        /* ===== STATS (ala Dashboard stat-card) ===== */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
         .stat-card { background: linear-gradient(135deg, rgba(15,15,22,0.9), rgba(18,18,28,0.85)); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple)); transform: scaleX(0); transform-origin: left; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -85,92 +87,24 @@
         .stat-value { font-size: 28px; font-weight: 800; font-family: var(--font-mono); margin-bottom: 6px; color: var(--accent-primary); }
         .stat-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
-        /* ============================================================
-           ⭐ PREDICTION SECTION — HEADER GRADIENT HIGHLIGHT PREMIUM
-           ============================================================ */
+        /* ===== PREDICTION SECTION — HEADER GRADIENT ===== */
         .prediction-section { background: var(--surface); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; margin-bottom: 32px; animation: fadeInUp 0.5s ease 0.1s backwards; }
-
-        .pred-header {
-            padding: 32px 36px;
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;
-            /* ⭐ GRADIENT ANIMATED */
-            background: linear-gradient(120deg, rgba(59,130,246,0.16) 0%, rgba(139,92,246,0.12) 35%, rgba(236,72,153,0.08) 70%, rgba(20,184,166,0.10) 100%);
-            background-size: 200% 200%;
-            animation: gradientShift 8s ease infinite;
-            position: relative;
-        }
-        /* Garis gradient atas ala AURA */
-        .pred-header::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-            background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple), var(--accent-pink), var(--accent-teal));
-            background-size: 200% 200%;
-            animation: gradientShift 6s ease infinite;
-        }
-        /* Highlight radial di belakang logo */
-        .pred-header::after {
-            content: ''; position: absolute; top: -60%; left: -5%;
-            width: 350px; height: 350px; border-radius: 50%;
-            background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
+        .pred-header { padding: 32px 36px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; background: linear-gradient(120deg, rgba(59,130,246,0.16) 0%, rgba(139,92,246,0.12) 35%, rgba(236,72,153,0.08) 70%, rgba(20,184,166,0.10) 100%); background-size: 200% 200%; animation: gradientShift 8s ease infinite; position: relative; }
+        .pred-header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple), var(--accent-pink), var(--accent-teal)); background-size: 200% 200%; animation: gradientShift 6s ease infinite; }
+        .pred-header::after { content: ''; position: absolute; top: -60%; left: -5%; width: 350px; height: 350px; border-radius: 50%; background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%); pointer-events: none; }
         .pred-title-group { display: flex; align-items: center; gap: 22px; position: relative; z-index: 1; }
 
-        /* ⭐ LOGO BOX — LEBIH BESAR + GLOW BERANIMASI */
-        .pred-logo-box {
-            width: 84px; height: 84px; border-radius: 20px; flex-shrink: 0;
-            background: linear-gradient(145deg, #13131e, #0a0a11);
-            border: 1px solid rgba(59,130,246,0.4);
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-            animation: logoGlow 3s ease-in-out infinite;
-            position: relative;
-        }
-        .pred-logo-box::before {
-            content: ''; position: absolute; inset: -3px; border-radius: 23px;
-            background: linear-gradient(135deg, rgba(59,130,246,0.5), rgba(139,92,246,0.4), rgba(236,72,153,0.3));
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor; mask-composite: exclude;
-            padding: 2px; z-index: -1;
-        }
+        .pred-logo-box { width: 84px; height: 84px; border-radius: 20px; flex-shrink: 0; background: linear-gradient(145deg, #13131e, #0a0a11); border: 1px solid rgba(59,130,246,0.4); display: flex; align-items: center; justify-content: center; transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); animation: logoGlow 3s ease-in-out infinite; position: relative; }
+        .pred-logo-box::before { content: ''; position: absolute; inset: -3px; border-radius: 23px; background: linear-gradient(135deg, rgba(59,130,246,0.5), rgba(139,92,246,0.4), rgba(236,72,153,0.3)); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; padding: 2px; z-index: -1; }
         .pred-logo-box img { width: 100%; height: 100%; object-fit: contain; padding: 10px; border-radius: 14px; }
         .pred-logo-box:hover { transform: scale(1.08) rotate(-2deg); border-color: rgba(139,92,246,0.6); }
         .pred-logo-fallback { color: var(--accent-primary); font-size: 34px; }
 
-        /* ⭐ NAMA PASARAN — LEBIH BESAR & GRADIENT TEXT */
-        .pred-market {
-            font-size: clamp(28px, 3.5vw, 38px); font-weight: 800; letter-spacing: -1px; line-height: 1.15;
-            background: linear-gradient(135deg, #ffffff 0%, #93c5fd 40%, var(--accent-purple) 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-            text-shadow: none;
-        }
-
-        /* ⭐ DATE BANNER — chip besar gradient */
-        .pred-date-banner {
-            display: inline-flex; align-items: center; gap: 10px;
-            margin-top: 8px; padding: 9px 18px;
-            background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(139,92,246,0.14));
-            border: 1px solid rgba(59,130,246,0.3);
-            border-radius: 12px;
-            font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: #93c5fd;
-            letter-spacing: 1px;
-        }
+        .pred-market { font-size: clamp(28px, 3.5vw, 38px); font-weight: 800; letter-spacing: -1px; line-height: 1.15; background: linear-gradient(135deg, #ffffff 0%, #93c5fd 40%, var(--accent-purple) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .pred-date-banner { display: inline-flex; align-items: center; gap: 10px; margin-top: 8px; padding: 9px 18px; background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(139,92,246,0.14)); border: 1px solid rgba(59,130,246,0.3); border-radius: 12px; font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: #93c5fd; letter-spacing: 1px; }
         .pred-date-banner i { color: var(--neon-cyan); font-size: 14px; }
-
-        /* Badge "LIVE" kanan header */
-        .pred-live-badge {
-            display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
-            position: relative; z-index: 1;
-        }
-        .pred-live-chip {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 10px 20px; border-radius: 100px;
-            background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.08));
-            border: 1px solid rgba(16,185,129,0.35);
-            font-size: 12px; font-weight: 800; letter-spacing: 2px; color: var(--accent-success);
-            text-transform: uppercase;
-        }
+        .pred-live-badge { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; position: relative; z-index: 1; }
+        .pred-live-chip { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 100px; background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.08)); border: 1px solid rgba(16,185,129,0.35); font-size: 12px; font-weight: 800; letter-spacing: 2px; color: var(--accent-success); text-transform: uppercase; }
         .pred-live-dot { width: 9px; height: 9px; background: var(--accent-success); border-radius: 50%; animation: pulse 1.8s infinite; }
 
         .pred-body { padding: 32px; }
@@ -181,7 +115,6 @@
         .pred-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple), var(--accent-pink)); transform: scaleX(0); transform-origin: left; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 2; }
         .pred-card:hover::before { transform: scaleX(1); }
         .pred-card:hover { border-color: rgba(59,130,246,0.25); transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-
         .pred-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; position: relative; z-index: 1; }
         .pred-card-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
         .icon-blue { background: var(--accent-primary-light); color: var(--accent-primary); }
@@ -191,36 +124,19 @@
         .icon-teal { background: rgba(20,184,166,0.12); color: var(--accent-teal); }
         .pred-card-label { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-secondary); }
 
-        /* ===== KOTAK ANGKA — lebih besar ===== */
-        .pred-card-value {
-            font-size: clamp(20px, 2.4vw, 27px); font-weight: 700; font-family: var(--font-mono);
-            text-align: center; padding: 20px 14px;
-            background: #0c0c12;
-            border: 1px solid var(--border); border-radius: 13px;
-            letter-spacing: 2px; transition: border-color 0.25s;
-            display: flex; flex-wrap: wrap; justify-content: center; align-content: center;
-            gap: 10px 12px; min-height: 110px; position: relative; z-index: 1;
-        }
+        .pred-card-value { font-size: clamp(20px, 2.4vw, 27px); font-weight: 700; font-family: var(--font-mono); text-align: center; padding: 20px 14px; background: #0c0c12; border: 1px solid var(--border); border-radius: 13px; letter-spacing: 2px; transition: border-color 0.25s; display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 10px 12px; min-height: 110px; position: relative; z-index: 1; }
         .pred-card-value:hover { border-color: rgba(59,130,246,0.45); box-shadow: inset 0 0 25px rgba(59,130,246,0.06); }
         .val-blue { color: var(--accent-primary); } .val-purple { color: var(--neon-purple); }
         .val-green { color: var(--accent-success); } .val-teal { color: var(--accent-teal); }
         .num-chip { white-space: nowrap; padding: 5px 12px; border-radius: 9px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); }
 
-        /* ===== 2D JITU — PIL BULAT lebih besar ===== */
+        /* ===== 2D JITU — PIL BULAT ===== */
         .pill-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding: 20px 12px; background: #0c0c12; border: 1px solid var(--border); border-radius: 13px; min-height: 110px; align-content: center; position: relative; z-index: 1; }
-        .num-pill {
-            width: 54px; height: 54px; border-radius: 50%;
-            background: linear-gradient(145deg, #1e3a5f, #16304f);
-            border: 1px solid rgba(59,130,246,0.4);
-            color: #7dd3fc; font-family: var(--font-mono); font-size: 17px; font-weight: 700;
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-            cursor: default; letter-spacing: 0.5px;
-        }
+        .num-pill { width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(145deg, #1e3a5f, #16304f); border: 1px solid rgba(59,130,246,0.4); color: #7dd3fc; font-family: var(--font-mono); font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: default; letter-spacing: 0.5px; }
         .num-pill:hover { transform: scale(1.15); background: linear-gradient(145deg, #2563eb, #1d4ed8); border-color: rgba(59,130,246,0.8); box-shadow: 0 0 20px rgba(59,130,246,0.5); color: white; }
         .num-pill.twin { background: linear-gradient(145deg, #4c1d95, #3b0764); border-color: rgba(139,92,246,0.55); color: #c4b5fd; }
 
-        /* ===== BARIS INFO BAWAH ===== */
+        /* ===== BARIS INFO ===== */
         .info-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 20px; position: relative; z-index: 1; }
         .info-box { background: #0c0c12; border: 1px solid var(--border); border-radius: 13px; padding: 16px 18px; text-align: center; transition: all 0.25s; }
         .info-box:hover { border-color: rgba(245,158,11,0.45); transform: translateY(-2px); }
@@ -233,14 +149,14 @@
 
         /* ===== PASARAN SECTION ===== */
         .pasaran-section { background: var(--surface); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; margin-bottom: 32px; animation: fadeInUp 0.5s ease 0.2s backwards; }
-        .pasaran-header { padding: 24px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, rgba(139,92,246,0.05), transparent); }
-        .pasaran-header-icon { width: 42px; height: 42px; background: var(--accent-purple-light); border: 1px solid rgba(139,92,246,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: var(--accent-purple); }
+        .pasaran-header { padding: 24px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, rgba(59,130,246,0.06), transparent); }
+        .pasaran-header-icon { width: 42px; height: 42px; background: var(--accent-primary-light); border: 1px solid rgba(59,130,246,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: var(--accent-primary); }
         .pasaran-header-title { font-size: 18px; font-weight: 700; }
         .pasaran-header-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
         .pasaran-body { padding: 28px 32px; }
         .pasaran-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
         .pasaran-chip { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 12px; background: rgba(15,15,22,0.6); border: 1px solid var(--border); border-radius: 13px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); text-align: center; font-family: var(--font-mono); letter-spacing: 0.3px; }
-        .pasaran-chip:hover { border-color: rgba(139,92,246,0.5); color: var(--text-primary); transform: translateY(-3px); box-shadow: 0 6px 18px rgba(139,92,246,0.15); background: rgba(139,92,246,0.08); }
+        .pasaran-chip:hover { border-color: rgba(59,130,246,0.5); color: var(--text-primary); transform: translateY(-3px); box-shadow: 0 6px 18px rgba(59,130,246,0.15); background: rgba(59,130,246,0.08); }
         .pasaran-chip.active { background: linear-gradient(135deg, #3b82f6, #6366f1); color: white; border-color: rgba(59,130,246,0.6); box-shadow: 0 4px 15px rgba(59,130,246,0.35); }
         .pasaran-logo { width: 44px; height: 44px; object-fit: contain; border-radius: 9px; background: rgba(255,255,255,0.06); padding: 5px; transition: all 0.25s; }
         .pasaran-chip:hover .pasaran-logo { background: rgba(255,255,255,0.1); transform: scale(1.08); }
@@ -257,7 +173,7 @@
         .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
         .btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16,185,129,0.4); }
         .btn-toggle { background: rgba(15,15,22,0.6); color: var(--text-secondary); border: 1px solid var(--border); }
-        .btn-toggle:hover { border-color: var(--neon-cyan); color: var(--text-primary); }
+        .btn-toggle:hover { border-color: var(--accent-primary); color: var(--text-primary); }
         .btn-toggle.on { background: linear-gradient(135deg, #10b981, #059669); border-color: rgba(16,185,129,0.5); color: white; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
 
         /* ===== FOOTER ===== */
@@ -274,13 +190,9 @@
         .toast i { color: var(--accent-success); font-size: 16px; }
         .toast-content { font-size: 13px; font-weight: 500; }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
-            .container { padding: 20px; }
-            .top-bar { padding: 0 20px; }
-            .breadcrumb { display: none; }
-            .hero { padding: 28px; }
-            .hero-inner { flex-direction: column; align-items: flex-start; }
+            .container { padding: 20px; } .top-bar { padding: 0 20px; } .breadcrumb { display: none; }
+            .hero { padding: 28px; } .hero-inner { flex-direction: column; align-items: flex-start; }
             .pred-header { padding: 24px; flex-direction: column; align-items: flex-start; }
             .pred-live-badge { align-items: flex-start; flex-direction: row; }
             .prediction-grid { grid-template-columns: 1fr; }
@@ -320,10 +232,10 @@
         <span class="toast-content" id="toastMessage">Selesai</span>
     </div>
 
-    <!-- TOP BAR -->
+    <!-- TOP BAR (ala Dashboard) -->
     <header class="top-bar">
         <div class="top-left">
-            <a href="/Dashboard.html" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+            <a href="/Dashboard.html" class="back-btn"><i class="fas fa-home"></i> Dashboard</a>
             <div class="breadcrumb"><span id="userEmail">user</span><span>/</span><span>prediksi</span></div>
         </div>
         <div class="status-badge"><div class="status-dot"></div><span>Live</span></div>
@@ -368,7 +280,7 @@
             </div>
         </div>
 
-        <!-- PREDICTION SECTION — HEADER GRADIENT PREMIUM -->
+        <!-- PREDICTION SECTION — HEADER GRADIENT + LOGO -->
         <section class="prediction-section">
             <div class="pred-header">
                 <div class="pred-title-group">
@@ -567,6 +479,7 @@
             renderPasaranGrid();
             generatePrediction(currentPasaran);
 
+            // Auto-update tiap 3 menit
             setInterval(() => {
                 generatePrediction(currentPasaran);
                 updateCount++;
@@ -575,8 +488,10 @@
                 showToast('Prediksi otomatis diperbarui');
             }, 180000);
 
+            // Update jam tiap menit
             setInterval(updateDateDisplay, 60000);
 
+            // Restore mode gambar
             if (localStorage.getItem('bgImageMode') === 'on') {
                 document.body.classList.add('bg-image-mode');
                 updateBgToggleButton(true);
@@ -644,7 +559,7 @@
             el.innerHTML = groups.map(g => '<span class="num-chip">' + g + '</span>').join('');
         }
 
-        // ===== RENDER 2D JITU =====
+        // ===== RENDER 2D JITU — PIL BULAT =====
         function renderPills(el, groups) {
             el.innerHTML = groups.map(g => {
                 const isTwin = g[0] === g[1];
@@ -671,7 +586,7 @@
                 cadangan2D: pickUniqueTwins(),
                 colokBebas: Math.floor(Math.random() * 10) + '/' + Math.floor(Math.random() * 10),
                 colokBebas2D: [randomDigits(2), randomDigits(2), randomDigits(2)].join(' / '),
-                shio: pickUniqueShios(shioList, 2).join(' / ')
+                shio: pickUniqueShios(shioList, 2).join(' / ')   // ← SELALU UNIK
             };
 
             displayPrediction(currentPrediction);
@@ -685,16 +600,21 @@
 
             updatePredLogo(p.pasaran);
 
+            // Kartu 1 nilai: 1 chip besar terpusat
             document.getElementById('bbfs').innerHTML = '<span class="num-chip">' + p.bbfs + '</span>';
             document.getElementById('angkaMain').innerHTML = '<span class="num-chip">' + p.angkaMain + '</span>';
+            // Kartu multi-nilau: tiap kelompok chip terpisah
             renderValue(document.getElementById('angka4D'), p.angka4D, ' ');
             renderValue(document.getElementById('angka3D'), p.angka3D, ' ');
+            // 2D JITU: pil bulat
             renderPills(document.getElementById('angka2D'), p.angka2D);
+            // Info bawah
             document.getElementById('colokBebas').textContent = p.colokBebas;
             document.getElementById('colokBebas2D').textContent = p.colokBebas2D;
             document.getElementById('cadangan2D').textContent = p.cadangan2D;
             document.getElementById('shio').textContent = p.shio;
 
+            // Animasi ulang
             ['bbfs', 'angkaMain', 'angka4D', 'angka3D', 'angka2D'].forEach(id => {
                 const el = document.getElementById(id);
                 el.style.animation = 'none';
