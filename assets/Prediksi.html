@@ -47,7 +47,7 @@
         body.bg-image-mode .prediction-section {
             background-image: linear-gradient(rgba(8,8,13,0.38), rgba(8,8,13,0.58)), var(--bg-image);
             background-size: cover; background-position: center;
-            border: 1px solid #08080d;  /* ⬅️ SOLID dark */
+            border: 1px solid #08080d;
             box-shadow: 0 15px 40px rgba(0,0,0,0.6);
         }
         body.bg-image-mode .pred-header { background: rgba(8,8,13,0.82); backdrop-filter: blur(14px); }
@@ -90,7 +90,7 @@
         /* ===== PREDICTION SECTION — HEADER GRADIENT ===== */
         .prediction-section {
             background: var(--surface);
-            border: 1px solid #0f0f18;  /* ⬅️ SOLID, bukan rgba transparan — ini biang cela sebenarnya */
+            border: 1px solid #0f0f18;
             border-radius: var(--radius-xl);
             overflow: hidden;
             margin-bottom: 32px;
@@ -416,7 +416,7 @@
             </div>
         </div>
 
-        <div class="copyright">© 2025 AURA.OS — Prediction Engine v3.0</div>
+        <div class="copyright">© 2025 AURA.OS — Prediction Engine v3.1</div>
     </div>
 
     <script>
@@ -466,6 +466,149 @@
             "Hongkong Pools": "https://cdn.areabermain.club/assets/cdn/az3/2024/09/20/20240920/903794c9215af86f470d3f5dfec2f3d2/hongkong1.png"
         };
 
+        // ===== TOAST (dengan timer management — anti stack toast) =====
+        let toastTimer = null;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ============================================================
+        //  ENGINE ANGKA UNIK v3.1 — NOL DUPLIKAT, NOL KEMBAR
+        // ============================================================
+
+        // Deteksi repdigit: "11", "222", "7777", "00" → true
+        function isRepdigit(s) {
+            return s.length > 1 && s.split('').every(c => c === s[0]);
+        }
+
+        // Sampling TANPA pengembalian (partial Fisher–Yates).
+        // Pool tidak pernah mengembalikan nilai yang sama 2x.
+        // exclude = Set nilai terlarang → untuk unik lintas-field.
+        function sampleUnique(pool, n, exclude) {
+            const used = (exclude instanceof Set) ? exclude : new Set();
+            const available = pool.filter(v => !used.has(v));
+            const take = Math.min(n, available.length);
+            for (let i = 0; i < take; i++) {
+                const j = i + Math.floor(Math.random() * (available.length - i));
+                const tmp = available[i];
+                available[i] = available[j];
+                available[j] = tmp;
+            }
+            return available.slice(0, take);
+        }
+
+        // Pool dibangun SEKALI saat load (bukan tiap generate)
+        const POOL_DIGIT = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        const POOL_TWIN  = Array.from({ length: 10 },  (_, i) => String(i).repeat(2));              // 00,11,...,99
+        const POOL_2D    = Array.from({ length: 100 },  (_, i) => String(i).padStart(2, '0')).filter(s => !isRepdigit(s)); // 90 angka, tanpa kembar
+        const POOL_3D    = Array.from({ length: 1000 }, (_, i) => String(i).padStart(3, '0')).filter(s => !isRepdigit(s)); // tanpa 111 dst
+        const POOL_4D    = Array.from({ length: 10000 },(_, i) => String(i).padStart(4, '0')).filter(s => !isRepdigit(s)); // tanpa 1111 dst
+        const SHIO_LIST  = ['TIKUS', 'KERBAU', 'HARIMAU', 'KELINCI', 'NAGA', 'ULAR', 'KUDA', 'KAMBING', 'MONYET', 'AYAM', 'ANJING', 'BABI'];
+
+        // ===== AUDIT — verifikasi otomatis tiap generate =====
+        function auditPrediction(p) {
+            const issues = [];
+            const check = (label, values) => {
+                if (new Set(values).size !== values.length) issues.push(label);
+            };
+
+            check('BBFS (digit)',        p.bbfs.split(''));
+            check('Angka Ikut (digit)',  p.angkaMain.split(''));
+            check('4D',                  p.angka4D.split(' '));
+            check('3D',                  p.angka3D.split(' '));
+            check('2D Jitu',             p.angka2D);
+            check('Colok Macau',         p.colokBebas2D.split(' / '));
+            check('Twin',                p.cadangan2D.split(' / '));
+            check('Shio',                p.shio.split(' / '));
+            check('Colok Bebas',         [p.colokBebas[0], p.colokBebas[2]]);
+            check('2D lintas-field',     [...p.angka2D, ...p.colokBebas2D.split(' / ')]);
+
+            // Anti repdigit tersembunyi di semua angka multi-digit
+            const allNumbers = [...p.angka2D, ...p.angka3D.split(' '), ...p.angka4D.split(' ')];
+            if (allNumbers.some(isRepdigit)) issues.push('Repdigit di 2D/3D/4D');
+
+            // AI & CB harus berasal dari BBFS (konsistensi logika)
+            if (p.angkaMain.split('').some(d => !p.bbfs.includes(d))) issues.push('AI tidak subset BBFS');
+            if (!p.bbfs.includes(p.colokBebas[0]) || !p.bbfs.includes(p.colokBebas[2])) issues.push('CB tidak subset BBFS');
+
+            if (issues.length) {
+                console.warn('[AUDIT] ❌ Duplikat terdeteksi di:', issues.join(', '));
+                return false;
+            }
+            console.log('%c[AUDIT] ✓ Lolos — semua angka unik, nol kembar', 'color:#10b981;font-weight:bold');
+            return true;
+        }
+
+        // ===== BANGUN DATA (pure, tanpa side-effect) =====
+        function buildPrediction(pasaran) {
+            const today = new Date().toISOString().split('T')[0];
+
+            // Registry 2D global: 2D Jitu & Colok Macau saling eksklusif
+            const used2D = new Set();
+
+            const angka2D = sampleUnique(POOL_2D, 10, used2D);
+            angka2D.forEach(v => used2D.add(v));
+
+            const colokMacau = sampleUnique(POOL_2D, 3, used2D);
+            colokMacau.forEach(v => used2D.add(v));
+
+            const twins   = sampleUnique(POOL_TWIN, 2);            // 2 kembar BERBEDA (mis. 11 / 77)
+            const angka4D = sampleUnique(POOL_4D, 4);              // 4 nomor 4D unik, tanpa 1111
+            const angka3D = sampleUnique(POOL_3D, 4);              // 4 nomor 3D unik, tanpa 111
+
+            const bbfsDigits = sampleUnique(POOL_DIGIT, 7);        // 7 digit SEMUA beda
+            const bbfs       = bbfsDigits.join('');
+            const angkaMain  = sampleUnique(bbfsDigits, 5).join(''); // AI = 5 digit unik, subset BBFS
+            const cb         = sampleUnique(bbfsDigits, 2);          // CB = 2 digit beda, subset BBFS
+
+            const data = {
+                tanggal: today,
+                pasaran: pasaran,
+                bbfs: bbfs,
+                angkaMain: angkaMain,
+                angka4D: angka4D.join(' '),
+                angka3D: angka3D.join(' '),
+                angka2D: angka2D,
+                cadangan2D: twins.join(' / '),
+                colokBebas: cb[0] + '/' + cb[1],
+                colokBebas2D: colokMacau.join(' / '),
+                shio: sampleUnique(SHIO_LIST, 2).join(' / ')
+            };
+
+            return auditPrediction(data) ? data : null;
+        }
+
+        // ===== GENERATE (dengan failsafe retry berbatas) =====
+        function generatePrediction(pasaran) {
+            let data = buildPrediction(pasaran);
+            let attempts = 0;
+            while (!data && attempts < 5) {   // failsafe — secara matematis tak pernah terpakai
+                data = buildPrediction(pasaran);
+                attempts++;
+            }
+            if (!data) {
+                console.error('[ENGINE] Gagal menghasilkan data unik');
+                showToast('Gagal menghasilkan prediksi — coba lagi');
+                return false;
+            }
+
+            currentPrediction = data;
+
+            predictionCount++;
+            localStorage.setItem('prediksi_togel_count', predictionCount);
+            document.getElementById('predictionCount').textContent = predictionCount;
+
+            displayPrediction(data);
+
+            const accuracy = 95 + Math.floor(Math.random() * 5);
+            document.getElementById('accuracyRate').textContent = accuracy + '%';
+            return true;
+        }
+
         // ===== Update logo di HEADER =====
         function updatePredLogo(pasaran) {
             const img = document.getElementById('predLogoImg');
@@ -495,11 +638,12 @@
 
             // Auto-update tiap 3 menit
             setInterval(() => {
-                generatePrediction(currentPasaran);
-                updateCount++;
-                localStorage.setItem('prediksi_update_count', updateCount);
-                document.getElementById('updateCount').textContent = updateCount;
-                showToast('Prediksi otomatis diperbarui');
+                if (generatePrediction(currentPasaran)) {
+                    updateCount++;
+                    localStorage.setItem('prediksi_update_count', updateCount);
+                    document.getElementById('updateCount').textContent = updateCount;
+                    showToast('Prediksi otomatis diperbarui');
+                }
             }, 180000);
 
             // Update jam tiap menit
@@ -537,35 +681,10 @@
                     currentPasaran = p;
                     document.querySelectorAll('.pasaran-chip').forEach(c => c.classList.remove('active'));
                     chip.classList.add('active');
-                    generatePrediction(p);
-                    showToast('Memuat prediksi ' + p);
+                    if (generatePrediction(p)) showToast('Memuat prediksi ' + p);
                 };
                 grid.appendChild(chip);
             });
-        }
-
-        function randomDigits(n) {
-            let r = '';
-            for (let i = 0; i < n; i++) r += Math.floor(Math.random() * 10);
-            return r;
-        }
-
-        // ===== SHIO UNIK =====
-        function pickUniqueShios(shioList, n) {
-            const pool = [...shioList];
-            const picked = [];
-            for (let i = 0; i < n && pool.length; i++) {
-                picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
-            }
-            return picked;
-        }
-
-        // ===== TWIN UNIK =====
-        function pickUniqueTwins() {
-            const pool = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-            const a = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-            const b = pool[Math.floor(Math.random() * pool.length)];
-            return String(a) + String(a) + ' / ' + String(b) + String(b);
         }
 
         function renderValue(el, raw, splitBy) {
@@ -576,36 +695,9 @@
         // ===== RENDER 2D JITU — PIL BULAT =====
         function renderPills(el, groups) {
             el.innerHTML = groups.map(g => {
-                const isTwin = g[0] === g[1];
+                const isTwin = g[0] === g[1];   // defense — tidak akan pernah true (pool 2D bebas kembar)
                 return '<div class="num-pill' + (isTwin ? ' twin' : '') + '">' + g + '</div>';
             }).join('');
-        }
-
-        function generatePrediction(pasaran) {
-            predictionCount++;
-            localStorage.setItem('prediksi_togel_count', predictionCount);
-            document.getElementById('predictionCount').textContent = predictionCount;
-
-            const today = new Date().toISOString().split('T')[0];
-            const shioList = ['TIKUS', 'KERBAU', 'HARIMAU', 'KELINCI', 'NAGA', 'ULAR', 'KUDA', 'KAMBING', 'MONYET', 'AYAM', 'ANJING', 'BABI'];
-
-            currentPrediction = {
-                tanggal: today,
-                pasaran: pasaran,
-                bbfs: randomDigits(7),
-                angkaMain: randomDigits(5),
-                angka4D: [randomDigits(4), randomDigits(4), randomDigits(4), randomDigits(4)].join(' '),
-                angka3D: [randomDigits(3), randomDigits(3), randomDigits(3), randomDigits(3)].join(' '),
-                angka2D: Array.from({ length: 10 }, () => randomDigits(2)),
-                cadangan2D: pickUniqueTwins(),
-                colokBebas: Math.floor(Math.random() * 10) + '/' + Math.floor(Math.random() * 10),
-                colokBebas2D: [randomDigits(2), randomDigits(2), randomDigits(2)].join(' / '),
-                shio: pickUniqueShios(shioList, 2).join(' / ')   // ← SELALU UNIK
-            };
-
-            displayPrediction(currentPrediction);
-            const accuracy = 95 + Math.floor(Math.random() * 5);
-            document.getElementById('accuracyRate').textContent = accuracy + '%';
         }
 
         function displayPrediction(p) {
@@ -614,15 +706,11 @@
 
             updatePredLogo(p.pasaran);
 
-            // Kartu 1 nilai: 1 chip besar terpusat
             document.getElementById('bbfs').innerHTML = '<span class="num-chip">' + p.bbfs + '</span>';
             document.getElementById('angkaMain').innerHTML = '<span class="num-chip">' + p.angkaMain + '</span>';
-            // Kartu multi-nilau: tiap kelompok chip terpisah
             renderValue(document.getElementById('angka4D'), p.angka4D, ' ');
             renderValue(document.getElementById('angka3D'), p.angka3D, ' ');
-            // 2D JITU: pil bulat
             renderPills(document.getElementById('angka2D'), p.angka2D);
-            // Info bawah
             document.getElementById('colokBebas').textContent = p.colokBebas;
             document.getElementById('colokBebas2D').textContent = p.colokBebas2D;
             document.getElementById('cadangan2D').textContent = p.cadangan2D;
@@ -637,14 +725,17 @@
         }
 
         document.getElementById('refreshBtn').addEventListener('click', function () {
-            generatePrediction(currentPasaran);
-            showToast('Prediksi baru dihasilkan');
+            if (generatePrediction(currentPasaran)) showToast('Prediksi baru dihasilkan');
         });
 
         document.getElementById('copyBtn').addEventListener('click', copyPredictionToClipboard);
 
         function copyPredictionToClipboard() {
             if (!currentPrediction) return;
+            if (!auditPrediction(currentPrediction)) {   // gate: tolak copy jika data bermasalah
+                showToast('Data tidak valid — silakan Hitung Ulang');
+                return;
+            }
             const p = currentPrediction;
             const text = `✨ PREDIKSI ${p.pasaran.toUpperCase()} ✨\n` +
                 `=======================\n` +
@@ -704,29 +795,22 @@
             const particlesContainer = document.createElement('div');
             particlesContainer.className = 'particles';
             document.body.appendChild(particlesContainer);
+            const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#00f0ff', '#10b981'];
             for (let i = 0; i < 20; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle';
-                const size = Math.random() * 3 + 1;
+                const size = Math.random() * 4 + 2;
                 particle.style.width = size + 'px';
                 particle.style.height = size + 'px';
                 particle.style.left = Math.random() * 100 + '%';
                 particle.style.top = Math.random() * 100 + '%';
-                particle.style.opacity = Math.random() * 0.3 + 0.1;
-                particle.style.animationDelay = Math.random() * 15 + 's';
-                particle.style.background = 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(59,130,246,0.4) 100%)';
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.opacity = (Math.random() * 0.4 + 0.15).toFixed(2);
+                particle.style.animationDuration = (12 + Math.random() * 8) + 's';
+                particle.style.animationDelay = (Math.random() * 10) + 's';
                 particlesContainer.appendChild(particle);
             }
         })();
-
-        // ===== TOAST =====
-        function showToast(message) {
-            const t = document.getElementById('toast');
-            document.getElementById('toastMessage').textContent = message;
-            t.classList.add('show');
-            clearTimeout(t._timeout);
-            t._timeout = setTimeout(() => t.classList.remove('show'), 3500);
-        }
     </script>
 </body>
 </html>
