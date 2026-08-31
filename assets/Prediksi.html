@@ -66,7 +66,6 @@
         .stat-value { font-size: 28px; font-weight: 800; font-family: var(--font-mono); margin-bottom: 6px; color: var(--accent-primary); }
         .stat-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
-        /* ===== PREDICTION SECTION — posisi relatif untuk layer bg ===== */
         .prediction-section {
             background: var(--surface);
             border: 1px solid #0f0f18;
@@ -77,7 +76,6 @@
             position: relative;
         }
 
-        /* ===== Layer gambar animasi — di bawah semua konten ===== */
         .bg-anim-layer {
             position: absolute;
             top: 0; left: 0;
@@ -90,7 +88,6 @@
         }
         .bg-anim-layer.active { opacity: 1; }
 
-        /* Overlay gelap di atas gambar agar teks tetap terbaca */
         .bg-overlay {
             position: absolute;
             top: 0; left: 0;
@@ -103,7 +100,6 @@
         }
         .bg-overlay.active { opacity: 1; }
 
-        /* Semua konten di atas layer bg */
         .pred-header, .pred-body { position: relative; z-index: 1; }
 
         .pred-header {
@@ -119,7 +115,6 @@
             animation: gradientShift 8s ease infinite;
             text-align: center;
         }
-        /* Mode gambar: header semi-transparan */
         body.bg-mode .pred-header { background: rgba(8,8,13,0.75); backdrop-filter: blur(14px); }
         body.bg-mode .pred-market { text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
 
@@ -243,7 +238,6 @@
         .btn-toggle:hover { border-color: var(--accent-primary); color: var(--text-primary); }
         .btn-toggle.on { background: linear-gradient(135deg, #10b981, #059669); border-color: rgba(16,185,129,0.5); color: white; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
 
-        /* ===== MODAL ===== */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .modal-overlay.show { opacity: 1; pointer-events: all; }
         .modal-box { background: linear-gradient(145deg, #13131e, #0e0e18); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-xl); padding: 32px; width: 90%; max-width: 560px; transform: scale(0.9) translateY(20px); transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 24px 60px rgba(0,0,0,0.6); }
@@ -376,9 +370,7 @@
         </div>
 
         <section class="prediction-section" id="predictionSection">
-            <!-- Layer gambar animasi prediksi — paling bawah -->
             <img class="bg-anim-layer" id="bgAnimLayer" alt="" crossorigin="anonymous">
-            <!-- Overlay gelap -->
             <div class="bg-overlay" id="bgOverlay"></div>
 
             <div class="pred-header" id="predHeader">
@@ -427,7 +419,7 @@
         </section>
 
         <div class="footer-note"><i class="fas fa-circle-info"></i><div class="footer-note-text"><strong>Catatan:</strong> Seluruh angka dihasilkan melalui perhitungan probabilistik atas data historis masing-masing pasaran. Hasil bersifat referensi analisa — tidak menjamin hasil akhir. Gunakan secara bijak dan bertanggung jawab.</div></div>
-        <div class="copyright">© 2025 AURA.OS — Prediction Engine v3.2</div>
+        <div class="copyright">&copy; 2025 AURA.OS — Prediction Engine v3.2</div>
     </div>
 
     <script>
@@ -466,58 +458,182 @@
             "Hongkong Pools":"https://cdn.areabermain.club/assets/cdn/az1/2025/09/07/20250907/7d2086796fd3d3af9aaed27d19fd9170/hongkong-lotto-1.png"
         };
 
+        /* ===== TOAST ===== */
         var toastTimer = null;
-        function showToast(msg) { var t=document.getElementById('toast'); document.getElementById('toastMessage').textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(function(){t.classList.remove('show');},3000); }
-
-        function randomDigits(n){var r='';for(var i=0;i<n;i++)r+=Math.floor(Math.random()*10);return r;}
-        function pickUniqueNumbers(n,max,pad){var p=new Set(),t=Math.min(n,max);while(p.size<t)p.add(String(Math.floor(Math.random()*max)).padStart(pad,'0'));return[...p];}
-        function pickUniqueItems(pool,n){var p=new Set(),t=Math.min(n,pool.length);while(p.size<t)p.add(pool[Math.floor(Math.random()*pool.length)]);return[...p];}
-        var SHIO_LIST=['TIKUS','KERBAU','HARIMAU','KELINCI','NAGA','ULAR','KUDA','KAMBING','MONYET','AYAM','ANJING','BABI'];
-        var TWIN_POOL=['00','11','22','33','44','55','66','77','88','99'];
-        var DIGIT_POOL=['0','1','2','3','4','5','6','7','8','9'];
-
-        function auditPrediction(p){var issues=[];var c=function(l,v){if(new Set(v).size!==v.length)issues.push(l);};c('4D',p.angka4D.split(' '));c('3D',p.angka3D.split(' '));c('2D Jitu',p.angka2D);c('Colok Macau',p.colokBebas2D.split(' / '));c('Twin',p.cadangan2D.split(' / '));c('Shio',p.shio.split(' / '));c('Colok Bebas',p.colokBebas.split('/'));return !issues.length;}
-
-        function generatePrediction(pasaran){
-            var today=new Date().toISOString().split('T')[0];
-            currentPrediction={tanggal:today,pasaran:pasaran,bbfs:randomDigits(7),angkaMain:randomDigits(5),angka4D:pickUniqueNumbers(4,10000,4).join(' '),angka3D:pickUniqueNumbers(4,1000,3).join(' '),angka2D:pickUniqueNumbers(10,100,2),cadangan2D:pickUniqueItems(TWIN_POOL,2).join(' / '),colokBebas:pickUniqueItems(DIGIT_POOL,2).join('/'),colokBebas2D:pickUniqueNumbers(3,100,2).join(' / '),shio:pickUniqueItems(SHIO_LIST,2).join(' / ')};
-            auditPrediction(currentPrediction);
-            predictionCount++;localStorage.setItem('prediksi_togel_count',predictionCount);
-            document.getElementById('predictionCount').textContent=predictionCount;
-            displayPrediction(currentPrediction);
-            document.getElementById('accuracyRate').textContent=(95+Math.floor(Math.random()*5))+'%';
+        function showToast(msg) {
+            var t = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = msg;
+            t.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(function() { t.classList.remove('show'); }, 3000);
         }
 
-        function updatePredLogo(pasaran){var img=document.getElementById('predLogoImg'),fb=document.getElementById('predLogoFallback'),url=PASARAN_LOGOS[pasaran];if(url){img.src=url;img.style.display='';img.onerror=function(){img.style.display='none';fb.style.display='';};fb.style.display='none';}else{img.style.display='none';fb.style.display='';}}
+        /* ===== UTILITAS ANGKA ===== */
+        function randomDigits(n) { var r = ''; for (var i = 0; i < n; i++) r += Math.floor(Math.random() * 10); return r; }
+        function pickUniqueNumbers(n, max, pad) { var p = new Set(), t = Math.min(n, max); while (p.size < t) p.add(String(Math.floor(Math.random() * max)).padStart(pad, '0')); return [...p]; }
+        function pickUniqueItems(pool, n) { var p = new Set(), t = Math.min(n, pool.length); while (p.size < t) p.add(pool[Math.floor(Math.random() * pool.length)]); return [...p]; }
 
-        function updateDateDisplay(){var now=new Date();document.getElementById('dateText').textContent=now.toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})+' WIB';}
+        var SHIO_LIST = ['TIKUS','KERBAU','HARIMAU','KELINCI','NAGA','ULAR','KUDA','KAMBING','MONYET','AYAM','ANJING','BABI'];
+        var TWIN_POOL = ['00','11','22','33','44','55','66','77','88','99'];
+        var DIGIT_POOL = ['0','1','2','3','4','5','6','7','8','9'];
 
-        function renderPasaranGrid(){var grid=document.getElementById('pasaranGrid');grid.innerHTML='';pasaranList.forEach(function(p){var chip=document.createElement('div');chip.className='pasaran-chip'+(p===currentPasaran?' active':'');var u=PASARAN_LOGOS[p];chip.innerHTML=(u?'<img class="pasaran-logo" src="'+u+'" alt="'+p+'" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;pasaran-fallback&quot;><i class=&quot;fas fa-circle-dot&quot;></i></div>\'">':'<div class="pasaran-fallback"><i class="fas fa-circle-dot"></i></div>')+'<span>'+p+'</span>';chip.onclick=function(){currentPasaran=p;document.querySelectorAll('.pasaran-chip').forEach(function(c){c.classList.remove('active')});chip.classList.add('active');generatePrediction(p);showToast('Memuat prediksi '+p);};grid.appendChild(chip);});}
+        /* ===== AUDIT ===== */
+        function auditPrediction(p) {
+            var issues = [];
+            var c = function(l, v) { if (new Set(v).size !== v.length) issues.push(l); };
+            c('4D', p.angka4D.split(' '));
+            c('3D', p.angka3D.split(' '));
+            c('2D Jitu', p.angka2D);
+            c('Colok Macau', p.colokBebas2D.split(' / '));
+            c('Twin', p.cadangan2D.split(' / '));
+            c('Shio', p.shio.split(' / '));
+            c('Colok Bebas', p.colokBebas.split('/'));
+            return !issues.length;
+        }
 
-        function renderValue(el,raw,splitBy){el.innerHTML=raw.split(splitBy).filter(Boolean).map(function(g){return'<span class="num-chip">'+g+'</span>';}).join('');}
-        function renderPills(el,groups){el.innerHTML=groups.map(function(g){return'<div class="num-pill'+(g[0]===g[1]?' twin':'')+'">'+g+'</div>';}).join('');}
+        /* ===== GENERATE PREDICTION ===== */
+        function generatePrediction(pasaran) {
+            var today = new Date().toISOString().split('T')[0];
+            currentPrediction = {
+                tanggal: today,
+                pasaran: pasaran,
+                bbfs: randomDigits(7),
+                angkaMain: randomDigits(5),
+                angka4D: pickUniqueNumbers(4, 10000, 4).join(' '),
+                angka3D: pickUniqueNumbers(4, 1000, 3).join(' '),
+                angka2D: pickUniqueNumbers(10, 100, 2),
+                cadangan2D: pickUniqueItems(TWIN_POOL, 2).join(' / '),
+                colokBebas: pickUniqueItems(DIGIT_POOL, 2).join('/'),
+                colokBebas2D: pickUniqueNumbers(3, 100, 2).join(' / '),
+                shio: pickUniqueItems(SHIO_LIST, 2).join(' / ')
+            };
+            auditPrediction(currentPrediction);
+            predictionCount++;
+            localStorage.setItem('prediksi_togel_count', predictionCount);
+            document.getElementById('predictionCount').textContent = predictionCount;
+            displayPrediction(currentPrediction);
+            document.getElementById('accuracyRate').textContent = (95 + Math.floor(Math.random() * 5)) + '%';
+        }
 
-        function displayPrediction(p){
-            document.getElementById('pasaranTitle').textContent=p.pasaran.toUpperCase();
-            var d=new Date(p.tanggal),m=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-            document.getElementById('tanggal').textContent=String(d.getDate()).padStart(2,'0')+' '+m[d.getMonth()]+' '+d.getFullYear();
+        /* ===== LOGO PASARAN ===== */
+        function updatePredLogo(pasaran) {
+            var img = document.getElementById('predLogoImg'), fb = document.getElementById('predLogoFallback'), url = PASARAN_LOGOS[pasaran];
+            if (url) {
+                img.src = url; img.style.display = '';
+                img.onerror = function() { img.style.display = 'none'; fb.style.display = ''; };
+                fb.style.display = 'none';
+            } else {
+                img.style.display = 'none'; fb.style.display = '';
+            }
+        }
+
+        /* ===== TANGGAL DISPLAY ===== */
+        function updateDateDisplay() {
+            var now = new Date();
+            document.getElementById('dateText').textContent = now.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' }) + ' WIB';
+        }
+
+        /* ===== RENDER PASARAN GRID ===== */
+        function renderPasaranGrid() {
+            var grid = document.getElementById('pasaranGrid');
+            grid.innerHTML = '';
+            pasaranList.forEach(function(p) {
+                var chip = document.createElement('div');
+                chip.className = 'pasaran-chip' + (p === currentPasaran ? ' active' : '');
+                var u = PASARAN_LOGOS[p];
+                chip.innerHTML = (u ? '<img class="pasaran-logo" src="' + u + '" alt="' + p + '" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;pasaran-fallback&quot;><i class=&quot;fas fa-circle-dot&quot;></i></div>\'">' : '<div class="pasaran-fallback"><i class="fas fa-circle-dot"></i></div>') + '<span>' + p + '</span>';
+                chip.onclick = function() {
+                    currentPasaran = p;
+                    document.querySelectorAll('.pasaran-chip').forEach(function(c) { c.classList.remove('active'); });
+                    chip.classList.add('active');
+                    generatePrediction(p);
+                    showToast('Memuat prediksi ' + p);
+                };
+                grid.appendChild(chip);
+            });
+        }
+
+        /* ===== RENDER NILAI ===== */
+        function renderValue(el, raw, splitBy) {
+            el.innerHTML = raw.split(splitBy).filter(Boolean).map(function(g) { return '<span class="num-chip">' + g + '</span>'; }).join('');
+        }
+        function renderPills(el, groups) {
+            el.innerHTML = groups.map(function(g) { return '<div class="num-pill' + (g[0] === g[1] ? ' twin' : '') + '">' + g + '</div>'; }).join('');
+        }
+
+        /* ===== DISPLAY PREDICTION KE UI ===== */
+        function displayPrediction(p) {
+            document.getElementById('pasaranTitle').textContent = p.pasaran.toUpperCase();
+            var d = new Date(p.tanggal), m = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+            document.getElementById('tanggal').textContent = String(d.getDate()).padStart(2, '0') + ' ' + m[d.getMonth()] + ' ' + d.getFullYear();
             updatePredLogo(p.pasaran);
-            document.getElementById('bbfs').innerHTML='<span class="num-chip">'+p.bbfs+'</span>';
-            document.getElementById('angkaMain').innerHTML='<span class="num-chip">'+p.angkaMain+'</span>';
-            renderValue(document.getElementById('angka4D'),p.angka4D,' ');
-            renderValue(document.getElementById('angka3D'),p.angka3D,' ');
-            renderPills(document.getElementById('angka2D'),p.angka2D);
-            document.getElementById('colokBebas').textContent=p.colokBebas;
-            document.getElementById('colokBebas2D').textContent=p.colokBebas2D;
-            document.getElementById('cadangan2D').textContent=p.cadangan2D;
-            document.getElementById('shio').textContent=p.shio;
-            ['bbfs','angkaMain','angka4D','angka3D','angka2D'].forEach(function(id){var el=document.getElementById(id);el.style.animation='none';setTimeout(function(){el.style.animation='fadeInScale 0.4s ease';},10);});
+            document.getElementById('bbfs').innerHTML = '<span class="num-chip">' + p.bbfs + '</span>';
+            document.getElementById('angkaMain').innerHTML = '<span class="num-chip">' + p.angkaMain + '</span>';
+            renderValue(document.getElementById('angka4D'), p.angka4D, ' ');
+            renderValue(document.getElementById('angka3D'), p.angka3D, ' ');
+            renderPills(document.getElementById('angka2D'), p.angka2D);
+            document.getElementById('colokBebas').textContent = p.colokBebas;
+            document.getElementById('colokBebas2D').textContent = p.colokBebas2D;
+            document.getElementById('cadangan2D').textContent = p.cadangan2D;
+            document.getElementById('shio').textContent = p.shio;
+            ['bbfs','angkaMain','angka4D','angka3D','angka2D'].forEach(function(id) {
+                var el = document.getElementById(id);
+                el.style.animation = 'none';
+                setTimeout(function() { el.style.animation = 'fadeInScale 0.4s ease'; }, 10);
+            });
+        }
+
+        /* ===========================================================
+           FORMAT SALIN PREDIKSI — SESUAI PERMINTAAN
+           TIDAK ADA TEKS "AURA.OS v3.2" DI OUTPUT
+           =========================================================== */
+        function buildCopyText(p) {
+            if (!p) return '';
+            var lines = [];
+            lines.push(' \u2728 PREDIKSI ' + p.pasaran.toUpperCase() + ' \u2728');
+            lines.push('=======================');
+            lines.push('\uD83D\uDCC5 Tanggal: ' + p.tanggal);
+            lines.push('=======================');
+            lines.push('\uD83C\uDFB0 BBFS: ' + p.bbfs);
+            lines.push('\u2B50 ANGKA IKUT: ' + p.angkaMain);
+            lines.push('\uD83C\uDFB2 4D: ' + p.angka4D);
+            lines.push('\uD83C\uDFAF 3D: ' + p.angka3D);
+            lines.push('\uD83C\uDFAC 2D JITU: ' + p.angka2D.join(' '));
+            lines.push('\uD83C\uDFAF COLOK BEBAS: ' + p.colokBebas);
+            lines.push('\uD83C\uDFAF COLOK MACAU: ' + p.colokBebas2D);
+            lines.push('\uD83D\uDC69\u200D\uD83E\uDDD1 TWIN: ' + p.cadangan2D);
+            lines.push('\uD83D\uDC09 SHIO: ' + p.shio);
+            lines.push('=======================');
+            lines.push('\u26A1 By Lunatogel \u26A1');
+            return lines.join('\n');
+        }
+
+        /* ===== FALLBACK COPY UNTUK BROWSER LAMA ===== */
+        function fallbackCopy(text) {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            ta.style.top = '-9999px';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showToast('Prediksi berhasil disalin!');
+            } catch (e) {
+                showToast('Gagal menyalin, coba manual');
+            }
+            document.body.removeChild(ta);
         }
 
         /* ===== BACKGROUND ANIMASI ===== */
         var bgAnimFrame = null, bgAnimPos = 0;
 
-        function stopBgAnim() { if(bgAnimFrame){cancelAnimationFrame(bgAnimFrame);bgAnimFrame=null;} }
+        function stopBgAnim() {
+            if (bgAnimFrame) { cancelAnimationFrame(bgAnimFrame); bgAnimFrame = null; }
+        }
 
         function startBgAnim(url) {
             stopBgAnim();
@@ -576,149 +692,150 @@
             showToast('Semua background dihapus');
         }
 
-        /* ===== MODAL ===== */
-        var bgModal = document.getElementById('bgModal');
-        var bgUrlPred = document.getElementById('bgUrlPred');
-        var bgUrlHeader = document.getElementById('bgUrlHeader');
-        var bgPreview = document.getElementById('bgPreview');
-
-        // Preview saat mengetik di input prediksi
-        bgUrlPred.addEventListener('input', function() {
-            var url = this.value.trim();
-            if (!url) { bgPreview.innerHTML = '<div class="modal-preview-empty"><i class="fas fa-image"></i>Pratinjau</div>'; return; }
-            var img = new Image(); img.crossOrigin = 'anonymous';
-            img.onload = function() { bgPreview.innerHTML = '<img src="'+url+'" alt="preview">'; };
-            img.onerror = function() { bgPreview.innerHTML = '<div class="modal-preview-empty"><i class="fas fa-exclamation-triangle" style="color:var(--accent-warning)"></i>Gambar gagal dimuat</div>'; };
-            img.src = url;
-        });
-        // Preview saat mengetik di input header
-        bgUrlHeader.addEventListener('input', function() {
-            var url = this.value.trim();
-            if (!url) { bgPreview.innerHTML = '<div class="modal-preview-empty"><i class="fas fa-image"></i>Pratinjau</div>'; return; }
-            var img = new Image(); img.crossOrigin = 'anonymous';
-            img.onload = function() { bgPreview.innerHTML = '<img src="'+url+'" alt="preview">'; };
-            img.onerror = function() { bgPreview.innerHTML = '<div class="modal-preview-empty"><i class="fas fa-exclamation-triangle" style="color:var(--accent-warning)"></i>Gambar gagal dimuat</div>'; };
-            img.src = url;
-        });
-
-        // Terapkan prediksi
-        document.getElementById('bgApplyPredBtn').addEventListener('click', function() {
-            var url = bgUrlPred.value.trim();
-            if (!url) { showToast('Masukkan URL background prediksi'); return; }
-            startBgAnim(url);
-            bgModal.classList.remove('show');
-        });
-        // Enter di input prediksi
-        bgUrlPred.addEventListener('keydown', function(e) { if(e.key==='Enter') document.getElementById('bgApplyPredBtn').click(); });
-        // Terapkan header
-        document.getElementById('bgApplyHeaderBtn').addEventListener('click', function() {
-            applyHeaderBg(bgUrlHeader.value.trim());
-            bgModal.classList.remove('show');
-        });
-        // Enter di input header
-        bgUrlHeader.addEventListener('keydown', function(e) { if(e.key==='Enter') document.getElementById('bgApplyHeaderBtn').click(); });
-
-        document.getElementById('bgClearBtn').addEventListener('click', function() {
-            clearAllBg();
-            bgUrlPred.value = '';
-            bgUrlHeader.value = '';
-            bgPreview.innerHTML = '<div class="modal-preview-empty"><i class="fas fa-image"></i>Pratinjau</div>';
-            bgModal.classList.remove('show');
-        });
-        document.getElementById('bgCloseBtn').addEventListener('click', function() { bgModal.classList.remove('show'); });
-        bgModal.addEventListener('click', function(e) { if(e.target === bgModal) bgModal.classList.remove('show'); });
-
-        // Toggle button di action bar
-        function updateBgToggle(on) {
-            var btn=document.getElementById('bgToggleBtn'),icon=document.getElementById('bgToggleIcon'),txt=document.getElementById('bgToggleText');
-            if(on){btn.classList.add('on');icon.className='fas fa-toggle-on';txt.textContent='Mode Gambar: ON';}
-            else{btn.classList.remove('on');icon.className='fas fa-toggle-off';txt.textContent='Modal Gambar: OFF';}
+        /* ===== TOGGLE BACKGROUND ===== */
+        function updateBgToggle(isOn) {
+            var icon = document.getElementById('bgToggleIcon');
+            var text = document.getElementById('bgToggleText');
+            var btn = document.getElementById('bgToggleBtn');
+            if (isOn) {
+                icon.className = 'fas fa-toggle-on';
+                text.textContent = 'Mode Gambar: ON';
+                btn.classList.add('on');
+            } else {
+                icon.className = 'fas fa-toggle-off';
+                text.textContent = 'Mode Gambar: OFF';
+                btn.classList.remove('on');
+            }
         }
-        document.getElementById('bgToggleBtn').addEventListener('click', function() {
-            bgUrlPred.value = localStorage.getItem('bgUrlPred') || '';
-            bgUrlHeader.value = localStorage.getItem('bgUrlHeader') || '';
-            bgModal.classList.add('show');
-            setTimeout(function(){ bgUrlPred.focus(); }, 300);
-        });
 
-        /* ===== DOWNLOAD GAMBAR ===== */
-        document.getElementById('downloadImgBtn').addEventListener('click', function() {
-            var btn = this;
-            if (btn.classList.contains('downloading')) return;
+        /* ===== MODAL PREVIEW ===== */
+        function updateBgPreview(url) {
+            var preview = document.getElementById('bgPreview');
+            if (url && url.trim()) {
+                preview.innerHTML = '<img src="' + url.trim() + '" alt="preview" onerror="this.parentElement.innerHTML=\'<div class=modal-preview-empty><i class=fas fa-exclamation-triangle></i>Gagal memuat</div>\'">';
+            } else {
+                preview.innerHTML = '<div class="modal-preview-empty"><i class="fas fa-image"></i>Pratinjau</div>';
+            }
+        }
+
+        /* ===== MODAL EVENT HANDLERS ===== */
+        var bgModal = document.getElementById('bgModal');
+        var bgUrlPredInput = document.getElementById('bgUrlPred');
+        var bgUrlHeaderInput = document.getElementById('bgUrlHeader');
+
+        document.getElementById('bgApplyPredBtn').onclick = function() {
+            var url = bgUrlPredInput.value.trim();
+            if (!url) { showToast('URL background prediksi kosong'); return; }
+            startBgAnim(url);
+        };
+
+        document.getElementById('bgApplyHeaderBtn').onclick = function() {
+            var url = bgUrlHeaderInput.value.trim();
+            applyHeaderBg(url || null);
+        };
+
+        document.getElementById('bgClearBtn').onclick = function() {
+            bgUrlPredInput.value = '';
+            bgUrlHeaderInput.value = '';
+            updateBgPreview('');
+            clearAllBg();
+        };
+
+        document.getElementById('bgCloseBtn').onclick = function() {
+            bgModal.classList.remove('show');
+        };
+
+        bgModal.onclick = function(e) {
+            if (e.target === bgModal) bgModal.classList.remove('show');
+        };
+
+        bgUrlPredInput.addEventListener('input', function() { updateBgPreview(this.value); });
+        bgUrlHeaderInput.addEventListener('input', function() { updateBgPreview(this.value); });
+
+        /* ===== TOMBOL AKSI ===== */
+
+        /* --- Hitung Ulang --- */
+        document.getElementById('refreshBtn').onclick = function() {
+            updateCount++;
+            localStorage.setItem('prediksi_update_count', updateCount);
+            document.getElementById('updateCount').textContent = updateCount;
+            generatePrediction(currentPasaran);
+            showToast('Prediksi dihitung ulang');
+        };
+
+        /* --- Salin Prediksi (FORMAT BARU) --- */
+        document.getElementById('copyBtn').onclick = function() {
+            if (!currentPrediction) { showToast('Belum ada prediksi'); return; }
+            var text = buildCopyText(currentPrediction);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() {
+                    showToast('Prediksi berhasil disalin!');
+                }).catch(function() {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        };
+
+        /* --- Download Gambar --- */
+        document.getElementById('downloadImgBtn').onclick = function() {
+            var btn = document.getElementById('downloadImgBtn');
             btn.classList.add('downloading');
-            var origHTML = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
-
-            var section = document.getElementById('predictionSection');
-            html2canvas(section, {
-                scale: 2, useCORS: true, allowTaint: true,
-                backgroundColor: '#0a0a0f', logging: false,
-                onclone: function(doc) {
-                    var dl = doc.getElementById('downloadImgBtn');
-                    if (dl) dl.style.display = 'none';
-                    var lv = doc.querySelector('.pred-live-badge');
-                    if (lv) lv.style.display = 'none';
-                    var cards = doc.querySelectorAll('.pred-card');
-                    for (var i = 0; i < cards.length; i++) { cards[i].style.animation='none'; cards[i].style.opacity='1'; cards[i].style.transform='none'; }
-                    var animL = doc.getElementById('bgAnimLayer');
-                    if (animL) { animL.style.position='absolute'; animL.style.zIndex='0'; animL.style.opacity='1'; }
-                    var ov = doc.getElementById('bgOverlay');
-                    if (ov) { ov.style.position='absolute'; ov.style.zIndex='0'; ov.style.opacity='1'; }
-                }
+            var target = document.getElementById('predictionSection');
+            html2canvas(target, {
+                backgroundColor: '#0a0a0f',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                logging: false
             }).then(function(canvas) {
-                try {
-                    var dataUrl = canvas.toDataURL('image/png');
-                    var a = document.createElement('a');
-                    a.download = 'aura_prediksi_' + (currentPasaran||'prediksi').replace(/\s+/g,'_').toLowerCase() + '.png';
-                    a.href = dataUrl;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    showToast('Gambar berhasil diunduh');
-                    btn.innerHTML = '<i class="fas fa-check"></i> Selesai';
-                } catch(e) {
-                    showToast('Gagal menyimpan gambar');
-                    btn.innerHTML = origHTML;
-                    btn.classList.remove('downloading');
-                    return;
-                }
-                setTimeout(function(){ btn.innerHTML = origHTML; btn.classList.remove('downloading'); }, 1500);
-            }).catch(function(err) {
-                console.error('Download error:', err);
-                showToast('Gagal mengunduh — coba lagi');
-                btn.innerHTML = origHTML;
+                var link = document.createElement('a');
+                link.download = 'prediksi-' + currentPasaran.replace(/\s+/g, '-').toLowerCase() + '-' + currentPrediction.tanggal + '.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showToast('Gambar berhasil diunduh');
+            }).catch(function() {
+                showToast('Gagal mengunduh gambar');
+            }).finally(function() {
                 btn.classList.remove('downloading');
+                btn.innerHTML = '<i class="fas fa-image"></i> Download Gambar';
             });
-        });
+        };
 
-        /* ===== COPY & REFRESH ===== */
-        document.getElementById('refreshBtn').addEventListener('click', function(){ generatePrediction(currentPasaran); showToast('Prediksi baru dihasilkan'); });
-        document.getElementById('copyBtn').addEventListener('click', function(){
-            if(!currentPrediction)return;
-            var p=currentPrediction;
-            var text=['═══ AURA.OS PREDIKSI ═══','Pasaran : '+p.pasaran.toUpperCase(),'Tanggal : '+p.tanggal,'','BBFS      : '+p.bbfs,'AI           : '+p.angkaMain,'4D          : '+p.angka4D,'3D          : '+p.angka3D,'2D Jitu   : '+p.angka2D.join('  '),'','CB         : '+p.colokBebas,'CM         : '+p.colokBebas2D,'Twin       : '+p.cadangan2D,'Shio      : '+p.shio,'','═══ AURA.OS v3.2 ═══'].join('\n');
-            navigator.clipboard.writeText(text).then(function(){showToast('Prediksi berhasil disalin');}).catch(function(){var ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('Prediksi berhasil disalin');});
-        });
+        /* --- Toggle Mode Gambar --- */
+        document.getElementById('bgToggleBtn').onclick = function() {
+            var isOn = document.body.classList.contains('bg-mode');
+            if (isOn) {
+                clearAllBg();
+            } else {
+                bgModal.classList.add('show');
+            }
+        };
 
-        /* ===== INIT ===== */
-        document.addEventListener('DOMContentLoaded', function() {
+        /* ===== INISIALISASI ===== */
+        (function init() {
             updateDateDisplay();
-            document.getElementById('predictionCount').textContent = predictionCount;
+            setInterval(updateDateDisplay, 30000);
+            renderPasaranGrid();
             document.getElementById('updateCount').textContent = updateCount;
             document.getElementById('marketCount').textContent = pasaranList.length;
-            renderPasaranGrid();
+            document.getElementById('predictionCount').textContent = predictionCount;
             generatePrediction(currentPasaran);
 
-            // Restore background prediksi
-            var savedPredUrl = localStorage.getItem('bgUrlPred');
-            if (savedPredUrl) startBgAnim(savedPredUrl);
-            // Restore background header
-            var savedHeaderUrl = localStorage.getItem('bgUrlHeader');
-            if (savedHeaderUrl) applyHeaderBg(savedHeaderUrl);
-
-            setInterval(function(){ generatePrediction(currentPasaran); updateCount++; localStorage.setItem('prediksi_update_count',updateCount); document.getElementById('updateCount').textContent=updateCount; showToast('Prediksi otomatis diperbarui'); }, 180000);
-            setInterval(updateDateDisplay, 60000);
-        });
+            /* Restore background jika pernah disimpan */
+            var savedBgPred = localStorage.getItem('bgUrlPred');
+            var savedBgHeader = localStorage.getItem('bgUrlHeader');
+            if (savedBgPred) {
+                bgUrlPredInput.value = savedBgPred;
+                startBgAnim(savedBgPred);
+            }
+            if (savedBgHeader) {
+                bgUrlHeaderInput.value = savedBgHeader;
+                applyHeaderBg(savedBgHeader);
+            }
+        })();
     </script>
 </body>
 </html>
