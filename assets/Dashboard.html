@@ -717,30 +717,52 @@
     }
 
     /* ===================================================================
-       PROFIL: CHANGE PASSWORD
-       =================================================================== */
-    function changePassword() {
-      var oldPwd = document.getElementById('pwdOld');
-      var newPwd = document.getElementById('pwdNew');
-      var confirmPwd = document.getElementById('pwdConfirm');
+   PROFIL: CHANGE PASSWORD (BACKEND)
+   =================================================================== */
+async function changePassword() {
+  var oldPwd = document.getElementById('pwdOld');
+  var newPwd = document.getElementById('pwdNew');
+  var confirmPwd = document.getElementById('pwdConfirm');
+  var btn = document.getElementById('pwdSubmitBtn');
 
-      var o = oldPwd.value.trim();
-      var n = newPwd.value.trim();
-      var c = confirmPwd.value.trim();
+  var o = oldPwd.value.trim();
+  var n = newPwd.value.trim();
+  var c = confirmPwd.value.trim();
 
-      if (!o) { showToast('Masukkan password lama', 'warning'); oldPwd.focus(); return; }
-      if (!n) { showToast('Masukkan password baru', 'warning'); newPwd.focus(); return; }
-      if (n.length < 6) { showToast('Password baru minimal 6 karakter', 'warning'); newPwd.focus(); return; }
-      if (n !== c) { showToast('Konfirmasi password tidak cocok', 'warning'); confirmPwd.focus(); return; }
+  if (!o) { showToast('Masukkan password lama', 'warning'); oldPwd.focus(); return; }
+  if (!n) { showToast('Masukkan password baru', 'warning'); newPwd.focus(); return; }
+  if (n.length < 6) { showToast('Password baru minimal 6 karakter', 'warning'); newPwd.focus(); return; }
+  if (n !== c) { showToast('Konfirmasi password tidak cocok', 'warning'); confirmPwd.focus(); return; }
 
-      var storedPass = localStorage.getItem('aura_user_pass') || '';
-      if (storedPass && o !== storedPass) { showToast('Password lama salah', 'error'); oldPwd.focus(); return; }
+  /* Loading state */
+  var originalText = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
 
-      /* Simpan */
-      localStorage.setItem('aura_user_pass', n);
+  try {
+    var token = localStorage.getItem('aura_auth_token_backend') || '';
+
+    var res = await fetch('https://aura-backend.namaworker.workers.dev/api/auth/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      },
+      body: JSON.stringify({
+        oldPassword: o,
+        newPassword: n,
+      }),
+    });
+
+    var result = await res.json();
+
+    if (result.success) {
+      showToast('Password berhasil diubah!', 'success');
+      addTerminalLog('Password changed via backend for: ' + (localStorage.getItem('aura_auth_token') || 'user'));
+
+      /* Reset form */
       oldPwd.value = ''; newPwd.value = ''; confirmPwd.value = '';
-
-      /* Reset UI */
       var sb = document.getElementById('pwdStrength');
       if (sb) sb.style.width = '0%';
       var sm = document.getElementById('pwdMatchMsg');
@@ -753,15 +775,18 @@
         var el = document.getElementById(id);
         if (el) el.className = 'cross';
       });
-
-      showToast('Password berhasil diubah!', 'success');
-      addTerminalLog('Password changed for user: ' + (localStorage.getItem('aura_auth_token') || 'user'));
-
-      /* Update tampilan password di identity card */
-      var masked = n.length > 3 ? n.substring(0,2) + '•••••' + n.substring(n.length - 2) : '••••••';
-      var pd = document.getElementById('pwdDisplay');
-      if (pd) pd.textContent = masked;
+    } else {
+      showToast(result.message || 'Gagal mengubah password', 'error');
     }
+  } catch (err) {
+    showToast('Koneksi ke server gagal', 'error');
+    addTerminalLog('Password change error: ' + err.message);
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
 
     /* ===================================================================
        PROFIL: SWITCH TO PROFIL VIEW
