@@ -1062,13 +1062,31 @@ async function changePassword() {
        LOGOUT
        =================================================================== */
     function logout() {
-      showPopup('Konfirmasi Logout', '<p style="text-align:center; padding:20px; color:var(--text-secondary);">Apakah Anda yakin ingin keluar?</p>', true, function() {
-        addTerminalLog('User logged out');
-        localStorage.removeItem('aura_auth_token');
-        showToast('Logout berhasil', 'success');
-        setTimeout(function() { window.location.href = '/Login.html'; }, 1000);
-      });
+  showPopup('Konfirmasi Logout', '<p style="text-align:center; padding:20px; color:var(--text-secondary);">Apakah Anda yakin ingin keluar?</p>', true, async function() {
+    addTerminalLog('User logging out...');
+
+    /* Hapus session di backend */
+    var token = localStorage.getItem('aura_auth_token_backend') || '';
+    if (token) {
+      try {
+        await fetch('https://aura-backend.namaworker.workers.dev/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+        });
+      } catch(e) {}
     }
+
+    /* Hapus data lokal */
+    localStorage.removeItem('aura_auth_token_backend');
+    localStorage.removeItem('aura_auth_token');
+    localStorage.removeItem('aura_user_name');
+    localStorage.removeItem('aura_user_pass');
+    localStorage.removeItem('aura_user_status');
+
+    showToast('Logout berhasil', 'success');
+    setTimeout(function() { location.reload(); }, 800);
+  });
+}
 
     /* ===================================================================
        MOBILE MENU
