@@ -599,13 +599,67 @@
         case 'loadPencairan':
           switchView('pencairan');
           break;
-        case 'profil':
-          showPopup('Profil',
-            '<div style="text-align:center;padding:16px;">' +
-            '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--accent-primary),var(--accent-purple));margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;"><i class="fas fa-user"></i></div>' +
-            '<div style="font-size:20px;font-weight:700;margin-bottom:4px;">' + escapeHtml(authToken || 'User') + '</div>' +
-            '<div style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">' + escapeHtml(authToken || 'user') + '@aura.os</div>' +
-            '<div style="display:inline-block;padding:6px 16px;background:var(--accent-primary-light);border:1px solid rgba(59,130,246,0.2);border-radius:100px;font-size:12px;color:var(--accent-primary);font-weight:600;">Role: ' + escapeHtml(userRole || 'user') + '</div>' +
+                case 'profil':
+          var storedUser = localStorage.getItem('aura_auth_token') || 'user';
+          var storedRole = localStorage.getItem('aura_user_role') || 'user';
+          var storedStatus = localStorage.getItem('aura_user_status') || 'Active';
+          var storedSince = localStorage.getItem('aura_user_since') || new Date().toLocaleDateString('id-ID', {year:'numeric',month:'long',day:'numeric'});
+          var storedPass = localStorage.getItem('aura_user_pass') || '•••••••';
+          var maskedPass = storedPass.length > 3 ? storedPass.substring(0,2) + '•••••' + storedPass.substring(storedPass.length - 2) : '••••••';
+
+          showPopup('Profil Akun',
+            '<div style="padding:4px;">' +
+
+            /* ===== INFO AKUN ===== */
+            '<div style="margin-bottom:20px;">' +
+            '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent-primary);margin-bottom:14px;display:flex;align-items:center;gap:6px;"><i class="fas fa-id-card" style="font-size:12px;"></i> Informasi Akun</div>' +
+            '<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:14px;padding:20px;">' +
+              '<div style="display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center;">' +
+                '<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.8px;">Username</div>' +
+                '<div style="font-size:15px;font-weight:700;color:var(--text-primary);word-break:break-all;">' + escapeHtml(storedUser) + '</div>' +
+                '<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.8px;">Role</div>' +
+                '<div style="display:inline-block;padding:5px 14px;background:var(--accent-purple-light);border:1px solid rgba(139,92,246,0.2);border-radius:8px;font-size:12px;color:var(--accent-purple);font-weight:700;text-transform:uppercase;">' + escapeHtml(storedRole) + '</div>' +
+                '<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.8px;">Status</div>' +
+                '<div style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--accent-success);"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent-success);display:inline-block;"></span>' + escapeHtml(storedStatus) + '</div>' +
+                '<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.8px;">Terdaftar</div>' +
+                '<div style="font-size:12px;color:var(--text-secondary);font-family:var(--font-mono);">' + escapeHtml(storedSince) + '</div>' +
+                '<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.8px;">Password</div>' +
+                '<div style="font-family:var(--font-mono);font-size:14px;color:var(--text-secondary);letter-spacing:2px;">' + maskedPass + '</div>' +
+              '</div>' +
+            '</div></div>' +
+
+            /* ===== GARIS PEMISAH ===== */
+            '<div style="display:flex;align-items:center;gap:12px;margin:20px 0;"><div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);"></div>' +
+            '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent-warning);display:flex;align-items:center;gap:6px;white-space:nowrap;"><i class="fas fa-key" style="font-size:11px;"></i> Ubah Password</div>' +
+            '<div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);"></div></div>' +
+
+            /* ===== FORM PASSWORD ===== */
+            '<div id="pwdForm">' +
+            '<div style="margin-bottom:16px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Password Lama</label>' +
+            '<div style="position:relative;">' +
+            '<input type="password" id="pwdOld" placeholder="Masukkan password lama..." autocomplete="off" style="width:100%;padding:13px 16px 13px 42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;font-family:var(--font-sans);transition:border-color 0.25s;" onfocus="this.style.borderColor=\'rgba(59,130,246,0.5)\'" onblur="this.style.borderColor=\'var(--border)\'">' +
+            '<button type="button" onclick="togglePwdVis(\'pwdOld\',this.previousElementSibling)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;font-size:14px;transition:color 0.15s;" onmouseover="this.style.color=\'var(--accent-primary)\'" onmouseout="this.style.color=\'var(--text-tertiary)\'"><i class="fas fa-eye"></i></button>' +
+            '</div></div>' +
+
+            '<div style="margin-bottom:16px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Password Baru</label>' +
+            '<div style="position:relative;">' +
+            '<input type="password" id="pwdNew" placeholder="Masukkan password baru..." autocomplete="new-password" style="width:100%;padding:13px 16px 13px 42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;font-family:var(--font-sans);transition:border-color 0.25s;" onfocus="this.style.borderColor=\'rgba(59,130,246,0.5)\'" onblur="this.style.borderColor=\'var(--border)\'">' +
+            '<button type="button" onclick="togglePwdVis(\'pwdNew\',this.previousElementSibling)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;font-size:14px;transition:color 0.15s;" onmouseover="this.style.color=\'var(--accent-primary)\'" onmouseout="this.style.color=\'var(--text-tertiary)\'"><i class="fas fa-eye"></i></button>' +
+            '<div id="pwdStrength" style="margin-top:8px;height:3px;border-radius:3px;background:var(--border);transition:all 0.3s;overflow:hidden;"></div>' +
+            '</div></div>' +
+
+            '<div style="margin-bottom:20px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Konfirmasi Password Baru</label>' +
+            '<div style="position:relative;">' +
+            '<input type="password" id="pwdConfirm" placeholder="Ulangi password baru..." autocomplete="new-password" style="width:100%;padding:13px 16px 13px 42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;font-family:var(--font-sans);transition:border-color 0.25s;" onfocus="this.style.borderColor=\'rgba(59,130,246,0.5)\'" onblur="this.style.borderColor=\'var(--border)\'" oninput="checkPwdMatch()">' +
+            '<button type="button" onclick="togglePwdVis(\'pwdConfirm\',this.previousElementSibling)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;font-size:14px;transition:color 0.15s;" onmouseover="this.style.color=\'var(--accent-primary)\'" onmouseout="this.style.color=\'var(--text-3)\'"><i class="fas fa-eye"></i></button>' +
+            '<div id="pwdMatchMsg" style="margin-top:8px;font-size:11px;min-height:16px;font-weight:600;transition:all 0.25s;"></div>' +
+            '</div></div>' +
+
+            '<button onclick="changePassword()" id="pwdSubmitBtn" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent-primary),var(--accent-primary-dark));color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--font-sans);transition:all 0.25s;display:flex;align-items:center;justify-content:center;gap:8px;">' +
+            '<i class="fas fa-shield-halved"></i> Perbarui Password' +
+            '</button>' +
+            '</div>' +
+
             '</div>',
             false
           );
