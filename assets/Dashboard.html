@@ -179,6 +179,55 @@
     .loader-spinner { width: 56px; height: 56px; border: 3px solid rgba(59, 130, 246, 0.1); border-top-color: #3b82f6; border-right-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), 0 0 40px rgba(59, 130, 246, 0.3); }
     .loader-text { margin-top: 24px; font-size: 14px; color: #ffffff; font-family: var(--font-sans); font-weight: 500; letter-spacing: 0.5px; text-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
 
+    /* ===== PROFIL VIEW INLINE ===== */
+    .profil-grid { display: grid; grid-template-columns: 380px 1fr; gap: 28px; animation: fadeInUp 0.5s ease; }
+    .profil-card { background: linear-gradient(135deg, rgba(15,15,22,0.9), rgba(18,18,28,0.85)); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; position: relative; }
+    .profil-card-banner { height: 100px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple), var(--accent-pink)); position: relative; }
+    .profil-card-banner::after { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+    .profil-card-body { padding: 0 28px 28px; position: relative; }
+    .profil-avatar-wrap { margin-top: -40px; margin-bottom: 18px; display: flex; align-items: flex-end; justify-content: space-between; }
+    .profil-avatar { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple)); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 800; color: #fff; border: 4px solid var(--bg-secondary); box-shadow: 0 4px 20px var(--accent-primary-glow); flex-shrink: 0; }
+    .profil-status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 100px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: var(--accent-success-light); border: 1px solid rgba(16,185,129,0.2); color: var(--accent-success); }
+    .profil-status-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-success); animation: pulse 2s infinite; }
+    .profil-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; color: var(--text-primary); }
+    .profil-email { font-size: 13px; color: var(--text-tertiary); font-family: var(--font-mono); margin-bottom: 22px; }
+    .profil-meta-list { display: flex; flex-direction: column; gap: 0; }
+    .profil-meta-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-top: 1px solid var(--border); }
+    .profil-meta-item:first-child { border-top: none; }
+    .profil-meta-label { font-size: 12px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+    .profil-meta-label i { width: 16px; text-align: center; font-size: 13px; }
+    .profil-meta-value { font-size: 13px; font-weight: 600; color: var(--text-primary); font-family: var(--font-mono); }
+    .profil-meta-value.purple { color: var(--neon-purple); }
+    .profil-meta-value.green { color: var(--accent-success); }
+
+    /* Password Card */
+    .pwd-card { background: linear-gradient(135deg, rgba(15,15,22,0.9), rgba(18,18,28,0.85)); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 32px; position: relative; overflow: hidden; }
+    .pwd-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple), var(--accent-pink)); }
+    .pwd-card-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+    .pwd-card-title i { color: var(--accent-primary); font-size: 16px; }
+    .pwd-card-desc { font-size: 13px; color: var(--text-tertiary); margin-bottom: 28px; }
+    .pwd-form { display: grid; gap: 20px; }
+    .pwd-field { position: relative; }
+    .pwd-field label { display: block; font-size: 12px; color: var(--text-tertiary); font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px; }
+    .pwd-field input { width: 100%; padding: 14px 48px 14px 16px; background: rgba(15,15,22,0.8); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-primary); font-size: 14px; font-family: var(--font-sans); outline: none; transition: all 0.25s ease; }
+    .pwd-field input::placeholder { color: var(--text-tertiary); font-weight: 400; }
+    .pwd-field input:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 3px var(--accent-primary-light); background: rgba(15,15,22,1); }
+    .pwd-field button { position: absolute; right: 6px; bottom: 6px; width: 38px; height: 38px; background: transparent; border: none; cursor: pointer; color: var(--text-tertiary); display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); transition: all 0.2s ease; font-size: 14px; }
+    .pwd-field button:hover { color: var(--accent-primary); background: var(--accent-primary-light); }
+    .pwd-strength-section { display: flex; flex-direction: column; gap: 8px; }
+    .pwd-strength-labels { display: flex; justify-content: space-between; align-items: center; }
+    .pwd-strength-text { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .pwd-strength-bar { width: 100%; height: 5px; background: rgba(255,255,255,0.06); border-radius: 6px; overflow: hidden; }
+    .pwd-strength-fill { height: 100%; width: 0%; border-radius: 6px; transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+    .pwd-match-msg { font-size: 12px; font-weight: 600; min-height: 18px; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; }
+    .pwd-match-msg i { font-size: 12px; }
+    .pwd-submit-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 8px; }
+    .pwd-submit-row .btn { padding: 14px 32px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+    .pwd-hint { font-size: 11px; color: var(--text-tertiary); line-height: 1.6; }
+    .pwd-hint span { display: block; }
+    .pwd-hint .check { color: var(--accent-success); }
+    .pwd-hint .cross { color: var(--text-tertiary); opacity: 0.4; }
+
     .saldoKasWrap { width: 100%; margin-top: 22px; padding: 24px; border-radius: 32px; background: radial-gradient(circle at top left, #1a0b2e, #0a0a0f 45%, #0a0a0f); box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 100px rgba(180, 108, 255, 0.05); position: relative; overflow: hidden; }
     .saldoKasWrap::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(180, 108, 255, 0.03) 0%, transparent 50%); animation: rotateBackdrop 20s linear infinite; pointer-events: none; z-index: 0; }
     .saldoKasWrap > * { position: relative; z-index: 1; }
@@ -248,16 +297,20 @@
     .saldoKasTableBox::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
     .saldoKasTableBox::-webkit-scrollbar-thumb { background: rgba(180, 108, 255, 0.3); border-radius: 10px; }
 
-    @media (max-width: 1024px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0; } .mobile-menu-btn { display: block; } .stats-grid { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 1024px) {
+      .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0; } .mobile-menu-btn { display: block; } .stats-grid { grid-template-columns: repeat(2,1fr); }
+      .profil-grid { grid-template-columns: 1fr; }
+    }
     @media (max-width: 768px) { .content { padding: 20px; } .top-bar { padding: 0 20px; } .stats-grid { grid-template-columns: 1fr; } .modules-grid { grid-template-columns: 1fr; } .hero-section { padding: 28px; } .hero-title { font-size: 24px; } .saldoKasCards { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 680px) { .saldoKasWrap { padding: 10px; border-radius: 16px; } .saldoKasCards { grid-template-columns: 1fr; } .saldoKasToolbar { flex-direction: column; } .saldoKasControls { flex-direction: column; align-items: stretch; } .saldoKasControls input, .sk-btn-load, .sk-btn-copy { width: 100%; justify-content: center; } }
-    @media (max-width: 480px) { .content { padding: 16px; } .stat-card { padding: 18px; } .module-card { padding: 18px; } }
+    @media (max-width: 680px) { .saldoKasWrap { padding: 10px; border-radius: 16px; } .saldoKasCards { grid-template-columns: 1fr; } .saldoKasToolbar { flex-direction: column; } .saldoKasControls { flex-direction: column; align-items: stretch; } .saldoKasControls input, .sk-btn-load, .sk-btn-copy { width: 100%; justify-content: center; } .pwd-submit-row { flex-direction: column; align-items: stretch; } .pwd-submit-row .btn { justify-content: center; } }
+    @media (max-width: 480px) { .content { padding: 16px; } .stat-card { padding: 18px; } .module-card { padding: 18px; } .pwd-card { padding: 20px; } }
   </style>
 </head>
 <body>
 
   <div class="loader" id="loader"><div class="loader-spinner"></div><div class="loader-text">Loading modules...</div></div>
 
+  <!-- ===== MAIN POPUP (bukan untuk profil) ===== -->
   <div class="popup-overlay" id="popupOverlay">
     <div class="popup-container">
       <div class="popup-header"><h3 class="popup-title" id="popupTitle">Notification</h3><button class="popup-close" id="popupCloseBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
@@ -393,6 +446,7 @@
 
     <div class="content">
 
+      <!-- ===== DASHBOARD VIEW ===== -->
       <div id="dashboardView">
         <div class="hero-section">
           <h1 class="hero-title">Welcome back, <span id="userName">User</span></h1>
@@ -422,33 +476,140 @@
           <div class="module-card" data-color="teal" data-action="loadPencairan"><div class="module-icon">💸</div><div class="module-name">Saldo Kas</div><div class="module-desc">Monitor rekening &amp; pencairan</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="blue" data-action="apiKey"><div class="module-icon">🔑</div><div class="module-name">API Key</div><div class="module-desc">Manage API credentials</div><div class="module-badge">v2.0.0</div></div>
           <div class="module-card" data-color="purple" onclick="window.location.href='/Authority.html'"><div class="module-icon">🛡️</div><div class="module-name">Authority Panel</div><div class="module-desc">Admin access &amp; user management</div><div class="module-badge">Restricted</div></div>
-          <div class="module-card" data-color="orange" data-action="setting"><div class="module-icon">⚙️</div><div class="module-name">Setting</div><div class="module-desc">System configuration</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="red" data-action="testConnection"><div class="module-icon">⚡</div><div class="module-name">System Test</div><div class="module-desc">Test all connections</div><div class="module-badge">Diagnostic</div></div>
+          <div class="module-card" data-color="orange" data-action="setting"><div class="module-icon">⚙️</div><div class="module-name">Setting</div><div class="module-desc">System configuration panel</div><div class="module-badge">v1.2.0</div></div>
         </div>
       </div>
 
-      <div id="saldoKasContainer" style="display: none;">
+      <!-- ===== PROFIL VIEW (Inline) ===== -->
+      <div id="profilView" style="display:none;">
+        <div class="profil-grid">
+          <!-- Kiri: Identity Card -->
+          <div class="profil-card">
+            <div class="profil-card-banner"></div>
+            <div class="profil-card-body">
+              <div class="profil-avatar-wrap">
+                <div class="profil-avatar" id="profilAvatar">U</div>
+                <div class="profil-status-chip"><span class="dot"></span><span id="profilStatusChip">Active</span></div>
+              </div>
+              <div class="profil-name" id="profilName">User</div>
+              <div class="profil-email" id="profilEmailDisplay">system@aura.os</div>
+              <div class="profil-meta-list">
+                <div class="profil-meta-item">
+                  <span class="profil-meta-label"><i class="fas fa-id-badge" style="color:var(--accent-primary);"></i> Username</span>
+                  <span class="profil-meta-value" id="profilUsername">User</span>
+                </div>
+                <div class="profil-meta-item">
+                  <span class="profil-meta-label"><i class="fas fa-calendar-alt" style="color:var(--accent-warning);"></i> Member Since</span>
+                  <span class="profil-meta-value" id="profilSince">-</span>
+                </div>
+                <div class="profil-meta-item">
+                  <span class="profil-meta-label"><i class="fas fa-key" style="color:var(--neon-purple);"></i> Password</span>
+                  <span class="profil-meta-value purple" id="pwdDisplay">•••••••</span>
+                </div>
+                <div class="profil-meta-item">
+                  <span class="profil-meta-label"><i class="fas fa-shield-alt" style="color:var(--accent-success);"></i> Status</span>
+                  <span class="profil-meta-value green" id="profilStatusText">Active</span>
+                </div>
+                <div class="profil-meta-item">
+                  <span class="profil-meta-label"><i class="fas fa-microchip" style="color:var(--neon-cyan);"></i> Session</span>
+                  <span class="profil-meta-value" id="profilSession" style="font-size:11px; color:var(--text-tertiary);">-</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kanan: Change Password -->
+          <div class="pwd-card">
+            <div class="pwd-card-title"><i class="fas fa-lock"></i> Ubah Password</div>
+            <div class="pwd-card-desc">Pastikan password baru Anda memenuhi kriteria keamanan minimal untuk melindungi akun.</div>
+
+            <div class="pwd-form">
+              <div class="pwd-field">
+                <label>Password Lama</label>
+                <input type="password" id="pwdOld" placeholder="Masukkan password lama Anda" autocomplete="off">
+                <button type="button" onclick="togglePwdVis('pwdOld', this)"><i class="fas fa-eye"></i></button>
+              </div>
+
+              <div class="pwd-field">
+                <label>Password Baru</label>
+                <input type="password" id="pwdNew" placeholder="Minimal 6 karakter" autocomplete="off" oninput="checkPwdMatch()">
+                <button type="button" onclick="togglePwdVis('pwdNew', this)"><i class="fas fa-eye"></i></button>
+              </div>
+
+              <div class="pwd-strength-section">
+                <div class="pwd-strength-labels">
+                  <span class="pwd-strength-text" id="pwdStrengthText" style="color:var(--text-tertiary);">Strength</span>
+                  <span class="pwd-strength-text" id="pwdStrengthPct" style="color:var(--text-tertiary);">0%</span>
+                </div>
+                <div class="pwd-strength-bar">
+                  <div class="pwd-strength-fill" id="pwdStrength"></div>
+                </div>
+              </div>
+
+              <div class="pwd-field">
+                <label>Konfirmasi Password Baru</label>
+                <input type="password" id="pwdConfirm" placeholder="Ulangi password baru" autocomplete="off" oninput="checkPwdMatch()">
+                <button type="button" onclick="togglePwdVis('pwdConfirm', this)"><i class="fas fa-eye"></i></button>
+              </div>
+
+              <div class="pwd-match-msg" id="pwdMatchMsg"></div>
+
+              <div class="pwd-submit-row">
+                <div class="pwd-hint" id="pwdHints">
+                  <span id="hintLen" class="cross"><i class="fas fa-circle" style="font-size:5px; vertical-align:middle; margin-right:4px;"></i>Minimal 6 karakter</span>
+                  <span id="hintUpper" class="cross"><i class="fas fa-circle" style="font-size:5px; vertical-align:middle; margin-right:4px;"></i>Huruf kapital</span>
+                  <span id="hintNum" class="cross"><i class="fas fa-circle" style="font-size:5px; vertical-align:middle; margin-right:4px;"></i>Angka</span>
+                  <span id="hintSpecial" class="cross"><i class="fas fa-circle" style="font-size:5px; vertical-align:middle; margin-right:4px;"></i>Karakter spesial</span>
+                </div>
+                <button class="btn" id="pwdSubmitBtn" onclick="changePassword()"><i class="fas fa-shield-alt"></i> Simpan Password</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PENCAIRAN VIEW ===== -->
+      <div id="pencairanView" style="display:none;">
         <div class="saldoKasWrap">
           <div class="saldoKasHeader">
-            <div><h3>SALDO KAS &amp; PENCAIRAN</h3><div class="saldoKasSub" id="skLastUpdate">Menunggu data...</div></div>
-            <div class="saldoKasControls"><input type="date" id="skDateInput" title="Pilih Tanggal"><button class="sk-btn-load" id="skLoadBtn">CEK SALDO</button></div>
+            <div>
+              <h3>Saldo Pencairan</h3>
+              <div class="saldoKasSub">Real-time monitoring rekening</div>
+            </div>
+            <div class="saldoKasControls">
+              <input type="date" id="skDate">
+              <button class="sk-btn-load" id="skLoadBtn" onclick="loadSaldoKas()">Load Data</button>
+            </div>
           </div>
-          <div class="saldoKasCards" id="skCards">
-            <div class="saldoKasCard sk-card-n9"><div class="saldoKasLabel">Total Saldo N9</div><div class="saldoKasValue saldoKasGreen" id="skTotalN9">0</div></div>
-            <div class="saldoKasCard sk-card-pending"><div class="saldoKasLabel">Total Pending</div><div class="saldoKasValue saldoKasRed" id="skTotalPending">0</div></div>
-            <div class="saldoKasCard sk-card-asli"><div class="saldoKasLabel">Total Saldo Asli</div><div class="saldoKasValue saldoKasYellow" id="skTotalAsli">0</div></div>
-            <div class="saldoKasCard sk-card-cair"><div class="saldoKasLabel">Total Pencairan</div><div class="saldoKasValue saldoKasPurple" id="skTotalCair">0</div></div>
-            <div class="saldoKasCard sk-card-belum"><div class="saldoKasLabel">Belum Proses</div><div class="saldoKasValue saldoKasRed" id="skTotalBelum">0</div></div>
-            <div class="saldoKasCard sk-card-cacing"><div class="saldoKasLabel">Target Cacing</div><div class="saldoKasValue saldoKasCyan" id="skTotalCacing" style="font-size: 16px;">0</div></div>
+          <div class="saldoKasCards">
+            <div class="saldoKasCard sk-card-n9"><div class="saldoKasLabel">Total N9</div><div class="saldoKasValue saldoKasGreen" id="skTotalN9">0</div></div>
+            <div class="saldoKasCard sk-card-pending"><div class="saldoKasLabel">Pending</div><div class="saldoKasValue saldoKasRed" id="skTotalPending">0</div></div>
+            <div class="saldoKasCard sk-card-asli"><div class="saldoKasLabel">Saldo Asli</div><div class="saldoKasValue saldoKasYellow" id="skTotalAsli">0</div></div>
+            <div class="saldoKasCard sk-card-cair"><div class="saldoKasLabel">Sudah Cair</div><div class="saldoKasValue saldoKasPurple" id="skTotalCair">0</div></div>
+            <div class="saldoKasCard sk-card-belum"><div class="saldoKasLabel">Belum Cair</div><div class="saldoKasValue saldoKasRed" id="skTotalBelum">0</div></div>
+            <div class="saldoKasCard sk-card-cacing"><div class="saldoKasLabel">Cacing</div><div class="saldoKasValue saldoKasCyan" id="skTotalCacing">0</div></div>
           </div>
           <div class="saldoKasToolbar">
-            <input type="text" class="saldoKasSearch" id="skSearchInput" placeholder="🔍 Cari Sheet / Nama / Rekening...">
-            <button class="sk-btn-copy" id="skCopyAllBtn" title="Salin semua data pencairan"><span>📋</span> Copy All</button>
+            <input type="text" class="saldoKasSearch" id="skSearch" placeholder="Cari sheet, rek, nama..." oninput="filterSaldoKas()">
+            <button class="sk-btn-copy" id="skCopyBtn" onclick="copySaldoKasTable()"><i class="fas fa-copy"></i> Copy Tabel</button>
           </div>
           <div class="saldoKasTableBox">
             <table class="saldoKasTable">
-              <thead><tr><th class="saldoKasNo">NO</th><th class="saldoKasSheet">SHEET / REKENING</th><th class="saldoKasN9">SALDO N9</th><th class="saldoKasPending">PENDING</th><th class="saldoKasAsli">SALDO ASLI</th><th class="saldoKasCair">NOMINAL CAIR</th><th class="saldoKasStatus">STATUS</th><th class="saldoKasKet">KETERANGAN</th></tr></thead>
-              <tbody id="skTableBody"><tr><td colspan="8" class="saldoKasCenter" style="padding: 40px; color: rgba(255,255,255,0.4);">Klik "CEK SALDO" untuk memuat data...</td></tr></tbody>
+              <thead>
+                <tr>
+                  <th class="saldoKasNo">No</th>
+                  <th class="saldoKasSheet">Sheet / Rekening</th>
+                  <th class="saldoKasN9">N9</th>
+                  <th class="saldoKasPending">Pending</th>
+                  <th class="saldoKasAsli">Saldo Asli</th>
+                  <th class="saldoKasCair">Sudah Cair</th>
+                  <th class="saldoKasStatus">Status</th>
+                  <th class="saldoKasKet">Keterangan</th>
+                </tr>
+              </thead>
+              <tbody id="skTableBody">
+                <tr><td colspan="8" style="text-align:center; color: var(--text-tertiary); padding: 40px;">Pilih tanggal lalu klik Load Data</td></tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -457,339 +618,497 @@
     </div>
   </main>
 
-  <button class="panel-toggle" id="panelToggle"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-  <aside class="right-panel" id="rightPanel">
-    <div class="widget"><div class="widget-title">System Metrics</div><div id="systemMetrics">CPU: 12%<br>RAM: 34%<br>Ping: 24ms</div></div>
-    <div class="widget"><div class="widget-title">Activity Log</div><div class="terminal" id="terminalLogs"><div class="terminal-line">[INIT] System boot sequence initiated</div><div class="terminal-line">[INIT] Loading kernel modules</div><div class="terminal-line">[INIT] Establishing secure connection</div><div class="terminal-line">[READY] Dashboard ready</div></div></div>
-  </aside>
+  <!-- Right Panel -->
+  <div class="right-panel" id="rightPanel">
+    <div class="widget">
+      <div class="widget-title">System Terminal</div>
+      <div class="terminal" id="terminal"></div>
+    </div>
+  </div>
+  <button class="panel-toggle" id="panelToggle"><i class="fas fa-terminal" style="color:#fff; font-size:20px;"></i></button>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"><div class="toast-content" id="toastContent"></div><button class="toast-close" id="toastClose"><i class="fas fa-times"></i></button></div>
 
   <script>
-    var authToken = localStorage.getItem('aura_auth_token');
-    var userRole = localStorage.getItem('aura_user_role');
-    if (!authToken) { window.location.href = '/Login.html'; }
-    else {
-      document.getElementById('userName').textContent = authToken;
-      document.getElementById('userEmail').textContent = authToken + '@aura.os';
-    }
-    function logout() { localStorage.clear(); window.location.href = '/Login.html'; }
-
-    var currentPopupCallback = null;
-    function $(id) { return document.getElementById(id); }
-    function escapeHtml(str) { var d = document.createElement('div'); d.appendChild(document.createTextNode(str)); return d.innerHTML; }
-
-    function showPopup(title, contentHtml, showConfirm, onConfirm) {
-      $('popupTitle').textContent = title;
-      $('popupContent').innerHTML = contentHtml;
-      $('popupConfirmBtn').style.display = showConfirm ? 'inline-block' : 'none';
-      currentPopupCallback = showConfirm ? onConfirm : null;
-      $('popupOverlay').classList.add('active');
-    }
-    function closePopup() { $('popupOverlay').classList.remove('active'); currentPopupCallback = null; }
-    function confirmPopup() { if (typeof currentPopupCallback === 'function') currentPopupCallback(); closePopup(); }
-
-    function showToast(message, type) {
-      type = type || 'info';
-      var old = document.querySelector('.toast'); if (old) old.remove();
-      var icons = { success: '\u2705', error: '\u274C', warning: '\u26A0\uFE0F', info: '\u2139\uFE0F' };
-      var t = document.createElement('div'); t.className = 'toast';
-      t.innerHTML = '<div>' + (icons[type] || icons.info) + '</div><div class="toast-content">' + escapeHtml(message) + '</div><button class="toast-close">\u2715</button>';
-      document.body.appendChild(t);
-      t.querySelector('.toast-close').addEventListener('click', function() { t.remove(); });
-      requestAnimationFrame(function() { requestAnimationFrame(function() { t.classList.add('show'); }); });
-      setTimeout(function() { t.classList.remove('show'); setTimeout(function() { if (t.parentNode) t.remove(); }, 400); }, 3500);
-    }
-
-    function addTerminalLog(msg) {
-      var t = $('terminalLogs');
-      var d = document.createElement('div'); d.className = 'terminal-line';
-      d.textContent = '[' + new Date().toLocaleTimeString('id-ID') + '] ' + msg;
-      t.appendChild(d); t.scrollTop = t.scrollHeight;
-    }
-
-    var currentView = 'dashboard';
-    function switchView(view) {
-      currentView = view;
-      $('dashboardView').style.display = (view === 'dashboard') ? '' : 'none';
-      $('saldoKasContainer').style.display = (view === 'pencairan') ? '' : 'none';
-      $('breadcrumbPage').textContent = (view === 'dashboard') ? 'dashboard' : 'pencairan';
-      document.querySelectorAll('.nav-item').forEach(function(item) { item.classList.remove('active'); });
-      if (view === 'dashboard') {
-        var dashItem = document.querySelector('.nav-item[data-menu="Index"]');
-        if (dashItem) dashItem.classList.add('active');
-      } else if (view === 'pencairan') {
-        var penItem = document.querySelector('.nav-item[data-action="loadPencairan"]');
-        if (penItem) penItem.classList.add('active');
+    /* ===================================================================
+       PROFIL: SIMPAN DATA STATUS SAAT PERTAMA KALI
+       =================================================================== */
+    (function ensureUserMeta() {
+      if (!localStorage.getItem('aura_user_since')) {
+        localStorage.setItem('aura_user_since', new Date().toLocaleDateString('id-ID', {year:'numeric',month:'long',day:'numeric'}));
       }
-      addTerminalLog('View switched \u2192 ' + view);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (!localStorage.getItem('aura_user_status')) {
+        localStorage.setItem('aura_user_status', 'Active');
+      }
+    })();
+
+    /* ===================================================================
+       PROFIL: TOGGLE PASSWORD VISIBILITY
+       =================================================================== */
+    function togglePwdVis(inputId, btnEl) {
+      var input = document.getElementById(inputId);
+      var icon = btnEl.querySelector('i');
+      if (!input || !icon) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+      }
     }
 
-    /* ===== CLICK-TOGGLE SUBMENU (Event Tools) ===== */
+    /* ===================================================================
+       PROFIL: CHECK PASSWORD MATCH + STRENGTH + HINTS
+       =================================================================== */
+    function checkPwdMatch() {
+      var newPwd = document.getElementById('pwdNew');
+      var confirmPwd = document.getElementById('pwdConfirm');
+      var msg = document.getElementById('pwdMatchMsg');
+      var strengthBar = document.getElementById('pwdStrength');
+      var strengthText = document.getElementById('pwdStrengthText');
+      var strengthPct = document.getElementById('pwdStrengthPct');
+      if (!newPwd || !confirmPwd || !msg || !strengthBar) return;
+      var np = newPwd.value, cp = confirmPwd.value;
+
+      /* Kalkulasi strength */
+      var strength = 0;
+      if (np.length >= 4) strength++;
+      if (np.length >= 6) strength++;
+      if (/[A-Z]/.test(np)) strength++;
+      if (/[0-9]/.test(np)) strength++;
+      if (/[^A-Za-z0-9]/.test(np)) strength++;
+
+      var colors  = ['#ef4444','#ef4444','#f59e0b','#f59e0b','#10b981','#10b981'];
+      var widths  = ['0%','20%','40%','60%','80%','100%'];
+      var labels  = ['—','Sangat Lemah','Lemah','Sedang','Kuat','Sangat Kuat'];
+      var pctVals = [0, 20, 40, 60, 80, 100];
+      var idx = Math.min(strength, 5);
+
+      strengthBar.style.width = widths[idx];
+      strengthBar.style.background = colors[idx];
+      strengthText.textContent = labels[idx];
+      strengthText.style.color = colors[idx];
+      strengthPct.textContent = pctVals[idx] + '%';
+      strengthPct.style.color = colors[idx];
+
+      /* Live hints */
+      var hLen = document.getElementById('hintLen');
+      var hUpper = document.getElementById('hintUpper');
+      var hNum = document.getElementById('hintNum');
+      var hSpecial = document.getElementById('hintSpecial');
+      if (hLen) { hLen.className = np.length >= 6 ? 'check' : 'cross'; }
+      if (hUpper) { hUpper.className = /[A-Z]/.test(np) ? 'check' : 'cross'; }
+      if (hNum) { hNum.className = /[0-9]/.test(np) ? 'check' : 'cross'; }
+      if (hSpecial) { hSpecial.className = /[^A-Za-z0-9]/.test(np) ? 'check' : 'cross'; }
+
+      /* Match check */
+      if (cp.length === 0) {
+        msg.style.color = 'var(--text-tertiary)';
+        msg.innerHTML = '';
+      } else if (np !== cp) {
+        msg.style.color = 'var(--accent-danger)';
+        msg.innerHTML = '<i class="fas fa-times-circle"></i> Password tidak cocok';
+      } else {
+        msg.style.color = 'var(--accent-success)';
+        msg.innerHTML = '<i class="fas fa-check-circle"></i> Password cocok';
+      }
+    }
+
+    /* ===================================================================
+       PROFIL: CHANGE PASSWORD
+       =================================================================== */
+    function changePassword() {
+      var oldPwd = document.getElementById('pwdOld');
+      var newPwd = document.getElementById('pwdNew');
+      var confirmPwd = document.getElementById('pwdConfirm');
+
+      var o = oldPwd.value.trim();
+      var n = newPwd.value.trim();
+      var c = confirmPwd.value.trim();
+
+      if (!o) { showToast('Masukkan password lama', 'warning'); oldPwd.focus(); return; }
+      if (!n) { showToast('Masukkan password baru', 'warning'); newPwd.focus(); return; }
+      if (n.length < 6) { showToast('Password baru minimal 6 karakter', 'warning'); newPwd.focus(); return; }
+      if (n !== c) { showToast('Konfirmasi password tidak cocok', 'warning'); confirmPwd.focus(); return; }
+
+      var storedPass = localStorage.getItem('aura_user_pass') || '';
+      if (storedPass && o !== storedPass) { showToast('Password lama salah', 'error'); oldPwd.focus(); return; }
+
+      /* Simpan */
+      localStorage.setItem('aura_user_pass', n);
+      oldPwd.value = ''; newPwd.value = ''; confirmPwd.value = '';
+
+      /* Reset UI */
+      var sb = document.getElementById('pwdStrength');
+      if (sb) sb.style.width = '0%';
+      var sm = document.getElementById('pwdMatchMsg');
+      if (sm) sm.innerHTML = '';
+      var st = document.getElementById('pwdStrengthText');
+      if (st) { st.textContent = 'Strength'; st.style.color = 'var(--text-tertiary)'; }
+      var sp = document.getElementById('pwdStrengthPct');
+      if (sp) { sp.textContent = '0%'; sp.style.color = 'var(--text-tertiary)'; }
+      ['hintLen','hintUpper','hintNum','hintSpecial'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.className = 'cross';
+      });
+
+      showToast('Password berhasil diubah!', 'success');
+      addTerminalLog('Password changed for user: ' + (localStorage.getItem('aura_auth_token') || 'user'));
+
+      /* Update tampilan password di identity card */
+      var masked = n.length > 3 ? n.substring(0,2) + '•••••' + n.substring(n.length - 2) : '••••••';
+      var pd = document.getElementById('pwdDisplay');
+      if (pd) pd.textContent = masked;
+    }
+
+    /* ===================================================================
+       PROFIL: SWITCH TO PROFIL VIEW
+       =================================================================== */
+    function switchToProfil() {
+      document.getElementById('dashboardView').style.display = 'none';
+      document.getElementById('profilView').style.display = 'block';
+      document.getElementById('pencairanView').style.display = 'none';
+      document.getElementById('breadcrumbPage').textContent = 'profil';
+
+      /* Isi data */
+      var username = localStorage.getItem('aura_user_name') || 'User';
+      var email = localStorage.getItem('aura_auth_token') || 'system@aura.os';
+      var status = localStorage.getItem('aura_user_status') || 'Active';
+      var since = localStorage.getItem('aura_user_since') || '-';
+      var storedPass = localStorage.getItem('aura_user_pass') || '';
+
+      document.getElementById('profilAvatar').textContent = username.charAt(0).toUpperCase();
+      document.getElementById('profilName').textContent = username;
+      document.getElementById('profilEmailDisplay').textContent = email;
+      document.getElementById('profilUsername').textContent = username;
+      document.getElementById('profilStatusChip').textContent = status;
+      document.getElementById('profilStatusText').textContent = status;
+      document.getElementById('profilSince').textContent = since;
+      document.getElementById('profilSession').textContent = generateSessionId();
+
+      if (storedPass.length > 3) {
+        document.getElementById('pwdDisplay').textContent = storedPass.substring(0,2) + '•••••' + storedPass.substring(storedPass.length - 2);
+      } else {
+        document.getElementById('pwdDisplay').textContent = '•••••••';
+      }
+
+      /* Reset form */
+      document.getElementById('pwdOld').value = '';
+      document.getElementById('pwdNew').value = '';
+      document.getElementById('pwdConfirm').value = '';
+      var sb = document.getElementById('pwdStrength');
+      if (sb) sb.style.width = '0%';
+      var sm = document.getElementById('pwdMatchMsg');
+      if (sm) sm.innerHTML = '';
+      var st = document.getElementById('pwdStrengthText');
+      if (st) { st.textContent = 'Strength'; st.style.color = 'var(--text-tertiary)'; }
+      var sp = document.getElementById('pwdStrengthPct');
+      if (sp) { sp.textContent = '0%'; sp.style.color = 'var(--text-tertiary)'; }
+      ['hintLen','hintUpper','hintNum','hintSpecial'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.className = 'cross';
+      });
+
+      /* Active nav */
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      var pn = document.querySelector('.nav-item[data-action="profil"]');
+      if (pn) pn.classList.add('active');
+
+      addTerminalLog('Switched to profil view');
+    }
+
+    function generateSessionId() {
+      var chars = 'abcdef0123456789';
+      var id = '';
+      for (var i = 0; i < 8; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
+      return id + '...';
+    }
+
+    /* ===================================================================
+       TOAST SYSTEM
+       =================================================================== */
+    var toastTimer = null;
+    function showToast(message, type) {
+      var toast = document.getElementById('toast');
+      var content = document.getElementById('toastContent');
+      var icons = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+      var colors = { success: 'var(--accent-success)', error: 'var(--accent-danger)', warning: 'var(--accent-warning)', info: 'var(--accent-primary)' };
+      content.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + '" style="color:' + (colors[type] || colors.info) + '; font-size:18px;"></i> ' + message;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3500);
+    }
+
+    /* ===================================================================
+       MAIN POPUP SYSTEM
+       =================================================================== */
+    function showPopup(title, bodyHTML, showFooter, onConfirm) {
+      document.getElementById('popupTitle').textContent = title;
+      document.getElementById('popupContent').innerHTML = bodyHTML;
+      var footer = document.getElementById('popupFooter');
+      footer.style.display = showFooter ? 'flex' : 'none';
+      document.getElementById('popupOverlay').classList.add('active');
+      if (onConfirm) {
+        document.getElementById('popupConfirmBtn').onclick = function() {
+          onConfirm();
+          closePopup();
+        };
+      }
+    }
+    function closePopup() {
+      document.getElementById('popupOverlay').classList.remove('active');
+    }
+    document.getElementById('popupCloseBtn').addEventListener('click', closePopup);
+    document.getElementById('popupCancelBtn').addEventListener('click', closePopup);
+
+    /* ===================================================================
+       TERMINAL LOG
+       =================================================================== */
+    function addTerminalLog(msg) {
+      var terminal = document.getElementById('terminal');
+      if (!terminal) return;
+      var now = new Date();
+      var time = now.toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      var line = document.createElement('div');
+      line.className = 'terminal-line';
+      line.textContent = '[' + time + '] ' + msg;
+      terminal.appendChild(line);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    /* ===================================================================
+       NAVIGATION & ACTIONS
+       =================================================================== */
+    var currentView = 'dashboard';
+
+    /* Click-toggle submenus */
     document.querySelectorAll('.nav-submenu-wrap.click-toggle > .nav-trigger').forEach(function(trigger) {
       trigger.addEventListener('click', function(e) {
         e.stopPropagation();
-        var wrap = this.parentElement;
-        document.querySelectorAll('.nav-submenu-wrap.click-toggle.open').forEach(function(other) {
-          if (other !== wrap) other.classList.remove('open');
-        });
-        wrap.classList.toggle('open');
+        this.parentElement.classList.toggle('open');
       });
     });
-    document.addEventListener('click', function(e) {
-      if (!e.target.closest('.nav-submenu-wrap.click-toggle')) {
-        document.querySelectorAll('.nav-submenu-wrap.click-toggle.open').forEach(function(w) { w.classList.remove('open'); });
-      }
+
+    /* Nav items with data-action */
+    document.querySelectorAll('[data-action]').forEach(function(el) {
+      el.addEventListener('click', function(e) {
+        var action = this.getAttribute('data-action');
+        handleAction(action, e);
+      });
     });
 
-    /* ===== KEEP MEMO ===== */
-    function saveMemo() {
-      var title = document.getElementById('memoTitle');
-      var content = document.getElementById('memoContent');
-      if (!title || !content) return;
-      var t = title.value.trim(), c = content.value.trim();
-      if (!t && !c) { showToast('Judul atau isi memo tidak boleh kosong', 'warning'); return; }
-      var memos = JSON.parse(localStorage.getItem('aura_memos') || '[]');
-      memos.unshift({ id: Date.now(), title: t || 'Tanpa Judul', content: c, date: new Date().toLocaleString('id-ID') });
-      if (memos.length > 50) memos = memos.slice(0, 50);
-      localStorage.setItem('aura_memos', JSON.stringify(memos));
-      title.value = ''; content.value = '';
-      loadMemos();
-      showToast('Memo disimpan', 'success');
-      addTerminalLog('Memo saved: ' + (t || 'Tanpa Judul'));
-    }
-    function loadMemos() {
-      var list = document.getElementById('memoList');
-      if (!list) return;
-      var memos = JSON.parse(localStorage.getItem('aura_memos') || '[]');
-      if (memos.length === 0) {
-        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-tertiary);font-size:13px;">Belum ada memo tersimpan</div>';
-        return;
-      }
-      var html = '';
-      memos.forEach(function(m) {
-        html += '<div style="padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(59,130,246,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-          '<div style="font-size:14px;font-weight:600;color:var(--text-primary);">' + escapeHtml(m.title) + '</div>' +
-          '<div style="display:flex;gap:6px;">' +
-          '<button onclick="deleteMemo(' + m.id + ')" style="background:none;border:none;color:var(--accent-danger);cursor:pointer;padding:2px 4px;font-size:12px;opacity:0.6;transition:opacity 0.15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash-can"></i></button>' +
-          '</div></div>' +
-          '<div style="font-size:12px;color:var(--text-secondary);line-height:1.5;word-break:break-word;white-space:pre-wrap;margin-bottom:6px;">' + escapeHtml(m.content) + '</div>' +
-          '<div style="font-size:10px;color:var(--text-tertiary);font-family:var(--font-mono);">' + m.date + '</div></div>';
+    /* Nav items with data-menu */
+    document.querySelectorAll('[data-menu]').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var menu = this.getAttribute('data-menu');
+        if (menu === 'Index') switchToDashboard();
       });
-      list.innerHTML = html;
-    }
-    function deleteMemo(id) {
-      var memos = JSON.parse(localStorage.getItem('aura_memos') || '[]');
-      memos = memos.filter(function(m) { return m.id !== id; });
-      localStorage.setItem('aura_memos', JSON.stringify(memos));
-      loadMemos();
-      showToast('Memo dihapus', 'info');
-      addTerminalLog('Memo deleted');
-    }
-    function clearMemos() {
-      localStorage.removeItem('aura_memos');
-      loadMemos();
-      showToast('Semua memo dihapus', 'info');
-      addTerminalLog('All memos cleared');
-    }
+    });
 
-    /* ===== ACTION HANDLERS ===== */
-    function handleAction(action) {
-      switch (action) {
-        case 'loadPencairan':
-          switchView('pencairan');
+    function handleAction(action, e) {
+      switch(action) {
+        case 'profil':
+          switchToProfil();
           break;
-                case 'profil':
-          var storedUser = localStorage.getItem('aura_auth_token') || 'user';
-          var storedRole = localStorage.getItem('aura_user_role') || 'user';
-          var storedStatus = localStorage.getItem('aura_user_status') || 'Active';
-          var storedSince = localStorage.getItem('aura_user_since') || new Date().toLocaleDateString('id-ID', {year:'numeric',month:'long',day:'numeric'});
-          var storedPass = localStorage.getItem('aura_user_pass') || '•••••••';
-          var maskedPass = storedPass.length > 3 ? storedPass.substring(0,2) + '•••••' + storedPass.substring(storedPass.length - 2) : '••••••';
-
-          showPopup('Profil Akun',
-            '<div style="padding:4px;">' +
-
-            /* ===== INFO AKUN ===== */
-            '<div style="margin-bottom:20px;">' +
-            '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent-primary);margin-bottom:14px;display:flex;align-items:center;gap:6px;"><i class="fas fa-id-card" style="font-size:12px;"></i> Informasi Akun</div>' +
-            '<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:14px;padding:20px;">' +
-              '<div style="display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center;">' +
-                '<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.8px;">Username</div>' +
-                '<div style="font-size:15px;font-weight:700;color:var(--text-primary);word-break:break-all;">' + escapeHtml(storedUser) + '</div>' +
-                '<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.8px;">Role</div>' +
-                '<div style="display:inline-block;padding:5px 14px;background:var(--accent-purple-light);border:1px solid rgba(139,92,246,0.2);border-radius:8px;font-size:12px;color:var(--accent-purple);font-weight:700;text-transform:uppercase;">' + escapeHtml(storedRole) + '</div>' +
-                '<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.8px;">Status</div>' +
-                '<div style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--accent-success);"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent-success);display:inline-block;"></span>' + escapeHtml(storedStatus) + '</div>' +
-                '<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.8px;">Terdaftar</div>' +
-                '<div style="font-size:12px;color:var(--text-secondary);font-family:var(--font-mono);">' + escapeHtml(storedSince) + '</div>' +
-                '<div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.8px;">Password</div>' +
-                '<div style="font-family:var(--font-mono);font-size:14px;color:var(--text-secondary);letter-spacing:2px;">' + maskedPass + '</div>' +
-              '</div>' +
-            '</div></div>' +
-
-            /* ===== GARIS PEMISAH ===== */
-            '<div style="display:flex;align-items:center;gap:12px;margin:20px 0;"><div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);"></div>' +
-            '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent-warning);display:flex;align-items:center;gap:6px;white-space:nowrap;"><i class="fas fa-key" style="font-size:11px;"></i> Ubah Password</div>' +
-            '<div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);"></div></div>' +
-
-            /* ===== FORM PASSWORD ===== */
-            '<div id="pwdForm">' +
-            '<div style="margin-bottom:16px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Password Lama</label>' +
-            '<div style="position:relative;">' +
-            '<input type="password" id="pwdOld" placeholder="Masukkan password lama..." autocomplete="off" style="width:100%;padding:13px 16px 13px 42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;font-family:var(--font-sans);transition:border-color 0.25s;" onfocus="this.style.borderColor=\'rgba(59,130,246,0.5)\'" onblur="this.style.borderColor=\'var(--border)\'">' +
-            '<button type="button" onclick="togglePwdVis(\'pwdOld\',this.previousElementSibling)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;font-size:14px;transition:color 0.15s;" onmouseover="this.style.color=\'var(--accent-primary)\'" onmouseout="this.style.color=\'var(--text-tertiary)\'"><i class="fas fa-eye"></i></button>' +
-            '</div></div>' +
-
-            '<div style="margin-bottom:16px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Password Baru</label>' +
-            '<div style="position:relative;">' +
-            '<input type="password" id="pwdNew" placeholder="Masukkan password baru..." autocomplete="new-password" style="width:100%;padding:13px 16px 13px 42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;font-family:var(--font-sans);transition:border-color 0.25s;" onfocus="this.style.borderColor=\'rgba(59,130,246,0.5)\'" onblur="this.style.borderColor=\'var(--border)\'">' +
-            '<button type="button" onclick="togglePwdVis(\'pwdNew\',this.previousElementSibling)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;font-size:14px;transition:color 0.15s;" onmouseover="this.style.color=\'var(--accent-primary)\'" onmouseout="this.style.color=\'var(--text-tertiary)\'"><i class="fas fa-eye"></i></button>' +
-            '<div id="pwdStrength" style="margin-top:8px;height:3px;border-radius:3px;background:var(--border);transition:all 0.3s;overflow:hidden;"></div>' +
-            '</div></div>' +
-
-            '<div style="margin-bottom:20px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Konfirmasi Password Baru</label>' +
-            '<div style="position:relative;">' +
-            '<input type="password" id="pwdConfirm" placeholder="Ulangi password baru..." autocomplete="new-password" style="width:100%;padding:13px 16px 13px 42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;font-family:var(--font-sans);transition:border-color 0.25s;" onfocus="this.style.borderColor=\'rgba(59,130,246,0.5)\'" onblur="this.style.borderColor=\'var(--border)\'" oninput="checkPwdMatch()">' +
-            '<button type="button" onclick="togglePwdVis(\'pwdConfirm\',this.previousElementSibling)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-tertiary);cursor:pointer;padding:4px;font-size:14px;transition:color 0.15s;" onmouseover="this.style.color=\'var(--accent-primary)\'" onmouseout="this.style.color=\'var(--text-3)\'"><i class="fas fa-eye"></i></button>' +
-            '<div id="pwdMatchMsg" style="margin-top:8px;font-size:11px;min-height:16px;font-weight:600;transition:all 0.25s;"></div>' +
-            '</div></div>' +
-
-            '<button onclick="changePassword()" id="pwdSubmitBtn" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent-primary),var(--accent-primary-dark));color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--font-sans);transition:all 0.25s;display:flex;align-items:center;justify-content:center;gap:8px;">' +
-            '<i class="fas fa-shield-halved"></i> Perbarui Password' +
-            '</button>' +
-            '</div>' +
-
-            '</div>',
-            false
-          );
-          addTerminalLog('Profil viewed');
+        case 'comingSoon':
+          showToast('Modul ini sedang dalam pengembangan', 'warning');
+          addTerminalLog('Access denied: module in development');
+          break;
+        case 'appInfo':
+          showPopup('Gas Slot Engine', '<div style="text-align:center; padding:20px;"><div style="font-size:48px; margin-bottom:16px;">🎰</div><h3 style="margin-bottom:8px; color:var(--accent-purple);">Gas Slot Engine v1.0.0</h3><p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">AI-powered slot prediction system dengan neural network analysis.</p><div style="display:inline-block; padding:6px 14px; background:var(--accent-warning-light); border-radius:100px; font-size:12px; font-weight:600; color:var(--accent-warning);">Beta Release</div></div>', false);
+          addTerminalLog('Gas Slot Engine info displayed');
+          break;
+        case 'loadPencairan':
+          switchToPencairan();
+          break;
+        case 'keepMemo':
+          showPopup('Keep Memo', '<div style="padding:10px;"><textarea id="memoArea" style="width:100%; min-height:180px; padding:14px; background:rgba(15,15,22,0.8); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--text-primary); font-size:14px; font-family:var(--font-sans); outline:none; resize:vertical;" placeholder="Tulis catatan di sini...">' + (localStorage.getItem('aura_memo') || '') + '</textarea></div>', true, function() {
+            var val = document.getElementById('memoArea').value;
+            localStorage.setItem('aura_memo', val);
+            showToast('Memo berhasil disimpan!', 'success');
+            addTerminalLog('Memo saved (' + val.length + ' chars)');
+          });
+          addTerminalLog('Keep Memo opened');
           break;
         case 'apiKey':
-          showPopup('API Key Management',
-            '<div style="padding:8px;">' +
-            '<div style="margin-bottom:16px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">API Key</label>' +
-            '<div style="display:flex;gap:8px;"><input type="text" value="aura_sk_xxxxxxxxxxxxxxxxxxxxxxxx" readonly style="flex:1;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;outline:none;" id="apiKeyInput">' +
-            '<button onclick="navigator.clipboard.writeText(document.getElementById(\'apiKeyInput\').value);this.style.background=\'var(--accent-success)\';this.style.color=\'#fff\';var b=this;setTimeout(function(){b.style.background=\'linear-gradient(135deg,var(--accent-primary),var(--accent-primary-dark))\';b.style.color=\'#fff\';},1500);" style="padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent-primary),var(--accent-primary-dark));color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;"><i class="fas fa-copy"></i></button></div></div>' +
-            '<div style="padding:14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;font-size:12px;color:var(--accent-warning);line-height:1.6;"><i class="fas fa-triangle-exclamation" style="margin-right:6px;"></i>Jangan bagikan API key Anda kepada siapa pun. Key ini memiliki akses penuh ke semua endpoint.</div>' +
-            '</div>',
-            false
-          );
+          var storedKey = localStorage.getItem('aura_api_key') || '';
+          showPopup('API Key', '<div style="padding:10px;"><label style="display:block; font-size:12px; color:var(--text-tertiary); font-weight:600; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">API Key</label><input type="text" id="apiKeyInput" value="' + storedKey + '" style="width:100%; padding:12px 14px; background:rgba(15,15,22,0.8); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--neon-cyan); font-size:13px; font-family:var(--font-mono); outline:none;" placeholder="Masukkan API key..."><p style="font-size:11px; color:var(--text-tertiary); margin-top:8px;">Key disimpan secara lokal di browser.</p></div>', true, function() {
+            var val = document.getElementById('apiKeyInput').value.trim();
+            localStorage.setItem('aura_api_key', val);
+            showToast('API Key berhasil disimpan!', 'success');
+            addTerminalLog('API Key updated');
+          });
           addTerminalLog('API Key panel opened');
           break;
         case 'setting':
-          showPopup('System Setting',
-            '<div style="padding:8px;">' +
-            '<div style="margin-bottom:16px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Theme Mode</label>' +
-            '<div style="display:flex;gap:10px;"><button style="flex:1;padding:14px;border-radius:12px;border:1px solid var(--accent-primary);background:var(--accent-primary-light);color:var(--accent-primary);font-weight:700;cursor:pointer;font-size:13px;">Dark (Active)</button>' +
-            '<button style="flex:1;padding:14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text-tertiary);font-weight:700;cursor:pointer;font-size:13px;opacity:0.5;">Light</button></div></div>' +
-            '<div style="margin-bottom:16px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Notification</label>' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;"><span style="font-size:14px;font-weight:500;">Push Notification</span>' +
-            '<div style="width:44px;height:24px;border-radius:12px;background:var(--accent-success);position:relative;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px;transition:0.2s;"></div></div></div></div>' +
-            '<div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Language</label>' +
-            '<select style="width:100%;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;cursor:pointer;"><option>Bahasa Indonesia</option><option>English</option></select></div>' +
-            '</div>',
-            false
-          );
+          showPopup('Setting', '<div style="padding:10px;"><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Terminal Auto-Scroll</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setAutoScroll" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setAutoScrollDot"></span></label></div><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Toast Notifications</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setToast" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setToastDot"></span></label></div><div style="padding:14px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius-md); cursor:pointer; text-align:center; color:var(--accent-danger); font-weight:600; font-size:14px;" id="clearDataBtn">Clear All Local Data</div></div>', false);
           addTerminalLog('Settings panel opened');
-          break;
-        case 'keepMemo':
-          showPopup('Keep Memo',
-            '<div style="padding:4px;">' +
-            '<div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Judul Memo</label>' +
-            '<input type="text" id="memoTitle" placeholder="Masukkan judul..." style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;font-family:var(--font-sans);"></div>' +
-            '<div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Isi Memo</label>' +
-            '<textarea id="memoContent" rows="6" placeholder="Tulis catatan di sini..." style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:13px;outline:none;resize:vertical;font-family:var(--font-sans);line-height:1.6;"></textarea></div>' +
-            '<div id="memoList" style="margin-bottom:14px;max-height:180px;overflow-y:auto;"></div>' +
-            '<div style="display:flex;gap:10px;justify-content:flex-end;"><button class="btn btn-secondary" onclick="clearMemos()" style="padding:10px 18px;font-size:13px;">Hapus Semua</button>' +
-            '<button class="btn" onclick="saveMemo()" style="padding:10px 18px;font-size:13px;"><i class="fas fa-save" style="margin-right:6px;"></i>Simpan</button></div>' +
-            '</div>',
-            false
-          );
-          loadMemos();
-          addTerminalLog('Keep Memo opened');
-          break;
-        case 'comingSoon':
-          showPopup('Coming Soon',
-            '<div style="text-align:center;padding:24px;">' +
-            '<div style="font-size:48px;margin-bottom:16px;">🚧</div>' +
-            '<div style="font-size:18px;font-weight:700;margin-bottom:8px;color:var(--text-primary);">Module Under Development</div>' +
-            '<div style="color:var(--text-secondary);font-size:13px;line-height:1.6;">Fitur ini sedang dalam tahap pengembangan dan akan segera tersedia. Silakan cek kembali nanti.</div>' +
-            '</div>',
-            false
-          );
-          addTerminalLog('Coming soon module accessed');
-          break;
-        case 'appInfo':
-          showPopup('App Information',
-            '<div style="text-align:center;padding:16px;">' +
-            '<div style="font-size:48px;margin-bottom:16px;">🚀</div>' +
-            '<div style="font-size:22px;font-weight:800;margin-bottom:8px;background:linear-gradient(135deg,var(--accent-primary),var(--accent-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">AURA.OS</div>' +
-            '<div style="color:var(--text-secondary);font-size:13px;margin-bottom:20px;">Quantum Dashboard v3.0.1<br>Cloudflare Workers Edge</div>' +
-            '<div style="display:inline-block;padding:8px 20px;background:var(--accent-success-light);border:1px solid rgba(16,185,129,0.2);border-radius:100px;font-size:12px;color:var(--accent-success);font-weight:600;">● All Systems Operational</div>' +
-            '</div>',
-            false
-          );
-          addTerminalLog('App info viewed');
-          break;
-        case 'testConnection':
-          showToast('Connection test initiated...', 'info');
-          addTerminalLog('Running connection diagnostics...');
-          setTimeout(function() { showToast('All connections healthy', 'success'); addTerminalLog('Diagnostics complete — all OK'); }, 1500);
+          setTimeout(function() {
+            var clearBtn = document.getElementById('clearDataBtn');
+            if (clearBtn) clearBtn.addEventListener('click', function() {
+              showPopup('Konfirmasi', '<p style="text-align:center; padding:20px; color:var(--text-secondary);">Semua data lokal akan dihapus. Lanjutkan?</p>', true, function() {
+                localStorage.clear();
+                showToast('Semua data berhasil dihapus', 'success');
+                addTerminalLog('All local data cleared');
+                location.reload();
+              });
+            });
+          }, 100);
           break;
       }
     }
 
-    /* ===== EVENT DELEGATION ===== */
-    document.addEventListener('click', function(e) {
-      if (e.target.closest('.submenu-item[data-action]')) {
-        var action = e.target.closest('.submenu-item[data-action]').getAttribute('data-action');
-        handleAction(action);
-        return;
+    /* ===================================================================
+       VIEW SWITCHING
+       =================================================================== */
+    function switchToDashboard() {
+      document.getElementById('dashboardView').style.display = 'block';
+      document.getElementById('profilView').style.display = 'none';
+      document.getElementById('pencairanView').style.display = 'none';
+      document.getElementById('breadcrumbPage').textContent = 'dashboard';
+      currentView = 'dashboard';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      var idx = document.querySelector('.nav-item[data-menu="Index"]');
+      if (idx) idx.classList.add('active');
+      addTerminalLog('Switched to dashboard view');
+    }
+
+    function switchToPencairan() {
+      document.getElementById('dashboardView').style.display = 'none';
+      document.getElementById('profilView').style.display = 'none';
+      document.getElementById('pencairanView').style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'saldo-pencairan';
+      currentView = 'pencairan';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      var pen = document.querySelector('.nav-item[data-action="loadPencairan"]');
+      if (pen) pen.classList.add('active');
+      addTerminalLog('Switched to pencairan view');
+      var dateInput = document.getElementById('skDate');
+      if (dateInput && !dateInput.value) {
+        var today = new Date();
+        var dd = String(today.getDate()).padStart(2,'0');
+        var mm = String(today.getMonth()+1).padStart(2,'0');
+        dateInput.value = today.getFullYear() + '-' + mm + '-' + dd;
       }
-      if (e.target.closest('[data-action]')) {
-        var action = e.target.closest('[data-action]').getAttribute('data-action');
-        handleAction(action);
-        return;
-      }
-      if (e.target.closest('[data-menu]')) {
-        var menu = e.target.closest('[data-menu]').getAttribute('data-menu');
-        if (menu === 'Index') switchView('dashboard');
-        return;
-      }
+    }
+
+    /* ===================================================================
+       SALDO KAS (Placeholder)
+       =================================================================== */
+    function loadSaldoKas() {
+      var date = document.getElementById('skDate').value;
+      if (!date) { showToast('Pilih tanggal terlebih dahulu', 'warning'); return; }
+      showToast('Memuat data pencairan...', 'info');
+      addTerminalLog('Loading saldo kas for: ' + date);
+      document.getElementById('skTotalN9').textContent = '0';
+      document.getElementById('skTotalPending').textContent = '0';
+      document.getElementById('skTotalAsli').textContent = '0';
+      document.getElementById('skTotalCair').textContent = '0';
+      document.getElementById('skTotalBelum').textContent = '0';
+      document.getElementById('skTotalCacing').textContent = '0';
+      document.getElementById('skTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center; color: var(--text-tertiary); padding: 40px;">Tidak ada data untuk tanggal ' + date + '</td></tr>';
+    }
+    function filterSaldoKas() {}
+    function copySaldoKasTable() {
+      var table = document.querySelector('.saldoKasTable');
+      if (!table) return;
+      var text = '';
+      table.querySelectorAll('tr').forEach(function(row) {
+        var cells = [];
+        row.querySelectorAll('th, td').forEach(function(cell) { cells.push(cell.textContent.trim()); });
+        text += cells.join('\t') + '\n';
+      });
+      navigator.clipboard.writeText(text).then(function() {
+        var btn = document.getElementById('skCopyBtn');
+        btn.classList.add('copied');
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        showToast('Tabel berhasil disalin ke clipboard', 'success');
+        addTerminalLog('Saldo kas table copied');
+        setTimeout(function() {
+          btn.classList.remove('copied');
+          btn.innerHTML = '<i class="fas fa-copy"></i> Copy Tabel';
+        }, 2000);
+      });
+    }
+
+    /* ===================================================================
+       LOGOUT
+       =================================================================== */
+    function logout() {
+      showPopup('Konfirmasi Logout', '<p style="text-align:center; padding:20px; color:var(--text-secondary);">Apakah Anda yakin ingin keluar?</p>', true, function() {
+        addTerminalLog('User logged out');
+        localStorage.removeItem('aura_auth_token');
+        showToast('Logout berhasil', 'success');
+        setTimeout(function() { window.location.href = '/login.html'; }, 1000);
+      });
+    }
+
+    /* ===================================================================
+       MOBILE MENU
+       =================================================================== */
+    document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+      document.getElementById('sidebar').classList.toggle('open');
     });
-
-    /* ===== POPUP BUTTONS ===== */
-    $('popupCloseBtn').addEventListener('click', closePopup);
-    $('popupCancelBtn').addEventListener('click', closePopup);
-    $('popupConfirmBtn').addEventListener('click', confirmPopup);
-    $('popupOverlay').addEventListener('click', function(e) { if (e.target === $('popupOverlay')) closePopup(); });
-
-    /* ===== MOBILE MENU ===== */
-    $('mobileMenuBtn').addEventListener('click', function() { $('sidebar').classList.toggle('open'); });
     document.addEventListener('click', function(e) {
-      var sidebar = $('sidebar'), btn = $('mobileMenuBtn');
-      if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !btn.contains(e.target)) {
+      var sidebar = document.getElementById('sidebar');
+      var btn = document.getElementById('mobileMenuBtn');
+      if (window.innerWidth <= 1024 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && !btn.contains(e.target)) {
         sidebar.classList.remove('open');
       }
     });
 
-    /* ===== RIGHT PANEL ===== */
-    $('panelToggle').addEventListener('click', function() { $('rightPanel').classList.toggle('open'); });
+    /* ===================================================================
+       RIGHT PANEL TOGGLE
+       =================================================================== */
+    document.getElementById('panelToggle').addEventListener('click', function() {
+      document.getElementById('rightPanel').classList.toggle('open');
+    });
 
-    /* ===== STATUS BADGE ===== */
-    $('statusBadge').addEventListener('click', function() { showToast('System is online and operational', 'success'); });
+    /* ===================================================================
+       TOAST CLOSE
+       =================================================================== */
+    document.getElementById('toastClose').addEventListener('click', function() {
+      document.getElementById('toast').classList.remove('show');
+    });
 
-    /* ===== INIT ===== */
+    /* ===================================================================
+       POPUP OVERLAY CLICK-OUTSIDE CLOSE
+       =================================================================== */
+    document.getElementById('popupOverlay').addEventListener('click', function(e) {
+      if (e.target === this) closePopup();
+    });
+
+    /* ===================================================================
+       INIT
+       =================================================================== */
     (function init() {
-      addTerminalLog('User authenticated: ' + authToken);
-      addTerminalLog('Role: ' + (userRole || 'user'));
-      addTerminalLog('Modules loaded: 18');
-      addTerminalLog('Dashboard initialized');
+      var username = localStorage.getItem('aura_user_name') || 'User';
+      var email = localStorage.getItem('aura_auth_token') || 'system@aura.os';
+      document.getElementById('userName').textContent = username;
+      document.getElementById('userEmail').textContent = email;
+
+      var bootMsgs = [
+        'AURA.OS v3.0.1 initialized',
+        'Loading quantum modules...',
+        'Auth token: ' + email,
+        'User: ' + username,
+        'All systems operational',
+        'Dashboard ready'
+      ];
+      bootMsgs.forEach(function(msg, i) {
+        setTimeout(function() { addTerminalLog(msg); }, (i + 1) * 150);
+      });
+
+      var dateInput = document.getElementById('skDate');
+      if (dateInput) {
+        var today = new Date();
+        var dd = String(today.getDate()).padStart(2,'0');
+        var mm = String(today.getMonth()+1).padStart(2,'0');
+        dateInput.value = today.getFullYear() + '-' + mm + '-' + dd;
+      }
     })();
   </script>
-
-  <script src="SaldoKas.js"></script>
-
 </body>
 </html>
