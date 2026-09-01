@@ -45,7 +45,6 @@
     @keyframes spin { to { transform:rotate(360deg); } }
     @keyframes rotateBackdrop { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-    /* ===== SIDEBAR ===== */
     .sidebar { width: var(--sidebar-width); background: linear-gradient(180deg, rgba(12,12,20,0.98), rgba(10,10,16,0.98)); backdrop-filter: blur(24px); border-right: 1px solid var(--border); position: fixed; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; z-index: 100; transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94); }
     .sidebar::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 1px; background: linear-gradient(180deg, transparent 0%, rgba(59,130,246,0.25) 25%, rgba(139,92,246,0.20) 55%, rgba(16,185,129,0.15) 80%, transparent 100%); pointer-events: none; }
     .sidebar-header { padding: 28px 22px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(59,130,246,0.07), rgba(139,92,246,0.04), transparent); position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center; }
@@ -65,7 +64,6 @@
     .nav-item.active { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1); border-color: rgba(59, 130, 246, 0.8); }
     .nav-item.active svg { stroke: #fff; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
 
-    /* ===== SUBMENU (HOVER) ===== */
     .nav-submenu-wrap { position: relative; margin: 5px 0; }
     .nav-submenu-wrap > .nav-trigger { display: flex; align-items: center; gap: 14px; padding: 14px 18px; margin: 0; border-radius: var(--radius-md); font-size: 15px; font-weight: 500; cursor: pointer; user-select: none; color: #cbd5e1; background: rgba(20, 20, 30, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .nav-submenu-wrap > .nav-trigger svg.menu-icon { width: 20px; height: 20px; stroke-width: 1.5; flex-shrink: 0; transition: all 0.18s ease; }
@@ -84,56 +82,16 @@
     .submenu-item::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; transition: all 0.15s ease; }
     .submenu-item:hover::before { background: var(--neon-cyan); transform: scale(1.6); box-shadow: 0 0 8px var(--neon-cyan); }
 
-    /* ===== CLICK-TOGGLE SUBMENU (Event Tools) — OVERRIDE HOVER ===== */
-    .nav-submenu-wrap.click-toggle:hover > .nav-trigger {
-      background: rgba(20, 20, 30, 0.5);
-      color: #cbd5e1;
-      transform: none;
-      border-color: rgba(255, 255, 255, 0.05);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    }
-    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .menu-icon {
-      transform: none;
-      stroke: currentColor;
-      filter: none;
-    }
-    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .chevron {
-      transform: none;
-    }
-    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .chevron svg {
-      stroke: var(--text-tertiary);
-    }
-    .nav-submenu-wrap.click-toggle:hover > .submenu {
-      max-height: 0;
-      opacity: 0;
-      padding-top: 0;
-      padding-bottom: 0;
-    }
-    /* State aktif saat diklik */
-    .nav-submenu-wrap.click-toggle.open > .nav-trigger {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15));
-      color: #fff;
-      transform: translateY(-2px);
-      border-color: rgba(59, 130, 246, 0.6);
-      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25), inset 0 0 10px rgba(59, 130, 246, 0.1);
-    }
-    .nav-submenu-wrap.click-toggle.open > .nav-trigger .menu-icon {
-      transform: scale(1.1);
-      stroke: var(--neon-cyan);
-      filter: drop-shadow(0 0 5px var(--neon-cyan));
-    }
-    .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron {
-      transform: rotate(180deg);
-    }
-    .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron svg {
-      stroke: #fff;
-    }
-    .nav-submenu-wrap.click-toggle.open > .submenu {
-      max-height: 400px;
-      opacity: 1;
-      padding-top: 8px;
-      padding-bottom: 4px;
-    }
+    .nav-submenu-wrap.click-toggle:hover > .nav-trigger { background: rgba(20, 20, 30, 0.5); color: #cbd5e1; transform: none; border-color: rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .menu-icon { transform: none; stroke: currentColor; filter: none; }
+    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .chevron { transform: none; }
+    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .chevron svg { stroke: var(--text-tertiary); }
+    .nav-submenu-wrap.click-toggle:hover > .submenu { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger { background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15)); color: #fff; transform: translateY(-2px); border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25), inset 0 0 10px rgba(59, 130, 246, 0.1); }
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger .menu-icon { transform: scale(1.1); stroke: var(--neon-cyan); filter: drop-shadow(0 0 5px var(--neon-cyan)); }
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron { transform: rotate(180deg); }
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron svg { stroke: #fff; }
+    .nav-submenu-wrap.click-toggle.open > .submenu { max-height: 400px; opacity: 1; padding-top: 8px; padding-bottom: 4px; }
 
     .sidebar-footer { padding: 18px 22px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); }
 
@@ -221,7 +179,6 @@
     .loader-spinner { width: 56px; height: 56px; border: 3px solid rgba(59, 130, 246, 0.1); border-top-color: #3b82f6; border-right-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), 0 0 40px rgba(59, 130, 246, 0.3); }
     .loader-text { margin-top: 24px; font-size: 14px; color: #ffffff; font-family: var(--font-sans); font-weight: 500; letter-spacing: 0.5px; text-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
 
-    /* SALDO KAS STYLES */
     .saldoKasWrap { width: 100%; margin-top: 22px; padding: 24px; border-radius: 32px; background: radial-gradient(circle at top left, #1a0b2e, #0a0a0f 45%, #0a0a0f); box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 100px rgba(180, 108, 255, 0.05); position: relative; overflow: hidden; }
     .saldoKasWrap::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(180, 108, 255, 0.03) 0%, transparent 50%); animation: rotateBackdrop 20s linear infinite; pointer-events: none; z-index: 0; }
     .saldoKasWrap > * { position: relative; z-index: 1; }
@@ -239,10 +196,19 @@
     .saldoKasCard { position: relative; overflow: hidden; min-height: 95px; padding: 16px; border-radius: 24px; background: rgba(12, 12, 25, 0.65); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 15px 35px rgba(0,0,0,.2); transition: all 0.3s ease; }
     .saldoKasCard:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.15); }
     .saldoKasCard::before { content: ""; position: absolute; left: 0; top: 0; height: 3px; width: 100%; opacity: .95; }
-    .sk-card-n9::before { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); } .sk-card-pending::before { background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); } .sk-card-asli::before { background: var(--neon-yellow); box-shadow: 0 0 10px var(--neon-yellow); } .sk-card-cair::before { background: var(--neon-purple); box-shadow: 0 0 10px var(--neon-purple); } .sk-card-belum::before { background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); } .sk-card-cacing::before { background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+    .sk-card-n9::before { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+    .sk-card-pending::before { background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); }
+    .sk-card-asli::before { background: var(--neon-yellow); box-shadow: 0 0 10px var(--neon-yellow); }
+    .sk-card-cair::before { background: var(--neon-purple); box-shadow: 0 0 10px var(--neon-purple); }
+    .sk-card-belum::before { background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); }
+    .sk-card-cacing::before { background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
     .saldoKasLabel { color: rgba(255,255,255,0.55); font-size: 10px; font-weight: 950; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
     .saldoKasValue { color: #fff; font-size: 22px; font-weight: 950; word-break: break-word; }
-    .saldoKasRed { color: var(--neon-red) !important; text-shadow: 0 0 8px rgba(255,48,72,0.5); } .saldoKasGreen { color: var(--neon-green) !important; text-shadow: 0 0 8px rgba(0,255,179,0.5); } .saldoKasYellow { color: var(--neon-yellow) !important; text-shadow: 0 0 8px rgba(255,209,102,0.4); } .saldoKasPurple { color: var(--neon-purple) !important; text-shadow: 0 0 8px rgba(180,108,255,0.5); } .saldoKasCyan { color: var(--neon-cyan) !important; text-shadow: 0 0 8px rgba(0,240,255,0.5); }
+    .saldoKasRed { color: var(--neon-red) !important; text-shadow: 0 0 8px rgba(255,48,72,0.5); }
+    .saldoKasGreen { color: var(--neon-green) !important; text-shadow: 0 0 8px rgba(0,255,179,0.5); }
+    .saldoKasYellow { color: var(--neon-yellow) !important; text-shadow: 0 0 8px rgba(255,209,102,0.4); }
+    .saldoKasPurple { color: var(--neon-purple) !important; text-shadow: 0 0 8px rgba(180,108,255,0.5); }
+    .saldoKasCyan { color: var(--neon-cyan) !important; text-shadow: 0 0 8px rgba(0,240,255,0.5); }
     .saldoKasToolbar { display: flex; gap: 10px; margin-bottom: 12px; }
     .saldoKasSearch { flex: 1; height: 45px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff; outline: none; padding: 0 16px; font-weight: 900; transition: all 0.3s ease; }
     .saldoKasSearch:focus { border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,240,255,0.2); }
@@ -256,7 +222,14 @@
     .saldoKasTable td { color: #e0e0e0; background: rgba(255,255,255,.01); font-weight: 850; }
     .saldoKasTable tbody tr:nth-child(even) td { background: rgba(180, 108, 255, 0.02); }
     .saldoKasTable tbody tr:hover td { background: rgba(180, 108, 255, 0.08); box-shadow: inset 3px 0 0 var(--neon-purple); }
-    .saldoKasNo { width: 52px; text-align: center !important; } .saldoKasSheet { width: 380px; text-align: left !important; } .saldoKasN9 { width: 138px; } .saldoKasPending { width: 132px; } .saldoKasAsli { width: 140px; } .saldoKasCair { width: 185px; } .saldoKasStatus { width: 152px; } .saldoKasKet { width: 185px; }
+    .saldoKasNo { width: 52px; text-align: center !important; }
+    .saldoKasSheet { width: 380px; text-align: left !important; }
+    .saldoKasN9 { width: 138px; }
+    .saldoKasPending { width: 132px; }
+    .saldoKasAsli { width: 140px; }
+    .saldoKasCair { width: 185px; }
+    .saldoKasStatus { width: 152px; }
+    .saldoKasKet { width: 185px; }
     .saldoKasCenter { text-align: center !important; vertical-align: middle !important; }
     .saldoKasNum { text-align: center !important; font-weight: 950; white-space: nowrap; font-variant-numeric: tabular-nums; }
     .saldoKasSheetName { font-weight: 950; color: #fff; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -271,7 +244,9 @@
     .copy-icon { font-size: 12px; opacity: 0.6; transition: all 0.2s; }
     .saldoKasCopyCell:hover .copy-icon { opacity: 1; color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan); transform: scale(1.1); }
     .saldoKasNote { display: block; max-width: 100%; color: var(--neon-yellow); font-weight: 950; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .saldoKasTableBox::-webkit-scrollbar { width: 8px; height: 8px; } .saldoKasTableBox::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); } .saldoKasTableBox::-webkit-scrollbar-thumb { background: rgba(180, 108, 255, 0.3); border-radius: 10px; }
+    .saldoKasTableBox::-webkit-scrollbar { width: 8px; height: 8px; }
+    .saldoKasTableBox::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    .saldoKasTableBox::-webkit-scrollbar-thumb { background: rgba(180, 108, 255, 0.3); border-radius: 10px; }
 
     @media (max-width: 1024px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0; } .mobile-menu-btn { display: block; } .stats-grid { grid-template-columns: repeat(2,1fr); } }
     @media (max-width: 768px) { .content { padding: 20px; } .top-bar { padding: 0 20px; } .stats-grid { grid-template-columns: 1fr; } .modules-grid { grid-template-columns: 1fr; } .hero-section { padding: 28px; } .hero-title { font-size: 24px; } .saldoKasCards { grid-template-columns: repeat(2, 1fr); } }
@@ -283,11 +258,14 @@
 
   <div class="loader" id="loader"><div class="loader-spinner"></div><div class="loader-text">Loading modules...</div></div>
 
-  <div class="popup-overlay" id="popupOverlay"><div class="popup-container"><div class="popup-header"><h3 class="popup-title" id="popupTitle">Notification</h3><button class="popup-close" id="popupCloseBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><div class="popup-body" id="popupBody"><div id="popupContent"></div></div><div class="popup-footer" id="popupFooter"><button class="btn btn-secondary" id="popupCancelBtn">Close</button><button class="btn" id="popupConfirmBtn">Confirm</button></div></div></div>
+  <div class="popup-overlay" id="popupOverlay">
+    <div class="popup-container">
+      <div class="popup-header"><h3 class="popup-title" id="popupTitle">Notification</h3><button class="popup-close" id="popupCloseBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+      <div class="popup-body" id="popupBody"><div id="popupContent"></div></div>
+      <div class="popup-footer" id="popupFooter"><button class="btn btn-secondary" id="popupCancelBtn">Close</button><button class="btn" id="popupConfirmBtn">Confirm</button></div>
+    </div>
+  </div>
 
-  <!-- ============================== -->
-  <!-- SIDEBAR — STRUKTUR BARU        -->
-  <!-- ============================== -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div>
@@ -298,7 +276,6 @@
     </div>
     <nav class="nav-menu">
 
-      <!-- ════════ CORE ════════ -->
       <div class="nav-group">
         <div class="nav-group-title">Core</div>
         <div class="nav-item active" data-menu="Index">
@@ -311,7 +288,6 @@
         </div>
       </div>
 
-      <!-- ════════ WORKSPACE ════════ -->
       <div class="nav-group">
         <div class="nav-group-title">Workspace</div>
         <div class="nav-submenu-wrap">
@@ -327,11 +303,14 @@
         </div>
       </div>
 
-      <!-- ════════ OPERATIONAL ════════ -->
       <div class="nav-group">
         <div class="nav-group-title">Operational</div>
 
-        <!-- QRIS Tools — hover -->
+        <div class="nav-item" data-action="loadPencairan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Saldo Pencairan
+        </div>
+
         <div class="nav-submenu-wrap">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="14.01"/><line x1="21" y1="21" x2="21" y2="21.01"/></svg>
@@ -346,7 +325,6 @@
           </div>
         </div>
 
-        <!-- Prediction Tools — hover -->
         <div class="nav-submenu-wrap">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
@@ -360,7 +338,6 @@
           </div>
         </div>
 
-        <!-- Event Tools — KLIK (bukan hover) -->
         <div class="nav-submenu-wrap click-toggle">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -374,19 +351,17 @@
           </div>
         </div>
 
-                <!-- Edit Bukti — item biasa -->
         <div class="nav-item" data-action="comingSoon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Bukti
         </div>
 
-        <!-- Keep Memo — item biasa -->
         <div class="nav-item" data-action="keepMemo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
           Keep Memo
         </div>
+      </div>
 
-      <!-- ════════ SYSTEM ════════ -->
       <div class="nav-group">
         <div class="nav-group-title">System</div>
         <div class="nav-item" data-action="apiKey">
@@ -407,9 +382,6 @@
     <div class="sidebar-footer"><div>System: <span style="color: var(--accent-success);">● Online</span></div><div>Uptime: 24d 13h</div></div>
   </aside>
 
-  <!-- ============================== -->
-  <!-- MAIN CONTENT                   -->
-  <!-- ============================== -->
   <main class="main-content">
     <header class="top-bar">
       <div style="display: flex; align-items: center; gap: 16px;">
@@ -421,14 +393,13 @@
 
     <div class="content">
 
-      <!-- DASHBOARD VIEW -->
       <div id="dashboardView">
         <div class="hero-section">
           <h1 class="hero-title">Welcome back, <span id="userName">User</span></h1>
           <p class="hero-subtitle">Quantum interface loaded. All systems operational.</p>
         </div>
         <div class="stats-grid">
-          <div class="stat-card"><div class="stat-label">Active Modules</div><div class="stat-value">15</div><div class="stat-trend positive">+5 this week</div></div>
+          <div class="stat-card"><div class="stat-label">Active Modules</div><div class="stat-value">18</div><div class="stat-trend positive">+5 this week</div></div>
           <div class="stat-card"><div class="stat-label">Total Transactions</div><div class="stat-value">1,284</div><div class="stat-trend positive">+18%</div></div>
           <div class="stat-card"><div class="stat-label">Pending Validation</div><div class="stat-value">23</div><div class="stat-trend negative">-5</div></div>
           <div class="stat-card"><div class="stat-label">System Health</div><div class="stat-value">98%</div><div class="stat-trend positive">Optimal</div></div>
@@ -456,7 +427,6 @@
         </div>
       </div>
 
-      <!-- SALDO KAS CONTAINER -->
       <div id="saldoKasContainer" style="display: none;">
         <div class="saldoKasWrap">
           <div class="saldoKasHeader">
@@ -488,13 +458,12 @@
   </main>
 
   <button class="panel-toggle" id="panelToggle"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-  <aside class="right-panel" id="rightPanel"><div class="widget"><div class="widget-title">System Metrics</div><div id="systemMetrics">CPU: 12%<br>RAM: 34%<br>Ping: 24ms</div></div><div class="widget"><div class="widget-title">Activity Log</div><div class="terminal" id="terminalLogs"><div class="terminal-line">[INIT] System boot sequence initiated</div><div class="terminal-line">[INIT] Loading kernel modules</div><div class="terminal-line">[INIT] Establishing secure connection</div><div class="terminal-line">[READY] Dashboard ready</div></div></div></aside>
+  <aside class="right-panel" id="rightPanel">
+    <div class="widget"><div class="widget-title">System Metrics</div><div id="systemMetrics">CPU: 12%<br>RAM: 34%<br>Ping: 24ms</div></div>
+    <div class="widget"><div class="widget-title">Activity Log</div><div class="terminal" id="terminalLogs"><div class="terminal-line">[INIT] System boot sequence initiated</div><div class="terminal-line">[INIT] Loading kernel modules</div><div class="terminal-line">[INIT] Establishing secure connection</div><div class="terminal-line">[READY] Dashboard ready</div></div></div>
+  </aside>
 
-  <!-- ============================== -->
-  <!-- SCRIPT DASHBOARD UTAMA         -->
-  <!-- ============================== -->
   <script>
-    /* ===== CEK LOGIN ===== */
     var authToken = localStorage.getItem('aura_auth_token');
     var userRole = localStorage.getItem('aura_user_role');
     if (!authToken) { window.location.href = '/Login.html'; }
@@ -504,7 +473,6 @@
     }
     function logout() { localStorage.clear(); window.location.href = '/Login.html'; }
 
-    /* ===== UTILITAS ===== */
     var currentPopupCallback = null;
     function $(id) { return document.getElementById(id); }
     function escapeHtml(str) { var d = document.createElement('div'); d.appendChild(document.createTextNode(str)); return d.innerHTML; }
@@ -538,7 +506,6 @@
       t.appendChild(d); t.scrollTop = t.scrollHeight;
     }
 
-    /* ===== VIEW SWITCHING ===== */
     var currentView = 'dashboard';
     function switchView(view) {
       currentView = view;
@@ -550,7 +517,8 @@
         var dashItem = document.querySelector('.nav-item[data-menu="Index"]');
         if (dashItem) dashItem.classList.add('active');
       } else if (view === 'pencairan') {
-        /* Tidak ada sidebar entry, jangan highlight apa-apa */
+        var penItem = document.querySelector('.nav-item[data-action="loadPencairan"]');
+        if (penItem) penItem.classList.add('active');
       }
       addTerminalLog('View switched \u2192 ' + view);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -561,21 +529,69 @@
       trigger.addEventListener('click', function(e) {
         e.stopPropagation();
         var wrap = this.parentElement;
-        /* Tutup click-toggle lain */
         document.querySelectorAll('.nav-submenu-wrap.click-toggle.open').forEach(function(other) {
           if (other !== wrap) other.classList.remove('open');
         });
         wrap.classList.toggle('open');
       });
     });
-    /* Tutup click-toggle saat klik di luar */
     document.addEventListener('click', function(e) {
       if (!e.target.closest('.nav-submenu-wrap.click-toggle')) {
-        document.querySelectorAll('.nav-submenu-wrap.click-toggle.open').forEach(function(w) {
-          w.classList.remove('open');
-        });
+        document.querySelectorAll('.nav-submenu-wrap.click-toggle.open').forEach(function(w) { w.classList.remove('open'); });
       }
     });
+
+    /* ===== KEEP MEMO ===== */
+    function saveMemo() {
+      var title = document.getElementById('memoTitle');
+      var content = document.getElementById('memoContent');
+      if (!title || !content) return;
+      var t = title.value.trim(), c = content.value.trim();
+      if (!t && !c) { showToast('Judul atau isi memo tidak boleh kosong', 'warning'); return; }
+      var memos = JSON.parse(localStorage.getItem('aura_memos') || '[]');
+      memos.unshift({ id: Date.now(), title: t || 'Tanpa Judul', content: c, date: new Date().toLocaleString('id-ID') });
+      if (memos.length > 50) memos = memos.slice(0, 50);
+      localStorage.setItem('aura_memos', JSON.stringify(memos));
+      title.value = ''; content.value = '';
+      loadMemos();
+      showToast('Memo disimpan', 'success');
+      addTerminalLog('Memo saved: ' + (t || 'Tanpa Judul'));
+    }
+    function loadMemos() {
+      var list = document.getElementById('memoList');
+      if (!list) return;
+      var memos = JSON.parse(localStorage.getItem('aura_memos') || '[]');
+      if (memos.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-tertiary);font-size:13px;">Belum ada memo tersimpan</div>';
+        return;
+      }
+      var html = '';
+      memos.forEach(function(m) {
+        html += '<div style="padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(59,130,246,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+          '<div style="font-size:14px;font-weight:600;color:var(--text-primary);">' + escapeHtml(m.title) + '</div>' +
+          '<div style="display:flex;gap:6px;">' +
+          '<button onclick="deleteMemo(' + m.id + ')" style="background:none;border:none;color:var(--accent-danger);cursor:pointer;padding:2px 4px;font-size:12px;opacity:0.6;transition:opacity 0.15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash-can"></i></button>' +
+          '</div></div>' +
+          '<div style="font-size:12px;color:var(--text-secondary);line-height:1.5;word-break:break-word;white-space:pre-wrap;margin-bottom:6px;">' + escapeHtml(m.content) + '</div>' +
+          '<div style="font-size:10px;color:var(--text-tertiary);font-family:var(--font-mono);">' + m.date + '</div></div>';
+      });
+      list.innerHTML = html;
+    }
+    function deleteMemo(id) {
+      var memos = JSON.parse(localStorage.getItem('aura_memos') || '[]');
+      memos = memos.filter(function(m) { return m.id !== id; });
+      localStorage.setItem('aura_memos', JSON.stringify(memos));
+      loadMemos();
+      showToast('Memo dihapus', 'info');
+      addTerminalLog('Memo deleted');
+    }
+    function clearMemos() {
+      localStorage.removeItem('aura_memos');
+      loadMemos();
+      showToast('Semua memo dihapus', 'info');
+      addTerminalLog('All memos cleared');
+    }
 
     /* ===== ACTION HANDLERS ===== */
     function handleAction(action) {
@@ -586,8 +602,7 @@
         case 'profil':
           showPopup('Profil',
             '<div style="text-align:center;padding:16px;">' +
-            '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--accent-primary),var(--accent-purple));margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;">' +
-            '<i class="fas fa-user"></i></div>' +
+            '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--accent-primary),var(--accent-purple));margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;"><i class="fas fa-user"></i></div>' +
             '<div style="font-size:20px;font-weight:700;margin-bottom:4px;">' + escapeHtml(authToken || 'User') + '</div>' +
             '<div style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">' + escapeHtml(authToken || 'user') + '@aura.os</div>' +
             '<div style="display:inline-block;padding:6px 16px;background:var(--accent-primary-light);border:1px solid rgba(59,130,246,0.2);border-radius:100px;font-size:12px;color:var(--accent-primary);font-weight:600;">Role: ' + escapeHtml(userRole || 'user') + '</div>' +
@@ -596,28 +611,12 @@
           );
           addTerminalLog('Profil viewed');
           break;
-        case 'keepMemo':
-          showPopup('Keep Memo',
-            '<div style="padding:4px;">' +
-            '<div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Judul Memo</label>' +
-            '<input type="text" id="memoTitle" placeholder="Masukkan judul..." style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;font-family:var(--font-sans);"></div>' +
-            '<div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Isi Memo</label>' +
-            '<textarea id="memoContent" rows="6" placeholder="Tulis catatan di sini..." style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:13px;outline:none;resize:vertical;font-family:var(--font-sans);line-height:1.6;"></textarea></div>' +
-            '<div id="memoList" style="margin-bottom:14px;max-height:180px;overflow-y:auto;"></div>' +
-            '<div style="display:flex;gap:10px;justify-content:flex-end;"><button class="btn btn-secondary" onclick="if(typeof clearMemos===\'function\')clearMemos();" style="padding:10px 18px;font-size:13px;">Hapus Semua</button>' +
-            '<button class="btn" onclick="if(typeof saveMemo===\'function\')saveMemo();" style="padding:10px 18px;font-size:13px;"><i class="fas fa-save" style="margin-right:6px;"></i>Simpan</button></div>' +
-            '</div>',
-            false
-          );
-          loadMemos();
-          addTerminalLog('Keep Memo opened');
-          break;
         case 'apiKey':
           showPopup('API Key Management',
             '<div style="padding:8px;">' +
             '<div style="margin-bottom:16px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">API Key</label>' +
             '<div style="display:flex;gap:8px;"><input type="text" value="aura_sk_xxxxxxxxxxxxxxxxxxxxxxxx" readonly style="flex:1;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;outline:none;" id="apiKeyInput">' +
-            '<button onclick="navigator.clipboard.writeText(document.getElementById(\'apiKeyInput\').value);document.getElementById(\'apiKeyInput\').style.borderColor=\'var(--accent-success)\';setTimeout(function(){document.getElementById(\'apiKeyInput\').style.borderColor=\'var(--border)\';},1500);" style="padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent-primary),var(--accent-primary-dark));color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;"><i class="fas fa-copy"></i></button></div></div>' +
+            '<button onclick="navigator.clipboard.writeText(document.getElementById(\'apiKeyInput\').value);this.style.background=\'var(--accent-success)\';this.style.color=\'#fff\';var b=this;setTimeout(function(){b.style.background=\'linear-gradient(135deg,var(--accent-primary),var(--accent-primary-dark))\';b.style.color=\'#fff\';},1500);" style="padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent-primary),var(--accent-primary-dark));color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;"><i class="fas fa-copy"></i></button></div></div>' +
             '<div style="padding:14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;font-size:12px;color:var(--accent-warning);line-height:1.6;"><i class="fas fa-triangle-exclamation" style="margin-right:6px;"></i>Jangan bagikan API key Anda kepada siapa pun. Key ini memiliki akses penuh ke semua endpoint.</div>' +
             '</div>',
             false
@@ -639,6 +638,22 @@
             false
           );
           addTerminalLog('Settings panel opened');
+          break;
+        case 'keepMemo':
+          showPopup('Keep Memo',
+            '<div style="padding:4px;">' +
+            '<div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Judul Memo</label>' +
+            '<input type="text" id="memoTitle" placeholder="Masukkan judul..." style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;font-family:var(--font-sans);"></div>' +
+            '<div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Isi Memo</label>' +
+            '<textarea id="memoContent" rows="6" placeholder="Tulis catatan di sini..." style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:13px;outline:none;resize:vertical;font-family:var(--font-sans);line-height:1.6;"></textarea></div>' +
+            '<div id="memoList" style="margin-bottom:14px;max-height:180px;overflow-y:auto;"></div>' +
+            '<div style="display:flex;gap:10px;justify-content:flex-end;"><button class="btn btn-secondary" onclick="clearMemos()" style="padding:10px 18px;font-size:13px;">Hapus Semua</button>' +
+            '<button class="btn" onclick="saveMemo()" style="padding:10px 18px;font-size:13px;"><i class="fas fa-save" style="margin-right:6px;"></i>Simpan</button></div>' +
+            '</div>',
+            false
+          );
+          loadMemos();
+          addTerminalLog('Keep Memo opened');
           break;
         case 'comingSoon':
           showPopup('Coming Soon',
@@ -673,7 +688,6 @@
 
     /* ===== EVENT DELEGATION ===== */
     document.addEventListener('click', function(e) {
-      /* Prioritaskan submenu-item yang punya onclick langsung */
       if (e.target.closest('.submenu-item[data-action]')) {
         var action = e.target.closest('.submenu-item[data-action]').getAttribute('data-action');
         handleAction(action);
@@ -721,7 +735,6 @@
     })();
   </script>
 
-  <!-- Saldo Kas module terpisah -->
   <script src="SaldoKas.js"></script>
 
 </body>
