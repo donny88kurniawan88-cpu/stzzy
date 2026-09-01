@@ -596,6 +596,22 @@
           );
           addTerminalLog('Profil viewed');
           break;
+        case 'keepMemo':
+          showPopup('Keep Memo',
+            '<div style="padding:4px;">' +
+            '<div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Judul Memo</label>' +
+            '<input type="text" id="memoTitle" placeholder="Masukkan judul..." style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;font-family:var(--font-sans);"></div>' +
+            '<div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Isi Memo</label>' +
+            '<textarea id="memoContent" rows="6" placeholder="Tulis catatan di sini..." style="width:100%;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:13px;outline:none;resize:vertical;font-family:var(--font-sans);line-height:1.6;"></textarea></div>' +
+            '<div id="memoList" style="margin-bottom:14px;max-height:180px;overflow-y:auto;"></div>' +
+            '<div style="display:flex;gap:10px;justify-content:flex-end;"><button class="btn btn-secondary" onclick="if(typeof clearMemos===\'function\')clearMemos();" style="padding:10px 18px;font-size:13px;">Hapus Semua</button>' +
+            '<button class="btn" onclick="if(typeof saveMemo===\'function\')saveMemo();" style="padding:10px 18px;font-size:13px;"><i class="fas fa-save" style="margin-right:6px;"></i>Simpan</button></div>' +
+            '</div>',
+            false
+          );
+          loadMemos();
+          addTerminalLog('Keep Memo opened');
+          break;
         case 'apiKey':
           showPopup('API Key Management',
             '<div style="padding:8px;">' +
