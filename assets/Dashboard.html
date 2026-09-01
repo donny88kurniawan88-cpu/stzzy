@@ -45,7 +45,7 @@
     @keyframes spin { to { transform:rotate(360deg); } }
     @keyframes rotateBackdrop { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-    /* ===== SIDEBAR — DIPERBESAR ===== */
+    /* ===== SIDEBAR ===== */
     .sidebar { width: var(--sidebar-width); background: linear-gradient(180deg, rgba(12,12,20,0.98), rgba(10,10,16,0.98)); backdrop-filter: blur(24px); border-right: 1px solid var(--border); position: fixed; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; z-index: 100; transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94); }
     .sidebar::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 1px; background: linear-gradient(180deg, transparent 0%, rgba(59,130,246,0.25) 25%, rgba(139,92,246,0.20) 55%, rgba(16,185,129,0.15) 80%, transparent 100%); pointer-events: none; }
     .sidebar-header { padding: 28px 22px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(59,130,246,0.07), rgba(139,92,246,0.04), transparent); position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center; }
@@ -54,12 +54,10 @@
     .btn-logout { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 14px; transition: 0.2s; }
     .btn-logout:hover { border-color: var(--accent-danger); color: var(--accent-danger); }
 
-    /* NAV MENU — DIPERBESAR */
     .nav-menu { flex: 1; padding: 20px 12px; overflow-y: auto; overflow-x: hidden; }
     .nav-group { margin-bottom: 28px; animation: fadeInUp 0.4s ease backwards; }
     .nav-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.8px; color: var(--accent-primary); padding: 0 14px; margin-bottom: 10px; opacity: 0.6; }
 
-    /* NAV ITEM — DIPERBESAR: padding, font, icon, gap */
     .nav-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; margin: 5px 0; border-radius: var(--radius-md); font-size: 15px; font-weight: 500; cursor: pointer; user-select: none; position: relative; animation: slideInRight 0.3s ease backwards; color: #cbd5e1; background: rgba(20, 20, 30, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .nav-item svg { width: 20px; height: 20px; stroke-width: 1.5; flex-shrink: 0; transition: all 0.18s ease; }
     .nav-item:hover { background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15)); color: #ffffff; transform: translateY(-2px); border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25), inset 0 0 10px rgba(59, 130, 246, 0.1); }
@@ -67,7 +65,7 @@
     .nav-item.active { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1); border-color: rgba(59, 130, 246, 0.8); }
     .nav-item.active svg { stroke: #fff; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
 
-    /* SUBMENU WRAP — DIPERBESAR */
+    /* ===== SUBMENU (HOVER) ===== */
     .nav-submenu-wrap { position: relative; margin: 5px 0; }
     .nav-submenu-wrap > .nav-trigger { display: flex; align-items: center; gap: 14px; padding: 14px 18px; margin: 0; border-radius: var(--radius-md); font-size: 15px; font-weight: 500; cursor: pointer; user-select: none; color: #cbd5e1; background: rgba(20, 20, 30, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .nav-submenu-wrap > .nav-trigger svg.menu-icon { width: 20px; height: 20px; stroke-width: 1.5; flex-shrink: 0; transition: all 0.18s ease; }
@@ -79,13 +77,63 @@
     .nav-submenu-wrap:hover > .nav-trigger .chevron { transform: rotate(180deg); }
     .nav-submenu-wrap:hover > .nav-trigger .chevron svg { stroke: #fff; }
     .nav-submenu-wrap > .submenu { overflow: hidden; max-height: 0; opacity: 0; padding-left: 14px; transition: max-height 0.35s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.25s ease, padding 0.3s ease; }
-    .nav-submenu-wrap:hover > .submenu, .nav-submenu-wrap.open > .submenu { max-height: 400px; opacity: 1; padding-top: 8px; padding-bottom: 4px; }
+    .nav-submenu-wrap:hover > .submenu { max-height: 400px; opacity: 1; padding-top: 8px; padding-bottom: 4px; }
 
-    /* SUBMENU ITEM — DIPERBESAR */
     .submenu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin: 4px 0; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; cursor: pointer; user-select: none; white-space: nowrap; pointer-events: auto; color: #94a3b8; background: rgba(15, 15, 22, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .submenu-item:hover { background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(20, 20, 30, 0.8)); color: var(--neon-cyan); transform: translateY(-2px); border-color: rgba(0, 240, 255, 0.4); box-shadow: 0 4px 10px rgba(0, 240, 255, 0.1); }
     .submenu-item::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; transition: all 0.15s ease; }
     .submenu-item:hover::before { background: var(--neon-cyan); transform: scale(1.6); box-shadow: 0 0 8px var(--neon-cyan); }
+
+    /* ===== CLICK-TOGGLE SUBMENU (Event Tools) — OVERRIDE HOVER ===== */
+    .nav-submenu-wrap.click-toggle:hover > .nav-trigger {
+      background: rgba(20, 20, 30, 0.5);
+      color: #cbd5e1;
+      transform: none;
+      border-color: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .menu-icon {
+      transform: none;
+      stroke: currentColor;
+      filter: none;
+    }
+    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .chevron {
+      transform: none;
+    }
+    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .chevron svg {
+      stroke: var(--text-tertiary);
+    }
+    .nav-submenu-wrap.click-toggle:hover > .submenu {
+      max-height: 0;
+      opacity: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    /* State aktif saat diklik */
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15));
+      color: #fff;
+      transform: translateY(-2px);
+      border-color: rgba(59, 130, 246, 0.6);
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25), inset 0 0 10px rgba(59, 130, 246, 0.1);
+    }
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger .menu-icon {
+      transform: scale(1.1);
+      stroke: var(--neon-cyan);
+      filter: drop-shadow(0 0 5px var(--neon-cyan));
+    }
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron {
+      transform: rotate(180deg);
+    }
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron svg {
+      stroke: #fff;
+    }
+    .nav-submenu-wrap.click-toggle.open > .submenu {
+      max-height: 400px;
+      opacity: 1;
+      padding-top: 8px;
+      padding-bottom: 4px;
+    }
 
     .sidebar-footer { padding: 18px 22px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); }
 
@@ -124,7 +172,13 @@
     .module-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
     .module-badge { display: inline-block; margin-top: 12px; padding: 4px 10px; background: var(--bg-secondary); border-radius: var(--radius-sm); font-size: 10px; font-family: var(--font-mono); color: var(--text-tertiary); transition: all 0.18s ease; }
     .module-card:hover .module-badge { background: var(--accent-primary-light); color: var(--accent-primary); }
-    .module-card[data-color="blue"] .module-icon { background: var(--accent-primary-light); } .module-card[data-color="green"] .module-icon { background: var(--accent-success-light); } .module-card[data-color="purple"] .module-icon { background: var(--accent-purple-light); } .module-card[data-color="orange"] .module-icon { background: var(--accent-warning-light); } .module-card[data-color="teal"] .module-icon { background: rgba(20,184,166,0.12); } .module-card[data-color="pink"] .module-icon { background: rgba(236,72,153,0.12); } .module-card[data-color="red"] .module-icon { background: var(--accent-danger-light); }
+    .module-card[data-color="blue"] .module-icon { background: var(--accent-primary-light); }
+    .module-card[data-color="green"] .module-icon { background: var(--accent-success-light); }
+    .module-card[data-color="purple"] .module-icon { background: var(--accent-purple-light); }
+    .module-card[data-color="orange"] .module-icon { background: var(--accent-warning-light); }
+    .module-card[data-color="teal"] .module-icon { background: rgba(20,184,166,0.12); }
+    .module-card[data-color="pink"] .module-icon { background: rgba(236,72,153,0.12); }
+    .module-card[data-color="red"] .module-icon { background: var(--accent-danger-light); }
 
     .popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(12px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); }
     .popup-overlay.active { opacity: 1; visibility: visible; }
@@ -167,7 +221,7 @@
     .loader-spinner { width: 56px; height: 56px; border: 3px solid rgba(59, 130, 246, 0.1); border-top-color: #3b82f6; border-right-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), 0 0 40px rgba(59, 130, 246, 0.3); }
     .loader-text { margin-top: 24px; font-size: 14px; color: #ffffff; font-family: var(--font-sans); font-weight: 500; letter-spacing: 0.5px; text-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
 
-    /* ===== SALDO KAS STYLES (tetap di sini karena dipakai HTML) ===== */
+    /* SALDO KAS STYLES */
     .saldoKasWrap { width: 100%; margin-top: 22px; padding: 24px; border-radius: 32px; background: radial-gradient(circle at top left, #1a0b2e, #0a0a0f 45%, #0a0a0f); box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 100px rgba(180, 108, 255, 0.05); position: relative; overflow: hidden; }
     .saldoKasWrap::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(180, 108, 255, 0.03) 0%, transparent 50%); animation: rotateBackdrop 20s linear infinite; pointer-events: none; z-index: 0; }
     .saldoKasWrap > * { position: relative; z-index: 1; }
@@ -181,7 +235,6 @@
     .sk-btn-load { height: 45px; border-radius: 16px; border: none; padding: 0 24px; background: linear-gradient(135deg, var(--neon-purple), #6a0dad); color: #fff; font-weight: 950; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 0 15px rgba(180, 108, 255, 0.4); }
     .sk-btn-load:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(180, 108, 255, 0.7); }
     .sk-btn-load:active { transform: translateY(0px); }
-
     .saldoKasCards { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
     .saldoKasCard { position: relative; overflow: hidden; min-height: 95px; padding: 16px; border-radius: 24px; background: rgba(12, 12, 25, 0.65); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 15px 35px rgba(0,0,0,.2); transition: all 0.3s ease; }
     .saldoKasCard:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.15); }
@@ -190,14 +243,12 @@
     .saldoKasLabel { color: rgba(255,255,255,0.55); font-size: 10px; font-weight: 950; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
     .saldoKasValue { color: #fff; font-size: 22px; font-weight: 950; word-break: break-word; }
     .saldoKasRed { color: var(--neon-red) !important; text-shadow: 0 0 8px rgba(255,48,72,0.5); } .saldoKasGreen { color: var(--neon-green) !important; text-shadow: 0 0 8px rgba(0,255,179,0.5); } .saldoKasYellow { color: var(--neon-yellow) !important; text-shadow: 0 0 8px rgba(255,209,102,0.4); } .saldoKasPurple { color: var(--neon-purple) !important; text-shadow: 0 0 8px rgba(180,108,255,0.5); } .saldoKasCyan { color: var(--neon-cyan) !important; text-shadow: 0 0 8px rgba(0,240,255,0.5); }
-
     .saldoKasToolbar { display: flex; gap: 10px; margin-bottom: 12px; }
     .saldoKasSearch { flex: 1; height: 45px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff; outline: none; padding: 0 16px; font-weight: 900; transition: all 0.3s ease; }
     .saldoKasSearch:focus { border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,240,255,0.2); }
     .sk-btn-copy { height: 45px; border-radius: 18px; border: 1px solid rgba(0, 240, 255, 0.3); background: rgba(0, 240, 255, 0.08); color: var(--neon-cyan); outline: none; padding: 0 20px; font-weight: 950; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.3s ease; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
     .sk-btn-copy:hover { background: rgba(0, 240, 255, 0.15); box-shadow: 0 0 15px rgba(0, 240, 255, 0.3); }
     .sk-btn-copy.copied { border-color: var(--neon-green); color: var(--neon-green); background: rgba(0, 255, 179, 0.1); }
-
     .saldoKasTableBox { border: 1px solid rgba(180, 108, 255, 0.15); border-radius: 24px; overflow: auto; background: rgba(8, 10, 20, 0.6); backdrop-filter: blur(10px); box-shadow: 0 25px 50px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.04); max-height: calc(100vh - 380px); }
     .saldoKasTable { width: 100%; min-width: 1250px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 12px; background: transparent; }
     .saldoKasTable th, .saldoKasTable td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.04); border-right: 1px solid rgba(255,255,255,.02); vertical-align: middle !important; overflow: hidden; text-overflow: ellipsis; }
@@ -230,13 +281,13 @@
 </head>
 <body>
 
-  <div class="loader" id="loader">
-    <div class="loader-spinner"></div>
-    <div class="loader-text">Loading modules...</div>
-  </div>
+  <div class="loader" id="loader"><div class="loader-spinner"></div><div class="loader-text">Loading modules...</div></div>
 
   <div class="popup-overlay" id="popupOverlay"><div class="popup-container"><div class="popup-header"><h3 class="popup-title" id="popupTitle">Notification</h3><button class="popup-close" id="popupCloseBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><div class="popup-body" id="popupBody"><div id="popupContent"></div></div><div class="popup-footer" id="popupFooter"><button class="btn btn-secondary" id="popupCancelBtn">Close</button><button class="btn" id="popupConfirmBtn">Confirm</button></div></div></div>
 
+  <!-- ============================== -->
+  <!-- SIDEBAR — STRUKTUR BARU        -->
+  <!-- ============================== -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div>
@@ -246,13 +297,23 @@
       <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
     </div>
     <nav class="nav-menu">
-      <div class="nav-group"><div class="nav-group-title">Core</div><div class="nav-item active" data-menu="Index"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Dashboard</div></div>
 
-      <div class="nav-group"><div class="nav-group-title">Validation</div><div class="nav-item" onclick="window.location.href='/Validator.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Rek. Validator</div><div class="nav-item" onclick="window.location.href='/Analyzer.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/></svg>P2M Analyzer</div></div>
-
+      <!-- ════════ CORE ════════ -->
       <div class="nav-group">
-        <div class="nav-group-title">Banking</div>
-        <div class="nav-item" data-action="loadPencairan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>Menu Pencairan</div>
+        <div class="nav-group-title">Core</div>
+        <div class="nav-item active" data-menu="Index">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item" data-action="profil">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profil
+        </div>
+      </div>
+
+      <!-- ════════ WORKSPACE ════════ -->
+      <div class="nav-group">
+        <div class="nav-group-title">Workspace</div>
         <div class="nav-submenu-wrap">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
@@ -260,13 +321,32 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
+            <div class="submenu-item" onclick="window.location.href='/Validator.html'">Rek Validator</div>
             <div class="submenu-item" onclick="window.location.href='/Bank.html'">Bank Processor</div>
           </div>
         </div>
       </div>
 
+      <!-- ════════ OPERATIONAL ════════ -->
       <div class="nav-group">
-        <div class="nav-group-title">Prediction</div>
+        <div class="nav-group-title">Operational</div>
+
+        <!-- QRIS Tools — hover -->
+        <div class="nav-submenu-wrap">
+          <div class="nav-trigger">
+            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="14.01"/><line x1="21" y1="21" x2="21" y2="21.01"/></svg>
+            <span class="label">QRIS Tools</span>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
+          </div>
+          <div class="submenu">
+            <div class="submenu-item" onclick="window.location.href='/Analyzer.html'">P2M Analyzer</div>
+            <div class="submenu-item" data-action="comingSoon">XPAY Analyzer</div>
+            <div class="submenu-item" data-action="comingSoon">XPAY Settlement</div>
+            <div class="submenu-item" data-action="comingSoon">MNPAY Analyzer</div>
+          </div>
+        </div>
+
+        <!-- Prediction Tools — hover -->
         <div class="nav-submenu-wrap">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
@@ -276,27 +356,72 @@
           <div class="submenu">
             <div class="submenu-item" onclick="window.location.href='/Syair.html'">Syair Database</div>
             <div class="submenu-item" onclick="window.location.href='/Prediksi.html'">AI Prediction</div>
-            <div class="submenu-item" onclick="window.location.href='/PgReport.html'">PG Report</div>
             <div class="submenu-item" data-action="appInfo">Gas Slot Engine</div>
           </div>
         </div>
+
+        <!-- Event Tools — KLIK (bukan hover) -->
+        <div class="nav-submenu-wrap click-toggle">
+          <div class="nav-trigger">
+            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="label">Event Tools</span>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
+          </div>
+          <div class="submenu">
+            <div class="submenu-item" data-action="comingSoon">My Event</div>
+            <div class="submenu-item" data-action="comingSoon">History Event</div>
+            <div class="submenu-item" onclick="window.location.href='/PgReport.html'">PG Report</div>
+          </div>
+        </div>
+
+        <!-- Edit Bukti — item biasa -->
+        <div class="nav-item" data-action="comingSoon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit Bukti
+        </div>
       </div>
 
-      <div class="nav-group"><div class="nav-group-title">System</div><div class="nav-item" data-action="appInfo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>QRIS Config</div><div class="nav-item" onclick="window.location.href='/Authority.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>Authority Panel</div></div>
+      <!-- ════════ SYSTEM ════════ -->
+      <div class="nav-group">
+        <div class="nav-group-title">System</div>
+        <div class="nav-item" data-action="apiKey">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          API Key
+        </div>
+        <div class="nav-item" data-action="setting">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Setting
+        </div>
+        <div class="nav-item" onclick="window.location.href='/Authority.html'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          Authority Panel
+        </div>
+      </div>
+
     </nav>
     <div class="sidebar-footer"><div>System: <span style="color: var(--accent-success);">● Online</span></div><div>Uptime: 24d 13h</div></div>
   </aside>
 
+  <!-- ============================== -->
+  <!-- MAIN CONTENT                   -->
+  <!-- ============================== -->
   <main class="main-content">
     <header class="top-bar">
-      <div style="display: flex; align-items: center; gap: 16px;"><button class="mobile-menu-btn" id="mobileMenuBtn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><div class="breadcrumb"><span id="userEmail">system@aura.os</span><span>/</span><span id="breadcrumbPage">dashboard</span></div></div>
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <button class="mobile-menu-btn" id="mobileMenuBtn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <div class="breadcrumb"><span id="userEmail">system@aura.os</span><span>/</span><span id="breadcrumbPage">dashboard</span></div>
+      </div>
       <div class="status-badge" id="statusBadge"><div class="status-dot"></div><span>System Online</span></div>
     </header>
 
     <div class="content">
 
+      <!-- DASHBOARD VIEW -->
       <div id="dashboardView">
-        <div class="hero-section"><h1 class="hero-title">Welcome back, <span id="userName">User</span></h1><p class="hero-subtitle">Quantum interface loaded. All systems operational.</p></div>
+        <div class="hero-section">
+          <h1 class="hero-title">Welcome back, <span id="userName">User</span></h1>
+          <p class="hero-subtitle">Quantum interface loaded. All systems operational.</p>
+        </div>
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-label">Active Modules</div><div class="stat-value">15</div><div class="stat-trend positive">+5 this week</div></div>
           <div class="stat-card"><div class="stat-label">Total Transactions</div><div class="stat-value">1,284</div><div class="stat-trend positive">+18%</div></div>
@@ -305,22 +430,28 @@
         </div>
         <div class="section-title">Quick Access Modules</div>
         <div class="modules-grid">
+          <div class="module-card" data-color="teal" onclick="window.location.href='/Validator.html'"><div class="module-icon">🏦</div><div class="module-name">Rek Validator</div><div class="module-desc">Cross-check 4 databases</div><div class="module-badge">v1.5.0</div></div>
+          <div class="module-card" data-color="blue" onclick="window.location.href='/Bank.html'"><div class="module-icon">💰</div><div class="module-name">Bank Processor</div><div class="module-desc">Formatter &amp; validator rekening bank</div><div class="module-badge">v2.0.0</div></div>
+          <div class="module-card" data-color="pink" onclick="window.location.href='/Analyzer.html'"><div class="module-icon">📈</div><div class="module-name">P2M Analyzer</div><div class="module-desc">P2M vs Zonamain vs Report analysis</div><div class="module-badge">v2.0.0</div></div>
+          <div class="module-card" data-color="purple" data-action="comingSoon"><div class="module-icon">🔍</div><div class="module-name">XPAY Analyzer</div><div class="module-desc">XPAY transaction analyzer engine</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">📋</div><div class="module-name">XPAY Settlement</div><div class="module-desc">XPAY settlement reconciliation</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="teal" data-action="comingSoon"><div class="module-icon">📊</div><div class="module-name">MNPAY Analyzer</div><div class="module-desc">MNPAY payment flow analyzer</div><div class="module-badge">Soon</div></div>
           <div class="module-card" data-color="blue" onclick="window.location.href='/Syair.html'"><div class="module-icon">📊</div><div class="module-name">Syair Database</div><div class="module-desc">Access shio prediction engine</div><div class="module-badge">v2.1.0</div></div>
           <div class="module-card" data-color="purple" onclick="window.location.href='/Prediksi.html'"><div class="module-icon">🔮</div><div class="module-name">AI Prediction</div><div class="module-desc">Neural probability calculation</div><div class="module-badge">v3.0.0</div></div>
-          <div class="module-card" data-color="green" onclick="window.location.href='/PgReport.html'"><div class="module-icon">🧾</div><div class="module-name">PG Report</div><div class="module-desc">PG Soft credit calculator engine</div><div class="module-badge">v5.0.0</div></div>
-          <div class="module-card" data-color="orange" data-action="appInfo"><div class="module-icon">🚀</div><div class="module-name">QRIS Manager</div><div class="module-desc">Payment gateway configuration</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="teal" onclick="window.location.href='/Validator.html'"><div class="module-icon">🏦</div><div class="module-name">Rek. Validator</div><div class="module-desc">Cross-check 4 databases</div><div class="module-badge">v1.5.0</div></div>
-          <div class="module-card" data-color="pink" onclick="window.location.href='/Analyzer.html'"><div class="module-icon">📈</div><div class="module-name">Data Compare</div><div class="module-desc">P2M vs Zonamain vs Report analysis</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="blue" onclick="window.location.href='/Bank.html'"><div class="module-icon">💰</div><div class="module-name">Bank Processor</div><div class="module-desc">Formatter &amp; validator rekening bank</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="teal" data-action="loadPencairan"><div class="module-icon">💸</div><div class="module-name">Menu Pencairan</div><div class="module-desc">Monitor rekening &amp; pending transactions</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="red" data-action="appInfo"><div class="module-icon">🎰</div><div class="module-name">Gas Slot Engine</div><div class="module-desc">AI Slot Gacor Predictor System</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="red" onclick="window.location.href='/Authority.html'"><div class="module-icon">🛡️</div><div class="module-name">Authority Panel</div><div class="module-desc">Admin access &amp; user management</div><div class="module-badge">Restricted</div></div>
-          <div class="module-card" data-color="orange" data-action="testConnection"><div class="module-icon">⚡</div><div class="module-name">System Test</div><div class="module-desc">Test all connections</div><div class="module-badge">Diagnostic</div></div>
-          <div class="module-card" data-color="purple" data-action="appInfo"><div class="module-icon">ℹ️</div><div class="module-name">App Info</div><div class="module-desc">System information</div><div class="module-badge">v3.0.1</div></div>
+          <div class="module-card" data-color="green" data-action="comingSoon"><div class="module-icon">📅</div><div class="module-name">My Event</div><div class="module-desc">Manage active events</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">🕐</div><div class="module-name">History Event</div><div class="module-desc">Event history &amp; logs</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="green" onclick="window.location.href='/PgReport.html'"><div class="module-icon">🧾</div><div class="module-name">PG Report</div><div class="module-desc">PG Soft credit calculator engine</div><div class="module-badge">v5.0.0</div></div>
+          <div class="module-card" data-color="pink" data-action="comingSoon"><div class="module-icon">✏️</div><div class="module-name">Edit Bukti</div><div class="module-desc">Edit &amp; manage proof of payment</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="teal" data-action="loadPencairan"><div class="module-icon">💸</div><div class="module-name">Saldo Kas</div><div class="module-desc">Monitor rekening &amp; pencairan</div><div class="module-badge">v1.0.0</div></div>
+          <div class="module-card" data-color="blue" data-action="apiKey"><div class="module-icon">🔑</div><div class="module-name">API Key</div><div class="module-desc">Manage API credentials</div><div class="module-badge">v2.0.0</div></div>
+          <div class="module-card" data-color="purple" onclick="window.location.href='/Authority.html'"><div class="module-icon">🛡️</div><div class="module-name">Authority Panel</div><div class="module-desc">Admin access &amp; user management</div><div class="module-badge">Restricted</div></div>
+          <div class="module-card" data-color="orange" data-action="setting"><div class="module-icon">⚙️</div><div class="module-name">Setting</div><div class="module-desc">System configuration</div><div class="module-badge">v1.0.0</div></div>
+          <div class="module-card" data-color="red" data-action="testConnection"><div class="module-icon">⚡</div><div class="module-name">System Test</div><div class="module-desc">Test all connections</div><div class="module-badge">Diagnostic</div></div>
         </div>
       </div>
 
-      <!-- SALDO KAS CONTAINER — HTML tetap di sini, logic dipisah ke SaldoKas.js -->
+      <!-- SALDO KAS CONTAINER -->
       <div id="saldoKasContainer" style="display: none;">
         <div class="saldoKasWrap">
           <div class="saldoKasHeader">
@@ -354,13 +485,11 @@
   <button class="panel-toggle" id="panelToggle"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
   <aside class="right-panel" id="rightPanel"><div class="widget"><div class="widget-title">System Metrics</div><div id="systemMetrics">CPU: 12%<br>RAM: 34%<br>Ping: 24ms</div></div><div class="widget"><div class="widget-title">Activity Log</div><div class="terminal" id="terminalLogs"><div class="terminal-line">[INIT] System boot sequence initiated</div><div class="terminal-line">[INIT] Loading kernel modules</div><div class="terminal-line">[INIT] Establishing secure connection</div><div class="terminal-line">[READY] Dashboard ready</div></div></div></aside>
 
-  <!-- ============================================ -->
-  <!-- SCRIPT DASHBOARD UTAMA (tanpa saldo kas)    -->
-  <!-- ============================================ -->
+  <!-- ============================== -->
+  <!-- SCRIPT DASHBOARD UTAMA         -->
+  <!-- ============================== -->
   <script>
-    // ============================================
-    // CEK LOGIN
-    // ============================================
+    /* ===== CEK LOGIN ===== */
     var authToken = localStorage.getItem('aura_auth_token');
     var userRole = localStorage.getItem('aura_user_role');
     if (!authToken) { window.location.href = '/Login.html'; }
@@ -370,11 +499,8 @@
     }
     function logout() { localStorage.clear(); window.location.href = '/Login.html'; }
 
-    // ============================================
-    // UTILITAS UMUM
-    // ============================================
+    /* ===== UTILITAS ===== */
     var currentPopupCallback = null;
-    var audioCtx = null;
     function $(id) { return document.getElementById(id); }
     function escapeHtml(str) { var d = document.createElement('div'); d.appendChild(document.createTextNode(str)); return d.innerHTML; }
 
@@ -390,11 +516,9 @@
 
     function showToast(message, type) {
       type = type || 'info';
-      var old = document.querySelector('.toast');
-      if (old) old.remove();
+      var old = document.querySelector('.toast'); if (old) old.remove();
       var icons = { success: '\u2705', error: '\u274C', warning: '\u26A0\uFE0F', info: '\u2139\uFE0F' };
-      var t = document.createElement('div');
-      t.className = 'toast';
+      var t = document.createElement('div'); t.className = 'toast';
       t.innerHTML = '<div>' + (icons[type] || icons.info) + '</div><div class="toast-content">' + escapeHtml(message) + '</div><button class="toast-close">\u2715</button>';
       document.body.appendChild(t);
       t.querySelector('.toast-close').addEventListener('click', function() { t.remove(); });
@@ -404,45 +528,107 @@
 
     function addTerminalLog(msg) {
       var t = $('terminalLogs');
-      var d = document.createElement('div');
-      d.className = 'terminal-line';
+      var d = document.createElement('div'); d.className = 'terminal-line';
       d.textContent = '[' + new Date().toLocaleTimeString('id-ID') + '] ' + msg;
-      t.appendChild(d);
-      t.scrollTop = t.scrollHeight;
+      t.appendChild(d); t.scrollTop = t.scrollHeight;
     }
 
-    // ============================================
-    // VIEW SWITCHING (Dashboard ↔ Saldo Kas)
-    // ============================================
+    /* ===== VIEW SWITCHING ===== */
     var currentView = 'dashboard';
-
     function switchView(view) {
       currentView = view;
       $('dashboardView').style.display = (view === 'dashboard') ? '' : 'none';
       $('saldoKasContainer').style.display = (view === 'pencairan') ? '' : 'none';
       $('breadcrumbPage').textContent = (view === 'dashboard') ? 'dashboard' : 'pencairan';
-
       document.querySelectorAll('.nav-item').forEach(function(item) { item.classList.remove('active'); });
-
       if (view === 'dashboard') {
         var dashItem = document.querySelector('.nav-item[data-menu="Index"]');
         if (dashItem) dashItem.classList.add('active');
       } else if (view === 'pencairan') {
-        var penItem = document.querySelector('.nav-item[data-action="loadPencairan"]');
-        if (penItem) penItem.classList.add('active');
+        /* Tidak ada sidebar entry, jangan highlight apa-apa */
       }
-
-      addTerminalLog('View switched → ' + view);
+      addTerminalLog('View switched \u2192 ' + view);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ============================================
-    // ACTION HANDLERS
-    // ============================================
+    /* ===== CLICK-TOGGLE SUBMENU (Event Tools) ===== */
+    document.querySelectorAll('.nav-submenu-wrap.click-toggle > .nav-trigger').forEach(function(trigger) {
+      trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var wrap = this.parentElement;
+        /* Tutup click-toggle lain */
+        document.querySelectorAll('.nav-submenu-wrap.click-toggle.open').forEach(function(other) {
+          if (other !== wrap) other.classList.remove('open');
+        });
+        wrap.classList.toggle('open');
+      });
+    });
+    /* Tutup click-toggle saat klik di luar */
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.nav-submenu-wrap.click-toggle')) {
+        document.querySelectorAll('.nav-submenu-wrap.click-toggle.open').forEach(function(w) {
+          w.classList.remove('open');
+        });
+      }
+    });
+
+    /* ===== ACTION HANDLERS ===== */
     function handleAction(action) {
       switch (action) {
         case 'loadPencairan':
           switchView('pencairan');
+          break;
+        case 'profil':
+          showPopup('Profil',
+            '<div style="text-align:center;padding:16px;">' +
+            '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--accent-primary),var(--accent-purple));margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;">' +
+            '<i class="fas fa-user"></i></div>' +
+            '<div style="font-size:20px;font-weight:700;margin-bottom:4px;">' + escapeHtml(authToken || 'User') + '</div>' +
+            '<div style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">' + escapeHtml(authToken || 'user') + '@aura.os</div>' +
+            '<div style="display:inline-block;padding:6px 16px;background:var(--accent-primary-light);border:1px solid rgba(59,130,246,0.2);border-radius:100px;font-size:12px;color:var(--accent-primary);font-weight:600;">Role: ' + escapeHtml(userRole || 'user') + '</div>' +
+            '</div>',
+            false
+          );
+          addTerminalLog('Profil viewed');
+          break;
+        case 'apiKey':
+          showPopup('API Key Management',
+            '<div style="padding:8px;">' +
+            '<div style="margin-bottom:16px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">API Key</label>' +
+            '<div style="display:flex;gap:8px;"><input type="text" value="aura_sk_xxxxxxxxxxxxxxxxxxxxxxxx" readonly style="flex:1;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;outline:none;" id="apiKeyInput">' +
+            '<button onclick="navigator.clipboard.writeText(document.getElementById(\'apiKeyInput\').value);document.getElementById(\'apiKeyInput\').style.borderColor=\'var(--accent-success)\';setTimeout(function(){document.getElementById(\'apiKeyInput\').style.borderColor=\'var(--border)\';},1500);" style="padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent-primary),var(--accent-primary-dark));color:#fff;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;"><i class="fas fa-copy"></i></button></div></div>' +
+            '<div style="padding:14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;font-size:12px;color:var(--accent-warning);line-height:1.6;"><i class="fas fa-triangle-exclamation" style="margin-right:6px;"></i>Jangan bagikan API key Anda kepada siapa pun. Key ini memiliki akses penuh ke semua endpoint.</div>' +
+            '</div>',
+            false
+          );
+          addTerminalLog('API Key panel opened');
+          break;
+        case 'setting':
+          showPopup('System Setting',
+            '<div style="padding:8px;">' +
+            '<div style="margin-bottom:16px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Theme Mode</label>' +
+            '<div style="display:flex;gap:10px;"><button style="flex:1;padding:14px;border-radius:12px;border:1px solid var(--accent-primary);background:var(--accent-primary-light);color:var(--accent-primary);font-weight:700;cursor:pointer;font-size:13px;">Dark (Active)</button>' +
+            '<button style="flex:1;padding:14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text-tertiary);font-weight:700;cursor:pointer;font-size:13px;opacity:0.5;">Light</button></div></div>' +
+            '<div style="margin-bottom:16px;"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Notification</label>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;"><span style="font-size:14px;font-weight:500;">Push Notification</span>' +
+            '<div style="width:44px;height:24px;border-radius:12px;background:var(--accent-success);position:relative;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px;transition:0.2s;"></div></div></div></div>' +
+            '<div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);display:block;margin-bottom:8px;">Language</label>' +
+            '<select style="width:100%;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);font-size:14px;outline:none;cursor:pointer;"><option>Bahasa Indonesia</option><option>English</option></select></div>' +
+            '</div>',
+            false
+          );
+          addTerminalLog('Settings panel opened');
+          break;
+        case 'comingSoon':
+          showPopup('Coming Soon',
+            '<div style="text-align:center;padding:24px;">' +
+            '<div style="font-size:48px;margin-bottom:16px;">🚧</div>' +
+            '<div style="font-size:18px;font-weight:700;margin-bottom:8px;color:var(--text-primary);">Module Under Development</div>' +
+            '<div style="color:var(--text-secondary);font-size:13px;line-height:1.6;">Fitur ini sedang dalam tahap pengembangan dan akan segera tersedia. Silakan cek kembali nanti.</div>' +
+            '</div>',
+            false
+          );
+          addTerminalLog('Coming soon module accessed');
           break;
         case 'appInfo':
           showPopup('App Information',
@@ -464,71 +650,58 @@
       }
     }
 
-    // ============================================
-    // EVENT DELEGATION
-    // ============================================
+    /* ===== EVENT DELEGATION ===== */
     document.addEventListener('click', function(e) {
-      var actionEl = e.target.closest('[data-action]');
-      if (actionEl) {
-        var action = actionEl.getAttribute('data-action');
+      /* Prioritaskan submenu-item yang punya onclick langsung */
+      if (e.target.closest('.submenu-item[data-action]')) {
+        var action = e.target.closest('.submenu-item[data-action]').getAttribute('data-action');
         handleAction(action);
         return;
       }
-      var menuEl = e.target.closest('[data-menu]');
-      if (menuEl) {
-        var menu = menuEl.getAttribute('data-menu');
+      if (e.target.closest('[data-action]')) {
+        var action = e.target.closest('[data-action]').getAttribute('data-action');
+        handleAction(action);
+        return;
+      }
+      if (e.target.closest('[data-menu]')) {
+        var menu = e.target.closest('[data-menu]').getAttribute('data-menu');
         if (menu === 'Index') switchView('dashboard');
         return;
       }
     });
 
-    // ============================================
-    // POPUP BUTTONS
-    // ============================================
+    /* ===== POPUP BUTTONS ===== */
     $('popupCloseBtn').addEventListener('click', closePopup);
     $('popupCancelBtn').addEventListener('click', closePopup);
     $('popupConfirmBtn').addEventListener('click', confirmPopup);
     $('popupOverlay').addEventListener('click', function(e) { if (e.target === $('popupOverlay')) closePopup(); });
 
-    // ============================================
-    // MOBILE MENU
-    // ============================================
-    $('mobileMenuBtn').addEventListener('click', function() {
-      $('sidebar').classList.toggle('open');
-    });
+    /* ===== MOBILE MENU ===== */
+    $('mobileMenuBtn').addEventListener('click', function() { $('sidebar').classList.toggle('open'); });
     document.addEventListener('click', function(e) {
-      var sidebar = $('sidebar');
-      var btn = $('mobileMenuBtn');
+      var sidebar = $('sidebar'), btn = $('mobileMenuBtn');
       if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !btn.contains(e.target)) {
         sidebar.classList.remove('open');
       }
     });
 
-    // ============================================
-    // RIGHT PANEL
-    // ============================================
-    $('panelToggle').addEventListener('click', function() {
-      $('rightPanel').classList.toggle('open');
-    });
+    /* ===== RIGHT PANEL ===== */
+    $('panelToggle').addEventListener('click', function() { $('rightPanel').classList.toggle('open'); });
 
-    // ============================================
-    // STATUS BADGE
-    // ============================================
-    $('statusBadge').addEventListener('click', function() {
-      showToast('System is online and operational', 'success');
-    });
+    /* ===== STATUS BADGE ===== */
+    $('statusBadge').addEventListener('click', function() { showToast('System is online and operational', 'success'); });
 
-    // ============================================
-    // INIT
-    // ============================================
+    /* ===== INIT ===== */
     (function init() {
       addTerminalLog('User authenticated: ' + authToken);
       addTerminalLog('Role: ' + (userRole || 'user'));
-      addTerminalLog('Modules loaded: 15');
+      addTerminalLog('Modules loaded: 18');
       addTerminalLog('Dashboard initialized');
     })();
   </script>
-  
+
+  <!-- Saldo Kas module terpisah -->
+  <script src="SaldoKas.js"></script>
 
 </body>
 </html>
