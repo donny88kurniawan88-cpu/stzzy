@@ -24,13 +24,11 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Outfit', sans-serif; display: flex; min-height: 100vh; background: var(--bg-black); }
 
-    /* LEFT SIDE (LOGIN FORM - HITAM DENGAN GRID MENYALA) */
     .login-side {
       flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
       padding: 40px; background: var(--bg-black); position: relative; overflow: hidden;
     }
     
-    /* Motif Kotak-kotak (Grid) */
     .grid-pattern {
       position: absolute; inset: 0; z-index: 0;
       background-image: 
@@ -41,7 +39,6 @@
       -webkit-mask-image: radial-gradient(ellipse 90% 90% at 50% 50%, black 30%, transparent 100%);
     }
 
-    /* Glow untuk membuat grid menyala saat berpotongan */
     .glow-orb {
       position: absolute; border-radius: 50%; z-index: 0; filter: blur(80px);
     }
@@ -50,7 +47,6 @@
 
     .form-box { width: 100%; max-width: 420px; position: relative; z-index: 1; }
     
-    /* KARTU LOGIN (GLASSMORPHISM MURNI) */
     .form-card {
       padding: 48px 40px;
       border-radius: 24px;
@@ -76,13 +72,23 @@
       width: 100%; height: 52px; padding: 0 16px 0 48px; background: var(--bg-surface); border: 1px solid var(--border-medium);
       border-radius: 12px; font-family: 'Outfit', sans-serif; font-size: 15px; color: var(--text-main); transition: all 0.2s;
     }
+    .input-field.has-toggle { padding-right: 48px; }
     .input-field:focus { outline: none; border-color: var(--accent-main); box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15); background: #16161a; }
     .input-field::placeholder { color: var(--text-faint); }
     .input-icon { 
       position: absolute; left: 18px; top: 50%; transform: translateY(-50%); 
-      color: var(--text-faint); font-size: 16px; transition: color 0.2s; pointer-events: none;
+      color: var(--text-faint); font-size: 16px; transition: color 0.2s; pointer-events: none; z-index: 1;
     }
     .input-field:focus ~ .input-icon { color: var(--accent-main); }
+
+    /* Toggle password — ditambahkan */
+    .toggle-pwd {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      width: 40px; height: 40px; background: transparent; border: none; cursor: pointer;
+      color: var(--text-faint); display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; transition: all 0.2s; font-size: 14px; z-index: 1;
+    }
+    .toggle-pwd:hover { color: var(--accent-main); background: rgba(139, 92, 246, 0.1); }
 
     .btn-primary {
       width: 100%; height: 52px; background: var(--accent-main); color: #fff; border: none; border-radius: 12px;
@@ -90,23 +96,23 @@
       display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; margin-bottom: 12px; box-shadow: 0 4px 20px var(--accent-glow);
     }
     .btn-primary:hover { background: #7c3aed; transform: translateY(-2px); box-shadow: 0 8px 25px var(--accent-glow); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
     .btn-secondary {
       width: 100%; height: 52px; background: transparent; color: var(--text-dim); border: 1px solid var(--border-medium); border-radius: 12px;
       font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 15px; cursor: pointer; transition: 0.2s;
+      display: flex; justify-content: center; align-items: center; gap: 8px;
     }
     .btn-secondary:hover { background: var(--bg-surface); color: var(--text-main); border-color: var(--accent-main); }
 
     .footer-info { margin-top: 40px; text-align: left; font-size: 12px; color: var(--text-faint); border-top: 1px solid var(--border-subtle); padding-top: 20px; display: flex; justify-content: space-between; align-items: center; }
     .ip-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-surface); padding: 6px 12px; border-radius: 8px; font-family: monospace; border: 1px solid var(--border-subtle); color: var(--accent-main); font-size: 11px; }
 
-    /* RIGHT SIDE (BRANDING - UNGU DENGAN GRID, TITIK & RING) */
     .brand-side {
       flex: 1; background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%); 
       color: #fff; display: flex; flex-direction: column; justify-content: center;
       padding: 80px; position: relative; overflow: hidden;
     }
     
-    /* Motif Grid di Sisi Ungu */
     .brand-grid {
       position: absolute; inset: 0; z-index: 0; opacity: 0.2;
       background-image: 
@@ -117,7 +123,6 @@
       -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
     }
 
-    /* Motif Titik (Dot Matrix) di pojok kanan atas */
     .dot-matrix {
       position: absolute; top: 50px; right: 50px; width: 150px; height: 150px; z-index: 1;
       background-image: radial-gradient(rgba(255, 255, 255, 0.5) 1.5px, transparent 1.5px);
@@ -126,7 +131,6 @@
       -webkit-mask-image: linear-gradient(to bottom left, black 40%, transparent 100%);
     }
 
-    /* Motif Lingkaran Besar (Ring Outline) di pojok kiri bawah */
     .big-ring {
       position: absolute; bottom: -150px; left: -150px; width: 500px; height: 500px; z-index: 1;
       border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 50%;
@@ -149,7 +153,6 @@
     .feature-text p { font-size: 14px; color: rgba(255,255,255,0.7); }
     .brand-footer { position: absolute; bottom: 40px; left: 80px; color: rgba(255,255,255,0.5); font-size: 13px; z-index: 2; font-family: monospace; }
 
-    /* ALERT */
     .alert-box { padding: 14px 16px; border-radius: 10px; margin-bottom: 24px; font-size: 14px; display: none; align-items: center; gap: 12px; font-weight: 500; }
     .alert-error { background: rgba(239, 68, 68, 0.1); color: var(--accent-danger); border: 1px solid rgba(239, 68, 68, 0.3); }
     .alert-success { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
@@ -158,11 +161,10 @@
   </style>
 </head>
 <body>
-  <!-- LEFT: LOGIN FORM (HITAM + GRID MENYALA) -->
   <div class="login-side">
-    <div class="grid-pattern"></div> <!-- Motif Kotak -->
-    <div class="glow-orb glow-1"></div> <!-- Glow Ungu -->
-    <div class="glow-orb glow-2"></div> <!-- Glow Biru -->
+    <div class="grid-pattern"></div>
+    <div class="glow-orb glow-1"></div>
+    <div class="glow-orb glow-2"></div>
     
     <div class="form-box">
       <div class="form-card">
@@ -180,22 +182,22 @@
           <div class="input-group">
             <label class="input-label" for="username">Username / Gmail</label>
             <div class="input-wrapper">
-              <input type="text" id="username" class="input-field" placeholder="Masukkan username" required autocomplete="off">
+              <input type="text" id="username" class="input-field" placeholder="Masukkan username atau email" required autocomplete="off">
               <i class="fas fa-user input-icon"></i>
             </div>
           </div>
           <div class="input-group">
             <label class="input-label" for="password">Password</label>
             <div class="input-wrapper">
-              <input type="password" id="password" class="input-field" placeholder="Masukkan password" required>
+              <input type="password" id="password" class="input-field has-toggle" placeholder="Masukkan password" required>
               <i class="fas fa-lock input-icon"></i>
+              <button type="button" class="toggle-pwd" onclick="togglePwd()"><i class="fas fa-eye" id="pwdEyeIcon"></i></button>
             </div>
           </div>
 
           <button type="submit" class="btn-primary" id="btnLogin">
             <i class="fas fa-arrow-right-to-bracket"></i> Sign In
           </button>
-          <!-- ⬅️ TAMBAHAN 1: id="registerBtn" + arahkan ke halaman Register -->
           <button type="button" class="btn-secondary" id="registerBtn" onclick="window.location.href='/Register.html'">
             <i class="fas fa-user-plus"></i> Register Akun Baru
           </button>
@@ -209,11 +211,10 @@
     </div>
   </div>
 
-  <!-- RIGHT: BRANDING (UNGU + KOMBINASI MOTIF) -->
   <div class="brand-side">
-    <div class="brand-grid"></div> <!-- Motif Kotak di sisi ungu -->
-    <div class="dot-matrix"></div> <!-- Motif Titik -->
-    <div class="big-ring"></div> <!-- Motif Lingkaran -->
+    <div class="brand-grid"></div>
+    <div class="dot-matrix"></div>
+    <div class="big-ring"></div>
     
     <div class="brand-content">
       <div class="brand-logo"><i class="fas fa-shield-halved"></i></div>
@@ -240,62 +241,136 @@
   </div>
 
   <script>
+    /* ============================================================
+       CONFIG — GANTI DENGAN URL WORKER ANDA
+       ============================================================ */
+    var API_BASE = 'https://aura-backend.hundjagers.workers.dev';
+
+    /* ============================================================
+       TOGGLE PASSWORD
+       ============================================================ */
+    function togglePwd() {
+      var input = document.getElementById('password');
+      var icon = document.getElementById('pwdEyeIcon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+      }
+    }
+
+    /* ============================================================
+       SHOW ALERT
+       ============================================================ */
+    function showAlert(message, type) {
+      var box = document.getElementById('alertBox');
+      var icon = document.getElementById('alertIcon');
+      var msg = document.getElementById('alertMsg');
+      box.style.display = 'flex';
+      box.className = 'alert-box alert-' + type;
+      icon.className = type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+      msg.textContent = message;
+      if (type === 'error') setTimeout(function() { box.style.display = 'none'; }, 5000);
+    }
+
+    /* ============================================================
+       LOGIN HANDLER → BACKEND WORKERS
+       ============================================================ */
     function handleLogin(e) {
       e.preventDefault();
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
-      
-      document.getElementById('btnLogin').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memverifikasi...';
-      document.getElementById('btnLogin').disabled = true;
 
-      fetch('/api/login', {
+      var username = document.getElementById('username').value.trim();
+      var password = document.getElementById('password').value.trim();
+      var btn = document.getElementById('btnLogin');
+
+      if (!username || !password) {
+        showAlert('Username dan password wajib diisi.', 'error');
+        return;
+      }
+
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memverifikasi...';
+      btn.disabled = true;
+
+      fetch(API_BASE + '/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ email: username, password: password })
       })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('btnLogin').innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
-        document.getElementById('btnLogin').disabled = false;
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
+        btn.disabled = false;
 
-             if (data.success) {
-          showAlert(data.message, 'success');
-          localStorage.setItem('aura_auth_token', data.user.username);
-          localStorage.setItem('aura_user_role', data.user.role);
-          setTimeout(() => window.location.href = '/Dashboard.html', 300);
+        if (data.success) {
+          /* Simpan token backend (untuk change password dll) */
+          localStorage.setItem('aura_auth_token_backend', data.data.token);
+
+          /* Simpan data user (kompatibel dengan dashboard lama + baru) */
+          localStorage.setItem('aura_auth_token', data.data.user.email);
+          localStorage.setItem('aura_user_name', data.data.user.name);
+          localStorage.setItem('aura_user_role', data.data.user.role || 'user');
+          localStorage.setItem('aura_user_status', data.data.user.status);
+          localStorage.setItem('aura_user_since', data.data.user.since);
+
+          showAlert('Login berhasil! Mengalihkan...', 'success');
+          btn.innerHTML = '<i class="fas fa-check"></i> Berhasil';
+          btn.style.background = '#10b981';
+
+          setTimeout(function() {
+            window.location.href = '/Dashboard.html';
+          }, 1000);
         } else {
-          showAlert(data.error, 'error');
+          showAlert(data.message || 'Login gagal.', 'error');
         }
       })
-      .catch(() => {
-        document.getElementById('btnLogin').innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
-        document.getElementById('btnLogin').disabled = false;
-        showAlert('Kesalahan koneksi ke server.', 'error');
+      .catch(function() {
+        btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
+        btn.disabled = false;
+        showAlert('Tidak dapat terhubung ke server.', 'error');
       });
     }
 
-    function showAlert(message, type) {
-      const box = document.getElementById('alertBox');
-      const icon = document.getElementById('alertIcon');
-      const msg = document.getElementById('alertMsg');
-      box.style.display = 'flex';
-      box.className = `alert-box alert-${type}`;
-      icon.className = type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
-      msg.textContent = message;
-      if (type === 'error') setTimeout(() => box.style.display = 'none', 5000);
-    }
+    /* ============================================================
+       CEK SESI — Sudah login → langsung redirect
+       ============================================================ */
+    (function checkSession() {
+      var token = localStorage.getItem('aura_auth_token_backend');
+      if (!token) return;
 
-    // ⬅️ TAMBAHAN 2: Cek status registrasi dari Authority Panel
-    // Jika Admin menutup pendaftaran → tombol register otomatis hilang
+      fetch(API_BASE + '/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          window.location.href = '/Dashboard.html';
+        } else {
+          /* Token expired, hapus */
+          localStorage.removeItem('aura_auth_token_backend');
+          localStorage.removeItem('aura_auth_token');
+          localStorage.removeItem('aura_user_name');
+          localStorage.removeItem('aura_user_role');
+        }
+      })
+      .catch(function() {
+        /* Server offline, biarkan di halaman login */
+      });
+    })();
+
+    /* ============================================================
+       CEK STATUS REGISTRASI DARI AUTHORITY PANEL
+       ============================================================ */
     (async function checkRegistrationStatus() {
       try {
-        const res = await fetch('/api/settings/registration/public');
-        if (!res.ok) return; // endpoint error → tombol tetap tampil (default aman)
-        const s = await res.json();
+        var res = await fetch('/api/settings/registration/public');
+        if (!res.ok) return;
+        var s = await res.json();
         if (s.open === false) {
           document.getElementById('registerBtn').style.display = 'none';
         }
-      } catch (e) { /* koneksi gagal → tombol tetap tampil */ }
+      } catch (e) {}
     })();
   </script>
 </body>
