@@ -39,19 +39,15 @@
       -webkit-mask-image: radial-gradient(ellipse 90% 90% at 50% 50%, black 30%, transparent 100%);
     }
 
-    .glow-orb {
-      position: absolute; border-radius: 50%; z-index: 0; filter: blur(80px);
-    }
+    .glow-orb { position: absolute; border-radius: 50%; z-index: 0; filter: blur(80px); }
     .glow-1 { top: -150px; right: -150px; width: 500px; height: 500px; background: var(--accent-glow); }
     .glow-2 { bottom: -150px; left: -150px; width: 450px; height: 450px; background: rgba(59, 130, 246, 0.3); }
 
     .form-box { width: 100%; max-width: 420px; position: relative; z-index: 1; }
     
     .form-card {
-      padding: 48px 40px;
-      border-radius: 24px;
-      background: var(--bg-card);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 48px 40px; border-radius: 24px;
+      background: var(--bg-card); border: 1px solid rgba(255, 255, 255, 0.08);
       box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 60px rgba(139, 92, 246, 0.08); 
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -81,7 +77,6 @@
     }
     .input-field:focus ~ .input-icon { color: var(--accent-main); }
 
-    /* Toggle password — ditambahkan */
     .toggle-pwd {
       position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
       width: 40px; height: 40px; background: transparent; border: none; cursor: pointer;
@@ -182,7 +177,7 @@
           <div class="input-group">
             <label class="input-label" for="username">Username / Gmail</label>
             <div class="input-wrapper">
-              <input type="text" id="username" class="input-field" placeholder="Masukkan username atau email" required autocomplete="off">
+              <input type="text" id="username" class="input-field" placeholder="Masukkan username" required autocomplete="off">
               <i class="fas fa-user input-icon"></i>
             </div>
           </div>
@@ -241,14 +236,7 @@
   </div>
 
   <script>
-    /* ============================================================
-       CONFIG — GANTI DENGAN URL WORKER ANDA
-       ============================================================ */
-    var API_BASE = 'https://aura-backend.hundjagers.workers.dev';
-
-    /* ============================================================
-       TOGGLE PASSWORD
-       ============================================================ */
+    /* Toggle password visibility */
     function togglePwd() {
       var input = document.getElementById('password');
       var icon = document.getElementById('pwdEyeIcon');
@@ -261,9 +249,7 @@
       }
     }
 
-    /* ============================================================
-       SHOW ALERT
-       ============================================================ */
+    /* Alert */
     function showAlert(message, type) {
       var box = document.getElementById('alertBox');
       var icon = document.getElementById('alertIcon');
@@ -275,93 +261,42 @@
       if (type === 'error') setTimeout(function() { box.style.display = 'none'; }, 5000);
     }
 
-    /* ============================================================
-       LOGIN HANDLER → BACKEND WORKERS
-       ============================================================ */
+    /* Login — ENDPOINT ASLI ANDA yang sudah jalan */
     function handleLogin(e) {
       e.preventDefault();
-
       var username = document.getElementById('username').value.trim();
       var password = document.getElementById('password').value.trim();
-      var btn = document.getElementById('btnLogin');
+      
+      document.getElementById('btnLogin').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memverifikasi...';
+      document.getElementById('btnLogin').disabled = true;
 
-      if (!username || !password) {
-        showAlert('Username dan password wajib diisi.', 'error');
-        return;
-      }
-
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memverifikasi...';
-      btn.disabled = true;
-
-      fetch(API_BASE + '/api/auth/login', {
+      fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: username, password: password })
+        body: JSON.stringify({ username: username, password: password })
       })
       .then(function(res) { return res.json(); })
       .then(function(data) {
-        btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
-        btn.disabled = false;
+        document.getElementById('btnLogin').innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
+        document.getElementById('btnLogin').disabled = false;
 
         if (data.success) {
-          /* Simpan token backend (untuk change password dll) */
-          localStorage.setItem('aura_auth_token_backend', data.data.token);
-
-          /* Simpan data user (kompatibel dengan dashboard lama + baru) */
-          localStorage.setItem('aura_auth_token', data.data.user.email);
-          localStorage.setItem('aura_user_name', data.data.user.name);
-          localStorage.setItem('aura_user_role', data.data.user.role || 'user');
-          localStorage.setItem('aura_user_status', data.data.user.status);
-          localStorage.setItem('aura_user_since', data.data.user.since);
-
-          showAlert('Login berhasil! Mengalihkan...', 'success');
-          btn.innerHTML = '<i class="fas fa-check"></i> Berhasil';
-          btn.style.background = '#10b981';
-
-          setTimeout(function() {
-            window.location.href = '/Dashboard.html';
-          }, 1000);
+          showAlert(data.message, 'success');
+          localStorage.setItem('aura_auth_token', data.user.username);
+          localStorage.setItem('aura_user_role', data.user.role);
+          setTimeout(function() { window.location.href = '/Dashboard.html'; }, 300);
         } else {
-          showAlert(data.message || 'Login gagal.', 'error');
+          showAlert(data.error, 'error');
         }
       })
       .catch(function() {
-        btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
-        btn.disabled = false;
-        showAlert('Tidak dapat terhubung ke server.', 'error');
+        document.getElementById('btnLogin').innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
+        document.getElementById('btnLogin').disabled = false;
+        showAlert('Kesalahan koneksi ke server.', 'error');
       });
     }
 
-    /* ============================================================
-       CEK SESI — Sudah login → langsung redirect
-       ============================================================ */
-    (function checkSession() {
-      var token = localStorage.getItem('aura_auth_token_backend');
-      if (!token) return;
-
-      fetch(API_BASE + '/api/auth/me', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if (data.success) {
-          window.location.href = '/Dashboard.html';
-        } else {
-          /* Token expired, hapus */
-          localStorage.removeItem('aura_auth_token_backend');
-          localStorage.removeItem('aura_auth_token');
-          localStorage.removeItem('aura_user_name');
-          localStorage.removeItem('aura_user_role');
-        }
-      })
-      .catch(function() {
-        /* Server offline, biarkan di halaman login */
-      });
-    })();
-
-    /* ============================================================
-       CEK STATUS REGISTRASI DARI AUTHORITY PANEL
-       ============================================================ */
+    /* Cek status registrasi */
     (async function checkRegistrationStatus() {
       try {
         var res = await fetch('/api/settings/registration/public');
