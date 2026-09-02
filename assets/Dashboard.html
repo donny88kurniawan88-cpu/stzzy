@@ -323,7 +323,6 @@
     <div class="sidebar-header">
       <div>
         <div class="logo">AURA.OS</div>
-        <div class="logo-sub">v3.0.1 — CLOUDFLARE</div>
       </div>
       <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
     </div>
@@ -437,9 +436,9 @@
 
   <main class="main-content">
     <header class="top-bar">
-      <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
         <button class="mobile-menu-btn" id="mobileMenuBtn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-        <div class="breadcrumb"><span id="userEmail">system@aura.os</span><span>/</span><span id="breadcrumbPage">dashboard</span></div>
+        <div class="breadcrumb"><span id="breadcrumbPage" style="text-transform:capitalize;">dashboard</span></div>
       </div>
       <div class="status-badge" id="statusBadge"><div class="status-dot"></div><span>System Online</span></div>
     </header>
@@ -449,7 +448,7 @@
       <!-- ===== DASHBOARD VIEW ===== -->
       <div id="dashboardView">
         <div class="hero-section">
-          <h1 class="hero-title">Welcome back, <span id="userName">User</span></h1>
+                    <h1 class="hero-title"><i class="fas fa-hand-sparkles" style="font-size:0.7em; margin-right:8px; background:linear-gradient(135deg,var(--accent-primary),var(--accent-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;"></i>Welcome back, <span id="userName">User</span></h1>
           <p class="hero-subtitle">Quantum interface loaded. All systems operational.</p>
         </div>
         <div class="stats-grid">
@@ -1120,10 +1119,8 @@ function changePassword() {
        INIT
        =================================================================== */
     (function init() {
-      var username = localStorage.getItem('aura_user_name') || 'User';
-      var email = localStorage.getItem('aura_auth_token') || 'system@aura.os';
+            var username = localStorage.getItem('aura_auth_token') || 'User';
       document.getElementById('userName').textContent = username;
-      document.getElementById('userEmail').textContent = email;
 
       var bootMsgs = [
         'AURA.OS v3.0.1 initialized',
