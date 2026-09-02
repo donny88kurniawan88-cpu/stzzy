@@ -719,11 +719,10 @@
     /* ===================================================================
    PROFIL: CHANGE PASSWORD (BACKEND)
    =================================================================== */
-async function changePassword() {
+function changePassword() {
   var oldPwd = document.getElementById('pwdOld');
   var newPwd = document.getElementById('pwdNew');
   var confirmPwd = document.getElementById('pwdConfirm');
-  var btn = document.getElementById('pwdSubmitBtn');
 
   var o = oldPwd.value.trim();
   var n = newPwd.value.trim();
@@ -734,34 +733,20 @@ async function changePassword() {
   if (n.length < 6) { showToast('Password baru minimal 6 karakter', 'warning'); newPwd.focus(); return; }
   if (n !== c) { showToast('Konfirmasi password tidak cocok', 'warning'); confirmPwd.focus(); return; }
 
-  /* Loading state */
-  var originalText = btn.innerHTML;
+  var btn = document.getElementById('pwdSubmitBtn');
+  var originalHTML = btn.innerHTML;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
   btn.disabled = true;
   btn.style.opacity = '0.6';
 
-  try {
-    var token = localStorage.getItem('aura_auth_token_backend') || '';
-
-    var res = await fetch('https://aura-backend.namaworker.workers.dev/api/auth/change-password', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token,
-      },
-      body: JSON.stringify({
-        oldPassword: o,
-        newPassword: n,
-      }),
-    });
-
-    var result = await res.json();
-
-    if (result.success) {
-      showToast('Password berhasil diubah!', 'success');
-      addTerminalLog('Password changed via backend for: ' + (localStorage.getItem('aura_auth_token') || 'user'));
-
-      /* Reset form */
+  fetch('/api/user/password', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('aura_auth_token') || '' },
+    body: JSON.stringify({ oldPassword: o, newPassword: n })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (data.success) {
       oldPwd.value = ''; newPwd.value = ''; confirmPwd.value = '';
       var sb = document.getElementById('pwdStrength');
       if (sb) sb.style.width = '0%';
@@ -775,19 +760,21 @@ async function changePassword() {
         var el = document.getElementById(id);
         if (el) el.className = 'cross';
       });
+      showToast('Password berhasil diubah!', 'success');
+      addTerminalLog('Password changed for: ' + (localStorage.getItem('aura_auth_token') || 'user'));
     } else {
-      showToast(result.message || 'Gagal mengubah password', 'error');
+      showToast(data.error || 'Gagal mengubah password', 'error');
     }
-  } catch (err) {
-    showToast('Koneksi ke server gagal', 'error');
-    addTerminalLog('Password change error: ' + err.message);
-  } finally {
-    btn.innerHTML = originalText;
+  })
+  .catch(function() {
+    showToast('Tidak dapat terhubung ke server', 'error');
+  })
+  .finally(function() {
+    btn.innerHTML = originalHTML;
     btn.disabled = false;
     btn.style.opacity = '1';
-  }
+  });
 }
-
     /* ===================================================================
        PROFIL: SWITCH TO PROFIL VIEW
        =================================================================== */
@@ -797,43 +784,62 @@ async function changePassword() {
       document.getElementById('pencairanView').style.display = 'none';
       document.getElementById('breadcrumbPage').textContent = 'profil';
 
-      /* Isi data */
-      var username = localStorage.getItem('aura_user_name') || 'User';
-      var email = localStorage.getItem('aura_auth_token') || 'system@aura.os';
+            /* Isi data dari server */
+      var username = localStorage.getItem('aura_auth_token') || 'User';
+      var email = username;
       var status = localStorage.getItem('aura_user_status') || 'Active';
       var since = localStorage.getItem('aura_user_since') || '-';
-      var storedPass = localStorage.getItem('aura_user_pass') || '';
 
-      document.getElementById('profilAvatar').textContent = username.charAt(0).toUpperCase();
-      document.getElementById('profilName').textContent = username;
-      document.getElementById('profilEmailDisplay').textContent = email;
-      document.getElementById('profilUsername').textContent = username;
-      document.getElementById('profilStatusChip').textContent = status;
-      document.getElementById('profilStatusText').textContent = status;
-      document.getElementById('profilSince').textContent = since;
-      document.getElementById('profilSession').textContent = generateSessionId();
+      fetch('/api/user/profile', {
+        headers: { 'x-auth-token': username }
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          var d = data.data;
+          username = d.username || username;
+          status = d.status || 'Active';
+          since = d.since || since;
+          localStorage.setItem('aura_user_status', status);
+          localStorage.setItem('aura_user_since', since);
+        }
+      })
+      .catch(function() {
+        /* Offline: pakai data localStorage saja */
+      })
+      .finally(function() {
+        document.getElementById('profilAvatar').textContent = username.charAt(0).toUpperCase();
+        document.getElementById('profilName').textContent = username;
+        document.getElementById('profilEmailDisplay').textContent = email;
+        document.getElementById('profilUsername').textContent = username;
+        document.getElementById('profilStatusChip').textContent = status;
+        document.getElementById('profilStatusText').textContent = status;
+        document.getElementById('profilSince').textContent = since;
+        document.getElementById('profilSession').textContent = generateSessionId();
 
-      if (storedPass.length > 3) {
-        document.getElementById('pwdDisplay').textContent = storedPass.substring(0,2) + '•••••' + storedPass.substring(storedPass.length - 2);
-      } else {
-        document.getElementById('pwdDisplay').textContent = '•••••••';
-      }
+        var storedPass = localStorage.getItem('aura_user_pass') || '';
+        if (storedPass.length > 3) {
+          document.getElementById('pwdDisplay').textContent = storedPass.substring(0,2) + '•••••' + storedPass.substring(storedPass.length - 2);
+        } else {
+          document.getElementById('pwdDisplay').textContent = '•••••••';
+        }
 
-      /* Reset form */
-      document.getElementById('pwdOld').value = '';
-      document.getElementById('pwdNew').value = '';
-      document.getElementById('pwdConfirm').value = '';
-      var sb = document.getElementById('pwdStrength');
-      if (sb) sb.style.width = '0%';
-      var sm = document.getElementById('pwdMatchMsg');
-      if (sm) sm.innerHTML = '';
-      var st = document.getElementById('pwdStrengthText');
-      if (st) { st.textContent = 'Strength'; st.style.color = 'var(--text-tertiary)'; }
-      var sp = document.getElementById('pwdStrengthPct');
-      if (sp) { sp.textContent = '0%'; sp.style.color = 'var(--text-tertiary)'; }
-      ['hintLen','hintUpper','hintNum','hintSpecial'].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.className = 'cross';
+        /* Reset form */
+        document.getElementById('pwdOld').value = '';
+        document.getElementById('pwdNew').value = '';
+        document.getElementById('pwdConfirm').value = '';
+        var sb = document.getElementById('pwdStrength');
+        if (sb) sb.style.width = '0%';
+        var sm = document.getElementById('pwdMatchMsg');
+        if (sm) sm.innerHTML = '';
+        var st = document.getElementById('pwdStrengthText');
+        if (st) { st.textContent = 'Strength'; st.style.color = 'var(--text-tertiary)'; }
+        var sp = document.getElementById('pwdStrengthPct');
+        if (sp) { sp.textContent = '0%'; sp.style.color = 'var(--text-tertiary)'; }
+        ['hintLen','hintUpper','hintNum','hintSpecial'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.className = 'cross';
+        });
       });
 
       /* Active nav */
