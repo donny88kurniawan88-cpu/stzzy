@@ -213,9 +213,8 @@
 <body>
   <!-- AUTH CHECK AURA.OS -->
   <script>
-        const authToken = localStorage.getItem('aura_auth_token');
+    const authToken = localStorage.getItem('aura_auth_token');
     if (!authToken) window.location.href = '/Login.html';
-    document.getElementById('userEmail').textContent = authToken ? authToken + '@aura.os' : 'user';
   </script>
 
   <!-- TOP BAR (ala Dashboard) -->
@@ -223,7 +222,7 @@
     <div class="top-left">
       <a href="/Dashboard.html" class="btn-back"><i class="fas fa-home"></i> Dashboard</a>
       <div class="header-title"><i class="fas fa-database"></i> Bank Processor</div>
-      <div class="breadcrumb"><span id="userEmail">user</span><span>/</span><span>bank</span><span>/</span><span id="crumbView">formatter</span></div>
+      <div class="breadcrumb"><span>bank</span><span>/</span><span id="crumbView">formatter</span></div>
     </div>
     <div class="status-badge"><div class="status-dot"></div><span>D1 Online</span></div>
   </header>
