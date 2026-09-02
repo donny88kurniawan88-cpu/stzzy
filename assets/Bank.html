@@ -213,8 +213,9 @@
 <body>
   <!-- AUTH CHECK AURA.OS -->
   <script>
-    const authToken = localStorage.getItem('aura_auth_token');
+        const authToken = localStorage.getItem('aura_auth_token');
     if (!authToken) window.location.href = '/Login.html';
+    document.getElementById('userEmail').textContent = authToken ? authToken + '@aura.os' : 'user';
   </script>
 
   <!-- TOP BAR (ala Dashboard) -->
