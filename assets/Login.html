@@ -20,6 +20,7 @@
       --accent-glow: rgba(139, 92, 246, 0.5);
       --accent-blue: #3b82f6; 
       --accent-danger: #ef4444;
+      --accent-success: #10b981;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Outfit', sans-serif; display: flex; min-height: 100vh; background: var(--bg-black); }
@@ -51,6 +52,18 @@
       box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 60px rgba(139, 92, 246, 0.08); 
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
+      transition: filter 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+    }
+    .form-box.blurred .form-card {
+      filter: blur(8px) brightness(0.6);
+      opacity: 0.5;
+      transform: scale(0.97);
+      pointer-events: none;
+    }
+    .form-box.blurred .footer-info {
+      filter: blur(8px) brightness(0.6);
+      opacity: 0.5;
+      pointer-events: none;
     }
 
     .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 32px; display: flex; align-items: center; gap: 10px; }
@@ -98,9 +111,55 @@
       display: flex; justify-content: center; align-items: center; gap: 8px;
     }
     .btn-secondary:hover { background: var(--bg-surface); color: var(--text-main); border-color: var(--accent-main); }
+    .btn-ghost {
+      background: transparent; border: none; color: var(--text-dim); cursor: pointer;
+      font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500; padding: 8px 0;
+      display: flex; align-items: center; gap: 6px; transition: color 0.2s;
+    }
+    .btn-ghost:hover { color: var(--text-main); }
+    .btn-ghost i { font-size: 12px; transition: transform 0.2s; }
+    .btn-ghost:hover i { transform: translateX(-3px); }
 
-    .footer-info { margin-top: 40px; text-align: left; font-size: 12px; color: var(--text-faint); border-top: 1px solid var(--border-subtle); padding-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .footer-info { margin-top: 40px; text-align: left; font-size: 12px; color: var(--text-faint); border-top: 1px solid var(--border-subtle); padding-top: 20px; display: flex; justify-content: space-between; align-items: center; transition: filter 0.4s ease, opacity 0.4s ease; }
     .ip-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-surface); padding: 6px 12px; border-radius: 8px; font-family: monospace; border: 1px solid var(--border-subtle); color: var(--accent-main); font-size: 11px; }
+
+    /* ===== REGISTER OVERLAY PANEL ===== */
+    .register-overlay {
+      position: absolute; inset: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+      opacity: 0; visibility: hidden;
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+    }
+    .register-overlay.open {
+      opacity: 1; visibility: visible;
+    }
+    .register-panel {
+      width: 100%; max-width: 420px;
+      padding: 44px 36px; border-radius: 24px;
+      background: rgba(12, 12, 15, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.6), 0 0 80px rgba(139, 92, 246, 0.1);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      transform: translateY(20px) scale(0.96);
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-height: 90vh; overflow-y: auto;
+    }
+    .register-overlay.open .register-panel {
+      transform: translateY(0) scale(1);
+    }
+    .register-panel::-webkit-scrollbar { width: 4px; }
+    .register-panel::-webkit-scrollbar-track { background: transparent; }
+    .register-panel::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 4px; }
+
+    /* Strength bar di register */
+    .strength-wrap { margin-top: 8px; margin-bottom: 4px; }
+    .strength-labels { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .strength-labels span { font-size: 11px; font-weight: 600; color: var(--text-faint); transition: color 0.2s; }
+    .strength-bar { width: 100%; height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+    .strength-fill { height: 100%; width: 0%; border-radius: 4px; transition: all 0.3s ease; }
+    .match-msg { font-size: 12px; font-weight: 600; min-height: 18px; margin-top: 4px; margin-bottom: 4px; transition: color 0.2s; display: flex; align-items: center; gap: 5px; }
+    .match-msg i { font-size: 11px; }
 
     .brand-side {
       flex: 1; background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%); 
@@ -152,7 +211,11 @@
     .alert-error { background: rgba(239, 68, 68, 0.1); color: var(--accent-danger); border: 1px solid rgba(239, 68, 68, 0.3); }
     .alert-success { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
 
+    @keyframes shake { 0%,100%{transform:translateX(0)} 10%,30%,50%,70%,90%{transform:translateX(-5px)} 20%,40%,60%,80%{transform:translateX(5px)} }
+    .shake { animation: shake 0.4s ease; }
+
     @media (max-width: 900px) { .brand-side { display: none; } .login-side { padding: 20px; } }
+    @media (max-width: 480px) { .form-card { padding: 32px 24px; } .register-panel { padding: 32px 24px; } }
   </style>
 </head>
 <body>
@@ -161,7 +224,8 @@
     <div class="glow-orb glow-1"></div>
     <div class="glow-orb glow-2"></div>
     
-    <div class="form-box">
+    <div class="form-box" id="formBox">
+      <!-- LOGIN CARD -->
       <div class="form-card">
         <div class="logo-text"><i class="fas fa-shield-halved"></i> AURA<span>.OS</span></div>
         
@@ -186,14 +250,14 @@
             <div class="input-wrapper">
               <input type="password" id="password" class="input-field has-toggle" placeholder="Masukkan password" required>
               <i class="fas fa-lock input-icon"></i>
-              <button type="button" class="toggle-pwd" onclick="togglePwd()"><i class="fas fa-eye" id="pwdEyeIcon"></i></button>
+              <button type="button" class="toggle-pwd" onclick="togglePwd('password','pwdEyeIcon')"><i class="fas fa-eye" id="pwdEyeIcon"></i></button>
             </div>
           </div>
 
           <button type="submit" class="btn-primary" id="btnLogin">
             <i class="fas fa-arrow-right-to-bracket"></i> Sign In
           </button>
-          <button type="button" class="btn-secondary" id="registerBtn" onclick="window.location.href='/Register.html'">
+          <button type="button" class="btn-secondary" id="registerBtn" onclick="openRegister()">
             <i class="fas fa-user-plus"></i> Register Akun Baru
           </button>
         </form>
@@ -202,6 +266,73 @@
       <div class="footer-info">
         <div>© 2024 AURA.OS System</div>
         <div class="ip-badge"><i class="fas fa-globe"></i> IP: 192.168.1.1</div>
+      </div>
+
+      <!-- ===== REGISTER OVERLAY (blur di atas login) ===== -->
+      <div class="register-overlay" id="registerOverlay">
+        <div class="register-panel">
+          <div class="logo-text"><i class="fas fa-shield-halved"></i> AURA<span>.OS</span></div>
+
+          <button type="button" class="btn-ghost" onclick="closeRegister()" style="margin-bottom:20px;">
+            <i class="fas fa-arrow-left"></i> Kembali ke Sign In
+          </button>
+
+          <h2 class="form-title">Create Account</h2>
+          <p class="subtitle">Buat akun baru untuk mengakses seluruh modul AURA.OS.</p>
+
+          <div class="alert-box" id="regAlertBox">
+            <i class="fas fa-exclamation-circle" id="regAlertIcon"></i>
+            <span id="regAlertMsg"></span>
+          </div>
+
+          <form id="registerForm" onsubmit="handleRegister(event)">
+            <div class="input-group">
+              <label class="input-label" for="regName">Nama Lengkap</label>
+              <div class="input-wrapper">
+                <input type="text" id="regName" class="input-field" placeholder="Masukkan nama lengkap" required autocomplete="name">
+                <i class="fas fa-user input-icon"></i>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label class="input-label" for="regEmail">Email</label>
+              <div class="input-wrapper">
+                <input type="email" id="regEmail" class="input-field" placeholder="nama@email.com" required autocomplete="email">
+                <i class="fas fa-envelope input-icon"></i>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label class="input-label" for="regPassword">Password</label>
+              <div class="input-wrapper">
+                <input type="password" id="regPassword" class="input-field has-toggle" placeholder="Minimal 6 karakter" required autocomplete="new-password" oninput="checkRegStrength()">
+                <i class="fas fa-lock input-icon"></i>
+                <button type="button" class="toggle-pwd" onclick="togglePwd('regPassword','regPwdEyeIcon')"><i class="fas fa-eye" id="regPwdEyeIcon"></i></button>
+              </div>
+              <div class="strength-wrap">
+                <div class="strength-labels">
+                  <span id="strLabel">Strength</span>
+                  <span id="strPct">0%</span>
+                </div>
+                <div class="strength-bar"><div class="strength-fill" id="strFill"></div></div>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label class="input-label" for="regConfirm">Konfirmasi Password</label>
+              <div class="input-wrapper">
+                <input type="password" id="regConfirm" class="input-field has-toggle" placeholder="Ulangi password" required autocomplete="new-password" oninput="checkRegMatch()">
+                <i class="fas fa-lock input-icon"></i>
+                <button type="button" class="toggle-pwd" onclick="togglePwd('regConfirm','regConfEyeIcon')"><i class="fas fa-eye" id="regConfEyeIcon"></i></button>
+              </div>
+              <div class="match-msg" id="matchMsg"></div>
+            </div>
+
+            <button type="submit" class="btn-primary" id="btnRegister" style="margin-top:8px;">
+              <i class="fas fa-user-plus"></i> Buat Akun
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -236,10 +367,10 @@
   </div>
 
   <script>
-    /* Toggle password visibility */
-    function togglePwd() {
-      var input = document.getElementById('password');
-      var icon = document.getElementById('pwdEyeIcon');
+    /* ===== TOGGLE PASSWORD ===== */
+    function togglePwd(inputId, iconId) {
+      var input = document.getElementById(inputId);
+      var icon = document.getElementById(iconId);
       if (input.type === 'password') {
         input.type = 'text';
         icon.className = 'fas fa-eye-slash';
@@ -249,7 +380,7 @@
       }
     }
 
-    /* Alert */
+    /* ===== ALERT (LOGIN) ===== */
     function showAlert(message, type) {
       var box = document.getElementById('alertBox');
       var icon = document.getElementById('alertIcon');
@@ -261,14 +392,98 @@
       if (type === 'error') setTimeout(function() { box.style.display = 'none'; }, 5000);
     }
 
-    /* Login — ENDPOINT ASLI ANDA yang sudah jalan */
+    /* ===== ALERT (REGISTER) ===== */
+    function showRegAlert(message, type) {
+      var box = document.getElementById('regAlertBox');
+      var icon = document.getElementById('regAlertIcon');
+      var msg = document.getElementById('regAlertMsg');
+      box.style.display = 'flex';
+      box.className = 'alert-box alert-' + type;
+      icon.className = type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+      msg.textContent = message;
+      if (type === 'error') setTimeout(function() { box.style.display = 'none'; }, 5000);
+    }
+
+    /* ===== REGISTER PANEL OPEN/CLOSE ===== */
+    function openRegister() {
+      document.getElementById('formBox').classList.add('blurred');
+      document.getElementById('registerOverlay').classList.add('open');
+      /* Reset form */
+      document.getElementById('registerForm').reset();
+      document.getElementById('regAlertBox').style.display = 'none';
+      document.getElementById('strFill').style.width = '0%';
+      document.getElementById('matchMsg').innerHTML = '';
+      document.getElementById('strLabel').textContent = 'Strength';
+      document.getElementById('strLabel').style.color = 'var(--text-faint)';
+      document.getElementById('strPct').textContent = '0%';
+      document.getElementById('strPct').style.color = 'var(--text-faint)';
+      /* Reset eye icons */
+      document.getElementById('regPwdEyeIcon').className = 'fas fa-eye';
+      document.getElementById('regConfEyeIcon').className = 'fas fa-eye';
+      document.getElementById('regPassword').type = 'password';
+      document.getElementById('regConfirm').type = 'password';
+    }
+
+    function closeRegister() {
+      document.getElementById('registerOverlay').classList.remove('open');
+      setTimeout(function() {
+        document.getElementById('formBox').classList.remove('blurred');
+      }, 350);
+    }
+
+    /* ===== REGISTER: STRENGTH ===== */
+    function checkRegStrength() {
+      var pwd = document.getElementById('regPassword').value;
+      var fill = document.getElementById('strFill');
+      var label = document.getElementById('strLabel');
+      var pct = document.getElementById('strPct');
+
+      var s = 0;
+      if (pwd.length >= 4) s++;
+      if (pwd.length >= 6) s++;
+      if (/[A-Z]/.test(pwd)) s++;
+      if (/[0-9]/.test(pwd)) s++;
+      if (/[^A-Za-z0-9]/.test(pwd)) s++;
+
+      var colors = ['#ef4444','#ef4444','#f59e0b','#f59e0b','#10b981','#10b981'];
+      var widths = ['0%','20%','40%','60%','80%','100%'];
+      var labels = ['—','Sangat Lemah','Lemah','Sedang','Kuat','Sangat Kuat'];
+      var pcts   = [0, 20, 40, 60, 80, 100];
+      var i = Math.min(s, 5);
+
+      fill.style.width = widths[i];
+      fill.style.background = colors[i];
+      label.textContent = labels[i];
+      label.style.color = colors[i];
+      pct.textContent = pcts[i] + '%';
+      pct.style.color = colors[i];
+    }
+
+    /* ===== REGISTER: MATCH CHECK ===== */
+    function checkRegMatch() {
+      var pwd = document.getElementById('regPassword').value;
+      var conf = document.getElementById('regConfirm').value;
+      var msg = document.getElementById('matchMsg');
+      if (conf.length === 0) {
+        msg.innerHTML = '';
+      } else if (pwd !== conf) {
+        msg.style.color = 'var(--accent-danger)';
+        msg.innerHTML = '<i class="fas fa-times-circle"></i> Password tidak cocok';
+      } else {
+        msg.style.color = 'var(--accent-success)';
+        msg.innerHTML = '<i class="fas fa-check-circle"></i> Password cocok';
+      }
+    }
+
+    /* ===== LOGIN HANDLER ===== */
     function handleLogin(e) {
       e.preventDefault();
       var username = document.getElementById('username').value.trim();
       var password = document.getElementById('password').value.trim();
-      
-      document.getElementById('btnLogin').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memverifikasi...';
-      document.getElementById('btnLogin').disabled = true;
+      var btn = document.getElementById('btnLogin');
+
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memverifikasi...';
+      btn.disabled = true;
 
       fetch('/api/login', {
         method: 'POST',
@@ -277,8 +492,8 @@
       })
       .then(function(res) { return res.json(); })
       .then(function(data) {
-        document.getElementById('btnLogin').innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
-        document.getElementById('btnLogin').disabled = false;
+        btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
+        btn.disabled = false;
 
         if (data.success) {
           showAlert(data.message, 'success');
@@ -287,16 +502,79 @@
           setTimeout(function() { window.location.href = '/Dashboard.html'; }, 300);
         } else {
           showAlert(data.error, 'error');
+          document.getElementById('loginForm').classList.add('shake');
+          setTimeout(function() { document.getElementById('loginForm').classList.remove('shake'); }, 400);
         }
       })
       .catch(function() {
-        document.getElementById('btnLogin').innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
-        document.getElementById('btnLogin').disabled = false;
+        btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
+        btn.disabled = false;
         showAlert('Kesalahan koneksi ke server.', 'error');
       });
     }
 
-    /* Cek status registrasi */
+    /* ===== REGISTER HANDLER ===== */
+    function handleRegister(e) {
+      e.preventDefault();
+      var name = document.getElementById('regName').value.trim();
+      var email = document.getElementById('regEmail').value.trim();
+      var password = document.getElementById('regPassword').value;
+      var confirm = document.getElementById('regConfirm').value;
+      var btn = document.getElementById('btnRegister');
+
+      if (password !== confirm) {
+        showRegAlert('Password tidak cocok', 'error');
+        document.getElementById('registerForm').classList.add('shake');
+        setTimeout(function() { document.getElementById('registerForm').classList.remove('shake'); }, 400);
+        return;
+      }
+      if (password.length < 6) {
+        showRegAlert('Password minimal 6 karakter', 'error');
+        return;
+      }
+
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Membuat akun...';
+      btn.disabled = true;
+
+      fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, email: email, password: password })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Buat Akun';
+        btn.disabled = false;
+
+        if (data.success) {
+          showRegAlert(data.message || 'Akun berhasil dibuat!', 'success');
+          btn.innerHTML = '<i class="fas fa-check"></i> Berhasil';
+          btn.style.background = 'var(--accent-success)';
+          btn.style.boxShadow = '0 4px 20px rgba(16,185,129,0.4)';
+          setTimeout(function() {
+            /* Reset button style */
+            btn.style.background = '';
+            btn.style.boxShadow = '';
+            btn.innerHTML = '<i class="fas fa-user-plus"></i> Buat Akun';
+            /* Balik ke login & isi email */
+            closeRegister();
+            document.getElementById('username').value = email;
+            document.getElementById('password').focus();
+          }, 1200);
+        } else {
+          showRegAlert(data.error || data.message || 'Registrasi gagal', 'error');
+          document.getElementById('registerForm').classList.add('shake');
+          setTimeout(function() { document.getElementById('registerForm').classList.remove('shake'); }, 400);
+        }
+      })
+      .catch(function() {
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Buat Akun';
+        btn.disabled = false;
+        showRegAlert('Kesalahan koneksi ke server.', 'error');
+      });
+    }
+
+    /* ===== CEK STATUS REGISTRASI ===== */
     (async function checkRegistrationStatus() {
       try {
         var res = await fetch('/api/settings/registration/public');
