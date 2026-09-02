@@ -482,35 +482,8 @@ export default {
       return row ? JSON.parse(row.value) : { open: true, defaultRole: 'MEMBER', requireApproval: false };
     }
 
-    const VALID_ROLES = ['MASTER', 'ADMIN', 'MEMBER'];
-    const VALID_MODULES = ['core', 'workspace', 'operational', 'system', 'user_management', 'registration_control'];
-
-    // ===== DEFAULT ACCESS PER ROLE =====
-    // MASTER: full access tak terbatas (semua modul true)
-    // ADMIN:  Core, Workspace, Operational, System, User Management, Registrasi
-    // MEMBER: hanya Core (selebihnya ditentukan oleh Admin/Master)
-    function defaultAccessFor(role) {
-      if (role === 'MASTER') {
-        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
-      }
-      if (role === 'ADMIN') {
-        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
-      }
-      // MEMBER: default hanya Core
-      return { core: true, workspace: false, operational: false, system: false, user_management: false, registration_control: false };
-    }
-
-    // Ambil role user yang sedang request (dari x-auth-token header)
-    async function getRequesterRole(req) {
-      const username = req.headers.get('x-auth-token');
-      if (!username) return null;
-      const user = await env.DB.prepare("SELECT role FROM users WHERE username = ?").bind(username).first();
-      return user ? user.role : null;
-    }
-
-    async function isMaster(req) {
-      return await getRequesterRole(req) === 'MASTER';
-    }
+    const VALID_ROLES = ['MASTER', 'ADMIN', 'OPERATOR', 'CS', 'MEMBER'];
+    const VALID_MODULES = ['dashboard', 'authority', 'user_management', 'registration_control'];
 
     // ============================================
     // 2. API LOGIN
@@ -525,7 +498,7 @@ export default {
           if (user.status === 'PENDING') {
             return Response.json({ success: false, error: 'Akun Anda menunggu persetujuan admin!' }, { status: 403 });
           }
-          return Response.json({ success: true, message: 'Login berhasil!', user: { username: user.username, role: user.role, access: user.access ? JSON.parse(user.access) : defaultAccessFor(user.role) } });
+          return Response.json({ success: true, message: 'Login berhasil!', user: { username: user.username, role: user.role } });
         } else {
           return Response.json({ success: false, error: 'Username atau Password salah!' });
         }
@@ -561,9 +534,8 @@ export default {
       try {
         const { username, password, role } = await request.json();
         if (!username || !password || !role) return Response.json({ error: 'Data tidak lengkap' }, { status: 400 });
-        if (!VALID_ROLES.includes(role)) return Response.json({ error: 'Role tidak valid! Pilih: MASTER, ADMIN, atau MEMBER.' }, { status: 400 });
 
-        const access = JSON.stringify(defaultAccessFor(role));
+        const access = JSON.stringify({ dashboard: true, authority: false, user_management: false, registration_control: false });
         await env.DB.prepare("INSERT INTO users (username, password, role, status, access) VALUES (?, ?, ?, 'ACTIVE', ?)").bind(username, password, role, access).run();
         return Response.json({ success: true, message: 'User berhasil ditambahkan' });
       } catch (err) {
@@ -582,14 +554,8 @@ export default {
         const reqUser = request.headers.get('x-auth-token');
         if (reqUser === usernameToDelete) return Response.json({ error: 'Anda tidak bisa menghapus akun sendiri!' }, { status: 400 });
 
-        const requesterRole = await getRequesterRole(request);
         const target = await env.DB.prepare("SELECT role FROM users WHERE username = ?").bind(usernameToDelete).first();
-        if (!target) return Response.json({ error: 'User tidak ditemukan' }, { status: 404 });
-        if (target.role === 'MASTER') return Response.json({ error: 'Akun MASTER tidak dapat dihapus!' }, { status: 403 });
-        // ADMIN tidak boleh hapus ADMIN lain — hanya MASTER yang bisa
-        if (requesterRole === 'ADMIN' && target.role === 'ADMIN') {
-          return Response.json({ error: 'Admin tidak dapat menghapus Admin lain! Hanya Master.' }, { status: 403 });
-        }
+        if (target && target.role === 'MASTER') return Response.json({ error: 'Akun MASTER tidak dapat dihapus!' }, { status: 403 });
 
         await env.DB.prepare("DELETE FROM users WHERE username = ?").bind(usernameToDelete).run();
         return Response.json({ success: true, message: 'User berhasil dihapus' });
@@ -623,7 +589,7 @@ export default {
         const body = await request.json();
         const setting = {
           open: !!body.open,
-          defaultRole: body.defaultRole === 'MEMBER' ? 'MEMBER' : 'MEMBER',
+          defaultRole: ['MEMBER', 'CS', 'OPERATOR'].includes(body.defaultRole) ? body.defaultRole : 'MEMBER',
           requireApproval: !!body.requireApproval
         };
         await env.DB.prepare("UPDATE settings SET value = ? WHERE key = 'registration'").bind(JSON.stringify(setting)).run();
@@ -638,31 +604,16 @@ export default {
     // ============================================
     const accessMatch = path.match(/^\/api\/users\/([^/]+)\/access$/);
     if (accessMatch && request.method === 'PUT') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Master/Admin.' }, { status: 403 });
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
         const username = decodeURIComponent(accessMatch[1]);
         const body = await request.json();
-        const requesterRole = await getRequesterRole(request);
 
         const user = await env.DB.prepare("SELECT role FROM users WHERE username = ?").bind(username).first();
         if (!user) return Response.json({ error: 'User tidak ditemukan' }, { status: 404 });
         if (user.role === 'MASTER') return Response.json({ error: 'Akun MASTER tidak dapat diubah!' }, { status: 403 });
 
-        // ===== ROLE-BASED PERMISSION ENFORCEMENT =====
-        // ADMIN hanya boleh edit user MEMBER
-        if (requesterRole === 'ADMIN') {
-          if (user.role !== 'MEMBER') {
-            return Response.json({ error: 'Admin hanya dapat mengubah user Member! User ini adalah ' + user.role + '.' }, { status: 403 });
-          }
-          // Admin tidak boleh set role selain MEMBER
-          if (body.role && body.role !== 'MEMBER') {
-            return Response.json({ error: 'Admin tidak dapat mengubah role Member! Hanya Master yang bisa promote.' }, { status: 403 });
-          }
-        }
-        // MASTER boleh edit siapa saja (kecuali MASTER lain — sudah dicek di atas)
-
-        // Validasi role baru
-        const newRole = body.role && VALID_ROLES.includes(body.role) ? body.role : user.role;
+        const newRole = VALID_ROLES.includes(body.role) ? body.role : user.role;
         const access = {};
         VALID_MODULES.forEach(m => access[m] = !!(body.access && body.access[m]));
         const grantedBy = request.headers.get('x-auth-token');
@@ -725,12 +676,11 @@ export default {
         const exists = await env.DB.prepare("SELECT id FROM users WHERE username = ?").bind(body.username).first();
         if (exists) return Response.json({ error: 'Username sudah terdaftar!' }, { status: 409 });
 
-        const regRole = (setting.defaultRole && VALID_ROLES.includes(setting.defaultRole)) ? setting.defaultRole : 'MEMBER';
-        const access = JSON.stringify(defaultAccessFor(regRole));
+        const access = JSON.stringify({ dashboard: true, authority: false, user_management: false, registration_control: false });
         const status = setting.requireApproval ? 'PENDING' : 'ACTIVE';
 
         await env.DB.prepare("INSERT INTO users (username, password, role, status, access) VALUES (?, ?, ?, ?, ?)")
-          .bind(body.username, body.password, regRole, status, access).run();
+          .bind(body.username, body.password, setting.defaultRole, status, access).run();
 
         return Response.json({ success: true, pending: setting.requireApproval });
       } catch (err) {
