@@ -489,6 +489,7 @@
           showAlert(data.message, 'success');
           localStorage.setItem('aura_auth_token', data.user.username);
           localStorage.setItem('aura_user_role', data.user.role);
+          localStorage.setItem('aura_user_access', JSON.stringify(data.user.access || {}));
           setTimeout(function() { window.location.href = '/Dashboard.html'; }, 300);
         } else {
           showAlert(data.error, 'error');

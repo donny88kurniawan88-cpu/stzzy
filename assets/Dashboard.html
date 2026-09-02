@@ -328,7 +328,7 @@
     </div>
     <nav class="nav-menu">
 
-      <div class="nav-group">
+      <div class="nav-group" data-access="core">
         <div class="nav-group-title">Core</div>
         <div class="nav-item active" data-menu="Index">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -340,7 +340,7 @@
         </div>
       </div>
 
-      <div class="nav-group">
+      <div class="nav-group" data-access="workspace">
         <div class="nav-group-title">Workspace</div>
         <div class="nav-submenu-wrap">
           <div class="nav-trigger">
@@ -355,7 +355,7 @@
         </div>
       </div>
 
-      <div class="nav-group">
+      <div class="nav-group" data-access="operational">
         <div class="nav-group-title">Operational</div>
 
         <div class="nav-item" data-action="loadPencairan">
@@ -414,7 +414,7 @@
         </div>
       </div>
 
-      <div class="nav-group">
+      <div class="nav-group" data-access="system">
         <div class="nav-group-title">System</div>
         <div class="nav-item" data-action="apiKey">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
@@ -1071,6 +1071,22 @@ function changePassword() {
     addTerminalLog('User logged out');
     localStorage.removeItem('aura_auth_token');
     localStorage.removeItem('aura_user_name');
+    // ===== ACCESS CONTROL: SHOW/HIDE MENU GROUPS =====
+    const userRole = localStorage.getItem('aura_user_role');
+    let userAccess = {};
+    try { userAccess = JSON.parse(localStorage.getItem('aura_user_access') || '{}'); } catch(e) {}
+
+    // MASTER & ADMIN: tampilkan semua menu group
+    // MEMBER: hanya tampilkan yang ada di access object
+    if (userRole !== 'MASTER' && userRole !== 'ADMIN') {
+      document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
+        const key = group.dataset.access;
+        if (!userAccess[key]) {
+          group.style.display = 'none';
+        }
+      });
+    }
+
     localStorage.removeItem('aura_user_role');
     localStorage.removeItem('aura_user_pass');
     localStorage.removeItem('aura_user_status');
