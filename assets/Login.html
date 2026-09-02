@@ -270,7 +270,7 @@
 
       <!-- ===== REGISTER OVERLAY (blur di atas login) ===== -->
       <div class="register-overlay" id="registerOverlay">
-        <div class="register-panel">
+                <div class="register-panel">
           <div class="logo-text"><i class="fas fa-shield-halved"></i> AURA<span>.OS</span></div>
 
           <button type="button" class="btn-ghost" onclick="closeRegister()" style="margin-bottom:20px;">
@@ -287,18 +287,10 @@
 
           <form id="registerForm" onsubmit="handleRegister(event)">
             <div class="input-group">
-              <label class="input-label" for="regName">Nama Lengkap</label>
+              <label class="input-label" for="regUsername">Username</label>
               <div class="input-wrapper">
-                <input type="text" id="regName" class="input-field" placeholder="Masukkan nama lengkap" required autocomplete="name">
+                <input type="text" id="regUsername" class="input-field" placeholder="Masukkan username" required autocomplete="username">
                 <i class="fas fa-user input-icon"></i>
-              </div>
-            </div>
-
-            <div class="input-group">
-              <label class="input-label" for="regEmail">Email</label>
-              <div class="input-wrapper">
-                <input type="email" id="regEmail" class="input-field" placeholder="nama@email.com" required autocomplete="email">
-                <i class="fas fa-envelope input-icon"></i>
               </div>
             </div>
 
@@ -405,10 +397,9 @@
     }
 
     /* ===== REGISTER PANEL OPEN/CLOSE ===== */
-    function openRegister() {
+        function openRegister() {
       document.getElementById('formBox').classList.add('blurred');
       document.getElementById('registerOverlay').classList.add('open');
-      /* Reset form */
       document.getElementById('registerForm').reset();
       document.getElementById('regAlertBox').style.display = 'none';
       document.getElementById('strFill').style.width = '0%';
@@ -417,7 +408,6 @@
       document.getElementById('strLabel').style.color = 'var(--text-faint)';
       document.getElementById('strPct').textContent = '0%';
       document.getElementById('strPct').style.color = 'var(--text-faint)';
-      /* Reset eye icons */
       document.getElementById('regPwdEyeIcon').className = 'fas fa-eye';
       document.getElementById('regConfEyeIcon').className = 'fas fa-eye';
       document.getElementById('regPassword').type = 'password';
@@ -513,11 +503,10 @@
       });
     }
 
-    /* ===== REGISTER HANDLER ===== */
+       /* ===== REGISTER HANDLER ===== */
     function handleRegister(e) {
       e.preventDefault();
-      var name = document.getElementById('regName').value.trim();
-      var email = document.getElementById('regEmail').value.trim();
+      var username = document.getElementById('regUsername').value.trim();
       var password = document.getElementById('regPassword').value;
       var confirm = document.getElementById('regConfirm').value;
       var btn = document.getElementById('btnRegister');
@@ -539,7 +528,7 @@
       fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, email: email, password: password })
+        body: JSON.stringify({ username: username, password: password })
       })
       .then(function(res) { return res.json(); })
       .then(function(data) {
@@ -547,22 +536,21 @@
         btn.disabled = false;
 
         if (data.success) {
-          showRegAlert(data.message || 'Akun berhasil dibuat!', 'success');
+          var msg = data.pending ? 'Akun berhasil dibuat, menunggu persetujuan admin.' : 'Akun berhasil dibuat!';
+          showRegAlert(msg, 'success');
           btn.innerHTML = '<i class="fas fa-check"></i> Berhasil';
           btn.style.background = 'var(--accent-success)';
           btn.style.boxShadow = '0 4px 20px rgba(16,185,129,0.4)';
           setTimeout(function() {
-            /* Reset button style */
             btn.style.background = '';
             btn.style.boxShadow = '';
             btn.innerHTML = '<i class="fas fa-user-plus"></i> Buat Akun';
-            /* Balik ke login & isi email */
             closeRegister();
-            document.getElementById('username').value = email;
+            document.getElementById('username').value = username;
             document.getElementById('password').focus();
-          }, 1200);
+          }, 1500);
         } else {
-          showRegAlert(data.error || data.message || 'Registrasi gagal', 'error');
+          showRegAlert(data.error || 'Registrasi gagal', 'error');
           document.getElementById('registerForm').classList.add('shake');
           setTimeout(function() { document.getElementById('registerForm').classList.remove('shake'); }, 400);
         }
