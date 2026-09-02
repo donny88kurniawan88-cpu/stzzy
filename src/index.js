@@ -1002,6 +1002,55 @@ export default {
         return Response.json({ success: false, error: 'Gagal validasi: ' + err.message }, { status: 500 });
       }
     }
+      // ============================================
+    // 17. API UBAH PASSWORD
+    // ============================================
+    if (path === '/api/user/password' && request.method === 'PUT') {
+      const username = request.headers.get('x-auth-token');
+      if (!username) return Response.json({ success: false, error: 'Login dulu.' }, { status: 401 });
+      try {
+        const body = await request.json();
+        const { oldPassword, newPassword } = body;
+
+        if (!oldPassword || !newPassword) return Response.json({ success: false, error: 'Password lama dan baru wajib diisi' }, { status: 400 });
+        if (newPassword.length < 6) return Response.json({ success: false, error: 'Password baru minimal 6 karakter' }, { status: 400 });
+        if (oldPassword === newPassword) return Response.json({ success: false, error: 'Password baru tidak boleh sama' }, { status: 400 });
+
+        const user = await env.DB.prepare("SELECT password FROM users WHERE username = ?").bind(username).first();
+        if (!user) return Response.json({ success: false, error: 'User tidak ditemukan' }, { status: 404 });
+        if (user.password !== oldPassword) return Response.json({ success: false, error: 'Password lama salah' }, { status: 401 });
+
+        await env.DB.prepare("UPDATE users SET password = ? WHERE username = ?").bind(newPassword, username).run();
+        return Response.json({ success: true, message: 'Password berhasil diubah' });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal mengubah password' }, { status: 500 });
+      }
+    }
+
+    // ============================================
+    // 18. API GET PROFIL USER
+    // ============================================
+    if (path === '/api/user/profile' && request.method === 'GET') {
+      const username = request.headers.get('x-auth-token');
+      if (!username) return Response.json({ success: false, error: 'Login dulu.' }, { status: 401 });
+      try {
+        const user = await env.DB.prepare("SELECT username, role, status, access, created_at FROM users WHERE username = ?").bind(username).first();
+        if (!user) return Response.json({ success: false, error: 'User tidak ditemukan' }, { status: 404 });
+
+        return Response.json({
+          success: true,
+          data: {
+            username: user.username,
+            role: user.role,
+            status: user.status,
+            access: user.access ? JSON.parse(user.access) : null,
+            since: user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'
+          }
+        });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal mengambil profil' }, { status: 500 });
+      }
+    }
 
     // ============================================
     // FALLBACK: serve static assets
