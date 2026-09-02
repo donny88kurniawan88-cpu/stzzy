@@ -125,8 +125,6 @@
     .role-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; background: var(--accent-primary-light); color: var(--accent-primary); border: 1px solid rgba(59, 130, 246, 0.2); }
     .role-badge.role-master { background: var(--accent-warning-light); color: var(--accent-warning); border-color: rgba(245,158,11,0.3); }
     .role-badge.role-admin { background: var(--accent-primary-light); color: var(--accent-primary); border-color: rgba(59,130,246,0.2); }
-    .role-badge.role-operator { background: var(--accent-purple-light); color: var(--accent-purple); border-color: rgba(139,92,246,0.2); }
-    .role-badge.role-cs { background: rgba(20,184,166,0.12); color: var(--accent-teal); border-color: rgba(20,184,166,0.2); }
     .role-badge.role-member { background: rgba(148,163,184,0.12); color: var(--text-secondary); border-color: rgba(148,163,184,0.2); }
 
     /* ACCESS CHIPS */
@@ -249,7 +247,7 @@
           </div>
           <div class="stat-card">
             <div class="stat-icon" style="background: var(--accent-warning-light); color: var(--accent-warning);"><i class="fas fa-crown"></i></div>
-            <div class="stat-label">Master / Admin</div>
+            <div class="stat-label">Master & Admin</div>
             <div class="stat-value" id="statAdmin" style="color: var(--accent-warning);">0</div>
           </div>
         </div>
@@ -325,8 +323,6 @@
             </div>
             <select id="regisDefaultRole" class="form-input" style="width: 180px;">
               <option value="MEMBER">Member</option>
-              <option value="CS">Customer Service</option>
-              <option value="OPERATOR">Operator</option>
             </select>
           </div>
           <div class="setting-row">
@@ -383,9 +379,8 @@
         <label class="form-label">Role</label>
         <select id="addRole" class="form-input">
           <option value="" disabled selected>Pilih Role --</option>
+          <option value="MASTER">Master</option>
           <option value="ADMIN">Admin</option>
-          <option value="OPERATOR">Operator</option>
-          <option value="CS">Customer Service</option>
           <option value="MEMBER">Member</option>
         </select>
       </div>
@@ -408,18 +403,16 @@
         <div class="avatar" id="editAvatar" style="background: linear-gradient(135deg, #f59e0b, #ec4899);">--</div>
         <div>
           <div class="user-name" id="editUserLabel">@username</div>
-          <div style="font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono);">access granted by master</div>
+          <div style="font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono);">access granted by master / admin</div>
         </div>
       </div>
 
       <div class="form-group">
         <label class="form-label">Role</label>
         <select id="editRole" class="form-input">
-          <option value="MASTER">Master</option>
-          <option value="ADMIN">Admin</option>
-          <option value="OPERATOR">Operator</option>
-          <option value="CS">Customer Service</option>
           <option value="MEMBER">Member</option>
+          <option value="ADMIN">Admin</option>
+          <option value="MASTER">Master</option>
         </select>
       </div>
 
@@ -451,7 +444,7 @@
     if (!authToken) {
       window.location.href = '/Login.html';
     } else if (userRole !== 'ADMIN' && userRole !== 'MASTER') {
-      alert('Akses Ditolak! Halaman ini khusus untuk Master/Admin.');
+      alert('Akses Ditolak! Halaman ini khusus untuk Master/Admin. Member tidak memiliki akses.');
       window.location.href = '/Dashboard.html';
     } else {
       document.getElementById('userEmail').textContent = authToken + '@aura.os';
@@ -460,13 +453,20 @@
     function logout() { localStorage.clear(); window.location.href = '/Login.html'; }
 
     // ===== KONFIGURASI MODUL AKSES =====
+    // ===== KONFIGURASI MODUL AKSES (SESUAI MENU GROUP DI DASHBOARD) =====
+    // Master: full access tak terbatas
+    // Admin: Core, Workspace, Operational, System — untuk Setting & User Management
+    //         access control hanya untuk Member (tapi tetap bisa di-setting oleh Master)
+    // Member: akses full ditentukan oleh Admin dan Master
     const ACCESS_MODULES = [
-      { key: 'dashboard',           label: 'Dashboard',           icon: 'fa-gauge-high' },
-      { key: 'authority',           label: 'Authority Panel',     icon: 'fa-shield-alt' },
+      { key: 'core',                label: 'Core',                icon: 'fa-gauge-high' },
+      { key: 'workspace',           label: 'Workspace',           icon: 'fa-briefcase' },
+      { key: 'operational',         label: 'Operational',         icon: 'fa-cogs' },
+      { key: 'system',              label: 'System',              icon: 'fa-server' },
       { key: 'user_management',     label: 'User Management',     icon: 'fa-users-cog' },
       { key: 'registration_control',label: 'Data Registrasi',     icon: 'fa-clipboard-check' }
     ];
-    const ROLE_CLASS = { MASTER: 'role-master', ADMIN: 'role-admin', OPERATOR: 'role-operator', CS: 'role-cs', MEMBER: 'role-member' };
+    const ROLE_CLASS = { MASTER: 'role-master', ADMIN: 'role-admin', MEMBER: 'role-member' };
 
     let usersData = [];
     let editUsername = null;
@@ -501,12 +501,28 @@
     }
 
     // Ambil akses user (fallback default berdasarkan role)
+    // MASTER  = full access tak terbatas (semua modul true)
+    // ADMIN   = Core, Workspace, Operational, System, User Management, Registrasi
+    // MEMBER  = akses ditentukan oleh Admin/Master (default: hanya Core)
     function accessFor(u) {
       if (u.access && typeof u.access === 'object') return u.access;
-      if (u.role === 'ADMIN' || u.role === 'MASTER') {
-        return { dashboard: true, authority: true, user_management: true, registration_control: true };
+      if (u.role === 'MASTER') {
+        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
       }
-      return { dashboard: true, authority: false, user_management: false, registration_control: false };
+      if (u.role === 'ADMIN') {
+        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
+      }
+      // MEMBER: default hanya Core, selebihnya ditentukan oleh Admin/Master
+      return { core: true, workspace: false, operational: false, system: false, user_management: false, registration_control: false };
+    }
+
+    // Cek apakah user saat ini (yang login) boleh edit target user
+    // Master: boleh edit siapa saja (kecuali diri sendiri tidak perlu proteksi)
+    // Admin: HANYA boleh edit user dengan role MEMBER
+    function canEditUser(targetUser) {
+      if (userRole === 'MASTER') return true;
+      if (userRole === 'ADMIN') return targetUser.role === 'MEMBER';
+      return false;
     }
 
     function renderTable() {
@@ -526,11 +542,19 @@
         const chips = ACCESS_MODULES.filter(m => acc[m.key]).map(m => `<span class="chip">${m.label}</span>`).join('')
           || '<span style="color:var(--text-tertiary); font-size:12px;">No access</span>';
 
-        // Akun MASTER diproteksi (tidak bisa diedit/dihapus)
-        const actions = (u.role === 'MASTER')
-          ? '<button class="btn btn-ghost btn-icon" title="Akun Master - Terproteksi"><i class="fas fa-lock"></i></button>'
-          : `<button class="btn btn-ghost btn-icon" title="Edit Access Control" onclick="openEdit('${u.username}')"><i class="fas fa-key"></i></button>
+        // MASTER diproteksi (tidak bisa diedit/dihapus oleh siapapun)
+        // ADMIN: hanya Master yang bisa edit admin
+        // MEMBER: bisa diedit oleh Master dan Admin
+        let actions;
+        if (u.role === 'MASTER') {
+          actions = '<button class="btn btn-ghost btn-icon" title="Akun Master - Terproteksi"><i class="fas fa-lock"></i></button>';
+        } else if (canEditUser(u)) {
+          actions = `<button class="btn btn-ghost btn-icon" title="Edit Access Control" onclick="openEdit('${u.username}')"><i class="fas fa-key"></i></button>
              <button class="btn btn-danger-ghost btn-icon" title="Hapus" onclick="confirmDelete('${u.username}')"><i class="fas fa-trash"></i></button>`;
+        } else {
+          // Admin tidak boleh edit user non-Member (mis. Admin lain)
+          actions = '<button class="btn btn-ghost btn-icon" title="Hanya Master yang dapat mengubah Admin lain"><i class="fas fa-lock"></i></button>';
+        }
 
         html += `<tr>
           <td><div class="user-cell"><div class="avatar">${initials}</div><div class="user-name">${u.username}</div></div></td>
@@ -563,16 +587,43 @@
     function openEdit(username) {
       const u = usersData.find(x => x.username === username);
       if (!u) return;
+      // Cek hak akses: Master boleh edit semua, Admin hanya boleh edit Member
+      if (!canEditUser(u)) {
+        showToast('Akses ditolak! ' + (userRole === 'ADMIN' ? 'Admin hanya dapat mengubah user Member.' : 'Tidak memiliki hak akses.'));
+        return;
+      }
       editUsername = username;
       document.getElementById('editAvatar').textContent = u.username.substring(0, 2).toUpperCase();
       document.getElementById('editUserLabel').textContent = '@' + u.username;
       document.getElementById('editRole').value = u.role || 'MEMBER';
+
+      // ADMIN hanya boleh edit MEMBER — kunci dropdown role ke MEMBER
+      // MASTER boleh pilih role apa saja
+      const editRoleSelect = document.getElementById('editRole');
+      if (userRole === 'ADMIN') {
+        editRoleSelect.value = 'MEMBER';
+        editRoleSelect.disabled = true;
+        editRoleSelect.style.opacity = '0.5';
+        editRoleSelect.title = 'Admin hanya dapat mengubah user Member. Master dapat mengubah role.';
+      } else {
+        editRoleSelect.disabled = false;
+        editRoleSelect.style.opacity = '1';
+        editRoleSelect.title = '';
+      }
+
       const acc = accessFor(u);
       document.querySelectorAll('#permGrid .perm-item').forEach(item => {
         const checked = !!acc[item.dataset.key];
         item.querySelector('input').checked = checked;
         item.classList.toggle('checked', checked);
       });
+
+      // Update label "access granted by" sesuai role yang login
+      const grantLabel = document.querySelector('.edit-user-head div[style*="font-size: 11px"]');
+      if (grantLabel) {
+        grantLabel.textContent = 'access granted by ' + (userRole === 'MASTER' ? 'master' : 'admin');
+      }
+
       document.getElementById('editModal').classList.add('active');
     }
 
@@ -580,6 +631,13 @@
 
     async function submitEditAccess() {
       const role = document.getElementById('editRole').value;
+
+      // Guard: Admin tidak boleh set role selain MEMBER
+      if (userRole === 'ADMIN' && role !== 'MEMBER') {
+        showToast('Akses ditolak! Admin hanya dapat mengubah user Member.');
+        return;
+      }
+
       const access = {};
       document.querySelectorAll('#permGrid .perm-item').forEach(item => {
         access[item.dataset.key] = item.querySelector('input').checked;
