@@ -330,11 +330,11 @@
 
       <div class="nav-group" data-access="core">
         <div class="nav-group-title">Core</div>
-        <div class="nav-item active" data-menu="Index">
+        <div class="nav-item active" data-menu="Index" data-access-item="dashboard">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
           Dashboard
         </div>
-        <div class="nav-item" data-action="profil">
+        <div class="nav-item" data-action="profil" data-access-item="profil">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           Profil
         </div>
@@ -342,15 +342,15 @@
 
       <div class="nav-group" data-access="workspace">
         <div class="nav-group-title">Workspace</div>
-        <div class="nav-submenu-wrap">
+        <div class="nav-submenu-wrap" data-access-item="banking_tools">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
             <span class="label">Banking Tools</span>
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" onclick="window.location.href='/Validator.html'">Rek Validator</div>
-            <div class="submenu-item" onclick="window.location.href='/Bank.html'">Bank Processor</div>
+            <div class="submenu-item" data-access-item="rek_validator" onclick="window.location.href='/Validator.html'">Rek Validator</div>
+            <div class="submenu-item" data-access-item="bank_processor" onclick="window.location.href='/Bank.html'">Bank Processor</div>
           </div>
         </div>
       </div>
@@ -358,12 +358,12 @@
       <div class="nav-group" data-access="operational">
         <div class="nav-group-title">Operational</div>
 
-        <div class="nav-item" data-action="loadPencairan">
+        <div class="nav-item" data-action="loadPencairan" data-access-item="saldo_pencairan">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
           Saldo Pencairan
         </div>
 
-        <div class="nav-submenu-wrap">
+        <div class="nav-submenu-wrap" data-access-item="qris_tools">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="14.01"/><line x1="21" y1="21" x2="21" y2="21.01"/></svg>
             <span class="label">QRIS Tools</span>
@@ -377,7 +377,7 @@
           </div>
         </div>
 
-        <div class="nav-submenu-wrap">
+        <div class="nav-submenu-wrap" data-access-item="prediction_tools">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
             <span class="label">Prediction Tools</span>
@@ -390,7 +390,7 @@
           </div>
         </div>
 
-        <div class="nav-submenu-wrap click-toggle">
+        <div class="nav-submenu-wrap click-toggle" data-access-item="event_tools">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span class="label">Event Tools</span>
@@ -403,12 +403,12 @@
           </div>
         </div>
 
-        <div class="nav-item" data-action="comingSoon">
+        <div class="nav-item" data-action="comingSoon" data-access-item="edit_bukti">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Bukti
         </div>
 
-        <div class="nav-item" data-action="keepMemo">
+        <div class="nav-item" data-action="keepMemo" data-access-item="keep_memo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
           Keep Memo
         </div>
@@ -416,15 +416,15 @@
 
       <div class="nav-group" data-access="system">
         <div class="nav-group-title">System</div>
-        <div class="nav-item" data-action="apiKey">
+        <div class="nav-item" data-action="apiKey" data-access-item="api_key">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
           API Key
         </div>
-        <div class="nav-item" data-action="setting">
+        <div class="nav-item" data-action="setting" data-access-item="setting">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Setting
         </div>
-        <div class="nav-item" onclick="window.location.href='/Authority.html'">
+        <div class="nav-item" data-access-item="authority_panel" onclick="window.location.href='/Authority.html'">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
           Authority Panel
         </div>
@@ -1144,7 +1144,7 @@ function changePassword() {
       }
     })();
   </script>
-  <!-- ===== ACCESS CONTROL: SHOW/HIDE MENU GROUPS ===== -->
+  <!-- ===== ACCESS CONTROL: SHOW/HIDE MENU GROUPS + ITEMS ===== -->
   <script>
     (function() {
       window.__accessControlRan = true;
@@ -1152,12 +1152,40 @@ function changePassword() {
       var userAccess = {};
       try { userAccess = JSON.parse(localStorage.getItem('aura_user_access') || '{}'); } catch(e) {}
 
-      // MASTER & ADMIN: tampilkan semua menu group
-      // MEMBER: hanya tampilkan yang ada di access object (value = true)
+      // MASTER & ADMIN: tampilkan semua menu
+      // MEMBER: filter berdasarkan access object
       if (userRole && userRole !== 'MASTER' && userRole !== 'ADMIN') {
+        // 1. Hide menu items yang tidak ada aksesnya (per-item control)
+        document.querySelectorAll('[data-access-item]').forEach(function(item) {
+          var key = item.dataset.accessItem;
+          if (userAccess[key] === false) {
+            item.style.display = 'none';
+          }
+        });
+
+        // 2. Hide entire group jika group key = false ATAU semua item di group hidden
         document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
-          var key = group.dataset.access;
-          if (!userAccess[key]) {
+          var groupKey = group.dataset.access;
+          var hasGroupAccess = userAccess[groupKey];
+          var visibleItems = group.querySelectorAll('[data-access-item]');
+          var anyVisible = false;
+
+          // Jika group-level false, hide semua
+          if (hasGroupAccess === false) {
+            group.style.display = 'none';
+            return;
+          }
+
+          // Cek apakah ada item yang visible
+          visibleItems.forEach(function(item) {
+            var itemKey = item.dataset.accessItem;
+            if (userAccess[itemKey] !== false) {
+              anyVisible = true;
+            }
+          });
+
+          // Jika ada items tapi tidak ada yang visible, hide group
+          if (visibleItems.length > 0 && !anyVisible) {
             group.style.display = 'none';
           }
         });

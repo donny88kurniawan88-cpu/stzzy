@@ -453,19 +453,47 @@
     function logout() { localStorage.clear(); window.location.href = '/Login.html'; }
 
     // ===== KONFIGURASI MODUL AKSES =====
-    // ===== KONFIGURASI MODUL AKSES (SESUAI MENU GROUP DI DASHBOARD) =====
+    // ===== KONFIGURASI MODUL AKSES (GROUP + SUB-ITEM) =====
     // Master: full access tak terbatas
     // Admin: Core, Workspace, Operational, System — untuk Setting & User Management
     //         access control hanya untuk Member (tapi tetap bisa di-setting oleh Master)
     // Member: akses full ditentukan oleh Admin dan Master
-    const ACCESS_MODULES = [
-      { key: 'core',                label: 'Core',                icon: 'fa-gauge-high' },
-      { key: 'workspace',           label: 'Workspace',           icon: 'fa-briefcase' },
-      { key: 'operational',         label: 'Operational',         icon: 'fa-cogs' },
-      { key: 'system',              label: 'System',              icon: 'fa-server' },
-      { key: 'user_management',     label: 'User Management',     icon: 'fa-users-cog' },
-      { key: 'registration_control',label: 'Data Registrasi',     icon: 'fa-clipboard-check' }
+    //
+    // Format: { group: 'GROUP_KEY', key: 'item_key', label: 'Label', icon: 'fa-icon' }
+    // Group keys: core, workspace, operational, system
+    const ACCESS_GROUPS = [
+      { key: 'core',        label: 'Core',        icon: 'fa-gauge-high' },
+      { key: 'workspace',   label: 'Workspace',   icon: 'fa-briefcase' },
+      { key: 'operational', label: 'Operational', icon: 'fa-cogs' },
+      { key: 'system',      label: 'System',      icon: 'fa-server' },
     ];
+
+    const ACCESS_MODULES = [
+      // Core
+      { group: 'core', key: 'dashboard',      label: 'Dashboard',        icon: 'fa-house' },
+      { group: 'core', key: 'profil',         label: 'Profil',           icon: 'fa-user' },
+      // Workspace
+      { group: 'workspace', key: 'banking_tools',  label: 'Banking Tools',    icon: 'fa-credit-card' },
+      { group: 'workspace', key: 'rek_validator',  label: '↳ Rek Validator',  icon: 'fa-circle-check' },
+      { group: 'workspace', key: 'bank_processor', label: '↳ Bank Processor', icon: 'fa-building-columns' },
+      // Operational
+      { group: 'operational', key: 'saldo_pencairan',  label: 'Saldo Pencairan',   icon: 'fa-layer-group' },
+      { group: 'operational', key: 'qris_tools',       label: 'QRIS Tools',        icon: 'fa-qrcode' },
+      { group: 'operational', key: 'prediction_tools', label: 'Prediction Tools',  icon: 'fa-clock-rotate-left' },
+      { group: 'operational', key: 'event_tools',      label: 'Event Tools',       icon: 'fa-calendar' },
+      { group: 'operational', key: 'edit_bukti',       label: 'Edit Bukti',        icon: 'fa-pen' },
+      { group: 'operational', key: 'keep_memo',        label: 'Keep Memo',         icon: 'fa-clipboard' },
+      // System
+      { group: 'system', key: 'api_key',         label: 'API Key',          icon: 'fa-key' },
+      { group: 'system', key: 'setting',         label: 'Setting',          icon: 'fa-gear' },
+      { group: 'system', key: 'authority_panel', label: 'Authority Panel',  icon: 'fa-shield-halved' },
+      // Authority
+      { group: 'system', key: 'user_management',     label: 'User Management',     icon: 'fa-users-cog' },
+      { group: 'system', key: 'registration_control',label: 'Data Registrasi',     icon: 'fa-clipboard-check' },
+    ];
+
+    // Group-level keys (for backward compatibility with old access format)
+    const GROUP_KEYS = ['core', 'workspace', 'operational', 'system'];
     const ROLE_CLASS = { MASTER: 'role-master', ADMIN: 'role-admin', MEMBER: 'role-member' };
 
     let usersData = [];
@@ -505,15 +533,19 @@
     // ADMIN   = Core, Workspace, Operational, System, User Management, Registrasi
     // MEMBER  = akses ditentukan oleh Admin/Master (default: hanya Core)
     function accessFor(u) {
-      if (u.access && typeof u.access === 'object') return u.access;
-      if (u.role === 'MASTER') {
-        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
+      if (u.access && typeof u.access === 'object' && Object.keys(u.access).length > 0) return u.access;
+      // Default: semua item true untuk MASTER & ADMIN
+      if (u.role === 'MASTER' || u.role === 'ADMIN') {
+        const all = {};
+        ACCESS_MODULES.forEach(m => all[m.key] = true);
+        GROUP_KEYS.forEach(g => all[g] = true);
+        return all;
       }
-      if (u.role === 'ADMIN') {
-        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
-      }
-      // MEMBER: default hanya Core, selebihnya ditentukan oleh Admin/Master
-      return { core: true, workspace: false, operational: false, system: false, user_management: false, registration_control: false };
+      // MEMBER: default hanya dashboard + profil (Core group)
+      const def = {};
+      ACCESS_MODULES.forEach(m => def[m.key] = (m.group === 'core'));
+      GROUP_KEYS.forEach(g => def[g] = (g === 'core'));
+      return def;
     }
 
     // Cek apakah user saat ini (yang login) boleh edit target user
@@ -541,6 +573,9 @@
         const acc = accessFor(u);
         const chips = ACCESS_MODULES.filter(m => acc[m.key]).map(m => `<span class="chip">${m.label}</span>`).join('')
           || '<span style="color:var(--text-tertiary); font-size:12px;">No access</span>';
+        // Also check group-level access
+        const groupChips = GROUP_KEYS.filter(g => acc[g]).map(g => `<span class="chip" style="background:var(--accent-primary-light); border-color:rgba(59,130,246,0.3); color:var(--accent-primary);">${g}</span>`).join('');
+        const allChips = chips + (groupChips ? (chips ? ' ' : '') + groupChips : '');
 
         // MASTER diproteksi (tidak bisa diedit/dihapus oleh siapapun)
         // ADMIN: hanya Master yang bisa edit admin
@@ -559,7 +594,7 @@
         html += `<tr>
           <td><div class="user-cell"><div class="avatar">${initials}</div><div class="user-name">${u.username}</div></div></td>
           <td><span class="role-badge ${ROLE_CLASS[u.role] || ''}">${u.role}</span></td>
-          <td><div class="access-chips">${chips}</div></td>
+          <td><div class="access-chips">${allChips}</div></td>
           <td style="text-align:right;"><div style="display:flex; gap:8px; justify-content:flex-end;">${actions}</div></td>
         </tr>`;
       });
@@ -568,13 +603,27 @@
 
     // ===== EDIT ACCESS CONTROL =====
     function buildPermGrid() {
-      document.getElementById('permGrid').innerHTML = ACCESS_MODULES.map(m => `
-        <label class="perm-item" data-key="${m.key}">
-          <input type="checkbox" onchange="this.closest('.perm-item').classList.toggle('checked', this.checked)">
-          <i class="fas ${m.icon}"></i>
-          <span>${m.label}</span>
-          <span class="perm-check"><i class="fas fa-check"></i></span>
-        </label>`).join('');
+      let html = '';
+      ACCESS_GROUPS.forEach(group => {
+        const items = ACCESS_MODULES.filter(m => m.group === group.key);
+        if (items.length === 0) return;
+        html += `<div style="grid-column: 1 / -1; margin-top:12px; padding:6px 10px; background:var(--bg-tertiary); border-radius:8px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--accent-primary);">${group.label}</div>`;
+        html += items.map(m => `
+          <label class="perm-item" data-key="${m.key}" data-group="${m.group}">
+            <input type="checkbox" onchange="this.closest('.perm-item').classList.toggle('checked', this.checked); syncGroupCheckbox('${m.group}')">
+            <i class="fas ${m.icon}"></i>
+            <span>${m.label}</span>
+            <span class="perm-check"><i class="fas fa-check"></i></span>
+          </label>`).join('');
+      });
+      document.getElementById('permGrid').innerHTML = html;
+    }
+
+    // Sync group-level checkbox based on sub-items
+    function syncGroupCheckbox(groupKey) {
+      const items = document.querySelectorAll('#permGrid .perm-item[data-group="' + groupKey + '"]');
+      const allChecked = Array.from(items).every(i => i.querySelector('input').checked);
+      // Update visual state of the group header (optional)
     }
 
     function setAllPerm(v) {
