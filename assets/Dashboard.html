@@ -57,14 +57,14 @@
     .nav-group { margin-bottom: 28px; animation: fadeInUp 0.4s ease backwards; }
     .nav-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.8px; color: var(--accent-primary); padding: 0 14px; margin-bottom: 10px; opacity: 0.6; }
 
-    .nav-item { display: flex !important; align-items: center; gap: 14px; padding: 14px 18px; margin: 5px 0; border-radius: var(--radius-md); font-size: 15px; font-weight: 500; cursor: pointer; user-select: none; position: relative; animation: slideInRight 0.3s ease backwards; color: #cbd5e1; background: rgba(20, 20, 30, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .nav-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; margin: 5px 0; border-radius: var(--radius-md); font-size: 15px; font-weight: 500; cursor: pointer; user-select: none; position: relative; animation: slideInRight 0.3s ease backwards; color: #cbd5e1; background: rgba(20, 20, 30, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .nav-item svg { width: 20px; height: 20px; stroke-width: 1.5; flex-shrink: 0; transition: all 0.18s ease; }
     .nav-item:hover { background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15)); color: #ffffff; transform: translateY(-2px); border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25), inset 0 0 10px rgba(59, 130, 246, 0.1); }
     .nav-item:hover svg { transform: scale(1.1); stroke: var(--neon-cyan); filter: drop-shadow(0 0 5px var(--neon-cyan)); }
     .nav-item.active { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1); border-color: rgba(59, 130, 246, 0.8); }
     .nav-item.active svg { stroke: #fff; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
 
-    .nav-submenu-wrap { position: relative; margin: 5px 0; display: block !important; }
+    .nav-submenu-wrap { position: relative; margin: 5px 0; }
     .nav-submenu-wrap > .nav-trigger { display: flex; align-items: center; gap: 14px; padding: 14px 18px; margin: 0; border-radius: var(--radius-md); font-size: 15px; font-weight: 500; cursor: pointer; user-select: none; color: #cbd5e1; background: rgba(20, 20, 30, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .nav-submenu-wrap > .nav-trigger svg.menu-icon { width: 20px; height: 20px; stroke-width: 1.5; flex-shrink: 0; transition: all 0.18s ease; }
     .nav-submenu-wrap > .nav-trigger .label { flex: 1; }
@@ -1144,87 +1144,129 @@ function changePassword() {
       }
     })();
   </script>
-  <!-- ===== ACCESS CONTROL: FETCH FROM DATABASE VIA /api/me ===== -->
+  <!-- ===== ACCESS CONTROL: SIDEBAR + MODULE CARDS ===== -->
   <script>
+    // ===== DEFAULT ACCESS PER ROLE =====
+    function getDefaultAccess(role) {
+      if (role === 'MASTER') {
+        return { core:true, workspace:true, operational:true, system:true,
+          dashboard:true, profil:true, banking_tools:true, rek_validator:true, bank_processor:true,
+          saldo_pencairan:true, qris_tools:true, prediction_tools:true, event_tools:true, edit_bukti:true, keep_memo:true,
+          api_key:true, setting:true, authority_panel:true, user_management:true, registration_control:true };
+      }
+      if (role === 'ADMIN') {
+        return { core:true, workspace:true, operational:true, system:true,
+          dashboard:true, profil:true, banking_tools:true, rek_validator:true, bank_processor:true,
+          saldo_pencairan:true, qris_tools:true, prediction_tools:true, event_tools:true, edit_bukti:true, keep_memo:true,
+          api_key:false, setting:false, authority_panel:true, user_management:true, registration_control:false };
+      }
+      // MEMBER default
+      return { core:true, workspace:false, operational:false, system:false,
+        dashboard:true, profil:true, banking_tools:false, rek_validator:false, bank_processor:false,
+        saldo_pencairan:false, qris_tools:false, prediction_tools:false, event_tools:false, edit_bukti:false, keep_memo:false,
+        api_key:false, setting:false, authority_panel:false, user_management:false, registration_control:false };
+    }
+
+    function applyAccessControl(userRole, userAccess) {
+      // MASTER: tampilkan semua
+      if (userRole === 'MASTER') {
+        // Show everything — reset any hidden items
+        document.querySelectorAll('[data-access-item]').forEach(function(item) {
+          item.style.display = '';
+        });
+        document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
+          group.style.display = '';
+        });
+        document.querySelectorAll('[data-access-item-card]').forEach(function(card) {
+          var mc = card.closest('.module-card');
+          if (mc) mc.style.display = '';
+        });
+        return;
+      }
+
+      // ADMIN & MEMBER: filter berdasarkan access
+      // 1. SIDEBAR ITEMS
+      document.querySelectorAll('[data-access-item]').forEach(function(item) {
+        var key = item.dataset.accessItem;
+        if (userAccess[key] === false) {
+          item.style.display = 'none';
+        } else {
+          item.style.display = '';
+        }
+      });
+
+      // 2. SIDEBAR GROUPS
+      document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
+        var groupKey = group.dataset.access;
+        if (userAccess[groupKey] === false) {
+          group.style.display = 'none';
+          return;
+        }
+        var items = group.querySelectorAll('[data-access-item]');
+        var anyVisible = false;
+        items.forEach(function(item) {
+          if (item.style.display !== 'none') anyVisible = true;
+        });
+        if (items.length > 0 && !anyVisible) {
+          group.style.display = 'none';
+        } else {
+          group.style.display = '';
+        }
+      });
+
+      // 3. MODULE CARDS
+      document.querySelectorAll('[data-access-item-card]').forEach(function(card) {
+        var key = card.dataset.accessItemCard;
+        var mc = card.closest('.module-card');
+        if (mc) {
+          if (userAccess[key] === false) {
+            mc.style.display = 'none';
+          } else {
+            mc.style.display = '';
+          }
+        }
+      });
+    }
+
+    // ===== RUN ACCESS CONTROL =====
     (function() {
       window.__accessControlRan = true;
       var authToken = localStorage.getItem('aura_auth_token');
       if (!authToken) { window.location.href = '/Login.html'; return; }
 
-      // Function to apply access control
-      window.__applyAccessControl = function(userRole, userAccess) {
-        // MASTER: tampilkan semua (tidak perlu filter)
-        if (userRole === 'MASTER') return;
+      // Step 1: IMMEDIATELY apply from localStorage (no flash of empty sidebar)
+      var userRole = localStorage.getItem('aura_user_role') || '';
+      var userAccess = {};
+      try {
+        var stored = localStorage.getItem('aura_user_access');
+        if (stored) userAccess = JSON.parse(stored);
+      } catch(e) {}
 
-        // ===== 1. SIDEBAR MENU ITEMS =====
-        document.querySelectorAll('[data-access-item]').forEach(function(item) {
-          var key = item.dataset.accessItem;
-          // Jika access[key] explicitly false → hide
-          // Jika access[key] undefined atau true → show (default visible)
-          if (userAccess[key] === false) {
-            item.style.display = 'none';
-          } else {
-            item.style.display = '';
-          }
-        });
+      // If localStorage empty, use default
+      if (!userAccess || Object.keys(userAccess).length === 0) {
+        userAccess = getDefaultAccess(userRole || 'MEMBER');
+      }
 
-        // ===== 2. SIDEBAR MENU GROUPS =====
-        document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
-          var groupKey = group.dataset.access;
-          if (userAccess[groupKey] === false) {
-            group.style.display = 'none';
-            return;
-          }
-          // Check if any item in this group is visible
-          var items = group.querySelectorAll('[data-access-item]');
-          var anyVisible = false;
-          items.forEach(function(item) {
-            if (item.style.display !== 'none') anyVisible = true;
-          });
-          // If group has items but none visible → hide group
-          if (items.length > 0 && !anyVisible) {
-            group.style.display = 'none';
-          } else {
-            group.style.display = '';
-          }
-        });
+      applyAccessControl(userRole, userAccess);
 
-        // ===== 3. MODULE CARDS (QUICK ACCESS) =====
-        document.querySelectorAll('[data-access-item-card]').forEach(function(card) {
-          var key = card.dataset.accessItemCard;
-          var moduleCard = card.closest('.module-card');
-          if (moduleCard) {
-            if (userAccess[key] === false) {
-              moduleCard.style.display = 'none';
-            } else {
-              moduleCard.style.display = '';
-            }
-          }
-        });
-      };
-
-      // Fetch user access from database
+      // Step 2: Fetch from database to update (async, non-blocking)
       fetch('/api/me', { headers: { 'x-auth-token': authToken } })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-          if (!data.success) { window.location.href = '/Login.html'; return; }
-          
-          var userRole = data.user.role;
-          var userAccess = data.user.access || {};
+          if (!data.success) return;
 
-          // Update localStorage for compatibility
-          localStorage.setItem('aura_user_role', userRole);
-          localStorage.setItem('aura_user_access', JSON.stringify(userAccess));
+          var dbRole = data.user.role;
+          var dbAccess = data.user.access || {};
 
-          // Apply access control
-          window.__applyAccessControl(userRole, userAccess);
+          // Update localStorage
+          localStorage.setItem('aura_user_role', dbRole);
+          localStorage.setItem('aura_user_access', JSON.stringify(dbAccess));
+
+          // Re-apply with database data
+          applyAccessControl(dbRole, dbAccess);
         })
         .catch(function() {
-          // Fallback: use localStorage
-          var userRole = localStorage.getItem('aura_user_role') || '';
-          var userAccess = {};
-          try { userAccess = JSON.parse(localStorage.getItem('aura_user_access') || '{}'); } catch(e) {}
-          window.__applyAccessControl(userRole, userAccess);
+          // API failed — keep localStorage version (already applied above)
         });
     })();
   </script>
