@@ -205,8 +205,8 @@
         </div>
         <div class="nav-sub open" id="authSub">
           <div class="nav-sub-inner">
-            <a class="nav-sub-item active" data-view="users" onclick="switchView('users')"><i class="fas fa-users-cog"></i> User Management</a>
-            <a class="nav-sub-item" data-view="registration" onclick="switchView('registration')"><i class="fas fa-clipboard-check"></i> Data Registrasi</a>
+            <a class="nav-sub-item active" data-view="users" data-access-item="user_management" onclick="switchView('users')"><i class="fas fa-users-cog"></i> User Management</a>
+            <a class="nav-sub-item" data-view="registration" data-access-item="registration_control" onclick="switchView('registration')"><i class="fas fa-clipboard-check"></i> Data Registrasi</a>
           </div>
         </div>
       </div>
@@ -437,17 +437,56 @@
   <div class="toast" id="toastEl"><div class="toast-content" id="toastMsg">Success</div></div>
 
   <script>
-    // ===== CEK LOGIN & ACCESS CONTROL (MASTER & ADMIN BOLEH) =====
+    // ===== CEK LOGIN & ACCESS CONTROL =====
     const authToken = localStorage.getItem('aura_auth_token');
     const userRole = localStorage.getItem('aura_user_role');
 
     if (!authToken) {
       window.location.href = '/Login.html';
-    } else if (userRole !== 'ADMIN' && userRole !== 'MASTER') {
-      alert('Akses Ditolak! Halaman ini khusus untuk Master/Admin. Member tidak memiliki akses.');
-      window.location.href = '/Dashboard.html';
     } else {
       document.getElementById('userEmail').textContent = authToken + '@aura.os';
+      
+      // Async check: fetch /api/me to verify access from database
+      fetch('/api/me', { headers: { 'x-auth-token': authToken } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success) { window.location.href = '/Login.html'; return; }
+          
+          var role = data.user.role;
+          var access = data.user.access || {};
+          
+          // Update localStorage
+          localStorage.setItem('aura_user_role', role);
+          localStorage.setItem('aura_user_access', JSON.stringify(access));
+          
+          // Check access: MASTER & ADMIN always allowed
+          // MEMBER: only if authority_panel = true
+          if (role !== 'MASTER' && role !== 'ADMIN') {
+            if (access['authority_panel'] !== true) {
+              alert('Akses Ditolak! Anda tidak memiliki akses ke Authority Panel.');
+              window.location.href = '/Dashboard.html';
+              return;
+            }
+          }
+          
+          // Trigger sub-menu filter
+          if (typeof applyAuthorityAccess === 'function') {
+            applyAuthorityAccess(role, access);
+          }
+        })
+        .catch(function() {
+          // API failed — use localStorage
+          var lsRole = localStorage.getItem('aura_user_role') || '';
+          var lsAccess = {};
+          try { lsAccess = JSON.parse(localStorage.getItem('aura_user_access') || '{}'); } catch(e) {}
+          if (lsRole !== 'MASTER' && lsRole !== 'ADMIN') {
+            if (lsAccess['authority_panel'] !== true) {
+              alert('Akses Ditolak! Anda tidak memiliki akses ke Authority Panel.');
+              window.location.href = '/Dashboard.html';
+              return;
+            }
+          }
+        });
     }
     // Catatan: ADMIN bisa melihat halaman ini (read-only), tapi hanya MASTER yang bisa edit access control
 
@@ -519,7 +558,7 @@
     async function loadUsers() {
       try {
         const res = await fetch('/api/users', { headers: { 'x-auth-token': authToken } });
-        if (res.status === 403) { alert('Sesi admin berakhir!'); window.location.href = '/Login.html'; return; }
+        if (res.status === 403) { document.getElementById('userTableBody').innerHTML = '<tr><td colspan=\'4\' style=\'text-align:center; padding:40px; color:var(--text-tertiary);\'>Anda tidak memiliki akses ke User Management</td></tr>'; return; }
         usersData = await res.json();
         document.getElementById('statTotal').textContent = usersData.length;
         document.getElementById('statAdmin').textContent = usersData.filter(u => u.role === 'ADMIN' || u.role === 'MASTER').length;
@@ -879,6 +918,70 @@
       var addBtn = document.getElementById('addUserBtn');
       if (addBtn) addBtn.style.display = '';
     }
+
+    // ===== ACCESS CONTROL: FILTER AUTHORITY SUB-MENU =====
+    (function() {
+      var authToken = localStorage.getItem('aura_auth_token');
+      if (!authToken) { window.location.href = '/Login.html'; return; }
+
+      var userRole = localStorage.getItem('aura_user_role') || '';
+      var userAccess = {};
+      try { userAccess = JSON.parse(localStorage.getItem('aura_user_access') || '{}'); } catch(e) {}
+
+      function applyAuthorityAccess(role, access) {
+        // MASTER: tampilkan semua
+        if (role === 'MASTER') {
+          document.querySelectorAll('.nav-sub-item[data-access-item]').forEach(function(el) {
+            el.style.display = '';
+          });
+          return;
+        }
+
+        // ADMIN & MEMBER: filter sub-menu items
+        var hasUserMgmt = access['user_management'] !== false;
+        var hasRegisCtrl = access['registration_control'] !== false;
+
+        document.querySelectorAll('.nav-sub-item[data-access-item]').forEach(function(el) {
+          var key = el.dataset.accessItem;
+          if (access[key] === false) {
+            el.style.display = 'none';
+          } else {
+            el.style.display = '';
+          }
+        });
+
+        // Jika user_management hidden, auto-switch ke registration (jika punya akses)
+        // Jika registration_control hidden, auto-switch ke user management (jika punya akses)
+        // Jika keduanya hidden, redirect ke Dashboard
+        var activeView = document.querySelector('.nav-sub-item.active');
+        if (activeView && activeView.style.display === 'none') {
+          // Active view is hidden — switch to first visible
+          var firstVisible = document.querySelector('.nav-sub-item[data-access-item]:not([style*="none"])');
+          if (firstVisible) {
+            switchView(firstVisible.dataset.view);
+          } else {
+            // Both hidden — redirect to Dashboard
+            window.location.href = '/Dashboard.html';
+          }
+        }
+      }
+
+      // Apply from localStorage immediately
+      applyAuthorityAccess(userRole, userAccess);
+
+      // Fetch from database
+      fetch('/api/me', { headers: { 'x-auth-token': authToken } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success) return;
+          var dbRole = data.user.role;
+          var dbAccess = data.user.access || {};
+          localStorage.setItem('aura_user_role', dbRole);
+          localStorage.setItem('aura_user_access', JSON.stringify(dbAccess));
+          applyAuthorityAccess(dbRole, dbAccess);
+        })
+        .catch(function() {});
+    })();
 
     // Init
     buildPermGrid();
