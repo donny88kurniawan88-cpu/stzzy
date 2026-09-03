@@ -265,7 +265,7 @@
 
       <div class="footer-info">
         <div>© 2024 AURA.OS System</div>
-        <div class="ip-badge"><i class="fas fa-globe"></i> IP: 192.168.1.1</div>
+        <div class="ip-badge"><i class="fas fa-globe"></i> <span id="ipAddress">Detecting IP...</span></div>
       </div>
 
       <!-- ===== REGISTER OVERLAY (blur di atas login) ===== -->
@@ -574,6 +574,52 @@
         }
       } catch (e) {}
     })();
+  </script>
+  <script>
+    // ===== IP DETECTION =====
+    var detectedIP = '127.0.0.1';
+    
+    fetch('/api/ip/detect')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          detectedIP = data.ip;
+          var badge = document.getElementById('ipAddress');
+          if (badge) badge.textContent = 'IP: ' + detectedIP;
+        }
+      })
+      .catch(function() {
+        var badge = document.getElementById('ipAddress');
+        if (badge) badge.textContent = 'IP: 127.0.0.1';
+      });
+
+    // ===== INTERCEPT LOGIN: check IP whitelist =====
+    var originalHandleLogin = handleLogin;
+    handleLogin = function(e) {
+      e.preventDefault();
+      var username = document.getElementById('username').value.trim();
+      var password = document.getElementById('password').value.trim();
+      
+      // Check IP whitelist
+      fetch('/api/ip/whitelist')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success && data.settings && data.settings.enabled) {
+            // Whitelist is ON - check if IP is allowed
+            var allowed = data.whitelist.some(function(w) { return w.ip === detectedIP || w.ip === '0.0.0.0'; });
+            if (!allowed) {
+              showAlert(data.settings.message || 'IP Anda tidak ada dalam whitelist.', 'error');
+              return;
+            }
+          }
+          // IP allowed (or whitelist disabled) - proceed with login
+          originalHandleLogin(e);
+        })
+        .catch(function() {
+          // API failed - proceed with login (fail open)
+          originalHandleLogin(e);
+        });
+    };
   </script>
 </body>
 </html>

@@ -431,6 +431,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
           API Key
         </div>
+        <div class="nav-item" data-action="ipWhitelist" data-access-item="api_key">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          IP Whitelist
+        </div>
         <div class="nav-item" data-action="setting" data-access-item="setting">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Setting
@@ -487,6 +491,57 @@
           <div class="module-card" data-color="blue" data-action="apiKey"><div class="module-icon">🔑</div><div class="module-name" data-access-item-card="api_key">API Key</div><div class="module-desc">Manage API credentials</div><div class="module-badge">v2.0.0</div></div>
           <div class="module-card" data-color="purple" onclick="window.location.href='/Authority.html'"><div class="module-icon">🛡️</div><div class="module-name" data-access-item-card="authority_panel">Authority Panel</div><div class="module-desc">Admin access &amp; user management</div><div class="module-badge">Restricted</div></div>
           <div class="module-card" data-color="orange" data-action="setting"><div class="module-icon">⚙️</div><div class="module-name" data-access-item-card="setting">Setting</div><div class="module-desc">System configuration panel</div><div class="module-badge">v1.2.0</div></div>
+        </div>
+      </div>
+
+      <!-- ===== IP WHITELIST VIEW ===== -->
+      <div id="ipWhitelistView" style="display:none;">
+        <div class="auth-header" style="margin-bottom:24px;">
+          <div class="header-group">
+            <div class="header-icon"><i class="fas fa-shield-virus"></i></div>
+            <div>
+              <div class="title">IP Whitelist</div>
+              <div class="subtitle">Kelola akses IP untuk login</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid; gap:20px; max-width:800px;">
+          <!-- Settings -->
+          <div class="stat-card" style="padding:20px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+              <div>
+                <div style="font-size:16px; font-weight:700; color:var(--text-primary);">Whitelist Protection</div>
+                <div style="font-size:12px; color:var(--text-tertiary);">Aktifkan untuk membatasi login hanya dari IP yang di-whitelist</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="ipWhitelistToggle" onchange="toggleIpWhitelist()">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div style="margin-top:12px;">
+              <label style="font-size:12px; color:var(--text-tertiary); display:block; margin-bottom:6px;">Pesan tolakan:</label>
+              <input type="text" id="ipWhitelistMessage" class="input-field" placeholder="IP Anda tidak ada dalam whitelist..." style="width:100%;">
+            </div>
+          </div>
+
+          <!-- Add IP -->
+          <div class="stat-card" style="padding:20px;">
+            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:12px;">Tambah IP ke Whitelist</div>
+            <div style="display:flex; gap:10px;">
+              <input type="text" id="newIpInput" class="input-field" placeholder="192.168.1.1" style="flex:1;">
+              <input type="text" id="newIpLabel" class="input-field" placeholder="Label (opsional)" style="width:180px;">
+              <button class="btn btn-primary" onclick="addIpToWhitelist()"><i class="fas fa-plus"></i> Tambah</button>
+            </div>
+          </div>
+
+          <!-- IP List -->
+          <div class="stat-card" style="padding:20px;">
+            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:12px;">Daftar IP Whitelist</div>
+            <div id="ipWhitelistTable" style="display:grid; gap:8px;">
+              <div style="text-align:center; color:var(--text-tertiary); padding:20px;">Loading...</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -983,6 +1038,12 @@ function changePassword() {
           });
           addTerminalLog('API Key panel opened');
           break;
+        case 'ipWhitelist':
+          document.querySelectorAll('[id$="View"]').forEach(function(v) { v.style.display = 'none'; });
+          var ipView = document.getElementById('ipWhitelistView');
+          if (ipView) { ipView.style.display = 'block'; document.getElementById('breadcrumbPage').textContent = 'ip-whitelist'; loadIpWhitelist(); }
+          addTerminalLog('IP Whitelist panel opened');
+          break;
         case 'setting':
           showPopup('Setting', '<div style="padding:10px;"><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Terminal Auto-Scroll</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setAutoScroll" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setAutoScrollDot"></span></label></div><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Toast Notifications</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setToast" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setToastDot"></span></label></div><div style="padding:14px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius-md); cursor:pointer; text-align:center; color:var(--accent-danger); font-weight:600; font-size:14px;" id="clearDataBtn">Clear All Local Data</div></div>', false);
           addTerminalLog('Settings panel opened');
@@ -1274,6 +1335,82 @@ function changePassword() {
       console.log('[Access Control] /api/me failed:', err.message, '— using localStorage');
     });
 })();
-</script>
+    // ===== IP WHITELIST =====
+    function loadIpWhitelist() {
+      var token = localStorage.getItem('aura_auth_token') || '';
+      fetch('/api/ip/whitelist', { headers: { 'x-auth-token': token } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success) return;
+          document.getElementById('ipWhitelistToggle').checked = data.settings.enabled;
+          document.getElementById('ipWhitelistMessage').value = data.settings.message || '';
+          
+          var html = '';
+          data.whitelist.forEach(function(item) {
+            html += '<div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border);">' +
+              '<div style="flex:1;"><code style="font-size:14px; color:var(--accent-success);">' + item.ip + '</code>' +
+              (item.label ? '<span style="font-size:11px; color:var(--text-tertiary); margin-left:8px;">' + item.label + '</span>' : '') +
+              '</div><span style="font-size:10px; color:var(--text-tertiary);">by ' + (item.added_by || 'system') + '</span>' +
+              '<button onclick="removeIpFromWhitelist(' + item.id + ')" style="background:none; border:none; color:var(--accent-danger); cursor:pointer; padding:4px;"><i class="fas fa-trash"></i></button>' +
+              '</div>';
+          });
+          if (!html) html = '<div style="text-align:center; color:var(--text-tertiary); padding:20px;">No IPs in whitelist</div>';
+          document.getElementById('ipWhitelistTable').innerHTML = html;
+        });
+    }
+
+    function toggleIpWhitelist() {
+      var enabled = document.getElementById('ipWhitelistToggle').checked;
+      var message = document.getElementById('ipWhitelistMessage').value;
+      var token = localStorage.getItem('aura_auth_token') || '';
+      fetch('/api/ip/whitelist', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({ enabled: enabled, message: message })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) showToast('Pengaturan IP whitelist disimpan', 'success');
+        else showToast('Gagal menyimpan', 'error');
+      });
+    }
+
+    function addIpToWhitelist() {
+      var ip = document.getElementById('newIpInput').value.trim();
+      var label = document.getElementById('newIpLabel').value.trim();
+      if (!ip) { showToast('IP wajib diisi', 'warning'); return; }
+      var token = localStorage.getItem('aura_auth_token') || '';
+      fetch('/api/ip/whitelist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({ ip: ip, label: label })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          showToast('IP ditambahkan ke whitelist', 'success');
+          document.getElementById('newIpInput').value = '';
+          document.getElementById('newIpLabel').value = '';
+          loadIpWhitelist();
+        } else {
+          showToast(data.error || 'Gagal menambah IP', 'error');
+        }
+      });
+    }
+
+    function removeIpFromWhitelist(id) {
+      var token = localStorage.getItem('aura_auth_token') || '';
+      fetch('/api/ip/whitelist/' + id, {
+        method: 'DELETE',
+        headers: { 'x-auth-token': token }
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) { showToast('IP dihapus dari whitelist', 'success'); loadIpWhitelist(); }
+        else showToast('Gagal menghapus', 'error');
+      });
+    }
+
+  </script>
 </body>
 </html>
