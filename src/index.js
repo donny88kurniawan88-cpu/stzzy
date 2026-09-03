@@ -1156,6 +1156,31 @@ export default {
     }
 
     // ============================================
+    // 19. API /api/me — Get current user + access from DB
+    // ============================================
+    if (path === '/api/me' && request.method === 'GET') {
+      const username = request.headers.get('x-auth-token');
+      if (!username) return Response.json({ success: false, error: 'Not authenticated' }, { status: 401 });
+      try {
+        const user = await env.DB.prepare("SELECT username, role, status, access FROM users WHERE username = ?").bind(username).first();
+        if (!user) return Response.json({ success: false, error: 'User not found' }, { status: 404 });
+
+        const access = safeParseAccess(user.access, user.role);
+        return Response.json({
+          success: true,
+          user: {
+            username: user.username,
+            role: user.role,
+            status: user.status,
+            access: access
+          }
+        });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Server error' }, { status: 500 });
+      }
+    }
+
+    // ============================================
     // FALLBACK: serve static assets
     // ============================================
     return env.ASSETS.fetch(request);
