@@ -483,21 +483,52 @@ export default {
     }
 
     const VALID_ROLES = ['MASTER', 'ADMIN', 'MEMBER'];
-    const VALID_MODULES = ['core', 'workspace', 'operational', 'system', 'user_management', 'registration_control'];
+    const VALID_MODULES = [
+      // Groups
+      'core', 'workspace', 'operational', 'system',
+      // Core items
+      'dashboard', 'profil',
+      // Workspace items
+      'banking_tools', 'rek_validator', 'bank_processor',
+      // Operational items
+      'saldo_pencairan', 'qris_tools', 'prediction_tools', 'event_tools', 'edit_bukti', 'keep_memo',
+      // System items
+      'api_key', 'setting', 'authority_panel',
+      // Authority
+      'user_management', 'registration_control',
+    ];
 
     // ===== DEFAULT ACCESS PER ROLE =====
     // MASTER: full access tak terbatas (semua modul true)
     // ADMIN:  Core, Workspace, Operational, System, User Management, Registrasi
     // MEMBER: hanya Core (selebihnya ditentukan oleh Admin/Master)
     function defaultAccessFor(role) {
-      if (role === 'MASTER') {
-        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
+      if (role === 'MASTER' || role === 'ADMIN') {
+        // Full access: all groups + all items
+        return {
+          // Groups
+          core: true, workspace: true, operational: true, system: true,
+          // Core items
+          dashboard: true, profil: true,
+          // Workspace items
+          banking_tools: true, rek_validator: true, bank_processor: true,
+          // Operational items
+          saldo_pencairan: true, qris_tools: true, prediction_tools: true, event_tools: true, edit_bukti: true, keep_memo: true,
+          // System items
+          api_key: true, setting: true, authority_panel: true,
+          // Authority
+          user_management: true, registration_control: true,
+        };
       }
-      if (role === 'ADMIN') {
-        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
-      }
-      // MEMBER: default hanya Core
-      return { core: true, workspace: false, operational: false, system: false, user_management: false, registration_control: false };
+      // MEMBER: default hanya Core (dashboard + profil)
+      return {
+        core: true, workspace: false, operational: false, system: false,
+        dashboard: true, profil: true,
+        banking_tools: false, rek_validator: false, bank_processor: false,
+        saldo_pencairan: false, qris_tools: false, prediction_tools: false, event_tools: false, edit_bukti: false, keep_memo: false,
+        api_key: false, setting: false, authority_panel: false,
+        user_management: false, registration_control: false,
+      };
     }
 
     // Ambil role user yang sedang request (dari x-auth-token header)
