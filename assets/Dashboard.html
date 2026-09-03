@@ -1144,135 +1144,125 @@ function changePassword() {
       }
     })();
   </script>
-  <!-- ===== ACCESS CONTROL: SIDEBAR + MODULE CARDS ===== -->
-  <script>
-    // ===== DEFAULT ACCESS PER ROLE =====
-    function getDefaultAccess(role) {
-      if (role === 'MASTER') {
-        return { core:true, workspace:true, operational:true, system:true,
-          dashboard:true, profil:true, banking_tools:true, rek_validator:true, bank_processor:true,
-          saldo_pencairan:true, qris_tools:true, prediction_tools:true, event_tools:true, edit_bukti:true, keep_memo:true,
-          api_key:true, setting:true, authority_panel:true, user_management:true, registration_control:true };
+  <!-- ===== ACCESS CONTROL: /api/me (DATABASE) + localStorage FALLBACK ===== -->
+<script>
+(function() {
+  var authToken = localStorage.getItem('aura_auth_token');
+  if (!authToken) { window.location.href = '/Login.html'; return; }
+
+  // DEFAULT ACCESS per ROLE (20 keys)
+  function getDefaultAccess(role) {
+    var keys = ['core','workspace','operational','system','dashboard','profil',
+      'banking_tools','rek_validator','bank_processor','saldo_pencairan',
+      'qris_tools','prediction_tools','event_tools','edit_bukti','keep_memo',
+      'api_key','setting','authority_panel','user_management','registration_control'];
+    var access = {};
+    if (role === 'MASTER') {
+      keys.forEach(function(k) { access[k] = true; });
+    } else if (role === 'ADMIN') {
+      keys.forEach(function(k) { access[k] = true; });
+      access['api_key'] = false;
+      access['setting'] = false;
+      access['registration_control'] = false;
+    } else {
+      keys.forEach(function(k) { access[k] = false; });
+      access['core'] = true;
+      access['dashboard'] = true;
+      access['profil'] = true;
+    }
+    return access;
+  }
+
+  // MERGE: pastikan semua 20 keys ada (isi default untuk yang missing)
+  function mergeAccess(rawAccess, role) {
+    var defaults = getDefaultAccess(role);
+    var merged = {};
+    var keys = Object.keys(defaults);
+    keys.forEach(function(k) {
+      if (rawAccess && rawAccess[k] === false) {
+        merged[k] = false;
+      } else if (rawAccess && rawAccess[k] === true) {
+        merged[k] = true;
+      } else {
+        merged[k] = defaults[k];
       }
-      if (role === 'ADMIN') {
-        return { core:true, workspace:true, operational:true, system:true,
-          dashboard:true, profil:true, banking_tools:true, rek_validator:true, bank_processor:true,
-          saldo_pencairan:true, qris_tools:true, prediction_tools:true, event_tools:true, edit_bukti:true, keep_memo:true,
-          api_key:false, setting:false, authority_panel:true, user_management:true, registration_control:false };
-      }
-      // MEMBER default
-      return { core:true, workspace:false, operational:false, system:false,
-        dashboard:true, profil:true, banking_tools:false, rek_validator:false, bank_processor:false,
-        saldo_pencairan:false, qris_tools:false, prediction_tools:false, event_tools:false, edit_bukti:false, keep_memo:false,
-        api_key:false, setting:false, authority_panel:false, user_management:false, registration_control:false };
+    });
+    return merged;
+  }
+
+  function applyAccess(role, access) {
+    // MASTER: show everything
+    if (role === 'MASTER') {
+      document.querySelectorAll('[data-access-item]').forEach(function(el) { el.style.display = ''; });
+      document.querySelectorAll('.nav-group[data-access]').forEach(function(el) { el.style.display = ''; });
+      document.querySelectorAll('[data-access-item-card]').forEach(function(card) {
+        var mc = card.closest('.module-card');
+        if (mc) mc.style.display = '';
+      });
+      console.log('[Access Control] MASTER: all visible');
+      return;
     }
 
-    function applyAccessControl(userRole, userAccess) {
-      // Safety: if no data-access-item elements exist, don't hide anything
-      var hasAccessItems = document.querySelectorAll('[data-access-item]').length > 0;
-      if (!hasAccessItems) return;
+    // ADMIN & MEMBER: filter
+    document.querySelectorAll('[data-access-item]').forEach(function(item) {
+      var key = item.dataset.accessItem;
+      item.style.display = (access[key] === false) ? 'none' : '';
+    });
 
-      // MASTER: tampilkan semua
-      if (userRole === 'MASTER') {
-        // Show everything — reset any hidden items
-        document.querySelectorAll('[data-access-item]').forEach(function(item) {
-          item.style.display = '';
-        });
-        document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
-          group.style.display = '';
-        });
-        document.querySelectorAll('[data-access-item-card]').forEach(function(card) {
-          var mc = card.closest('.module-card');
-          if (mc) mc.style.display = '';
-        });
+    document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
+      var gk = group.dataset.access;
+      if (access[gk] === false) { group.style.display = 'none'; return; }
+      var items = group.querySelectorAll('[data-access-item]');
+      var anyVis = false;
+      items.forEach(function(it) { if (it.style.display !== 'none') anyVis = true; });
+      group.style.display = (items.length > 0 && !anyVis) ? 'none' : '';
+    });
+
+    document.querySelectorAll('[data-access-item-card]').forEach(function(card) {
+      var key = card.dataset.accessItemCard;
+      var mc = card.closest('.module-card');
+      if (mc) mc.style.display = (access[key] === false) ? 'none' : '';
+    });
+
+    console.log('[Access Control] Role:', role, '| Access applied');
+  }
+
+  // ===== STEP 1: IMMEDIATE — from localStorage (no flash) =====
+  var role = localStorage.getItem('aura_user_role') || 'MEMBER';
+  var rawAccess = {};
+  try {
+    var stored = localStorage.getItem('aura_user_access');
+    if (stored) rawAccess = JSON.parse(stored);
+  } catch(e) {}
+  var access = mergeAccess(rawAccess, role);
+  applyAccess(role, access);
+
+  // ===== STEP 2: FETCH from /api/me (DATABASE) =====
+  fetch('/api/me', { headers: { 'x-auth-token': authToken } })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      if (!data.success) {
+        console.log('[Access Control] /api/me returned error, using localStorage');
         return;
       }
+      var dbRole = data.user.role;
+      var dbAccess = mergeAccess(data.user.access, dbRole);
 
-      // ADMIN & MEMBER: filter berdasarkan access
-      // 1. SIDEBAR ITEMS
-      document.querySelectorAll('[data-access-item]').forEach(function(item) {
-        var key = item.dataset.accessItem;
-        if (userAccess[key] === false) {
-          item.style.display = 'none';
-        } else {
-          item.style.display = '';
-        }
-      });
+      // Update localStorage
+      localStorage.setItem('aura_user_role', dbRole);
+      localStorage.setItem('aura_user_access', JSON.stringify(dbAccess));
 
-      // 2. SIDEBAR GROUPS
-      document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
-        var groupKey = group.dataset.access;
-        if (userAccess[groupKey] === false) {
-          group.style.display = 'none';
-          return;
-        }
-        var items = group.querySelectorAll('[data-access-item]');
-        var anyVisible = false;
-        items.forEach(function(item) {
-          if (item.style.display !== 'none') anyVisible = true;
-        });
-        if (items.length > 0 && !anyVisible) {
-          group.style.display = 'none';
-        } else {
-          group.style.display = '';
-        }
-      });
-
-      // 3. MODULE CARDS
-      document.querySelectorAll('[data-access-item-card]').forEach(function(card) {
-        var key = card.dataset.accessItemCard;
-        var mc = card.closest('.module-card');
-        if (mc) {
-          if (userAccess[key] === false) {
-            mc.style.display = 'none';
-          } else {
-            mc.style.display = '';
-          }
-        }
-      });
-    }
-
-    // ===== RUN ACCESS CONTROL =====
-    (function() {
-      window.__accessControlRan = true;
-      var authToken = localStorage.getItem('aura_auth_token');
-      if (!authToken) { window.location.href = '/Login.html'; return; }
-
-      // Step 1: IMMEDIATELY apply from localStorage (no flash of empty sidebar)
-      var userRole = localStorage.getItem('aura_user_role') || '';
-      var userAccess = {};
-      try {
-        var stored = localStorage.getItem('aura_user_access');
-        if (stored) userAccess = JSON.parse(stored);
-      } catch(e) {}
-
-      // If localStorage empty, use default
-      if (!userAccess || Object.keys(userAccess).length === 0) {
-        userAccess = getDefaultAccess(userRole || 'MEMBER');
-      }
-
-      applyAccessControl(userRole, userAccess);
-
-      // Step 2: Fetch from database to update (async, non-blocking)
-      fetch('/api/me', { headers: { 'x-auth-token': authToken } })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (!data.success) return;
-
-          var dbRole = data.user.role;
-          var dbAccess = data.user.access || {};
-
-          // Update localStorage
-          localStorage.setItem('aura_user_role', dbRole);
-          localStorage.setItem('aura_user_access', JSON.stringify(dbAccess));
-
-          // Re-apply with database data
-          applyAccessControl(dbRole, dbAccess);
-        })
-        .catch(function() {
-          // API failed — keep localStorage version (already applied above)
-        });
-    })();
-  </script>
+      // Re-apply with database data
+      applyAccess(dbRole, dbAccess);
+      console.log('[Access Control] /api/me success: role=' + dbRole + ' keys=' + Object.keys(dbAccess).length);
+    })
+    .catch(function(err) {
+      console.log('[Access Control] /api/me failed:', err.message, '— using localStorage');
+    });
+})();
+</script>
 </body>
 </html>
