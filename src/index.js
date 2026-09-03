@@ -716,8 +716,22 @@ export default {
 
         // Validasi role baru
         const newRole = body.role && VALID_ROLES.includes(body.role) ? body.role : user.role;
+
+        // MERGE: ambil access yang sudah ada di DB, override dengan yang dikirim dari Authority.html
+        // Jika body.access tidak punya key tertentu, gunakan defaultAccessFor(role)
+        const existingAccess = safeParseAccess(user.access, user.role);
+        const defaultAcc = defaultAccessFor(newRole);
         const access = {};
-        VALID_MODULES.forEach(m => access[m] = !!(body.access && body.access[m]));
+        VALID_MODULES.forEach(m => {
+          if (body.access && body.access[m] === true) {
+            access[m] = true;
+          } else if (body.access && body.access[m] === false) {
+            access[m] = false;
+          } else {
+            // Key tidak dikirim dari Authority.html — pertahankan existing atau default
+            access[m] = existingAccess[m] !== undefined ? existingAccess[m] : defaultAcc[m];
+          }
+        });
         const grantedBy = request.headers.get('x-auth-token');
 
         await env.DB.prepare("UPDATE users SET role = ?, access = ?, granted_by = ? WHERE username = ?")
