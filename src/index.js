@@ -503,24 +503,29 @@ export default {
     // ADMIN:  Core, Workspace, Operational, System, User Management, Registrasi
     // MEMBER: hanya Core (selebihnya ditentukan oleh Admin/Master)
     function defaultAccessFor(role) {
-      if (role === 'MASTER' || role === 'ADMIN') {
-        // Full access: all groups + all items
+      if (role === 'MASTER') {
+        // MASTER: full access ke seluruh menu
         return {
-          // Groups
           core: true, workspace: true, operational: true, system: true,
-          // Core items
           dashboard: true, profil: true,
-          // Workspace items
           banking_tools: true, rek_validator: true, bank_processor: true,
-          // Operational items
           saldo_pencairan: true, qris_tools: true, prediction_tools: true, event_tools: true, edit_bukti: true, keep_memo: true,
-          // System items
           api_key: true, setting: true, authority_panel: true,
-          // Authority
           user_management: true, registration_control: true,
         };
       }
-      // MEMBER: default hanya Core (dashboard + profil)
+      if (role === 'ADMIN') {
+        // ADMIN default: Core semua, Workspace, Operational, System (Authority Panel + User Management only)
+        return {
+          core: true, workspace: true, operational: true, system: true,
+          dashboard: true, profil: true,
+          banking_tools: true, rek_validator: true, bank_processor: true,
+          saldo_pencairan: true, qris_tools: true, prediction_tools: true, event_tools: true, edit_bukti: true, keep_memo: true,
+          api_key: false, setting: false, authority_panel: true,
+          user_management: true, registration_control: false,
+        };
+      }
+      // MEMBER: default minimal (dashboard + profil)
       return {
         core: true, workspace: false, operational: false, system: false,
         dashboard: true, profil: true,
@@ -607,6 +612,9 @@ export default {
         const { username, password, role } = await request.json();
         if (!username || !password || !role) return Response.json({ error: 'Data tidak lengkap' }, { status: 400 });
         if (!VALID_ROLES.includes(role)) return Response.json({ error: 'Role tidak valid! Pilih: MASTER, ADMIN, atau MEMBER.' }, { status: 400 });
+        // ADMIN hanya boleh tambah MEMBER
+        const addRequesterRole = await getRequesterRole(request);
+        if (addRequesterRole === 'ADMIN' && role !== 'MEMBER') return Response.json({ error: 'Admin hanya dapat menambah user Member!' }, { status: 403 });
 
         const access = JSON.stringify(defaultAccessFor(role));
         await env.DB.prepare("INSERT INTO users (username, password, role, status, access) VALUES (?, ?, ?, 'ACTIVE', ?)").bind(username, password, role, access).run();
@@ -632,8 +640,9 @@ export default {
         if (!target) return Response.json({ error: 'User tidak ditemukan' }, { status: 404 });
         if (target.role === 'MASTER') return Response.json({ error: 'Akun MASTER tidak dapat dihapus!' }, { status: 403 });
         // ADMIN tidak boleh hapus ADMIN lain — hanya MASTER yang bisa
-        if (requesterRole === 'ADMIN' && target.role === 'ADMIN') {
-          return Response.json({ error: 'Admin tidak dapat menghapus Admin lain! Hanya Master.' }, { status: 403 });
+        // ADMIN hanya boleh hapus MEMBER
+        if (requesterRole === 'ADMIN' && target.role !== 'MEMBER') {
+          return Response.json({ error: 'Admin hanya dapat menghapus user Member!' }, { status: 403 });
         }
 
         await env.DB.prepare("DELETE FROM users WHERE username = ?").bind(usernameToDelete).run();
@@ -655,7 +664,7 @@ export default {
     // 7. API GET KONFIGURASI REGISTRASI
     // ============================================
     if (path === '/api/settings/registration' && request.method === 'GET') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
       return Response.json(await getRegisSetting());
     }
 
@@ -663,7 +672,7 @@ export default {
     // 8. API SIMPAN KONFIGURASI REGISTRASI
     // ============================================
     if (path === '/api/settings/registration' && request.method === 'PUT') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      if (!await isMaster(request)) return Response.json({ error: 'Akses Ditolak! Hanya Master yang dapat mengubah konfigurasi.' }, { status: 403 });
       try {
         const body = await request.json();
         const setting = {
@@ -693,18 +702,17 @@ export default {
         if (!user) return Response.json({ error: 'User tidak ditemukan' }, { status: 404 });
         if (user.role === 'MASTER') return Response.json({ error: 'Akun MASTER tidak dapat diubah!' }, { status: 403 });
 
-        // ===== ROLE-BASED PERMISSION ENFORCEMENT =====
-        // ADMIN hanya boleh edit user MEMBER
+        // ===== HIERARCHY ENFORCEMENT =====
+        // MASTER: boleh edit ADMIN & MEMBER
+        // ADMIN: HANYA boleh edit MEMBER
         if (requesterRole === 'ADMIN') {
           if (user.role !== 'MEMBER') {
             return Response.json({ error: 'Admin hanya dapat mengubah user Member! User ini adalah ' + user.role + '.' }, { status: 403 });
           }
-          // Admin tidak boleh set role selain MEMBER
           if (body.role && body.role !== 'MEMBER') {
             return Response.json({ error: 'Admin tidak dapat mengubah role Member! Hanya Master yang bisa promote.' }, { status: 403 });
           }
         }
-        // MASTER boleh edit siapa saja (kecuali MASTER lain — sudah dicek di atas)
 
         // Validasi role baru
         const newRole = body.role && VALID_ROLES.includes(body.role) ? body.role : user.role;
