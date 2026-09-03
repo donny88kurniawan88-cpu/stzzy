@@ -761,6 +761,13 @@
         access[item.dataset.key] = item.querySelector('input').checked;
       });
 
+      // Auto-set group keys: if ANY item in group is true → group = true
+      ACCESS_GROUPS.forEach(g => {
+        const groupItems = ACCESS_MODULES.filter(m => m.group === g.key);
+        const anyTrue = groupItems.some(m => access[m.key] === true);
+        access[g.key] = anyTrue;
+      });
+
       try {
         const res = await fetch(`/api/users/${encodeURIComponent(editUsername)}/access`, {
           method: 'PUT',
