@@ -1168,6 +1168,10 @@ function changePassword() {
     }
 
     function applyAccessControl(userRole, userAccess) {
+      // Safety: if no data-access-item elements exist, don't hide anything
+      var hasAccessItems = document.querySelectorAll('[data-access-item]').length > 0;
+      if (!hasAccessItems) return;
+
       // MASTER: tampilkan semua
       if (userRole === 'MASTER') {
         // Show everything — reset any hidden items
