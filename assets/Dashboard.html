@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <style>html:not(.auth) body { opacity: 0 !important; } html:not(.auth) .loader { display: none !important; }</style>
+  <script>
+    (function() {
+      var token = localStorage.getItem('aura_auth_token');
+      if (!token) {
+        window.location.replace('/Login.html');
+      } else {
+        document.documentElement.classList.add('auth');
+      }
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>AURA.OS // DASHBOARD</title>
