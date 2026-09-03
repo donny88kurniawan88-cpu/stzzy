@@ -235,7 +235,7 @@
           </div>
           <div style="display: flex; gap: 12px; flex-wrap: wrap;">
             <a href="/Dashboard.html" class="btn btn-dashboard"><i class="fas fa-home"></i> Dashboard</a>
-            <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-user-plus"></i> Add User</button>
+            <button class="btn btn-primary" id="addUserBtn" onclick="openModal()" style="display:none;"><i class="fas fa-user-plus"></i> Add User</button>
           </div>
         </div>
 
@@ -449,6 +449,7 @@
     } else {
       document.getElementById('userEmail').textContent = authToken + '@aura.os';
     }
+    // Catatan: ADMIN bisa melihat halaman ini (read-only), tapi hanya MASTER yang bisa edit access control
 
     function logout() { localStorage.clear(); window.location.href = '/Login.html'; }
 
@@ -549,11 +550,17 @@
     }
 
     // Cek apakah user saat ini (yang login) boleh edit target user
-    // Master: boleh edit siapa saja (kecuali diri sendiri tidak perlu proteksi)
-    // Admin: HANYA boleh edit user dengan role MEMBER
+    // MASTER: control ADMIN & MEMBER
+    // ADMIN: control MEMBER saja
     function canEditUser(targetUser) {
-      if (userRole === 'MASTER') return true;
-      if (userRole === 'ADMIN') return targetUser.role === 'MEMBER';
+      if (userRole === 'MASTER') {
+        // MASTER tidak bisa edit akun MASTER lain, tapi bisa edit ADMIN & MEMBER
+        return targetUser.role !== 'MASTER';
+      }
+      if (userRole === 'ADMIN') {
+        // ADMIN hanya boleh edit MEMBER
+        return targetUser.role === 'MEMBER';
+      }
       return false;
     }
 
@@ -577,18 +584,24 @@
         const groupChips = GROUP_KEYS.filter(g => acc[g]).map(g => `<span class="chip" style="background:var(--accent-primary-light); border-color:rgba(59,130,246,0.3); color:var(--accent-primary);">${g}</span>`).join('');
         const allChips = chips + (groupChips ? (chips ? ' ' : '') + groupChips : '');
 
-        // MASTER diproteksi (tidak bisa diedit/dihapus oleh siapapun)
-        // ADMIN: hanya Master yang bisa edit admin
-        // MEMBER: bisa diedit oleh Master dan Admin
+        // MASTER: control ADMIN & MEMBER (edit + hapus)
+        // ADMIN: control MEMBER saja (edit + hapus), tidak bisa sentuh ADMIN lain
         let actions;
         if (u.role === 'MASTER') {
-          actions = '<button class="btn btn-ghost btn-icon" title="Akun Master - Terproteksi"><i class="fas fa-lock"></i></button>';
+          // Akun MASTER: tidak bisa diedit/dihapus oleh siapapun
+          if (u.username === authToken) {
+            actions = '<button class="btn btn-ghost btn-icon" title="Akun Anda sendiri"><i class="fas fa-user-shield"></i></button>';
+          } else {
+            actions = '<button class="btn btn-ghost btn-icon" title="Akun Master - Terproteksi"><i class="fas fa-lock"></i></button>';
+          }
         } else if (canEditUser(u)) {
-          actions = `<button class="btn btn-ghost btn-icon" title="Edit Access Control" onclick="openEdit('${u.username}')"><i class="fas fa-key"></i></button>
-             <button class="btn btn-danger-ghost btn-icon" title="Hapus" onclick="confirmDelete('${u.username}')"><i class="fas fa-trash"></i></button>`;
+          // MASTER bisa edit ADMIN & MEMBER; ADMIN bisa edit MEMBER
+          var canDelete = (userRole === 'MASTER') || (userRole === 'ADMIN' && u.role === 'MEMBER');
+          actions = `<button class="btn btn-ghost btn-icon" title="Edit Access Control" onclick="openEdit('${u.username}')"><i class="fas fa-key"></i></button>` +
+            (canDelete ? ` <button class="btn btn-danger-ghost btn-icon" title="Hapus" onclick="confirmDelete('${u.username}')"><i class="fas fa-trash"></i></button>` : '');
         } else {
-          // Admin tidak boleh edit user non-Member (mis. Admin lain)
-          actions = '<button class="btn btn-ghost btn-icon" title="Hanya Master yang dapat mengubah Admin lain"><i class="fas fa-lock"></i></button>';
+          // ADMIN tidak boleh edit ADMIN lain
+          actions = '<button class="btn btn-ghost btn-icon" title="Hanya Master yang dapat mengubah Admin"><i class="fas fa-lock"></i></button>';
         }
 
         html += `<tr>
@@ -636,7 +649,7 @@
     function openEdit(username) {
       const u = usersData.find(x => x.username === username);
       if (!u) return;
-      // Cek hak akses: Master boleh edit semua, Admin hanya boleh edit Member
+      // Cek hak akses: MASTER control ADMIN+MEMBER, ADMIN control MEMBER only
       if (!canEditUser(u)) {
         showToast('Akses ditolak! ' + (userRole === 'ADMIN' ? 'Admin hanya dapat mengubah user Member.' : 'Tidak memiliki hak akses.'));
         return;
@@ -646,15 +659,16 @@
       document.getElementById('editUserLabel').textContent = '@' + u.username;
       document.getElementById('editRole').value = u.role || 'MEMBER';
 
-      // ADMIN hanya boleh edit MEMBER — kunci dropdown role ke MEMBER
-      // MASTER boleh pilih role apa saja
+      // Role dropdown: MASTER bebas pilih, ADMIN dikunci ke MEMBER
       const editRoleSelect = document.getElementById('editRole');
       if (userRole === 'ADMIN') {
+        // ADMIN edit MEMBER: kunci role ke MEMBER (tidak bisa promote)
         editRoleSelect.value = 'MEMBER';
         editRoleSelect.disabled = true;
         editRoleSelect.style.opacity = '0.5';
-        editRoleSelect.title = 'Admin hanya dapat mengubah user Member. Master dapat mengubah role.';
+        editRoleSelect.title = 'Admin hanya dapat edit Member. Master dapat mengubah role.';
       } else {
+        // MASTER: bebas pilih role
         editRoleSelect.disabled = false;
         editRoleSelect.style.opacity = '1';
         editRoleSelect.title = '';
@@ -681,7 +695,12 @@
     async function submitEditAccess() {
       const role = document.getElementById('editRole').value;
 
-      // Guard: Admin tidak boleh set role selain MEMBER
+      // Guard: MASTER boleh edit ADMIN+MEMBER, ADMIN boleh edit MEMBER only
+      if (userRole !== 'MASTER' && userRole !== 'ADMIN') {
+        showToast('Akses ditolak!');
+        return;
+      }
+      // ADMIN tidak boleh set role selain MEMBER
       if (userRole === 'ADMIN' && role !== 'MEMBER') {
         showToast('Akses ditolak! Admin hanya dapat mengubah user Member.');
         return;
@@ -853,6 +872,12 @@
           document.getElementById('addRole').value = '';
         } else showToast(result.error || 'Gagal menambah user');
       } catch (err) { showToast('Kesalahan koneksi'); }
+    }
+
+    // Show Add User button for MASTER and ADMIN
+    if (userRole === 'MASTER' || userRole === 'ADMIN') {
+      var addBtn = document.getElementById('addUserBtn');
+      if (addBtn) addBtn.style.display = '';
     }
 
     // Init
