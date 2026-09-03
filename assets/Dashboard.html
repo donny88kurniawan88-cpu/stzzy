@@ -860,6 +860,8 @@ function changePassword() {
       document.getElementById('dashboardView').style.display = 'none';
       document.getElementById('profilView').style.display = 'block';
       document.getElementById('pencairanView').style.display = 'none';
+      var ipV = document.getElementById('ipWhitelistView');
+      if (ipV) ipV.style.display = 'none';
       document.getElementById('breadcrumbPage').textContent = 'profil';
 
             /* Isi data dari server */
@@ -1052,7 +1054,10 @@ function changePassword() {
           addTerminalLog('API Key panel opened');
           break;
         case 'ipWhitelist':
-          document.querySelectorAll('[id$="View"]').forEach(function(v) { v.style.display = 'none'; });
+          document.getElementById('dashboardView').style.display = 'none';
+          document.getElementById('profilView').style.display = 'none';
+          var pcV = document.getElementById('pencairanView');
+          if (pcV) pcV.style.display = 'none';
           var ipView = document.getElementById('ipWhitelistView');
           if (ipView) { ipView.style.display = 'block'; document.getElementById('breadcrumbPage').textContent = 'ip-whitelist'; loadIpWhitelist(); }
           addTerminalLog('IP Whitelist panel opened');
@@ -1082,6 +1087,8 @@ function changePassword() {
       document.getElementById('dashboardView').style.display = 'block';
       document.getElementById('profilView').style.display = 'none';
       document.getElementById('pencairanView').style.display = 'none';
+      var ipV = document.getElementById('ipWhitelistView');
+      if (ipV) ipV.style.display = 'none';
       document.getElementById('breadcrumbPage').textContent = 'dashboard';
       currentView = 'dashboard';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
@@ -1094,6 +1101,8 @@ function changePassword() {
       document.getElementById('dashboardView').style.display = 'none';
       document.getElementById('profilView').style.display = 'none';
       document.getElementById('pencairanView').style.display = 'block';
+      var ipV = document.getElementById('ipWhitelistView');
+      if (ipV) ipV.style.display = 'none';
       document.getElementById('breadcrumbPage').textContent = 'saldo pencairan';
       currentView = 'pencairan';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
