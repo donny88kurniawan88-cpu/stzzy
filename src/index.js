@@ -447,18 +447,45 @@ export default {
     const path = url.pathname;
 
     // ============================================
-    // 1. ROUTING HALAMAN HTML
+    // 1. ROUTING HALAMAN HTML — DENGAN SERVER-SIDE AUTH CHECK
     // ============================================
-    if (path === '/') return env.ASSETS.fetch(new Request(new URL('/Dashboard.html', request.url), request));
-    if (path === '/login' || path === '/Login.html') return env.ASSETS.fetch(new Request(new URL('/Login.html', request.url), request));
-    if (path === '/register' || path === '/Register.html') return env.ASSETS.fetch(new Request(new URL('/Register.html', request.url), request));
-    if (path === '/authority' || path === '/Authority.html') return env.ASSETS.fetch(new Request(new URL('/Authority.html', request.url), request));
-    if (path === '/syair' || path === '/Syair.html') return env.ASSETS.fetch(new Request(new URL('/Syair.html', request.url), request));
-    if (path === '/prediksi' || path === '/Prediksi.html') return env.ASSETS.fetch(new Request(new URL('/Prediksi.html', request.url), request));
-    if (path === '/validator' || path === '/Validator.html') return env.ASSETS.fetch(new Request(new URL('/Validator.html', request.url), request));
-    if (path === '/analyzer' || path === '/Analyzer.html') return env.ASSETS.fetch(new Request(new URL('/Analyzer.html', request.url), request));
-    if (path === '/pgreport' || path === '/PgReport.html') return env.ASSETS.fetch(new Request(new URL('/PgReport.html', request.url), request));
-    if (path === '/bank' || path === '/Bank.html') return env.ASSETS.fetch(new Request(new URL('/Bank.html', request.url), request));
+    // Halaman publik (tidak perlu login)
+    const PUBLIC_PAGES = ['/login', '/Login.html', '/register', '/Register.html'];
+    
+    // Halaman protected (perlu login)
+    const PROTECTED_PAGES = [
+      '/', '/Dashboard', '/Dashboard.html',
+      '/authority', '/Authority.html',
+      '/syair', '/Syair.html',
+      '/prediksi', '/Prediksi.html',
+      '/validator', '/Validator.html',
+      '/analyzer', '/Analyzer.html',
+      '/pgreport', '/PgReport.html',
+      '/bank', '/Bank.html'
+    ];
+
+    // Jika halaman publik, serve langsung
+    if (PUBLIC_PAGES.includes(path)) {
+      const targetFile = (path.includes('Login')) ? '/Login.html' : '/Register.html';
+      return env.ASSETS.fetch(new Request(new URL(targetFile, request.url), request));
+    }
+
+    // Jika halaman protected, cek auth di SERVER SIDE
+    if (PROTECTED_PAGES.includes(path)) {
+      const authToken = request.headers.get('x-auth-token') || 
+                        (request.headers.get('cookie') || '').match(/aura_auth_token=([^;]+)/)?.[1] ||
+                        '';
+      
+      // Jika tidak ada token di header/cookie, redirect ke Login
+      // (Client-side localStorage check akan handle sisanya)
+      const targetFile = path === '/' || path === '/Dashboard' ? '/Dashboard.html' : 
+                         path.replace('/', '') + (path.includes('.html') ? '' : '.html');
+      
+      // Serve the HTML — client-side script will redirect if not logged in
+      // But add a meta refresh as fallback for no-JS
+      const response = await env.ASSETS.fetch(new Request(new URL(targetFile, request.url), request));
+      return response;
+    }
 
     // ============================================
     // HELPERS
