@@ -512,6 +512,20 @@ export default {
       return await getRequesterRole(req) === 'MASTER';
     }
 
+    // ===== SAFE JSON PARSE =====
+    // Parse access JSON dengan aman — fallback ke defaultAccessFor jika rusak/null
+    function safeParseAccess(accessStr, role) {
+      if (!accessStr) return defaultAccessFor(role);
+      try {
+        const parsed = JSON.parse(accessStr);
+        if (parsed && typeof parsed === 'object') return parsed;
+        return defaultAccessFor(role);
+      } catch (e) {
+        // JSON rusak (mis. {dashboard: true} tanpa quotes) — gunakan default
+        return defaultAccessFor(role);
+      }
+    }
+
     // ============================================
     // 2. API LOGIN
     // ============================================
@@ -525,7 +539,7 @@ export default {
           if (user.status === 'PENDING') {
             return Response.json({ success: false, error: 'Akun Anda menunggu persetujuan admin!' }, { status: 403 });
           }
-          return Response.json({ success: true, message: 'Login berhasil!', user: { username: user.username, role: user.role, access: user.access ? JSON.parse(user.access) : defaultAccessFor(user.role) } });
+          return Response.json({ success: true, message: 'Login berhasil!', user: { username: user.username, role: user.role, access: safeParseAccess(user.access, user.role) } });
         } else {
           return Response.json({ success: false, error: 'Username atau Password salah!' });
         }
@@ -545,7 +559,7 @@ export default {
           username: u.username,
           role: u.role,
           status: u.status,
-          access: u.access ? JSON.parse(u.access) : null
+          access: safeParseAccess(u.access, u.role)
         }));
         return Response.json(users);
       } catch (err) {
