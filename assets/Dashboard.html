@@ -1071,23 +1071,8 @@ function changePassword() {
     addTerminalLog('User logged out');
     localStorage.removeItem('aura_auth_token');
     localStorage.removeItem('aura_user_name');
-    // ===== ACCESS CONTROL: SHOW/HIDE MENU GROUPS =====
-    const userRole = localStorage.getItem('aura_user_role');
-    let userAccess = {};
-    try { userAccess = JSON.parse(localStorage.getItem('aura_user_access') || '{}'); } catch(e) {}
-
-    // MASTER & ADMIN: tampilkan semua menu group
-    // MEMBER: hanya tampilkan yang ada di access object
-    if (userRole !== 'MASTER' && userRole !== 'ADMIN') {
-      document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
-        const key = group.dataset.access;
-        if (!userAccess[key]) {
-          group.style.display = 'none';
-        }
-      });
-    }
-
     localStorage.removeItem('aura_user_role');
+    localStorage.removeItem('aura_user_access');
     localStorage.removeItem('aura_user_pass');
     localStorage.removeItem('aura_user_status');
     localStorage.removeItem('aura_auth_token_backend');
@@ -1156,6 +1141,26 @@ function changePassword() {
         var dd = String(today.getDate()).padStart(2,'0');
         var mm = String(today.getMonth()+1).padStart(2,'0');
         dateInput.value = today.getFullYear() + '-' + mm + '-' + dd;
+      }
+    })();
+  </script>
+  <!-- ===== ACCESS CONTROL: SHOW/HIDE MENU GROUPS ===== -->
+  <script>
+    (function() {
+      window.__accessControlRan = true;
+      var userRole = localStorage.getItem('aura_user_role');
+      var userAccess = {};
+      try { userAccess = JSON.parse(localStorage.getItem('aura_user_access') || '{}'); } catch(e) {}
+
+      // MASTER & ADMIN: tampilkan semua menu group
+      // MEMBER: hanya tampilkan yang ada di access object (value = true)
+      if (userRole && userRole !== 'MASTER' && userRole !== 'ADMIN') {
+        document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
+          var key = group.dataset.access;
+          if (!userAccess[key]) {
+            group.style.display = 'none';
+          }
+        });
       }
     })();
   </script>
