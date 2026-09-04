@@ -601,14 +601,16 @@ export default {
           if (wlSetting && wlSetting.value) {
             let wlConfig;
             try { wlConfig = JSON.parse(wlSetting.value); } catch(e) { wlConfig = { enabled: false }; }
-            if (wlConfig.enabled === true) {
+            // Lenient enabled check: accept boolean true OR string 'true'
+            const is_enabled = wlConfig.enabled === true || wlConfig.enabled === 'true';
+            if (is_enabled) {
               // Whitelist is ON — check if IP is allowed
               const { results: wlResults } = await env.DB.prepare("SELECT ip_address FROM ip_whitelist").all();
-              const wlIps = (wlResults || []).map(w => (w.ip_address || '').trim());
-              // Match exact OR wildcard 0.0.0.0 OR ::1 (localhost)
+              const wlIps = (wlResults || []).map(w => (w.ip_address || '').trim()).filter(ip => ip !== '');
+              // Match exact OR ::1 (localhost) OR IPv4-mapped IPv6
+              // NOTE: 0.0.0.0 is NOT a wildcard — it's a literal IP. Only exact matches allowed.
               const allowed = wlIps.some(ip =>
                 ip === clientIp ||
-                ip === '0.0.0.0' ||
                 ip === '::1' ||
                 ip === '::ffff:' + clientIp ||
                 clientIp === '::ffff:' + ip
@@ -798,6 +800,14 @@ export default {
 
         await env.DB.prepare("UPDATE users SET role = ?, access = ?, granted_by = ? WHERE username = ?")
           .bind(newRole, JSON.stringify(access), grantedBy, username).run();
+        // Bump data_version so all devices refresh their access
+        try {
+          const dvRow = await env.DB.prepare("SELECT value FROM settings WHERE key = 'data_version'").first();
+          let dv = 0;
+          if (dvRow && dvRow.value) { try { dv = parseInt(JSON.parse(dvRow.value), 10) || 0; } catch(e) { dv = parseInt(dvRow.value, 10) || 0; } }
+          dv++;
+          await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('data_version', ?)").bind(JSON.stringify(dv)).run();
+        } catch(e) {}
         return Response.json({ success: true, message: 'Access control diperbarui oleh ' + grantedBy });
       } catch (err) {
         return Response.json({ error: 'Gagal menyimpan akses: ' + err.message }, { status: 500 });
@@ -1279,11 +1289,19 @@ export default {
 
       try {
         const wlSetting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ip_whitelist'").first();
-        if (wlSetting) {
-          const wlConfig = JSON.parse(wlSetting.value);
-          if (wlConfig.enabled === true) {
+        if (wlSetting && wlSetting.value) {
+          let wlConfig;
+          try { wlConfig = JSON.parse(wlSetting.value); } catch(e) { wlConfig = { enabled: false }; }
+          const is_enabled = wlConfig.enabled === true || wlConfig.enabled === 'true';
+          if (is_enabled) {
             const { results: wlResults } = await env.DB.prepare("SELECT ip_address FROM ip_whitelist").all();
-            const allowed = (wlResults || []).some(w => w.ip_address === clientIp || w.ip_address === '0.0.0.0' || w.ip_address === '::1');
+            const wlIps = (wlResults || []).map(w => (w.ip_address || '').trim()).filter(ip => ip !== '');
+            const allowed = wlIps.some(ip =>
+              ip === clientIp ||
+              ip === '::1' ||
+              ip === '::ffff:' + clientIp ||
+              clientIp === '::ffff:' + ip
+            );
             return Response.json({
               success: true,
               ip: clientIp,
@@ -1298,6 +1316,129 @@ export default {
       } catch (wlErr) {
         // Tables might not exist yet — allow login (fail open)
         return Response.json({ success: true, ip: clientIp, enabled: false, allowed: true, message: '' });
+      }
+    }
+
+    // ============================================
+    // API IP DEBUG (admin only) — diagnostic endpoint
+    // Shows current whitelist state, settings, and requester IP
+    // ============================================
+    if (path === '/api/ip/debug' && request.method === 'GET') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      const cfIp = request.headers.get('cf-connecting-ip');
+      const xfwd = request.headers.get('x-forwarded-for');
+      const xreal = request.headers.get('x-real-ip');
+      let clientIp = cfIp || xreal || '';
+      if (!clientIp && xfwd) clientIp = xfwd.split(',')[0].trim();
+      if (!clientIp) clientIp = '127.0.0.1';
+
+      let settings = { enabled: false, message: '' };
+      let whitelist = [];
+      let error = null;
+      try {
+        const wlSetting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ip_whitelist'").first();
+        if (wlSetting && wlSetting.value) {
+          try { settings = JSON.parse(wlSetting.value); } catch(e) { settings = { enabled: false, raw: wlSetting.value }; }
+        }
+        const { results: wlResults } = await env.DB.prepare("SELECT id, ip_address, label, added_by, created_at FROM ip_whitelist ORDER BY id").all();
+        whitelist = wlResults || [];
+      } catch(e) {
+        error = e.message;
+      }
+
+      // Check what would happen if login was attempted now
+      const is_enabled = settings.enabled === true || settings.enabled === 'true';
+      let wouldBlock = false;
+      if (is_enabled) {
+        const allowed = whitelist.some(w =>
+          w.ip_address === clientIp ||
+          w.ip_address === '::1' ||
+          w.ip_address === '::ffff:' + clientIp ||
+          clientIp === '::ffff:' + w.ip_address
+        );
+        wouldBlock = !allowed;
+      }
+
+      return Response.json({
+        success: true,
+        client_ip: clientIp,
+        headers: {
+          'cf-connecting-ip': cfIp || null,
+          'x-real-ip': xreal || null,
+          'x-forwarded-for': xfwd || null
+        },
+        settings: settings,
+        settings_enabled_parsed: is_enabled,
+        whitelist: whitelist,
+        whitelist_count: whitelist.length,
+        would_block_login: wouldBlock,
+        error: error
+      });
+    }
+
+    // ============================================
+    // API DATA VERSION (PUBLIC — no auth)
+    // Returns current data_version counter.
+    // Dashboard polls this every 30s to detect access changes
+    // made from other devices. If version changes → re-fetch /api/me.
+    // ============================================
+    if (path === '/api/data-version' && request.method === 'GET') {
+      try {
+        const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'data_version'").first();
+        let version = 0;
+        if (row && row.value) {
+          try { version = parseInt(JSON.parse(row.value), 10) || 0; } catch(e) { version = parseInt(row.value, 10) || 0; }
+        }
+        return Response.json({ success: true, version: version });
+      } catch(e) {
+        return Response.json({ success: true, version: 0 });
+      }
+    }
+
+    // ============================================
+    // API DATA VERSION BUMP (admin only)
+    // Increments data_version — forces all devices to refresh.
+    // Called when: access changed, user added/deleted, clear all data.
+    // ============================================
+    if (path === '/api/data-version/bump' && request.method === 'POST') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'data_version'").first();
+        let version = 0;
+        if (row && row.value) {
+          try { version = parseInt(JSON.parse(row.value), 10) || 0; } catch(e) { version = parseInt(row.value, 10) || 0; }
+        }
+        version++;
+        await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('data_version', ?)").bind(JSON.stringify(version)).run();
+        return Response.json({ success: true, version: version, message: 'Data version bumped. All devices will refresh.' });
+      } catch(e) {
+        return Response.json({ success: false, error: 'Gagal bump version: ' + e.message }, { status: 500 });
+      }
+    }
+
+    // ============================================
+    // API CLEAR ALL LOCAL DATA (admin only)
+    // Bumps data_version + clears all sessions.
+    // All devices will detect version change → clear localStorage → re-fetch access.
+    // ============================================
+    if (path === '/api/clear-all-data' && request.method === 'POST') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        // Bump data_version to force all devices to refresh
+        const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'data_version'").first();
+        let version = 0;
+        if (row && row.value) {
+          try { version = parseInt(JSON.parse(row.value), 10) || 0; } catch(e) { version = parseInt(row.value, 10) || 0; }
+        }
+        version++;
+        await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('data_version', ?)").bind(JSON.stringify(version)).run();
+        return Response.json({
+          success: true,
+          version: version,
+          message: 'Semua perangkat akan refresh data access. Version: ' + version
+        });
+      } catch(e) {
+        return Response.json({ success: false, error: 'Gagal clear data: ' + e.message }, { status: 500 });
       }
     }
 
