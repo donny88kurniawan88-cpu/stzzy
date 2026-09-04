@@ -447,45 +447,18 @@ export default {
     const path = url.pathname;
 
     // ============================================
-    // 1. ROUTING HALAMAN HTML — DENGAN SERVER-SIDE AUTH CHECK
+    // 1. ROUTING HALAMAN HTML
     // ============================================
-    // Halaman publik (tidak perlu login)
-    const PUBLIC_PAGES = ['/login', '/Login.html', '/register', '/Register.html'];
-    
-    // Halaman protected (perlu login)
-    const PROTECTED_PAGES = [
-      '/', '/Dashboard', '/Dashboard.html',
-      '/authority', '/Authority.html',
-      '/syair', '/Syair.html',
-      '/prediksi', '/Prediksi.html',
-      '/validator', '/Validator.html',
-      '/analyzer', '/Analyzer.html',
-      '/pgreport', '/PgReport.html',
-      '/bank', '/Bank.html'
-    ];
-
-    // Jika halaman publik, serve langsung
-    if (PUBLIC_PAGES.includes(path)) {
-      const targetFile = (path.includes('Login')) ? '/Login.html' : '/Register.html';
-      return env.ASSETS.fetch(new Request(new URL(targetFile, request.url), request));
-    }
-
-    // Jika halaman protected, cek auth di SERVER SIDE
-    if (PROTECTED_PAGES.includes(path)) {
-      const authToken = request.headers.get('x-auth-token') || 
-                        (request.headers.get('cookie') || '').match(/aura_auth_token=([^;]+)/)?.[1] ||
-                        '';
-      
-      // Jika tidak ada token di header/cookie, redirect ke Login
-      // (Client-side localStorage check akan handle sisanya)
-      const targetFile = path === '/' || path === '/Dashboard' ? '/Dashboard.html' : 
-                         path.replace('/', '') + (path.includes('.html') ? '' : '.html');
-      
-      // Serve the HTML — client-side script will redirect if not logged in
-      // But add a meta refresh as fallback for no-JS
-      const response = await env.ASSETS.fetch(new Request(new URL(targetFile, request.url), request));
-      return response;
-    }
+    if (path === '/') return env.ASSETS.fetch(new Request(new URL('/Dashboard.html', request.url), request));
+    if (path === '/login' || path === '/Login.html') return env.ASSETS.fetch(new Request(new URL('/Login.html', request.url), request));
+    if (path === '/register' || path === '/Register.html') return env.ASSETS.fetch(new Request(new URL('/Register.html', request.url), request));
+    if (path === '/authority' || path === '/Authority.html') return env.ASSETS.fetch(new Request(new URL('/Authority.html', request.url), request));
+    if (path === '/syair' || path === '/Syair.html') return env.ASSETS.fetch(new Request(new URL('/Syair.html', request.url), request));
+    if (path === '/prediksi' || path === '/Prediksi.html') return env.ASSETS.fetch(new Request(new URL('/Prediksi.html', request.url), request));
+    if (path === '/validator' || path === '/Validator.html') return env.ASSETS.fetch(new Request(new URL('/Validator.html', request.url), request));
+    if (path === '/analyzer' || path === '/Analyzer.html') return env.ASSETS.fetch(new Request(new URL('/Analyzer.html', request.url), request));
+    if (path === '/pgreport' || path === '/PgReport.html') return env.ASSETS.fetch(new Request(new URL('/PgReport.html', request.url), request));
+    if (path === '/bank' || path === '/Bank.html') return env.ASSETS.fetch(new Request(new URL('/Bank.html', request.url), request));
 
     // ============================================
     // HELPERS
@@ -510,20 +483,7 @@ export default {
     }
 
     const VALID_ROLES = ['MASTER', 'ADMIN', 'MEMBER'];
-    const VALID_MODULES = [
-      // Groups
-      'core', 'workspace', 'operational', 'system',
-      // Core items
-      'dashboard', 'profil',
-      // Workspace items
-      'banking_tools', 'rek_validator', 'bank_processor',
-      // Operational items
-      'saldo_pencairan', 'qris_tools', 'prediction_tools', 'event_tools', 'edit_bukti', 'keep_memo',
-      // System items
-      'api_key', 'setting', 'authority_panel',
-      // Authority
-      'user_management', 'registration_control',
-    ];
+    const VALID_MODULES = ['core', 'workspace', 'operational', 'system', 'user_management', 'registration_control'];
 
     // ===== DEFAULT ACCESS PER ROLE =====
     // MASTER: full access tak terbatas (semua modul true)
@@ -531,36 +491,13 @@ export default {
     // MEMBER: hanya Core (selebihnya ditentukan oleh Admin/Master)
     function defaultAccessFor(role) {
       if (role === 'MASTER') {
-        // MASTER: full access ke seluruh menu
-        return {
-          core: true, workspace: true, operational: true, system: true,
-          dashboard: true, profil: true,
-          banking_tools: true, rek_validator: true, bank_processor: true,
-          saldo_pencairan: true, qris_tools: true, prediction_tools: true, event_tools: true, edit_bukti: true, keep_memo: true,
-          api_key: true, setting: true, authority_panel: true,
-          user_management: true, registration_control: true,
-        };
+        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
       }
       if (role === 'ADMIN') {
-        // ADMIN default: Core semua, Workspace, Operational, System (Authority Panel + User Management only)
-        return {
-          core: true, workspace: true, operational: true, system: true,
-          dashboard: true, profil: true,
-          banking_tools: true, rek_validator: true, bank_processor: true,
-          saldo_pencairan: true, qris_tools: true, prediction_tools: true, event_tools: true, edit_bukti: true, keep_memo: true,
-          api_key: false, setting: false, authority_panel: true,
-          user_management: true, registration_control: false,
-        };
+        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
       }
-      // MEMBER: default minimal (dashboard + profil)
-      return {
-        core: true, workspace: false, operational: false, system: false,
-        dashboard: true, profil: true,
-        banking_tools: false, rek_validator: false, bank_processor: false,
-        saldo_pencairan: false, qris_tools: false, prediction_tools: false, event_tools: false, edit_bukti: false, keep_memo: false,
-        api_key: false, setting: false, authority_panel: false,
-        user_management: false, registration_control: false,
-      };
+      // MEMBER: default hanya Core
+      return { core: true, workspace: false, operational: false, system: false, user_management: false, registration_control: false };
     }
 
     // Ambil role user yang sedang request (dari x-auth-token header)
@@ -595,15 +532,49 @@ export default {
     if (path === '/api/login' && request.method === 'POST') {
       try {
         const { username, password } = await request.json();
+        
+        // ===== DETECT IP =====
+        const clientIp = request.headers.get('cf-connecting-ip') || 
+                         request.headers.get('x-real-ip') || 
+                         (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 
+                         '127.0.0.1';
+        const userAgent = request.headers.get('user-agent') || '';
+        
+        // ===== CHECK IP WHITELIST =====
+        try {
+          const wlSetting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ip_whitelist'").first();
+          if (wlSetting) {
+            const wlConfig = JSON.parse(wlSetting.value);
+            if (wlConfig.enabled === true) {
+              // Whitelist is ON — check if IP is allowed
+              const { results: wlResults } = await env.DB.prepare("SELECT ip_address FROM ip_whitelist").all();
+              const allowed = wlResults.some(w => w.ip_address === clientIp || w.ip_address === '0.0.0.0');
+              if (!allowed) {
+                // Log blocked attempt
+                try { await env.DB.prepare("INSERT INTO ip_login_logs (ip_address, username, status, user_agent) VALUES (?, ?, 'BLOCKED', ?)").bind(clientIp, username || '', userAgent).run(); } catch(e) {}
+                return Response.json({ success: false, error: wlConfig.message || 'IP Anda tidak ada dalam whitelist. Hubungi admin.' }, { status: 403 });
+              }
+            }
+          }
+        } catch(wlErr) {
+          // Whitelist table might not exist yet — skip check
+        }
+        
         const { results } = await env.DB.prepare("SELECT * FROM users WHERE username = ? AND password = ?").bind(username, password).all();
 
         if (results.length > 0) {
           const user = results[0];
           if (user.status === 'PENDING') {
+            // Log pending
+            try { await env.DB.prepare("INSERT INTO ip_login_logs (ip_address, username, status, user_agent) VALUES (?, ?, 'PENDING', ?)").bind(clientIp, username, userAgent).run(); } catch(e) {}
             return Response.json({ success: false, error: 'Akun Anda menunggu persetujuan admin!' }, { status: 403 });
           }
+          // Log success
+          try { await env.DB.prepare("INSERT INTO ip_login_logs (ip_address, username, status, user_agent) VALUES (?, ?, 'SUCCESS', ?)").bind(clientIp, username, userAgent).run(); } catch(e) {}
           return Response.json({ success: true, message: 'Login berhasil!', user: { username: user.username, role: user.role, access: safeParseAccess(user.access, user.role) } });
         } else {
+          // Log failed
+          try { await env.DB.prepare("INSERT INTO ip_login_logs (ip_address, username, status, user_agent) VALUES (?, ?, 'FAILED', ?)").bind(clientIp, username || '', userAgent).run(); } catch(e) {}
           return Response.json({ success: false, error: 'Username atau Password salah!' });
         }
       } catch (err) {
@@ -639,9 +610,6 @@ export default {
         const { username, password, role } = await request.json();
         if (!username || !password || !role) return Response.json({ error: 'Data tidak lengkap' }, { status: 400 });
         if (!VALID_ROLES.includes(role)) return Response.json({ error: 'Role tidak valid! Pilih: MASTER, ADMIN, atau MEMBER.' }, { status: 400 });
-        // ADMIN hanya boleh tambah MEMBER
-        const addRequesterRole = await getRequesterRole(request);
-        if (addRequesterRole === 'ADMIN' && role !== 'MEMBER') return Response.json({ error: 'Admin hanya dapat menambah user Member!' }, { status: 403 });
 
         const access = JSON.stringify(defaultAccessFor(role));
         await env.DB.prepare("INSERT INTO users (username, password, role, status, access) VALUES (?, ?, ?, 'ACTIVE', ?)").bind(username, password, role, access).run();
@@ -667,9 +635,8 @@ export default {
         if (!target) return Response.json({ error: 'User tidak ditemukan' }, { status: 404 });
         if (target.role === 'MASTER') return Response.json({ error: 'Akun MASTER tidak dapat dihapus!' }, { status: 403 });
         // ADMIN tidak boleh hapus ADMIN lain — hanya MASTER yang bisa
-        // ADMIN hanya boleh hapus MEMBER
-        if (requesterRole === 'ADMIN' && target.role !== 'MEMBER') {
-          return Response.json({ error: 'Admin hanya dapat menghapus user Member!' }, { status: 403 });
+        if (requesterRole === 'ADMIN' && target.role === 'ADMIN') {
+          return Response.json({ error: 'Admin tidak dapat menghapus Admin lain! Hanya Master.' }, { status: 403 });
         }
 
         await env.DB.prepare("DELETE FROM users WHERE username = ?").bind(usernameToDelete).run();
@@ -691,7 +658,7 @@ export default {
     // 7. API GET KONFIGURASI REGISTRASI
     // ============================================
     if (path === '/api/settings/registration' && request.method === 'GET') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       return Response.json(await getRegisSetting());
     }
 
@@ -699,7 +666,7 @@ export default {
     // 8. API SIMPAN KONFIGURASI REGISTRASI
     // ============================================
     if (path === '/api/settings/registration' && request.method === 'PUT') {
-      if (!await isMaster(request)) return Response.json({ error: 'Akses Ditolak! Hanya Master yang dapat mengubah konfigurasi.' }, { status: 403 });
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
         const body = await request.json();
         const setting = {
@@ -729,36 +696,23 @@ export default {
         if (!user) return Response.json({ error: 'User tidak ditemukan' }, { status: 404 });
         if (user.role === 'MASTER') return Response.json({ error: 'Akun MASTER tidak dapat diubah!' }, { status: 403 });
 
-        // ===== HIERARCHY ENFORCEMENT =====
-        // MASTER: boleh edit ADMIN & MEMBER
-        // ADMIN: HANYA boleh edit MEMBER
+        // ===== ROLE-BASED PERMISSION ENFORCEMENT =====
+        // ADMIN hanya boleh edit user MEMBER
         if (requesterRole === 'ADMIN') {
           if (user.role !== 'MEMBER') {
             return Response.json({ error: 'Admin hanya dapat mengubah user Member! User ini adalah ' + user.role + '.' }, { status: 403 });
           }
+          // Admin tidak boleh set role selain MEMBER
           if (body.role && body.role !== 'MEMBER') {
             return Response.json({ error: 'Admin tidak dapat mengubah role Member! Hanya Master yang bisa promote.' }, { status: 403 });
           }
         }
+        // MASTER boleh edit siapa saja (kecuali MASTER lain — sudah dicek di atas)
 
         // Validasi role baru
         const newRole = body.role && VALID_ROLES.includes(body.role) ? body.role : user.role;
-
-        // MERGE: ambil access yang sudah ada di DB, override dengan yang dikirim dari Authority.html
-        // Jika body.access tidak punya key tertentu, gunakan defaultAccessFor(role)
-        const existingAccess = safeParseAccess(user.access, user.role);
-        const defaultAcc = defaultAccessFor(newRole);
         const access = {};
-        VALID_MODULES.forEach(m => {
-          if (body.access && body.access[m] === true) {
-            access[m] = true;
-          } else if (body.access && body.access[m] === false) {
-            access[m] = false;
-          } else {
-            // Key tidak dikirim dari Authority.html — pertahankan existing atau default
-            access[m] = existingAccess[m] !== undefined ? existingAccess[m] : defaultAcc[m];
-          }
-        });
+        VALID_MODULES.forEach(m => access[m] = !!(body.access && body.access[m]));
         const grantedBy = request.headers.get('x-auth-token');
 
         await env.DB.prepare("UPDATE users SET role = ?, access = ?, granted_by = ? WHERE username = ?")
@@ -1193,102 +1147,6 @@ export default {
         });
       } catch (err) {
         return Response.json({ success: false, error: 'Gagal mengambil profil' }, { status: 500 });
-      }
-    }
-
-    // ============================================
-    // 19. API /api/me — Get current user + access from DB
-    // ============================================
-    if (path === '/api/me' && request.method === 'GET') {
-      const username = request.headers.get('x-auth-token');
-      if (!username) return Response.json({ success: false, error: 'Not authenticated' }, { status: 401 });
-      try {
-        const user = await env.DB.prepare("SELECT username, role, status, access FROM users WHERE username = ?").bind(username).first();
-        if (!user) return Response.json({ success: false, error: 'User not found' }, { status: 404 });
-
-        const access = safeParseAccess(user.access, user.role);
-        return Response.json({
-          success: true,
-          user: {
-            username: user.username,
-            role: user.role,
-            status: user.status,
-            access: access
-          }
-        });
-      } catch (err) {
-        return Response.json({ success: false, error: 'Server error' }, { status: 500 });
-      }
-    }
-
-    // ============================================
-    // 20. API IP DETECT
-    // ============================================
-    if (path === '/api/ip/detect' && request.method === 'GET') {
-      const cfIp = request.headers.get('cf-connecting-ip');
-      const xfwd = request.headers.get('x-forwarded-for');
-      const xreal = request.headers.get('x-real-ip');
-      let ip = cfIp || xreal || '';
-      if (!ip && xfwd) ip = xfwd.split(',')[0].trim();
-      if (!ip) ip = '127.0.0.1';
-      return Response.json({ success: true, ip: ip });
-    }
-
-    // ============================================
-    // 21. API IP WHITELIST (GET, POST, PUT)
-    // ============================================
-    if (path === '/api/ip/whitelist' && (request.method === 'GET' || request.method === 'POST' || request.method === 'PUT')) {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
-      
-      if (request.method === 'GET') {
-        try {
-          const { results: wl } = await env.DB.prepare("SELECT * FROM ip_whitelist ORDER BY id DESC").all();
-          const settingRow = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ip_whitelist'").first();
-          let ipSettings = { enabled: false, message: 'IP Anda tidak ada dalam whitelist.' };
-          if (settingRow) { try { ipSettings = JSON.parse(settingRow.value); } catch(e) {} }
-          return Response.json({ success: true, whitelist: wl || [], settings: ipSettings });
-        } catch (err) {
-          // Table might not exist yet
-          return Response.json({ success: true, whitelist: [], settings: { enabled: false, message: 'IP Anda tidak ada dalam whitelist.' } });
-        }
-      }
-
-      if (request.method === 'POST') {
-        try {
-          const { ip, label } = await request.json();
-          if (!ip) return Response.json({ error: 'IP wajib diisi' }, { status: 400 });
-          const grantedBy = request.headers.get('x-auth-token');
-          await env.DB.prepare("INSERT INTO ip_whitelist (ip_address, label, added_by) VALUES (?, ?, ?)").bind(ip, label || '', grantedBy).run();
-          return Response.json({ success: true, message: 'IP ditambahkan ke whitelist' });
-        } catch (err) {
-          return Response.json({ error: 'IP sudah ada atau gagal' }, { status: 500 });
-        }
-      }
-
-      if (request.method === 'PUT') {
-        try {
-          const { enabled, message } = await request.json();
-          const setting = JSON.stringify({ enabled: !!enabled, message: message || 'IP Anda tidak ada dalam whitelist.' });
-          await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('ip_whitelist', ?)").bind(setting).run();
-          return Response.json({ success: true, message: 'Pengaturan IP whitelist disimpan' });
-        } catch (err) {
-          return Response.json({ error: 'Gagal menyimpan pengaturan' }, { status: 500 });
-        }
-      }
-    }
-
-    // ============================================
-    // 22. API IP WHITELIST DELETE
-    // ============================================
-    const ipDeleteMatch = path.match(/^\/api\/ip\/whitelist\/(\d+)$/);
-    if (ipDeleteMatch && request.method === 'DELETE') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
-      try {
-        const id = parseInt(ipDeleteMatch[1]);
-        await env.DB.prepare("DELETE FROM ip_whitelist WHERE id = ?").bind(id).run();
-        return Response.json({ success: true, message: 'IP dihapus dari whitelist' });
-      } catch (err) {
-        return Response.json({ error: 'Gagal menghapus IP' }, { status: 500 });
       }
     }
 
