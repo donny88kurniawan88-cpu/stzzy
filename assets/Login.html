@@ -359,6 +359,24 @@
   </div>
 
   <script>
+    /* ===== AUTO-REDIRECT IF ALREADY LOGGED IN =====
+       If user opens /Login.html while already authenticated (e.g., in another tab),
+       redirect them straight to Dashboard instead of showing the login form. */
+    (function autoRedirectIfAuthed() {
+      try {
+        var token = localStorage.getItem('aura_auth_token');
+        if (token) {
+          // Optionally verify with /api/me, but for instant redirect use localStorage.
+          // Use replace() so the Login page doesn't stay in browser history.
+          window.location.replace('/Dashboard.html');
+          return;
+        }
+      } catch (e) {
+        // localStorage might be blocked — fail silently, show login form
+        console.warn('Auto-redirect check failed:', e);
+      }
+    })();
+
     /* ===== TOGGLE PASSWORD ===== */
     function togglePwd(inputId, iconId) {
       var input = document.getElementById(inputId);
