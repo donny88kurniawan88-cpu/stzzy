@@ -57,6 +57,19 @@
   </div>
 
   <script>
+    // ===== AUTO-REDIRECT IF ALREADY LOGGED IN =====
+    (function autoRedirectIfAuthed() {
+      try {
+        var token = localStorage.getItem('aura_auth_token');
+        if (token) {
+          window.location.replace('/Dashboard.html');
+          return;
+        }
+      } catch (e) {
+        console.warn('Auto-redirect check failed:', e);
+      }
+    })();
+
     // Blokir akses langsung jika registrasi ditutup
     fetch('/api/settings/registration/public')
       .then(r => r.ok ? r.json() : null)
