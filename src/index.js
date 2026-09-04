@@ -488,10 +488,10 @@ export default {
       'core', 'workspace', 'operational', 'system',
       // Sub-menu keys (2)
       'user_management', 'registration_control',
-      // Module item keys (14) — match Dashboard data-access-item attributes
+      // Module item keys (15) — match Dashboard data-access-item attributes
       'dashboard', 'profil', 'banking_tools', 'rek_validator', 'bank_processor',
       'saldo_pencairan', 'qris_tools', 'prediction_tools', 'event_tools',
-      'edit_bukti', 'keep_memo', 'api_key', 'setting', 'authority_panel'
+      'edit_bukti', 'keep_memo', 'api_key', 'setting', 'ip_whitelist', 'authority_panel'
     ];
 
     // ===== DEFAULT ACCESS PER ROLE =====
@@ -499,7 +499,7 @@ export default {
     // ADMIN:  Core, Workspace, Operational, System, User Management, Registrasi
     // MEMBER: hanya Core (selebihnya ditentukan oleh Admin/Master)
     function defaultAccessFor(role) {
-      // MASTER: full access tak terbatas (semua 20 modul true)
+      // MASTER: full access tak terbatas (semua 21 modul true)
       if (role === 'MASTER') {
         return {
           // Groups
@@ -515,7 +515,7 @@ export default {
           // Operational items
           api_key: true, setting: true,
           // System items
-          authority_panel: true
+          ip_whitelist: true, authority_panel: true
         };
       }
       // ADMIN: Core + Workspace + Operational + System(Authority+UM only)
@@ -528,7 +528,7 @@ export default {
           saldo_pencairan: true, qris_tools: true, prediction_tools: true,
           event_tools: true, edit_bukti: true, keep_memo: true,
           api_key: true, setting: true,
-          authority_panel: true
+          ip_whitelist: true, authority_panel: true
         };
       }
       // MEMBER: default hanya Core (dashboard + profil)
@@ -540,7 +540,7 @@ export default {
         saldo_pencairan: false, qris_tools: false, prediction_tools: false,
         event_tools: false, edit_bukti: false, keep_memo: false,
         api_key: false, setting: false,
-        authority_panel: false
+        ip_whitelist: false, authority_panel: false
       };
     }
 
