@@ -1246,6 +1246,44 @@ export default {
     }
 
     // ============================================
+    // API IP CHECK (PUBLIC — no auth required)
+    // Checks requester's IP against whitelist.
+    // Used by Login.html before submitting login form.
+    // Returns: { success, ip, enabled, allowed, message }
+    // ============================================
+    if (path === '/api/ip/check' && request.method === 'GET') {
+      const cfIp = request.headers.get('cf-connecting-ip');
+      const xfwd = request.headers.get('x-forwarded-for');
+      const xreal = request.headers.get('x-real-ip');
+      let clientIp = cfIp || xreal || '';
+      if (!clientIp && xfwd) clientIp = xfwd.split(',')[0].trim();
+      if (!clientIp) clientIp = '127.0.0.1';
+
+      try {
+        const wlSetting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ip_whitelist'").first();
+        if (wlSetting) {
+          const wlConfig = JSON.parse(wlSetting.value);
+          if (wlConfig.enabled === true) {
+            const { results: wlResults } = await env.DB.prepare("SELECT ip_address FROM ip_whitelist").all();
+            const allowed = (wlResults || []).some(w => w.ip_address === clientIp || w.ip_address === '0.0.0.0' || w.ip_address === '::1');
+            return Response.json({
+              success: true,
+              ip: clientIp,
+              enabled: true,
+              allowed: allowed,
+              message: allowed ? '' : (wlConfig.message || 'IP Anda tidak ada dalam whitelist. Hubungi admin.')
+            });
+          }
+        }
+        // Whitelist disabled or not configured
+        return Response.json({ success: true, ip: clientIp, enabled: false, allowed: true, message: '' });
+      } catch (wlErr) {
+        // Tables might not exist yet — allow login (fail open)
+        return Response.json({ success: true, ip: clientIp, enabled: false, allowed: true, message: '' });
+      }
+    }
+
+    // ============================================
     // API IP WHITELIST (GET/POST/PUT)
     // ============================================
     if (path === '/api/ip/whitelist' && (request.method === 'GET' || request.method === 'POST' || request.method === 'PUT')) {
