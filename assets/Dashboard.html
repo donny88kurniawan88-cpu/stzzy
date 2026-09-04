@@ -1448,12 +1448,18 @@ function changePassword() {
        =================================================================== -->
   <script>
     function getDefaultAccess(role) {
-      var keys = ['dashboard','profil','banking_tools','rek_validator','bank_processor','saldo_pencairan','qris_tools','prediction_tools','event_tools','edit_bukti','keep_memo','api_key','setting','authority_panel','ip_whitelist','p2m_analyzer','syair_database','ai_prediction','gas_slot_engine','pg_report'];
+      // Must match backend VALID_MODULES (20 keys) exactly
+      var keys = ['core','workspace','operational','system','user_management','registration_control',
+        'dashboard','profil','banking_tools','rek_validator','bank_processor',
+        'saldo_pencairan','qris_tools','prediction_tools','event_tools',
+        'edit_bukti','keep_memo','api_key','setting','authority_panel'];
       var access = {};
       if (role === 'MASTER' || role === 'ADMIN') {
         keys.forEach(function(k) { access[k] = true; });
       } else {
+        // MEMBER: only core group + dashboard + profil
         keys.forEach(function(k) { access[k] = false; });
+        access['core'] = true;
         access['dashboard'] = true;
         access['profil'] = true;
       }
@@ -1524,18 +1530,24 @@ function changePassword() {
       applyAccess(storedRole, storedAccess);
     } catch(e) { console.error('Access apply error:', e); }
 
-    /* Step 2: Fetch /api/me -> re-apply from database */
+    /* Step 2: Fetch /api/me -> re-apply from database
+       NOTE: Cloudflare Worker returns { success, user: {...} }
+             Some older mocks returned { success, data: {...} }
+             Handle both for compatibility. */
     fetch('/api/me', {
       headers: { 'x-auth-token': localStorage.getItem('aura_auth_token') || '' }
     })
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        if (data && data.success && data.data) {
-          var role = data.data.role || 'MEMBER';
-          var access = data.data.access || {};
-          localStorage.setItem('aura_user_role', role);
-          localStorage.setItem('aura_user_access', JSON.stringify(access));
-          applyAccess(role, access);
+        if (data && data.success) {
+          var me = data.user || data.data;
+          if (me) {
+            var role = me.role || 'MEMBER';
+            var access = me.access || {};
+            localStorage.setItem('aura_user_role', role);
+            localStorage.setItem('aura_user_access', JSON.stringify(access));
+            applyAccess(role, access);
+          }
         }
       })
       .catch(function(e) { console.error('Fetch /api/me error:', e); });
