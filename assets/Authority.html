@@ -454,10 +454,10 @@
 
     function logout() { localStorage.clear(); window.location.href = '/Login.html'; }
 
-    // ===== KONFIGURASI MODUL AKSES (16 ITEMS IN 4 GROUPS) =====
+    // ===== KONFIGURASI MODUL AKSES (17 ITEMS IN 4 GROUPS) =====
     // 4 GROUPS (key + label + icon)
-    // 16 MODULES each mapped to a group
-    // Total access object keys = 4 (groups) + 16 (modules) = 20
+    // 17 MODULES each mapped to a group
+    // Total access object keys = 4 (groups) + 17 (modules) = 21
     const ACCESS_GROUPS = [
       { key: 'core',        label: 'Core',        icon: 'fa-gauge-high' },
       { key: 'workspace',   label: 'Workspace',   icon: 'fa-briefcase' },
@@ -479,6 +479,7 @@
       { group: 'operational', key: 'keep_memo',        label: 'Keep Memo',         icon: 'fa-clipboard' },
       { group: 'system', key: 'api_key',         label: 'API Key',          icon: 'fa-key' },
       { group: 'system', key: 'setting',         label: 'Setting',          icon: 'fa-gear' },
+      { group: 'system', key: 'ip_whitelist',    label: 'IP Whitelist',     icon: 'fa-shield-virus' },
       { group: 'system', key: 'authority_panel', label: 'Authority Panel',  icon: 'fa-shield-halved' },
       { group: 'system', key: 'user_management',     label: 'User Management',     icon: 'fa-users-cog' },
       { group: 'system', key: 'registration_control',label: 'Data Registrasi',     icon: 'fa-clipboard-check' },
@@ -535,46 +536,37 @@
     // ADMIN:  all true EXCEPT api_key=false, setting=false, registration_control=false
     // MEMBER: only core=true, dashboard=true, profil=true (rest false)
     function defaultAccessFor(role) {
-      if (role === 'MASTER') {
+      // Must match backend defaultAccessFor() exactly — all 21 keys
+      if (role === 'MASTER' || role === 'ADMIN') {
         return {
-          // group keys
+          // group keys (4)
           core: true, workspace: true, operational: true, system: true,
-          // core modules
+          // sub-menu (2)
+          user_management: true, registration_control: true,
+          // core modules (2)
           dashboard: true, profil: true,
-          // workspace modules
+          // workspace modules (3)
           banking_tools: true, rek_validator: true, bank_processor: true,
-          // operational modules
+          // operational modules (6)
           saldo_pencairan: true, qris_tools: true, prediction_tools: true, event_tools: true, edit_bukti: true, keep_memo: true,
-          // system modules
-          api_key: true, setting: true, authority_panel: true, user_management: true, registration_control: true
-        };
-      }
-      if (role === 'ADMIN') {
-        return {
-          // group keys
-          core: true, workspace: true, operational: true, system: true,
-          // core modules
-          dashboard: true, profil: true,
-          // workspace modules
-          banking_tools: true, rek_validator: true, bank_processor: true,
-          // operational modules
-          saldo_pencairan: true, qris_tools: true, prediction_tools: true, event_tools: true, edit_bukti: true, keep_memo: true,
-          // system modules — api_key/setting/registration_control restricted
-          api_key: false, setting: false, authority_panel: true, user_management: true, registration_control: false
+          // system modules (4)
+          api_key: true, setting: true, ip_whitelist: true, authority_panel: true
         };
       }
       // MEMBER: only core=true, dashboard=true, profil=true
       return {
-        // group keys
+        // group keys (4)
         core: true, workspace: false, operational: false, system: false,
-        // core modules
+        // sub-menu (2)
+        user_management: false, registration_control: false,
+        // core modules (2)
         dashboard: true, profil: true,
-        // workspace modules
+        // workspace modules (3)
         banking_tools: false, rek_validator: false, bank_processor: false,
-        // operational modules
+        // operational modules (6)
         saldo_pencairan: false, qris_tools: false, prediction_tools: false, event_tools: false, edit_bukti: false, keep_memo: false,
-        // system modules
-        api_key: false, setting: false, authority_panel: false, user_management: false, registration_control: false
+        // system modules (4)
+        api_key: false, setting: false, ip_whitelist: false, authority_panel: false
       };
     }
 
