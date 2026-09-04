@@ -151,6 +151,31 @@
     /* MODAL */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); z-index: 1000; display: none; align-items: center; justify-content: center; }
     .modal-overlay.active { display: flex; }
+
+    /* ===== PAGE LOADER: hides content until access control is applied ===== */
+    #pageLoader {
+      position: fixed; inset: 0; z-index: 2000;
+      background: var(--bg-primary, #0a0a0f);
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.25s ease;
+    }
+    #pageLoader.hidden { opacity: 0; pointer-events: none; }
+    #pageLoader .loader-spinner {
+      width: 42px; height: 42px;
+      border: 3px solid rgba(59,130,246,0.18);
+      border-top-color: var(--accent-primary, #3b82f6);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== SUB-MENU ITEMS: hidden by default, shown only after access check ===== */
+    .nav-sub-item[data-access-item] { display: none !important; }
+    .nav-sub-item.access-granted { display: flex !important; }
+
+    /* ===== MAIN CONTENT: hidden until access applied (prevent flash) ===== */
+    body.access-pending .main-content { visibility: hidden; }
+    body.access-ready .main-content { visibility: visible; }
     .modal-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 20px; width: 90%; max-width: 480px; padding: 32px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: fadeIn 0.3s ease; max-height: 90vh; overflow-y: auto; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
     .modal-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
@@ -185,7 +210,11 @@
     @media (max-width: 1024px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0; } .perm-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
-<body>
+<body class="access-pending">
+
+  <!-- PAGE LOADER: covers everything until access control is applied -->
+  <div id="pageLoader"><div class="loader-spinner"></div></div>
+
 
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -891,16 +920,99 @@
       } catch (err) { showToast('Kesalahan koneksi'); }
     }
 
-    // ===== AUTHORITY ACCESS CONTROL (fetch /api/me → filter sub-menu items) =====
-    // Allow MASTER/ADMIN always. MEMBER only if access.authority_panel === true.
-    // Filter sub-menu items by their data-access-item key.
-    // MASTER sees all sub-menu items.
-    (async function applyAuthorityAccess() {
+    // ===== AUTHORITY ACCESS CONTROL =====
+    // Strategy: Apply access SYNCHRONOUSLY from localStorage first (no flash),
+    // then fetch /api/me to update from database.
+
+    function applySubMenuAccess(role, access) {
+      const subItems = Array.from(document.querySelectorAll('.nav-sub-item[data-access-item]'));
+
+      // MASTER sees all sub-menu items. ADMIN & MEMBER filtered by access.
+      subItems.forEach(el => {
+        const key = el.dataset.accessItem;
+        // Remove any previously granted class, then re-evaluate
+        el.classList.remove('access-granted');
+        const granted = (role === 'MASTER') ? true : (access[key] === true);
+        if (granted) {
+          el.classList.add('access-granted');
+        }
+      });
+
+      // If active view is hidden → auto-switch to first visible
+      const activeItem = document.querySelector('.nav-sub-item.active');
+      if (activeItem && !activeItem.classList.contains('access-granted')) {
+        const firstVisible = subItems.find(el => el.classList.contains('access-granted'));
+        if (firstVisible) {
+          switchView(firstVisible.dataset.view);
+        } else {
+          // If both hidden → redirect to Dashboard
+          window.location.href = '/Dashboard.html';
+          return;
+        }
+      }
+
+      // Safety: if both hidden → redirect to Dashboard
+      const visibleCount = subItems.filter(el => el.classList.contains('access-granted')).length;
+      if (visibleCount === 0) {
+        window.location.href = '/Dashboard.html';
+        return;
+      }
+    }
+
+    function revealPage() {
+      // Mark body as ready (makes main-content visible)
+      document.body.classList.remove('access-pending');
+      document.body.classList.add('access-ready');
+      // Hide loader
+      const loader = document.getElementById('pageLoader');
+      if (loader) {
+        loader.classList.add('hidden');
+        setTimeout(() => { if (loader.parentNode) loader.parentNode.removeChild(loader); }, 300);
+      }
+    }
+
+    function performAccessCheck(role, access) {
+      // "Add User" button: show only for MASTER & ADMIN
+      const addUserBtn = document.getElementById('addUserBtn');
+      if (addUserBtn) {
+        addUserBtn.style.display = (role === 'MASTER' || role === 'ADMIN') ? '' : 'none';
+      }
+
+      // Access gate: allow MEMBER with authority_panel=true
+      if (role !== 'MASTER' && role !== 'ADMIN') {
+        if (access.authority_panel !== true) {
+          alert('Akses Ditolak! Halaman ini khusus untuk Master/Admin atau Member dengan akses Authority Panel.');
+          window.location.href = '/Dashboard.html';
+          return false;
+        }
+      }
+
+      // Apply sub-menu access filtering (MASTER sees all, others filtered)
+      applySubMenuAccess(role, access);
+      return true;
+    }
+
+    // STEP 1: Apply access SYNCHRONOUSLY from localStorage (prevents flash)
+    (function applyAccessFromStorage() {
+      try {
+        const storedRole = localStorage.getItem('aura_user_role') || 'MEMBER';
+        let storedAccess = {};
+        try { storedAccess = JSON.parse(localStorage.getItem('aura_user_access') || '{}'); } catch(e) {}
+        if (performAccessCheck(storedRole, storedAccess)) {
+          revealPage();
+        }
+      } catch (e) {
+        console.error('Initial access apply failed:', e);
+        revealPage();
+      }
+    })();
+
+    // STEP 2: Fetch /api/me → re-apply from database (authoritative)
+    (async function applyAuthorityAccessFromDb() {
       if (!authToken) return; // already redirected
       try {
         const res = await fetch('/api/me', { headers: { 'x-auth-token': authToken } });
         if (!res.ok) {
-          // Not authorized — redirect to Login
           window.location.href = '/Login.html';
           return;
         }
@@ -916,57 +1028,14 @@
         localStorage.setItem('aura_user_role', meRole);
         localStorage.setItem('aura_user_access', JSON.stringify(meAccess));
 
-        // "Add User" button: show only for MASTER & ADMIN
-        const addUserBtn = document.getElementById('addUserBtn');
-        if (addUserBtn) {
-          addUserBtn.style.display = (meRole === 'MASTER' || meRole === 'ADMIN') ? '' : 'none';
-        }
-
-        // Access gate: allow MEMBER with authority_panel=true
-        if (meRole !== 'MASTER' && meRole !== 'ADMIN') {
-          if (meAccess.authority_panel !== true) {
-            alert('Akses Ditolak! Halaman ini khusus untuk Master/Admin atau Member dengan akses Authority Panel.');
-            window.location.href = '/Dashboard.html';
-            return;
-          }
-        }
-
-        // MASTER sees all sub-menu items; ADMIN & MEMBER filtered by access
-        if (meRole !== 'MASTER') {
-          applySubMenuAccess(meAccess);
-        }
+        // Re-apply with authoritative data from database
+        performAccessCheck(meRole, meAccess);
+        revealPage();
       } catch (e) {
         console.error('Authority access check failed:', e);
+        revealPage();
       }
     })();
-
-    function applySubMenuAccess(access) {
-      // Filter sub-menu items: if access[key] === false → hide
-      const subItems = Array.from(document.querySelectorAll('.nav-sub-item[data-access-item]'));
-      subItems.forEach(el => {
-        const key = el.dataset.accessItem;
-        el.style.display = (access[key] === false) ? 'none' : '';
-      });
-
-      // If active view is hidden → auto-switch to first visible
-      const activeItem = document.querySelector('.nav-sub-item.active');
-      if (activeItem && activeItem.style.display === 'none') {
-        const firstVisible = subItems.find(el => el.style.display !== 'none');
-        if (firstVisible) {
-          switchView(firstVisible.dataset.view);
-        } else {
-          // If both hidden → redirect to Dashboard
-          window.location.href = '/Dashboard.html';
-          return;
-        }
-      }
-
-      // Safety: if both hidden → redirect to Dashboard
-      const visibleCount = subItems.filter(el => el.style.display !== 'none').length;
-      if (visibleCount === 0) {
-        window.location.href = '/Dashboard.html';
-      }
-    }
 
     // Init
     buildPermGrid();
