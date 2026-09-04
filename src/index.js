@@ -483,21 +483,65 @@ export default {
     }
 
     const VALID_ROLES = ['MASTER', 'ADMIN', 'MEMBER'];
-    const VALID_MODULES = ['core', 'workspace', 'operational', 'system', 'user_management', 'registration_control'];
+    const VALID_MODULES = [
+      // Group keys (4)
+      'core', 'workspace', 'operational', 'system',
+      // Sub-menu keys (2)
+      'user_management', 'registration_control',
+      // Module item keys (14) — match Dashboard data-access-item attributes
+      'dashboard', 'profil', 'banking_tools', 'rek_validator', 'bank_processor',
+      'saldo_pencairan', 'qris_tools', 'prediction_tools', 'event_tools',
+      'edit_bukti', 'keep_memo', 'api_key', 'setting', 'authority_panel'
+    ];
 
     // ===== DEFAULT ACCESS PER ROLE =====
     // MASTER: full access tak terbatas (semua modul true)
     // ADMIN:  Core, Workspace, Operational, System, User Management, Registrasi
     // MEMBER: hanya Core (selebihnya ditentukan oleh Admin/Master)
     function defaultAccessFor(role) {
+      // MASTER: full access tak terbatas (semua 20 modul true)
       if (role === 'MASTER') {
-        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
+        return {
+          // Groups
+          core: true, workspace: true, operational: true, system: true,
+          // Sub-menu (System)
+          user_management: true, registration_control: true,
+          // Core items
+          dashboard: true, profil: true,
+          // Workspace items
+          banking_tools: true, rek_validator: true, bank_processor: true,
+          saldo_pencairan: true, qris_tools: true, prediction_tools: true,
+          event_tools: true, edit_bukti: true, keep_memo: true,
+          // Operational items
+          api_key: true, setting: true,
+          // System items
+          authority_panel: true
+        };
       }
+      // ADMIN: Core + Workspace + Operational + System(Authority+UM only)
       if (role === 'ADMIN') {
-        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
+        return {
+          core: true, workspace: true, operational: true, system: true,
+          user_management: true, registration_control: true,
+          dashboard: true, profil: true,
+          banking_tools: true, rek_validator: true, bank_processor: true,
+          saldo_pencairan: true, qris_tools: true, prediction_tools: true,
+          event_tools: true, edit_bukti: true, keep_memo: true,
+          api_key: true, setting: true,
+          authority_panel: true
+        };
       }
-      // MEMBER: default hanya Core
-      return { core: true, workspace: false, operational: false, system: false, user_management: false, registration_control: false };
+      // MEMBER: default hanya Core (dashboard + profil)
+      return {
+        core: true, workspace: false, operational: false, system: false,
+        user_management: false, registration_control: false,
+        dashboard: true, profil: true,
+        banking_tools: false, rek_validator: false, bank_processor: false,
+        saldo_pencairan: false, qris_tools: false, prediction_tools: false,
+        event_tools: false, edit_bukti: false, keep_memo: false,
+        api_key: false, setting: false,
+        authority_panel: false
+      };
     }
 
     // Ambil role user yang sedang request (dari x-auth-token header)
@@ -515,14 +559,22 @@ export default {
     // ===== SAFE JSON PARSE =====
     // Parse access JSON dengan aman — fallback ke defaultAccessFor jika rusak/null
     function safeParseAccess(accessStr, role) {
-      if (!accessStr) return defaultAccessFor(role);
+      const defaults = defaultAccessFor(role);
+      if (!accessStr) return defaults;
       try {
         const parsed = JSON.parse(accessStr);
-        if (parsed && typeof parsed === 'object') return parsed;
-        return defaultAccessFor(role);
+        if (parsed && typeof parsed === 'object') {
+          // Merge: ensure all 20 keys exist (fill missing from defaults)
+          const merged = {};
+          VALID_MODULES.forEach(m => {
+            merged[m] = (typeof parsed[m] === 'boolean') ? parsed[m] : defaults[m];
+          });
+          return merged;
+        }
+        return defaults;
       } catch (e) {
         // JSON rusak (mis. {dashboard: true} tanpa quotes) — gunakan default
-        return defaultAccessFor(role);
+        return defaults;
       }
     }
 
@@ -711,8 +763,19 @@ export default {
 
         // Validasi role baru
         const newRole = body.role && VALID_ROLES.includes(body.role) ? body.role : user.role;
+        // Merge logic: preserve existing access for keys not sent in body
+        // (avoid overwriting missing keys with false)
+        const existingAccess = safeParseAccess(user.access, user.role);
         const access = {};
-        VALID_MODULES.forEach(m => access[m] = !!(body.access && body.access[m]));
+        VALID_MODULES.forEach(m => {
+          if (body.access && typeof body.access[m] === 'boolean') {
+            access[m] = body.access[m];
+          } else if (typeof existingAccess[m] === 'boolean') {
+            access[m] = existingAccess[m];
+          } else {
+            access[m] = false;
+          }
+        });
         const grantedBy = request.headers.get('x-auth-token');
 
         await env.DB.prepare("UPDATE users SET role = ?, access = ?, granted_by = ? WHERE username = ?")
