@@ -1059,11 +1059,32 @@ function changePassword() {
           setTimeout(function() {
             var clearBtn = document.getElementById('clearDataBtn');
             if (clearBtn) clearBtn.addEventListener('click', function() {
-              showPopup('Konfirmasi', '<p style="text-align:center; padding:20px; color:var(--text-secondary);">Semua data lokal akan dihapus. Lanjutkan?</p>', true, function() {
-                localStorage.clear();
-                showToast('Semua data berhasil dihapus', 'success');
-                addTerminalLog('All local data cleared');
-                location.reload();
+              showPopup('Konfirmasi Clear All Data', '<div style="padding:20px; color:var(--text-secondary); text-align:center;"><p style="margin-bottom:12px;">Semua data lokal akan dihapus dan <strong style="color:var(--accent-warning);">semua perangkat</strong> yang sedang membuka Dashboard akan otomatis refresh access control.</p><p style="font-size:12px; color:var(--text-tertiary);">Lanjutkan?</p></div>', true, function() {
+                // Call API to bump data_version (forces all devices to refresh)
+                fetch('/api/clear-all-data', {
+                  method: 'POST',
+                  headers: { 'x-auth-token': localStorage.getItem('aura_auth_token') || '' }
+                })
+                  .then(function(r) { return r.json(); })
+                  .then(function(data) {
+                    // Clear local data on this device
+                    localStorage.clear();
+                    if (data.success) {
+                      showToast('Clear all data berhasil. Version: ' + data.version + '. Semua perangkat akan refresh.', 'success');
+                      addTerminalLog('Clear all data — version bumped to ' + data.version);
+                    } else {
+                      showToast('Clear lokal berhasil (API sync gagal: ' + (data.error || 'unknown') + ')', 'success');
+                      addTerminalLog('All local data cleared (API sync failed)');
+                    }
+                    setTimeout(function() { location.reload(); }, 1500);
+                  })
+                  .catch(function(err) {
+                    // Fallback: just clear local
+                    localStorage.clear();
+                    showToast('Clear lokal berhasil (koneksi error)', 'success');
+                    addTerminalLog('All local data cleared (connection error)');
+                    setTimeout(function() { location.reload(); }, 1000);
+                  });
               });
             });
           }, 100);
@@ -1549,11 +1570,53 @@ function changePassword() {
             var access = me.access || {};
             localStorage.setItem('aura_user_role', role);
             localStorage.setItem('aura_user_access', JSON.stringify(access));
+            localStorage.setItem('aura_data_version', String(data.version || 0));
             applyAccess(role, access);
           }
         }
       })
       .catch(function(e) { console.error('Fetch /api/me error:', e); });
+
+    /* ============================================================
+       CROSS-DEVICE SYNC: Poll /api/data-version every 30 seconds.
+       If version changes (admin changed access / clicked Clear All Data
+       on another device) → re-fetch /api/me → update access + localStorage.
+       ============================================================ */
+    var lastDataVersion = parseInt(localStorage.getItem('aura_data_version') || '0', 10);
+    setInterval(function() {
+      fetch('/api/data-version')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data && data.success) {
+            var currentVersion = parseInt(data.version || 0, 10);
+            if (currentVersion !== lastDataVersion) {
+              lastDataVersion = currentVersion;
+              localStorage.setItem('aura_data_version', String(currentVersion));
+              // Version changed → re-fetch access from database
+              addTerminalLog('Data version changed to ' + currentVersion + ' — refreshing access...');
+              fetch('/api/me', {
+                headers: { 'x-auth-token': localStorage.getItem('aura_auth_token') || '' }
+              })
+                .then(function(r) { return r.json(); })
+                .then(function(meData) {
+                  if (meData && meData.success) {
+                    var me = meData.user || meData.data;
+                    if (me) {
+                      var role = me.role || 'MEMBER';
+                      var access = me.access || {};
+                      localStorage.setItem('aura_user_role', role);
+                      localStorage.setItem('aura_user_access', JSON.stringify(access));
+                      applyAccess(role, access);
+                      showToast('Access control diperbarui (v' + currentVersion + ')', 'success');
+                    }
+                  }
+                })
+                .catch(function(e) { console.error('Re-fetch /api/me error:', e); });
+            }
+          }
+        })
+        .catch(function(e) { /* silently fail — will retry next interval */ });
+    }, 30000); // 30 seconds
   </script>
 </body>
 </html>
