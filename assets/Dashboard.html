@@ -431,7 +431,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
           API Key
         </div>
-        <div class="nav-item" data-action="ipWhitelist" data-access-item="api_key">
+        <div class="nav-item" data-action="ipWhitelist" data-access-item="ip_whitelist">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
           IP Whitelist
         </div>
@@ -1448,11 +1448,11 @@ function changePassword() {
        =================================================================== -->
   <script>
     function getDefaultAccess(role) {
-      // Must match backend VALID_MODULES (20 keys) exactly
+      // Must match backend VALID_MODULES (21 keys) exactly
       var keys = ['core','workspace','operational','system','user_management','registration_control',
         'dashboard','profil','banking_tools','rek_validator','bank_processor',
         'saldo_pencairan','qris_tools','prediction_tools','event_tools',
-        'edit_bukti','keep_memo','api_key','setting','authority_panel'];
+        'edit_bukti','keep_memo','api_key','setting','ip_whitelist','authority_panel'];
       var access = {};
       if (role === 'MASTER' || role === 'ADMIN') {
         keys.forEach(function(k) { access[k] = true; });
