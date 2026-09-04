@@ -1335,9 +1335,9 @@ function changePassword() {
     let userAccess = {};
     try { userAccess = JSON.parse(localStorage.getItem('aura_user_access') || '{}'); } catch(e) {}
 
-    // MASTER & ADMIN: tampilkan semua menu group
-    // MEMBER: hanya tampilkan yang ada di access object
-    if (userRole !== 'MASTER' && userRole !== 'ADMIN') {
+    // MASTER: tampilkan semua menu group
+    // ADMIN & MEMBER: hanya tampilkan yang ada di access object
+    if (userRole !== 'MASTER') {
       document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
         const key = group.dataset.access;
         if (!userAccess[key]) {
@@ -1478,7 +1478,8 @@ function changePassword() {
 
     function applyAccess(role, access) {
       var acc = mergeAccess(access, role);
-      var isFullAccess = (role === 'MASTER' || role === 'ADMIN');
+      // ONLY MASTER is full access. ADMIN must respect access flags from database.
+      var isFullAccess = (role === 'MASTER');
 
       /* Filter sidebar nav items */
       document.querySelectorAll('[data-access-item]').forEach(function(el) {
