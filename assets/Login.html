@@ -627,37 +627,27 @@
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memeriksa akses...';
       btn.disabled = true;
       
-      // Step 1: Check IP whitelist
-      fetch('/api/ip/whitelist')
+      // Step 1: Check IP whitelist via PUBLIC endpoint (no auth required)
+      fetch('/api/ip/check')
         .then(function(r) { return r.json(); })
         .then(function(data) {
           btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
           btn.disabled = false;
-          
-          if (data.success && data.settings && data.settings.enabled === true) {
-            // Whitelist is ON — check if IP is allowed
-            var allowed = false;
-            if (data.whitelist && data.whitelist.length > 0) {
-              allowed = data.whitelist.some(function(w) {
-                return w.ip === loginDetectedIP || w.ip === '0.0.0.0';
-              });
-            }
-            
-            if (!allowed) {
-              // IP not in whitelist — BLOCK login
-              var msg = data.settings.message || 'IP Anda tidak ada dalam whitelist. Hubungi admin.';
-              showAlert(msg + ' (IP: ' + loginDetectedIP + ')', 'error');
-              document.getElementById('loginForm').classList.add('shake');
-              setTimeout(function() { document.getElementById('loginForm').classList.remove('shake'); }, 400);
-              return;
-            }
+
+          if (data.success && data.enabled === true && data.allowed === false) {
+            // Whitelist is ON and IP is NOT allowed — BLOCK login
+            var msg = data.message || 'IP Anda tidak ada dalam whitelist. Hubungi admin.';
+            showAlert(msg + ' (IP: ' + (data.ip || loginDetectedIP) + ')', 'error');
+            document.getElementById('loginForm').classList.add('shake');
+            setTimeout(function() { document.getElementById('loginForm').classList.remove('shake'); }, 400);
+            return;
           }
-          
+
           // IP allowed or whitelist disabled — proceed with original login
           _originalLogin(e);
         })
         .catch(function() {
-          // API failed — proceed with login (fail open for usability)
+          // API failed — proceed with login (server-side check in /api/login is the real enforcement)
           btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
           btn.disabled = false;
           _originalLogin(e);
