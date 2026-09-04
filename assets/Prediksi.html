@@ -57,6 +57,18 @@
         .hero-sub { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
         .date-chip { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; background: rgba(15,15,22,0.6); border: 1px solid var(--border); border-radius: 14px; color: var(--text-primary); font-size: 14px; font-weight: 600; }
         .date-chip i { color: var(--neon-cyan); }
+        .date-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; background: rgba(15,15,22,0.6); border: 1px solid var(--border); border-radius: 14px; color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); position: relative; overflow: hidden; }
+        .date-toggle i { color: var(--neon-purple); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+        .date-toggle::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.1)); opacity: 0; transition: opacity 0.3s ease; }
+        .date-toggle:hover { border-color: var(--neon-purple); color: #fff; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(139,92,246,0.25); }
+        .date-toggle:hover::before { opacity: 1; }
+        .date-toggle:hover i { transform: scale(1.2) rotate(-8deg); }
+        .date-toggle:active { transform: translateY(0) scale(0.97); }
+        .date-toggle span, .date-toggle i { position: relative; z-index: 1; }
+        .date-reset { display: none; align-items: center; gap: 6px; padding: 12px 16px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 14px; color: #ef4444; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+        .date-reset:hover { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.4); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(239,68,68,0.2); }
+        .date-reset:active { transform: translateY(0) scale(0.97); }
+        @media (max-width: 768px) { .date-toggle span { display: none; } .date-toggle { padding: 12px 14px; } }
 
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
         .stat-card { background: linear-gradient(135deg, rgba(15,15,22,0.9), rgba(18,18,28,0.85)); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -358,7 +370,17 @@
                     <div class="hero-icon"><i class="fas fa-chart-line"></i></div>
                     <div><h1 class="hero-title">Analisa Prediksi</h1><p class="hero-sub">Perhitungan probabilistik multi-pasaran terintegrasi</p></div>
                 </div>
-                <div class="date-chip"><i class="fas fa-calendar-alt"></i><span id="dateText">—</span></div>
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <div class="date-chip"><i class="fas fa-calendar-alt"></i><span id="dateText">—</span></div>
+                    <div class="date-toggle" onclick="openDatePicker()" title="Set tanggal manual">
+                        <i class="fas fa-calendar-day"></i>
+                        <span>Set Tanggal</span>
+                    </div>
+                    <input type="date" id="manualDateInput" style="position:absolute; left:-9999px; opacity:0; color-scheme:dark;" onchange="applyManualDate(this.value)">
+                    <div class="date-reset" id="resetDateBtn" onclick="resetDate()">
+                        <i class="fas fa-undo"></i> Reset
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -493,7 +515,7 @@
 
         /* ===== GENERATE PREDICTION ===== */
         function generatePrediction(pasaran) {
-            var today = new Date().toISOString().split('T')[0];
+            var today = (useManualDate && manualDateValue) ? manualDateValue : new Date().toISOString().split('T')[0];
             currentPrediction = {
                 tanggal: today,
                 pasaran: pasaran,
@@ -528,9 +550,46 @@
         }
 
         /* ===== TANGGAL DISPLAY ===== */
+        var useManualDate = false;
+        var manualDateValue = null;
+        
         function updateDateDisplay() {
-            var now = new Date();
-            document.getElementById('dateText').textContent = now.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' }) + ' WIB';
+            if (useManualDate && manualDateValue) {
+                var d = new Date(manualDateValue + 'T00:00:00');
+                document.getElementById('dateText').textContent = d.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) + ' WIB';
+            } else {
+                var now = new Date();
+                document.getElementById('dateText').textContent = now.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' }) + ' WIB';
+            }
+        }
+        
+        function openDatePicker() {
+            var input = document.getElementById('manualDateInput');
+            if (input.showPicker) { input.showPicker(); }
+            else { input.style.position = 'fixed'; input.style.left = '50%'; input.style.top = '50%'; input.style.opacity = '1'; input.style.zIndex = '9999'; input.click(); setTimeout(function() { input.style.left = '-9999px'; input.style.opacity = '0'; }, 500); }
+        }
+        
+        function applyManualDate(dateStr) {
+            var resetBtn = document.getElementById('resetDateBtn');
+            if (!dateStr) { resetDate(); return; }
+            useManualDate = true;
+            manualDateValue = dateStr;
+            updateDateDisplay();
+            if (resetBtn) resetBtn.style.display = 'flex';
+            if (currentPrediction) { currentPrediction.tanggal = dateStr; displayPrediction(currentPrediction); }
+            if (currentPasaran) generatePrediction(currentPasaran);
+        }
+        
+        function resetDate() {
+            useManualDate = false;
+            manualDateValue = null;
+            var input = document.getElementById('manualDateInput');
+            if (input) input.value = '';
+            updateDateDisplay();
+            var resetBtn = document.getElementById('resetDateBtn');
+            if (resetBtn) resetBtn.style.display = 'none';
+            if (currentPrediction) { currentPrediction.tanggal = new Date().toISOString().split('T')[0]; displayPrediction(currentPrediction); }
+            if (currentPasaran) generatePrediction(currentPasaran);
         }
 
         /* ===== RENDER PASARAN GRID ===== */
