@@ -166,6 +166,9 @@
 
     /* PERMISSION GRID */
     .perm-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .perm-group-header { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-tertiary); padding: 10px 4px 4px; border-top: 1px solid var(--border); margin-top: 6px; }
+    .perm-group-header:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+    .perm-group-header i { width: 12px; text-align: center; }
     .perm-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: 0.2s; font-size: 12.5px; color: var(--text-secondary); }
     .perm-item:hover { border-color: var(--border-focus); }
     .perm-item.checked { border-color: var(--accent-primary); background: var(--accent-primary-light); color: var(--text-primary); }
@@ -205,8 +208,8 @@
         </div>
         <div class="nav-sub open" id="authSub">
           <div class="nav-sub-inner">
-            <a class="nav-sub-item active" data-view="users" onclick="switchView('users')"><i class="fas fa-users-cog"></i> User Management</a>
-            <a class="nav-sub-item" data-view="registration" onclick="switchView('registration')"><i class="fas fa-clipboard-check"></i> Data Registrasi</a>
+            <a class="nav-sub-item active" data-view="users" data-access-item="user_management" onclick="switchView('users')"><i class="fas fa-users-cog"></i> User Management</a>
+            <a class="nav-sub-item" data-view="registration" data-access-item="registration_control" onclick="switchView('registration')"><i class="fas fa-clipboard-check"></i> Data Registrasi</a>
           </div>
         </div>
       </div>
@@ -235,7 +238,7 @@
           </div>
           <div style="display: flex; gap: 12px; flex-wrap: wrap;">
             <a href="/Dashboard.html" class="btn btn-dashboard"><i class="fas fa-home"></i> Dashboard</a>
-            <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-user-plus"></i> Add User</button>
+            <button class="btn btn-primary" id="addUserBtn" onclick="openModal()" style="display:none;"><i class="fas fa-user-plus"></i> Add User</button>
           </div>
         </div>
 
@@ -403,7 +406,7 @@
         <div class="avatar" id="editAvatar" style="background: linear-gradient(135deg, #f59e0b, #ec4899);">--</div>
         <div>
           <div class="user-name" id="editUserLabel">@username</div>
-          <div style="font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono);">access granted by master / admin</div>
+          <div id="editGrantLabel" style="font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono);">access controlled by master / admin</div>
         </div>
       </div>
 
@@ -437,35 +440,52 @@
   <div class="toast" id="toastEl"><div class="toast-content" id="toastMsg">Success</div></div>
 
   <script>
-    // ===== CEK LOGIN & ACCESS CONTROL (MASTER & ADMIN BOLEH) =====
+    // ===== CEK LOGIN & ACCESS CONTROL =====
+    // Step 1 (sync): if no token at all → redirect to Login
+    // Step 2 (async via /api/me): allow MEMBER with authority_panel=true to access this page
     const authToken = localStorage.getItem('aura_auth_token');
     const userRole = localStorage.getItem('aura_user_role');
 
     if (!authToken) {
       window.location.href = '/Login.html';
-    } else if (userRole !== 'ADMIN' && userRole !== 'MASTER') {
-      alert('Akses Ditolak! Halaman ini khusus untuk Master/Admin. Member tidak memiliki akses.');
-      window.location.href = '/Dashboard.html';
     } else {
       document.getElementById('userEmail').textContent = authToken + '@aura.os';
     }
 
     function logout() { localStorage.clear(); window.location.href = '/Login.html'; }
 
-    // ===== KONFIGURASI MODUL AKSES =====
-    // ===== KONFIGURASI MODUL AKSES (SESUAI MENU GROUP DI DASHBOARD) =====
-    // Master: full access tak terbatas
-    // Admin: Core, Workspace, Operational, System — untuk Setting & User Management
-    //         access control hanya untuk Member (tapi tetap bisa di-setting oleh Master)
-    // Member: akses full ditentukan oleh Admin dan Master
-    const ACCESS_MODULES = [
-      { key: 'core',                label: 'Core',                icon: 'fa-gauge-high' },
-      { key: 'workspace',           label: 'Workspace',           icon: 'fa-briefcase' },
-      { key: 'operational',         label: 'Operational',         icon: 'fa-cogs' },
-      { key: 'system',              label: 'System',              icon: 'fa-server' },
-      { key: 'user_management',     label: 'User Management',     icon: 'fa-users-cog' },
-      { key: 'registration_control',label: 'Data Registrasi',     icon: 'fa-clipboard-check' }
+    // ===== KONFIGURASI MODUL AKSES (16 ITEMS IN 4 GROUPS) =====
+    // 4 GROUPS (key + label + icon)
+    // 16 MODULES each mapped to a group
+    // Total access object keys = 4 (groups) + 16 (modules) = 20
+    const ACCESS_GROUPS = [
+      { key: 'core',        label: 'Core',        icon: 'fa-gauge-high' },
+      { key: 'workspace',   label: 'Workspace',   icon: 'fa-briefcase' },
+      { key: 'operational', label: 'Operational', icon: 'fa-cogs' },
+      { key: 'system',      label: 'System',      icon: 'fa-server' },
     ];
+
+    const ACCESS_MODULES = [
+      { group: 'core', key: 'dashboard',      label: 'Dashboard',        icon: 'fa-house' },
+      { group: 'core', key: 'profil',         label: 'Profil',           icon: 'fa-user' },
+      { group: 'workspace', key: 'banking_tools',  label: 'Banking Tools',    icon: 'fa-credit-card' },
+      { group: 'workspace', key: 'rek_validator',  label: '↳ Rek Validator',  icon: 'fa-circle-check' },
+      { group: 'workspace', key: 'bank_processor', label: '↳ Bank Processor', icon: 'fa-building-columns' },
+      { group: 'operational', key: 'saldo_pencairan',  label: 'Saldo Pencairan',   icon: 'fa-layer-group' },
+      { group: 'operational', key: 'qris_tools',       label: 'QRIS Tools',        icon: 'fa-qrcode' },
+      { group: 'operational', key: 'prediction_tools', label: 'Prediction Tools',  icon: 'fa-clock-rotate-left' },
+      { group: 'operational', key: 'event_tools',      label: 'Event Tools',       icon: 'fa-calendar' },
+      { group: 'operational', key: 'edit_bukti',       label: 'Edit Bukti',        icon: 'fa-pen' },
+      { group: 'operational', key: 'keep_memo',        label: 'Keep Memo',         icon: 'fa-clipboard' },
+      { group: 'system', key: 'api_key',         label: 'API Key',          icon: 'fa-key' },
+      { group: 'system', key: 'setting',         label: 'Setting',          icon: 'fa-gear' },
+      { group: 'system', key: 'authority_panel', label: 'Authority Panel',  icon: 'fa-shield-halved' },
+      { group: 'system', key: 'user_management',     label: 'User Management',     icon: 'fa-users-cog' },
+      { group: 'system', key: 'registration_control',label: 'Data Registrasi',     icon: 'fa-clipboard-check' },
+    ];
+
+    const GROUP_KEYS = ['core', 'workspace', 'operational', 'system'];
+
     const ROLE_CLASS = { MASTER: 'role-master', ADMIN: 'role-admin', MEMBER: 'role-member' };
 
     let usersData = [];
@@ -490,7 +510,17 @@
     async function loadUsers() {
       try {
         const res = await fetch('/api/users', { headers: { 'x-auth-token': authToken } });
-        if (res.status === 403) { alert('Sesi admin berakhir!'); window.location.href = '/Login.html'; return; }
+        if (res.status === 403) {
+          // Don't redirect to Login — show "Anda tidak memiliki akses" message
+          document.getElementById('userTableBody').innerHTML =
+            '<tr><td colspan="4" style="text-align:center; padding:48px; color:var(--accent-danger);">' +
+            '<i class="fas fa-lock" style="font-size:28px; margin-bottom:12px; display:block;"></i>' +
+            '<div style="font-weight:600; font-size:14px;">Anda tidak memiliki akses</div>' +
+            '<div style="font-size:11px; color:var(--text-tertiary); margin-top:6px;">Hubungi Master/Admin untuk mendapatkan izin.</div>' +
+            '</td></tr>';
+          showToast('Anda tidak memiliki akses');
+          return;
+        }
         usersData = await res.json();
         document.getElementById('statTotal').textContent = usersData.length;
         document.getElementById('statAdmin').textContent = usersData.filter(u => u.role === 'ADMIN' || u.role === 'MASTER').length;
@@ -500,27 +530,69 @@
       }
     }
 
-    // Ambil akses user (fallback default berdasarkan role)
-    // MASTER  = full access tak terbatas (semua modul true)
-    // ADMIN   = Core, Workspace, Operational, System, User Management, Registrasi
-    // MEMBER  = akses ditentukan oleh Admin/Master (default: hanya Core)
+    // Default access per role (20 keys: 4 group keys + 16 module keys)
+    // MASTER: all 20 keys true
+    // ADMIN:  all true EXCEPT api_key=false, setting=false, registration_control=false
+    // MEMBER: only core=true, dashboard=true, profil=true (rest false)
+    function defaultAccessFor(role) {
+      if (role === 'MASTER') {
+        return {
+          // group keys
+          core: true, workspace: true, operational: true, system: true,
+          // core modules
+          dashboard: true, profil: true,
+          // workspace modules
+          banking_tools: true, rek_validator: true, bank_processor: true,
+          // operational modules
+          saldo_pencairan: true, qris_tools: true, prediction_tools: true, event_tools: true, edit_bukti: true, keep_memo: true,
+          // system modules
+          api_key: true, setting: true, authority_panel: true, user_management: true, registration_control: true
+        };
+      }
+      if (role === 'ADMIN') {
+        return {
+          // group keys
+          core: true, workspace: true, operational: true, system: true,
+          // core modules
+          dashboard: true, profil: true,
+          // workspace modules
+          banking_tools: true, rek_validator: true, bank_processor: true,
+          // operational modules
+          saldo_pencairan: true, qris_tools: true, prediction_tools: true, event_tools: true, edit_bukti: true, keep_memo: true,
+          // system modules — api_key/setting/registration_control restricted
+          api_key: false, setting: false, authority_panel: true, user_management: true, registration_control: false
+        };
+      }
+      // MEMBER: only core=true, dashboard=true, profil=true
+      return {
+        // group keys
+        core: true, workspace: false, operational: false, system: false,
+        // core modules
+        dashboard: true, profil: true,
+        // workspace modules
+        banking_tools: false, rek_validator: false, bank_processor: false,
+        // operational modules
+        saldo_pencairan: false, qris_tools: false, prediction_tools: false, event_tools: false, edit_bukti: false, keep_memo: false,
+        // system modules
+        api_key: false, setting: false, authority_panel: false, user_management: false, registration_control: false
+      };
+    }
+
+    // Ambil akses user (merge stored access with role-based defaults)
     function accessFor(u) {
-      if (u.access && typeof u.access === 'object') return u.access;
-      if (u.role === 'MASTER') {
-        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
+      const defaults = defaultAccessFor(u.role);
+      if (u.access && typeof u.access === 'object') {
+        return { ...defaults, ...u.access };
       }
-      if (u.role === 'ADMIN') {
-        return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
-      }
-      // MEMBER: default hanya Core, selebihnya ditentukan oleh Admin/Master
-      return { core: true, workspace: false, operational: false, system: false, user_management: false, registration_control: false };
+      return defaults;
     }
 
     // Cek apakah user saat ini (yang login) boleh edit target user
-    // Master: boleh edit siapa saja (kecuali diri sendiri tidak perlu proteksi)
-    // Admin: HANYA boleh edit user dengan role MEMBER
+    // MASTER: boleh edit ADMIN & MEMBER (targetUser.role !== 'MASTER')
+    // ADMIN:  HANYA boleh edit user dengan role MEMBER
+    // else:   false
     function canEditUser(targetUser) {
-      if (userRole === 'MASTER') return true;
+      if (userRole === 'MASTER') return targetUser.role !== 'MASTER';
       if (userRole === 'ADMIN') return targetUser.role === 'MEMBER';
       return false;
     }
@@ -568,13 +640,23 @@
 
     // ===== EDIT ACCESS CONTROL =====
     function buildPermGrid() {
-      document.getElementById('permGrid').innerHTML = ACCESS_MODULES.map(m => `
-        <label class="perm-item" data-key="${m.key}">
-          <input type="checkbox" onchange="this.closest('.perm-item').classList.toggle('checked', this.checked)">
-          <i class="fas ${m.icon}"></i>
-          <span>${m.label}</span>
-          <span class="perm-check"><i class="fas fa-check"></i></span>
-        </label>`).join('');
+      // Group items by ACCESS_GROUPS with group headers
+      let html = '';
+      ACCESS_GROUPS.forEach(g => {
+        html += `<div class="perm-group-header" data-group="${g.key}">
+          <i class="fas ${g.icon}"></i>
+          <span>${g.label}</span>
+        </div>`;
+        ACCESS_MODULES.filter(m => m.group === g.key).forEach(m => {
+          html += `<label class="perm-item" data-key="${m.key}" data-group="${m.group}">
+            <input type="checkbox" onchange="this.closest('.perm-item').classList.toggle('checked', this.checked)">
+            <i class="fas ${m.icon}"></i>
+            <span>${m.label}</span>
+            <span class="perm-check"><i class="fas fa-check"></i></span>
+          </label>`;
+        });
+      });
+      document.getElementById('permGrid').innerHTML = html;
     }
 
     function setAllPerm(v) {
@@ -618,10 +700,10 @@
         item.classList.toggle('checked', checked);
       });
 
-      // Update label "access granted by" sesuai role yang login
-      const grantLabel = document.querySelector('.edit-user-head div[style*="font-size: 11px"]');
+      // Update label "access controlled by master / admin" sesuai role yang login
+      const grantLabel = document.getElementById('editGrantLabel');
       if (grantLabel) {
-        grantLabel.textContent = 'access granted by ' + (userRole === 'MASTER' ? 'master' : 'admin');
+        grantLabel.textContent = 'access controlled by ' + (userRole === 'MASTER' ? 'master' : 'admin');
       }
 
       document.getElementById('editModal').classList.add('active');
@@ -632,15 +714,26 @@
     async function submitEditAccess() {
       const role = document.getElementById('editRole').value;
 
-      // Guard: Admin tidak boleh set role selain MEMBER
+      // Guard: MASTER & ADMIN allowed; ADMIN only MEMBER role
+      if (userRole !== 'MASTER' && userRole !== 'ADMIN') {
+        showToast('Akses ditolak! Hanya Master/Admin yang dapat mengubah akses.');
+        return;
+      }
       if (userRole === 'ADMIN' && role !== 'MEMBER') {
         showToast('Akses ditolak! Admin hanya dapat mengubah user Member.');
         return;
       }
 
+      // Collect checkboxes from #permGrid (module items)
       const access = {};
       document.querySelectorAll('#permGrid .perm-item').forEach(item => {
         access[item.dataset.key] = item.querySelector('input').checked;
+      });
+
+      // Auto-set group keys: if ANY item in group is true → group = true
+      ACCESS_GROUPS.forEach(g => {
+        const groupItems = ACCESS_MODULES.filter(m => m.group === g.key);
+        access[g.key] = groupItems.some(m => access[m.key] === true);
       });
 
       try {
@@ -804,6 +897,83 @@
           document.getElementById('addRole').value = '';
         } else showToast(result.error || 'Gagal menambah user');
       } catch (err) { showToast('Kesalahan koneksi'); }
+    }
+
+    // ===== AUTHORITY ACCESS CONTROL (fetch /api/me → filter sub-menu items) =====
+    // Allow MASTER/ADMIN always. MEMBER only if access.authority_panel === true.
+    // Filter sub-menu items by their data-access-item key.
+    // MASTER sees all sub-menu items.
+    (async function applyAuthorityAccess() {
+      if (!authToken) return; // already redirected
+      try {
+        const res = await fetch('/api/me', { headers: { 'x-auth-token': authToken } });
+        if (!res.ok) {
+          // Not authorized — redirect to Login
+          window.location.href = '/Login.html';
+          return;
+        }
+        const json = await res.json();
+        if (!json.success || !json.data) {
+          window.location.href = '/Login.html';
+          return;
+        }
+        const meRole = json.data.role;
+        const meAccess = json.data.access || {};
+
+        // Persist updated role + access for other modules
+        localStorage.setItem('aura_user_role', meRole);
+        localStorage.setItem('aura_user_access', JSON.stringify(meAccess));
+
+        // "Add User" button: show only for MASTER & ADMIN
+        const addUserBtn = document.getElementById('addUserBtn');
+        if (addUserBtn) {
+          addUserBtn.style.display = (meRole === 'MASTER' || meRole === 'ADMIN') ? '' : 'none';
+        }
+
+        // Access gate: allow MEMBER with authority_panel=true
+        if (meRole !== 'MASTER' && meRole !== 'ADMIN') {
+          if (meAccess.authority_panel !== true) {
+            alert('Akses Ditolak! Halaman ini khusus untuk Master/Admin atau Member dengan akses Authority Panel.');
+            window.location.href = '/Dashboard.html';
+            return;
+          }
+        }
+
+        // MASTER sees all sub-menu items; ADMIN & MEMBER filtered by access
+        if (meRole !== 'MASTER') {
+          applySubMenuAccess(meAccess);
+        }
+      } catch (e) {
+        console.error('Authority access check failed:', e);
+      }
+    })();
+
+    function applySubMenuAccess(access) {
+      // Filter sub-menu items: if access[key] === false → hide
+      const subItems = Array.from(document.querySelectorAll('.nav-sub-item[data-access-item]'));
+      subItems.forEach(el => {
+        const key = el.dataset.accessItem;
+        el.style.display = (access[key] === false) ? 'none' : '';
+      });
+
+      // If active view is hidden → auto-switch to first visible
+      const activeItem = document.querySelector('.nav-sub-item.active');
+      if (activeItem && activeItem.style.display === 'none') {
+        const firstVisible = subItems.find(el => el.style.display !== 'none');
+        if (firstVisible) {
+          switchView(firstVisible.dataset.view);
+        } else {
+          // If both hidden → redirect to Dashboard
+          window.location.href = '/Dashboard.html';
+          return;
+        }
+      }
+
+      // Safety: if both hidden → redirect to Dashboard
+      const visibleCount = subItems.filter(el => el.style.display !== 'none').length;
+      if (visibleCount === 0) {
+        window.location.href = '/Dashboard.html';
+      }
     }
 
     // Init
