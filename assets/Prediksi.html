@@ -576,10 +576,10 @@
         function updateDateDisplay() {
             if (useManualDate && manualDateValue) {
                 var d = new Date(manualDateValue + 'T00:00:00');
-                document.getElementById('dateText').textContent = d.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) + ' WIB';
+                document.getElementById('dateText').textContent = d.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
             } else {
                 var now = new Date();
-                document.getElementById('dateText').textContent = now.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' }) + ' WIB';
+                document.getElementById('dateText').textContent = now.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
             }
         }
         
