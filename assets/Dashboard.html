@@ -1,17 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <style>html:not(.auth) body { opacity: 0 !important; } html:not(.auth) .loader { display: none !important; }</style>
-  <script>
-    (function() {
-      var token = localStorage.getItem('aura_auth_token');
-      if (!token) {
-        window.location.replace('/Login.html');
-      } else {
-        document.documentElement.classList.add('auth');
-      }
-    })();
-  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>AURA.OS // DASHBOARD</title>
@@ -341,11 +330,11 @@
 
       <div class="nav-group" data-access="core">
         <div class="nav-group-title">Core</div>
-        <div class="nav-item active" data-menu="Index" data-access-item="dashboard">
+        <div class="nav-item active" data-menu="Index">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
           Dashboard
         </div>
-        <div class="nav-item" data-action="profil" data-access-item="profil">
+        <div class="nav-item" data-action="profil">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           Profil
         </div>
@@ -353,15 +342,15 @@
 
       <div class="nav-group" data-access="workspace">
         <div class="nav-group-title">Workspace</div>
-        <div class="nav-submenu-wrap" data-access-item="banking_tools">
+        <div class="nav-submenu-wrap">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
             <span class="label">Banking Tools</span>
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" data-access-item="rek_validator" onclick="window.location.href='/Validator.html'">Rek Validator</div>
-            <div class="submenu-item" data-access-item="bank_processor" onclick="window.location.href='/Bank.html'">Bank Processor</div>
+            <div class="submenu-item" onclick="window.location.href='/Validator.html'">Rek Validator</div>
+            <div class="submenu-item" onclick="window.location.href='/Bank.html'">Bank Processor</div>
           </div>
         </div>
       </div>
@@ -369,12 +358,12 @@
       <div class="nav-group" data-access="operational">
         <div class="nav-group-title">Operational</div>
 
-        <div class="nav-item" data-action="loadPencairan" data-access-item="saldo_pencairan">
+        <div class="nav-item" data-action="loadPencairan">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
           Saldo Pencairan
         </div>
 
-        <div class="nav-submenu-wrap" data-access-item="qris_tools">
+        <div class="nav-submenu-wrap">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="14.01"/><line x1="21" y1="21" x2="21" y2="21.01"/></svg>
             <span class="label">QRIS Tools</span>
@@ -388,7 +377,7 @@
           </div>
         </div>
 
-        <div class="nav-submenu-wrap" data-access-item="prediction_tools">
+        <div class="nav-submenu-wrap">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
             <span class="label">Prediction Tools</span>
@@ -401,7 +390,7 @@
           </div>
         </div>
 
-        <div class="nav-submenu-wrap click-toggle" data-access-item="event_tools">
+        <div class="nav-submenu-wrap click-toggle">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span class="label">Event Tools</span>
@@ -414,12 +403,12 @@
           </div>
         </div>
 
-        <div class="nav-item" data-action="comingSoon" data-access-item="edit_bukti">
+        <div class="nav-item" data-action="comingSoon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Bukti
         </div>
 
-        <div class="nav-item" data-action="keepMemo" data-access-item="keep_memo">
+        <div class="nav-item" data-action="keepMemo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
           Keep Memo
         </div>
@@ -427,19 +416,15 @@
 
       <div class="nav-group" data-access="system">
         <div class="nav-group-title">System</div>
-        <div class="nav-item" data-action="apiKey" data-access-item="api_key">
+        <div class="nav-item" data-action="apiKey">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
           API Key
         </div>
-        <div class="nav-item" data-action="ipWhitelist" data-access-item="api_key">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          IP Whitelist
-        </div>
-        <div class="nav-item" data-action="setting" data-access-item="setting">
+        <div class="nav-item" data-action="setting">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Setting
         </div>
-        <div class="nav-item" data-access-item="authority_panel" onclick="window.location.href='/Authority.html'">
+        <div class="nav-item" onclick="window.location.href='/Authority.html'">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
           Authority Panel
         </div>
@@ -455,20 +440,7 @@
         <button class="mobile-menu-btn" id="mobileMenuBtn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
         <div class="breadcrumb"><span id="breadcrumbPage" style="text-transform:capitalize;">dashboard</span></div>
       </div>
-      <div style="display:flex; align-items:center; gap:16px;">
-        <!-- IP Badge -->
-        <div id="topIpBadge" style="display:flex; align-items:center; gap:8px; padding:8px 16px; background:rgba(15,15,22,0.6); border:1px solid var(--border); border-radius:100px; font-size:12px; color:var(--text-secondary); font-family:var(--font-mono); transition:all 0.25s;" title="IP Address Anda">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          <span id="topIpAddress">...</span>
-        </div>
-        <!-- Divider -->
-        <div style="width:1px; height:28px; background:var(--border);"></div>
-        <!-- Profile Avatar (clickable) -->
-        <div id="topProfileAvatar" onclick="switchToProfil()" style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg, var(--accent-primary), var(--accent-purple)); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.25s; position:relative;" title="Profil" onmouseover="this.style.transform='scale(1.08)'; this.style.boxShadow='0 0 16px rgba(59,130,246,0.4)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
-          <span id="topAvatarText" style="color:white; font-size:13px; font-weight:700; letter-spacing:0.5px;">U</span>
-          <div style="position:absolute; bottom:0; right:0; width:10px; height:10px; background:#10b981; border-radius:50%; border:2px solid #0a0a0f;"></div>
-        </div>
-      </div>
+      <div class="status-badge" id="statusBadge"><div class="status-dot"></div><span>System Online</span></div>
     </header>
 
     <div class="content">
@@ -487,74 +459,23 @@
         </div>
         <div class="section-title">Quick Access Modules</div>
         <div class="modules-grid">
-          <div class="module-card" data-color="teal" onclick="window.location.href='/Validator.html'"><div class="module-icon">🏦</div><div class="module-name" data-access-item-card="rek_validator">Rek Validator</div><div class="module-desc">Cross-check 4 databases</div><div class="module-badge">v1.5.0</div></div>
-          <div class="module-card" data-color="blue" onclick="window.location.href='/Bank.html'"><div class="module-icon">💰</div><div class="module-name" data-access-item-card="bank_processor">Bank Processor</div><div class="module-desc">Formatter &amp; validator rekening bank</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="pink" onclick="window.location.href='/Analyzer.html'"><div class="module-icon">📈</div><div class="module-name" data-access-item-card="qris_tools">P2M Analyzer</div><div class="module-desc">P2M vs Zonamain vs Report analysis</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="purple" data-action="comingSoon"><div class="module-icon">🔍</div><div class="module-name" data-access-item-card="qris_tools">XPAY Analyzer</div><div class="module-desc">XPAY transaction analyzer engine</div><div class="module-badge">Soon</div></div>
-          <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">📋</div><div class="module-name" data-access-item-card="qris_tools">XPAY Settlement</div><div class="module-desc">XPAY settlement reconciliation</div><div class="module-badge">Soon</div></div>
-          <div class="module-card" data-color="teal" data-action="comingSoon"><div class="module-icon">📊</div><div class="module-name" data-access-item-card="qris_tools">MNPAY Analyzer</div><div class="module-desc">MNPAY payment flow analyzer</div><div class="module-badge">Soon</div></div>
-          <div class="module-card" data-color="blue" onclick="window.location.href='/Syair.html'"><div class="module-icon">📊</div><div class="module-name" data-access-item-card="prediction_tools">Syair Database</div><div class="module-desc">Access shio prediction engine</div><div class="module-badge">v2.1.0</div></div>
-          <div class="module-card" data-color="purple" onclick="window.location.href='/Prediksi.html'"><div class="module-icon">🔮</div><div class="module-name" data-access-item-card="prediction_tools">AI Prediction</div><div class="module-desc">Neural probability calculation</div><div class="module-badge">v3.0.0</div></div>
-          <div class="module-card" data-color="red" data-action="appInfo"><div class="module-icon">🎰</div><div class="module-name" data-access-item-card="prediction_tools">Gas Slot Engine</div><div class="module-desc">AI Slot Gacor Predictor System</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="green" data-action="comingSoon"><div class="module-icon">📅</div><div class="module-name" data-access-item-card="event_tools">My Event</div><div class="module-desc">Manage active events</div><div class="module-badge">Soon</div></div>
-          <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">🕐</div><div class="module-name" data-access-item-card="event_tools">History Event</div><div class="module-desc">Event history &amp; logs</div><div class="module-badge">Soon</div></div>
-          <div class="module-card" data-color="green" onclick="window.location.href='/PgReport.html'"><div class="module-icon">🧾</div><div class="module-name" data-access-item-card="event_tools">PG Report</div><div class="module-desc">PG Soft credit calculator engine</div><div class="module-badge">v5.0.0</div></div>
-          <div class="module-card" data-color="pink" data-action="comingSoon"><div class="module-icon">✏️</div><div class="module-name" data-access-item-card="edit_bukti">Edit Bukti</div><div class="module-desc">Edit &amp; manage proof of payment</div><div class="module-badge">Soon</div></div>
-          <div class="module-card" data-color="teal" data-action="loadPencairan"><div class="module-icon">💸</div><div class="module-name" data-access-item-card="saldo_pencairan">Saldo Kas</div><div class="module-desc">Monitor rekening &amp; pencairan</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="blue" data-action="apiKey"><div class="module-icon">🔑</div><div class="module-name" data-access-item-card="api_key">API Key</div><div class="module-desc">Manage API credentials</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="purple" onclick="window.location.href='/Authority.html'"><div class="module-icon">🛡️</div><div class="module-name" data-access-item-card="authority_panel">Authority Panel</div><div class="module-desc">Admin access &amp; user management</div><div class="module-badge">Restricted</div></div>
-          <div class="module-card" data-color="orange" data-action="setting"><div class="module-icon">⚙️</div><div class="module-name" data-access-item-card="setting">Setting</div><div class="module-desc">System configuration panel</div><div class="module-badge">v1.2.0</div></div>
-        </div>
-      </div>
-
-      <!-- ===== IP WHITELIST VIEW ===== -->
-      <div id="ipWhitelistView" style="display:none;">
-        <div class="auth-header" style="margin-bottom:24px;">
-          <div class="header-group">
-            <div class="header-icon"><i class="fas fa-shield-virus"></i></div>
-            <div>
-              <div class="title">IP Whitelist</div>
-              <div class="subtitle">Kelola akses IP untuk login</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="display:grid; gap:20px; max-width:800px;">
-          <!-- Settings -->
-          <div class="stat-card" style="padding:20px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
-              <div>
-                <div style="font-size:16px; font-weight:700; color:var(--text-primary);">Whitelist Protection</div>
-                <div style="font-size:12px; color:var(--text-tertiary);">Aktifkan untuk membatasi login hanya dari IP yang di-whitelist</div>
-              </div>
-              <label class="switch">
-                <input type="checkbox" id="ipWhitelistToggle" onchange="toggleIpWhitelist()">
-                <span class="slider"></span>
-              </label>
-            </div>
-            <div style="margin-top:12px;">
-              <label style="font-size:12px; color:var(--text-tertiary); display:block; margin-bottom:6px;">Pesan tolakan:</label>
-              <input type="text" id="ipWhitelistMessage" class="input-field" placeholder="IP Anda tidak ada dalam whitelist..." style="width:100%;">
-            </div>
-          </div>
-
-          <!-- Add IP -->
-          <div class="stat-card" style="padding:20px;">
-            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:12px;">Tambah IP ke Whitelist</div>
-            <div style="display:flex; gap:10px;">
-              <input type="text" id="newIpInput" class="input-field" placeholder="192.168.1.1" style="flex:1;">
-              <input type="text" id="newIpLabel" class="input-field" placeholder="Label (opsional)" style="width:180px;">
-              <button class="btn btn-primary" onclick="addIpToWhitelist()"><i class="fas fa-plus"></i> Tambah</button>
-            </div>
-          </div>
-
-          <!-- IP List -->
-          <div class="stat-card" style="padding:20px;">
-            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:12px;">Daftar IP Whitelist</div>
-            <div id="ipWhitelistTable" style="display:grid; gap:8px;">
-              <div style="text-align:center; color:var(--text-tertiary); padding:20px;">Loading...</div>
-            </div>
-          </div>
+          <div class="module-card" data-color="teal" onclick="window.location.href='/Validator.html'"><div class="module-icon">🏦</div><div class="module-name">Rek Validator</div><div class="module-desc">Cross-check 4 databases</div><div class="module-badge">v1.5.0</div></div>
+          <div class="module-card" data-color="blue" onclick="window.location.href='/Bank.html'"><div class="module-icon">💰</div><div class="module-name">Bank Processor</div><div class="module-desc">Formatter &amp; validator rekening bank</div><div class="module-badge">v2.0.0</div></div>
+          <div class="module-card" data-color="pink" onclick="window.location.href='/Analyzer.html'"><div class="module-icon">📈</div><div class="module-name">P2M Analyzer</div><div class="module-desc">P2M vs Zonamain vs Report analysis</div><div class="module-badge">v2.0.0</div></div>
+          <div class="module-card" data-color="purple" data-action="comingSoon"><div class="module-icon">🔍</div><div class="module-name">XPAY Analyzer</div><div class="module-desc">XPAY transaction analyzer engine</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">📋</div><div class="module-name">XPAY Settlement</div><div class="module-desc">XPAY settlement reconciliation</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="teal" data-action="comingSoon"><div class="module-icon">📊</div><div class="module-name">MNPAY Analyzer</div><div class="module-desc">MNPAY payment flow analyzer</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="blue" onclick="window.location.href='/Syair.html'"><div class="module-icon">📊</div><div class="module-name">Syair Database</div><div class="module-desc">Access shio prediction engine</div><div class="module-badge">v2.1.0</div></div>
+          <div class="module-card" data-color="purple" onclick="window.location.href='/Prediksi.html'"><div class="module-icon">🔮</div><div class="module-name">AI Prediction</div><div class="module-desc">Neural probability calculation</div><div class="module-badge">v3.0.0</div></div>
+          <div class="module-card" data-color="red" data-action="appInfo"><div class="module-icon">🎰</div><div class="module-name">Gas Slot Engine</div><div class="module-desc">AI Slot Gacor Predictor System</div><div class="module-badge">v1.0.0</div></div>
+          <div class="module-card" data-color="green" data-action="comingSoon"><div class="module-icon">📅</div><div class="module-name">My Event</div><div class="module-desc">Manage active events</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">🕐</div><div class="module-name">History Event</div><div class="module-desc">Event history &amp; logs</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="green" onclick="window.location.href='/PgReport.html'"><div class="module-icon">🧾</div><div class="module-name">PG Report</div><div class="module-desc">PG Soft credit calculator engine</div><div class="module-badge">v5.0.0</div></div>
+          <div class="module-card" data-color="pink" data-action="comingSoon"><div class="module-icon">✏️</div><div class="module-name">Edit Bukti</div><div class="module-desc">Edit &amp; manage proof of payment</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="teal" data-action="loadPencairan"><div class="module-icon">💸</div><div class="module-name">Saldo Kas</div><div class="module-desc">Monitor rekening &amp; pencairan</div><div class="module-badge">v1.0.0</div></div>
+          <div class="module-card" data-color="blue" data-action="apiKey"><div class="module-icon">🔑</div><div class="module-name">API Key</div><div class="module-desc">Manage API credentials</div><div class="module-badge">v2.0.0</div></div>
+          <div class="module-card" data-color="purple" onclick="window.location.href='/Authority.html'"><div class="module-icon">🛡️</div><div class="module-name">Authority Panel</div><div class="module-desc">Admin access &amp; user management</div><div class="module-badge">Restricted</div></div>
+          <div class="module-card" data-color="orange" data-action="setting"><div class="module-icon">⚙️</div><div class="module-name">Setting</div><div class="module-desc">System configuration panel</div><div class="module-badge">v1.2.0</div></div>
         </div>
       </div>
 
@@ -860,8 +781,6 @@ function changePassword() {
       document.getElementById('dashboardView').style.display = 'none';
       document.getElementById('profilView').style.display = 'block';
       document.getElementById('pencairanView').style.display = 'none';
-      var ipV = document.getElementById('ipWhitelistView');
-      if (ipV) ipV.style.display = 'none';
       document.getElementById('breadcrumbPage').textContent = 'profil';
 
             /* Isi data dari server */
@@ -1053,15 +972,6 @@ function changePassword() {
           });
           addTerminalLog('API Key panel opened');
           break;
-        case 'ipWhitelist':
-          document.getElementById('dashboardView').style.display = 'none';
-          document.getElementById('profilView').style.display = 'none';
-          var pcV = document.getElementById('pencairanView');
-          if (pcV) pcV.style.display = 'none';
-          var ipView = document.getElementById('ipWhitelistView');
-          if (ipView) { ipView.style.display = 'block'; document.getElementById('breadcrumbPage').textContent = 'ip-whitelist'; loadIpWhitelist(); }
-          addTerminalLog('IP Whitelist panel opened');
-          break;
         case 'setting':
           showPopup('Setting', '<div style="padding:10px;"><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Terminal Auto-Scroll</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setAutoScroll" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setAutoScrollDot"></span></label></div><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Toast Notifications</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setToast" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setToastDot"></span></label></div><div style="padding:14px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius-md); cursor:pointer; text-align:center; color:var(--accent-danger); font-weight:600; font-size:14px;" id="clearDataBtn">Clear All Local Data</div></div>', false);
           addTerminalLog('Settings panel opened');
@@ -1087,8 +997,6 @@ function changePassword() {
       document.getElementById('dashboardView').style.display = 'block';
       document.getElementById('profilView').style.display = 'none';
       document.getElementById('pencairanView').style.display = 'none';
-      var ipV = document.getElementById('ipWhitelistView');
-      if (ipV) ipV.style.display = 'none';
       document.getElementById('breadcrumbPage').textContent = 'dashboard';
       currentView = 'dashboard';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
@@ -1101,8 +1009,6 @@ function changePassword() {
       document.getElementById('dashboardView').style.display = 'none';
       document.getElementById('profilView').style.display = 'none';
       document.getElementById('pencairanView').style.display = 'block';
-      var ipV = document.getElementById('ipWhitelistView');
-      if (ipV) ipV.style.display = 'none';
       document.getElementById('breadcrumbPage').textContent = 'saldo pencairan';
       currentView = 'pencairan';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
@@ -1165,8 +1071,23 @@ function changePassword() {
     addTerminalLog('User logged out');
     localStorage.removeItem('aura_auth_token');
     localStorage.removeItem('aura_user_name');
+    // ===== ACCESS CONTROL: SHOW/HIDE MENU GROUPS =====
+    const userRole = localStorage.getItem('aura_user_role');
+    let userAccess = {};
+    try { userAccess = JSON.parse(localStorage.getItem('aura_user_access') || '{}'); } catch(e) {}
+
+    // MASTER & ADMIN: tampilkan semua menu group
+    // MEMBER: hanya tampilkan yang ada di access object
+    if (userRole !== 'MASTER' && userRole !== 'ADMIN') {
+      document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
+        const key = group.dataset.access;
+        if (!userAccess[key]) {
+          group.style.display = 'none';
+        }
+      });
+    }
+
     localStorage.removeItem('aura_user_role');
-    localStorage.removeItem('aura_user_access');
     localStorage.removeItem('aura_user_pass');
     localStorage.removeItem('aura_user_status');
     localStorage.removeItem('aura_auth_token_backend');
@@ -1237,224 +1158,6 @@ function changePassword() {
         dateInput.value = today.getFullYear() + '-' + mm + '-' + dd;
       }
     })();
-  </script>
-  <!-- ===== TOP BAR: IP + Avatar ===== -->
-<script>
-  // Fetch IP for top badge
-  fetch('/api/ip/detect')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success) {
-        var el = document.getElementById('topIpAddress');
-        if (el) el.textContent = data.ip;
-      }
-    })
-    .catch(function() {
-      var el = document.getElementById('topIpAddress');
-      if (el) el.textContent = '127.0.0.1';
-    });
-  
-  // Set avatar initials
-  var u = localStorage.getItem('aura_auth_token') || 'U';
-  var a = document.getElementById('topAvatarText');
-  if (a) a.textContent = u.substring(0, 2).toUpperCase();
-</script>
-
-<!-- ===== ACCESS CONTROL: /api/me (DATABASE) + localStorage FALLBACK ===== -->
-<script>
-(function() {
-  var authToken = localStorage.getItem('aura_auth_token');
-  if (!authToken) { window.location.href = '/Login.html'; return; }
-
-  // DEFAULT ACCESS per ROLE (20 keys)
-  function getDefaultAccess(role) {
-    var keys = ['core','workspace','operational','system','dashboard','profil',
-      'banking_tools','rek_validator','bank_processor','saldo_pencairan',
-      'qris_tools','prediction_tools','event_tools','edit_bukti','keep_memo',
-      'api_key','setting','authority_panel','user_management','registration_control'];
-    var access = {};
-    if (role === 'MASTER') {
-      keys.forEach(function(k) { access[k] = true; });
-    } else if (role === 'ADMIN') {
-      keys.forEach(function(k) { access[k] = true; });
-      access['api_key'] = false;
-      access['setting'] = false;
-      access['registration_control'] = false;
-    } else {
-      keys.forEach(function(k) { access[k] = false; });
-      access['core'] = true;
-      access['dashboard'] = true;
-      access['profil'] = true;
-    }
-    return access;
-  }
-
-  // MERGE: pastikan semua 20 keys ada (isi default untuk yang missing)
-  function mergeAccess(rawAccess, role) {
-    var defaults = getDefaultAccess(role);
-    var merged = {};
-    var keys = Object.keys(defaults);
-    keys.forEach(function(k) {
-      if (rawAccess && rawAccess[k] === false) {
-        merged[k] = false;
-      } else if (rawAccess && rawAccess[k] === true) {
-        merged[k] = true;
-      } else {
-        merged[k] = defaults[k];
-      }
-    });
-    return merged;
-  }
-
-  function applyAccess(role, access) {
-    // MASTER: show everything
-    if (role === 'MASTER') {
-      document.querySelectorAll('[data-access-item]').forEach(function(el) { el.style.display = ''; });
-      document.querySelectorAll('.nav-group[data-access]').forEach(function(el) { el.style.display = ''; });
-      document.querySelectorAll('[data-access-item-card]').forEach(function(card) {
-        var mc = card.closest('.module-card');
-        if (mc) mc.style.display = '';
-      });
-      console.log('[Access Control] MASTER: all visible');
-      return;
-    }
-
-    // ADMIN & MEMBER: filter
-    document.querySelectorAll('[data-access-item]').forEach(function(item) {
-      var key = item.dataset.accessItem;
-      item.style.display = (access[key] === false) ? 'none' : '';
-    });
-
-    document.querySelectorAll('.nav-group[data-access]').forEach(function(group) {
-      var gk = group.dataset.access;
-      if (access[gk] === false) { group.style.display = 'none'; return; }
-      var items = group.querySelectorAll('[data-access-item]');
-      var anyVis = false;
-      items.forEach(function(it) { if (it.style.display !== 'none') anyVis = true; });
-      group.style.display = (items.length > 0 && !anyVis) ? 'none' : '';
-    });
-
-    document.querySelectorAll('[data-access-item-card]').forEach(function(card) {
-      var key = card.dataset.accessItemCard;
-      var mc = card.closest('.module-card');
-      if (mc) mc.style.display = (access[key] === false) ? 'none' : '';
-    });
-
-    console.log('[Access Control] Role:', role, '| Access applied');
-  }
-
-  // ===== STEP 1: IMMEDIATE — from localStorage (no flash) =====
-  var role = localStorage.getItem('aura_user_role') || 'MEMBER';
-  var rawAccess = {};
-  try {
-    var stored = localStorage.getItem('aura_user_access');
-    if (stored) rawAccess = JSON.parse(stored);
-  } catch(e) {}
-  var access = mergeAccess(rawAccess, role);
-  applyAccess(role, access);
-
-  // ===== STEP 2: FETCH from /api/me (DATABASE) =====
-  fetch('/api/me', { headers: { 'x-auth-token': authToken } })
-    .then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
-    .then(function(data) {
-      if (!data.success) {
-        console.log('[Access Control] /api/me returned error, using localStorage');
-        return;
-      }
-      var dbRole = data.user.role;
-      var dbAccess = mergeAccess(data.user.access, dbRole);
-
-      // Update localStorage
-      localStorage.setItem('aura_user_role', dbRole);
-      localStorage.setItem('aura_user_access', JSON.stringify(dbAccess));
-
-      // Re-apply with database data
-      applyAccess(dbRole, dbAccess);
-      console.log('[Access Control] /api/me success: role=' + dbRole + ' keys=' + Object.keys(dbAccess).length);
-    })
-    .catch(function(err) {
-      console.log('[Access Control] /api/me failed:', err.message, '— using localStorage');
-    });
-})();
-    // ===== IP WHITELIST =====
-    function loadIpWhitelist() {
-      var token = localStorage.getItem('aura_auth_token') || '';
-      fetch('/api/ip/whitelist', { headers: { 'x-auth-token': token } })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (!data.success) return;
-          document.getElementById('ipWhitelistToggle').checked = data.settings.enabled;
-          document.getElementById('ipWhitelistMessage').value = data.settings.message || '';
-          
-          var html = '';
-          data.whitelist.forEach(function(item) {
-            html += '<div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border);">' +
-              '<div style="flex:1;"><code style="font-size:14px; color:var(--accent-success);">' + item.ip + '</code>' +
-              (item.label ? '<span style="font-size:11px; color:var(--text-tertiary); margin-left:8px;">' + item.label + '</span>' : '') +
-              '</div><span style="font-size:10px; color:var(--text-tertiary);">by ' + (item.added_by || 'system') + '</span>' +
-              '<button onclick="removeIpFromWhitelist(' + item.id + ')" style="background:none; border:none; color:var(--accent-danger); cursor:pointer; padding:4px;"><i class="fas fa-trash"></i></button>' +
-              '</div>';
-          });
-          if (!html) html = '<div style="text-align:center; color:var(--text-tertiary); padding:20px;">No IPs in whitelist</div>';
-          document.getElementById('ipWhitelistTable').innerHTML = html;
-        });
-    }
-
-    function toggleIpWhitelist() {
-      var enabled = document.getElementById('ipWhitelistToggle').checked;
-      var message = document.getElementById('ipWhitelistMessage').value;
-      var token = localStorage.getItem('aura_auth_token') || '';
-      fetch('/api/ip/whitelist', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-        body: JSON.stringify({ enabled: enabled, message: message })
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.success) showToast('Pengaturan IP whitelist disimpan', 'success');
-        else showToast('Gagal menyimpan', 'error');
-      });
-    }
-
-    function addIpToWhitelist() {
-      var ip = document.getElementById('newIpInput').value.trim();
-      var label = document.getElementById('newIpLabel').value.trim();
-      if (!ip) { showToast('IP wajib diisi', 'warning'); return; }
-      var token = localStorage.getItem('aura_auth_token') || '';
-      fetch('/api/ip/whitelist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-        body: JSON.stringify({ ip: ip, label: label })
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.success) {
-          showToast('IP ditambahkan ke whitelist', 'success');
-          document.getElementById('newIpInput').value = '';
-          document.getElementById('newIpLabel').value = '';
-          loadIpWhitelist();
-        } else {
-          showToast(data.error || 'Gagal menambah IP', 'error');
-        }
-      });
-    }
-
-    function removeIpFromWhitelist(id) {
-      var token = localStorage.getItem('aura_auth_token') || '';
-      fetch('/api/ip/whitelist/' + id, {
-        method: 'DELETE',
-        headers: { 'x-auth-token': token }
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.success) { showToast('IP dihapus dari whitelist', 'success'); loadIpWhitelist(); }
-        else showToast('Gagal menghapus', 'error');
-      });
-    }
-
   </script>
 </body>
 </html>
