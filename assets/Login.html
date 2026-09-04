@@ -265,7 +265,7 @@
 
       <div class="footer-info">
         <div>© 2024 AURA.OS System</div>
-        <div class="ip-badge"><i class="fas fa-globe"></i> <span id="ipAddress">Detecting IP...</span></div>
+        <div class="ip-badge"><i class="fas fa-globe"></i> <span id="loginIpAddress">Detecting IP...</span></div>
       </div>
 
       <!-- ===== REGISTER OVERLAY (blur di atas login) ===== -->
@@ -574,52 +574,78 @@
         }
       } catch (e) {}
     })();
-  </script>
-  <script>
-    // ===== IP DETECTION =====
-    var detectedIP = '127.0.0.1';
+
+    // ===== IP DETECTION + WHITELIST CHECK =====
+    var loginDetectedIP = '127.0.0.1';
     
+    // Detect IP on page load
     fetch('/api/ip/detect')
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        if (data.success) {
-          detectedIP = data.ip;
-          var badge = document.getElementById('ipAddress');
-          if (badge) badge.textContent = 'IP: ' + detectedIP;
+        if (data.success && data.ip) {
+          loginDetectedIP = data.ip;
+          var el = document.getElementById('loginIpAddress');
+          if (el) el.textContent = 'IP: ' + loginDetectedIP;
         }
       })
       .catch(function() {
-        var badge = document.getElementById('ipAddress');
-        if (badge) badge.textContent = 'IP: 127.0.0.1';
+        var el = document.getElementById('loginIpAddress');
+        if (el) el.textContent = 'IP: 127.0.0.1';
       });
 
-    // ===== INTERCEPT LOGIN: check IP whitelist =====
-    var originalHandleLogin = handleLogin;
+    // ===== INTERCEPT LOGIN: CHECK IP WHITELIST =====
+    var _originalLogin = handleLogin;
     handleLogin = function(e) {
       e.preventDefault();
       var username = document.getElementById('username').value.trim();
       var password = document.getElementById('password').value.trim();
       
-      // Check IP whitelist
+      if (!username || !password) {
+        showAlert('Username dan password wajib diisi!', 'error');
+        return;
+      }
+      
+      var btn = document.getElementById('btnLogin');
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memeriksa akses...';
+      btn.disabled = true;
+      
+      // Step 1: Check IP whitelist
       fetch('/api/ip/whitelist')
         .then(function(r) { return r.json(); })
         .then(function(data) {
-          if (data.success && data.settings && data.settings.enabled) {
-            // Whitelist is ON - check if IP is allowed
-            var allowed = data.whitelist.some(function(w) { return w.ip === detectedIP || w.ip === '0.0.0.0'; });
+          btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
+          btn.disabled = false;
+          
+          if (data.success && data.settings && data.settings.enabled === true) {
+            // Whitelist is ON — check if IP is allowed
+            var allowed = false;
+            if (data.whitelist && data.whitelist.length > 0) {
+              allowed = data.whitelist.some(function(w) {
+                return w.ip === loginDetectedIP || w.ip === '0.0.0.0';
+              });
+            }
+            
             if (!allowed) {
-              showAlert(data.settings.message || 'IP Anda tidak ada dalam whitelist.', 'error');
+              // IP not in whitelist — BLOCK login
+              var msg = data.settings.message || 'IP Anda tidak ada dalam whitelist. Hubungi admin.';
+              showAlert(msg + ' (IP: ' + loginDetectedIP + ')', 'error');
+              document.getElementById('loginForm').classList.add('shake');
+              setTimeout(function() { document.getElementById('loginForm').classList.remove('shake'); }, 400);
               return;
             }
           }
-          // IP allowed (or whitelist disabled) - proceed with login
-          originalHandleLogin(e);
+          
+          // IP allowed or whitelist disabled — proceed with original login
+          _originalLogin(e);
         })
         .catch(function() {
-          // API failed - proceed with login (fail open)
-          originalHandleLogin(e);
+          // API failed — proceed with login (fail open for usability)
+          btn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Sign In';
+          btn.disabled = false;
+          _originalLogin(e);
         });
     };
+
   </script>
 </body>
 </html>
