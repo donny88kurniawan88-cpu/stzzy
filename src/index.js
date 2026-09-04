@@ -584,34 +584,52 @@ export default {
     if (path === '/api/login' && request.method === 'POST') {
       try {
         const { username, password } = await request.json();
-        
+
         // ===== DETECT IP =====
-        const clientIp = request.headers.get('cf-connecting-ip') || 
-                         request.headers.get('x-real-ip') || 
-                         (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 
+        const clientIp = request.headers.get('cf-connecting-ip') ||
+                         request.headers.get('x-real-ip') ||
+                         (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
                          '127.0.0.1';
         const userAgent = request.headers.get('user-agent') || '';
-        
-        // ===== CHECK IP WHITELIST =====
+
+        // ===== CHECK IP WHITELIST (server-side enforcement) =====
+        // This is the authoritative block. Client-side check in Login.html is just UX.
+        let ipBlocked = false;
+        let blockMessage = '';
         try {
           const wlSetting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ip_whitelist'").first();
-          if (wlSetting) {
-            const wlConfig = JSON.parse(wlSetting.value);
+          if (wlSetting && wlSetting.value) {
+            let wlConfig;
+            try { wlConfig = JSON.parse(wlSetting.value); } catch(e) { wlConfig = { enabled: false }; }
             if (wlConfig.enabled === true) {
               // Whitelist is ON — check if IP is allowed
               const { results: wlResults } = await env.DB.prepare("SELECT ip_address FROM ip_whitelist").all();
-              const allowed = wlResults.some(w => w.ip_address === clientIp || w.ip_address === '0.0.0.0');
+              const wlIps = (wlResults || []).map(w => (w.ip_address || '').trim());
+              // Match exact OR wildcard 0.0.0.0 OR ::1 (localhost)
+              const allowed = wlIps.some(ip =>
+                ip === clientIp ||
+                ip === '0.0.0.0' ||
+                ip === '::1' ||
+                ip === '::ffff:' + clientIp ||
+                clientIp === '::ffff:' + ip
+              );
               if (!allowed) {
-                // Log blocked attempt
-                try { await env.DB.prepare("INSERT INTO ip_login_logs (ip_address, username, status, user_agent) VALUES (?, ?, 'BLOCKED', ?)").bind(clientIp, username || '', userAgent).run(); } catch(e) {}
-                return Response.json({ success: false, error: wlConfig.message || 'IP Anda tidak ada dalam whitelist. Hubungi admin.' }, { status: 403 });
+                ipBlocked = true;
+                blockMessage = wlConfig.message || 'IP Anda tidak ada dalam whitelist. Hubungi admin.';
               }
             }
           }
         } catch(wlErr) {
-          // Whitelist table might not exist yet — skip check
+          // Whitelist table might not exist yet — log but don't block
+          console.error('IP whitelist check error:', wlErr);
         }
-        
+
+        // If blocked — log BLOCKED and return 403 BEFORE checking credentials
+        if (ipBlocked) {
+          try { await env.DB.prepare("INSERT INTO ip_login_logs (ip_address, username, status, user_agent) VALUES (?, ?, 'BLOCKED', ?)").bind(clientIp, username || '', userAgent).run(); } catch(e) {}
+          return Response.json({ success: false, error: blockMessage + ' (IP: ' + clientIp + ')' }, { status: 403 });
+        }
+
         const { results } = await env.DB.prepare("SELECT * FROM users WHERE username = ? AND password = ?").bind(username, password).all();
 
         if (results.length > 0) {
