@@ -1149,7 +1149,62 @@ export default {
         return Response.json({ success: false, error: 'Gagal mengambil profil' }, { status: 500 });
       }
     }
+      
+    // 19. IP DETECT
+if (path === '/api/ip/detect' && request.method === 'GET') {
+  const cfIp = request.headers.get('cf-connecting-ip');
+  const xfwd = request.headers.get('x-forwarded-for');
+  const xreal = request.headers.get('x-real-ip');
+  let ip = cfIp || xreal || '';
+  if (!ip && xfwd) ip = xfwd.split(',')[0].trim();
+  if (!ip) ip = '127.0.0.1';
+  return Response.json({ success: true, ip: ip });
+}
 
+    // IP 20. WHITELIST GET/POST/PUT
+if (path === '/api/ip/whitelist' && (request.method === 'GET' || request.method === 'POST' || request.method === 'PUT')) {
+  if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
+  
+  if (request.method === 'GET') {
+    try {
+      const { results: wl } = await env.DB.prepare("SELECT * FROM ip_whitelist ORDER BY id DESC").all();
+      const settingRow = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ip_whitelist'").first();
+      let ipSettings = { enabled: false, message: 'IP Anda tidak ada dalam whitelist.' };
+      if (settingRow) { try { ipSettings = JSON.parse(settingRow.value); } catch(e) {} }
+      return Response.json({ success: true, whitelist: wl || [], settings: ipSettings });
+    } catch (err) {
+      return Response.json({ success: true, whitelist: [], settings: { enabled: false, message: 'IP Anda tidak ada dalam whitelist.' } });
+    }
+  }
+  if (request.method === 'POST') {
+    try {
+      const { ip, label } = await request.json();
+      if (!ip) return Response.json({ error: 'IP wajib diisi' }, { status: 400 });
+      const grantedBy = request.headers.get('x-auth-token');
+      await env.DB.prepare("INSERT INTO ip_whitelist (ip_address, label, added_by) VALUES (?, ?, ?)").bind(ip, label || '', grantedBy).run();
+      return Response.json({ success: true, message: 'IP ditambahkan ke whitelist' });
+    } catch (err) { return Response.json({ error: 'IP sudah ada atau gagal' }, { status: 500 }); }
+  }
+  if (request.method === 'PUT') {
+    try {
+      const { enabled, message } = await request.json();
+      const setting = JSON.stringify({ enabled: !!enabled, message: message || 'IP Anda tidak ada dalam whitelist.' });
+      await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('ip_whitelist', ?)").bind(setting).run();
+      return Response.json({ success: true, message: 'Pengaturan IP whitelist disimpan' });
+    } catch (err) { return Response.json({ error: 'Gagal menyimpan pengaturan' }, { status: 500 }); }
+  }
+}
+
+    // 20. IP WHITELIST DELETE
+const ipDeleteMatch = path.match(/^\/api\/ip\/whitelist\/(\d+)$/);
+if (ipDeleteMatch && request.method === 'DELETE') {
+  if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
+  try {
+    const id = parseInt(ipDeleteMatch[1]);
+    await env.DB.prepare("DELETE FROM ip_whitelist WHERE id = ?").bind(id).run();
+    return Response.json({ success: true, message: 'IP dihapus dari whitelist' });
+  } catch (err) { return Response.json({ error: 'Gagal menghapus IP' }, { status: 500 }); }
+}
     // ============================================
     // FALLBACK: serve static assets
     // ============================================
