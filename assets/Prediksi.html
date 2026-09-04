@@ -1,17 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <style>html:not(.auth) body { opacity: 0; }</style>
-    <script>
-      (function() {
-        var token = localStorage.getItem('aura_auth_token');
-        if (!token) {
-          window.location.replace('/Login.html');
-        } else {
-          document.documentElement.classList.add('auth');
-        }
-      })();
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>AURA.OS // Prediksi</title>
@@ -369,13 +358,7 @@
                     <div class="hero-icon"><i class="fas fa-chart-line"></i></div>
                     <div><h1 class="hero-title">Analisa Prediksi</h1><p class="hero-sub">Perhitungan probabilistik multi-pasaran terintegrasi</p></div>
                 </div>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <div class="date-chip"><i class="fas fa-calendar-alt"></i><span id="dateText">—</span></div>
-                    <div class="date-chip" style="cursor:pointer; position:relative;" title="Set tanggal manual" id="datePickerChip">
-                        <i class="fas fa-edit" style="color:var(--neon-purple);"></i>
-                        <input type="date" id="manualDateInput" style="position:absolute; inset:0; opacity:0; cursor:pointer; color-scheme:dark;" onchange="applyManualDate(this.value)">
-                    </div>
-                </div>
+                <div class="date-chip"><i class="fas fa-calendar-alt"></i><span id="dateText">—</span></div>
             </div>
         </section>
 
@@ -510,7 +493,7 @@
 
         /* ===== GENERATE PREDICTION ===== */
         function generatePrediction(pasaran) {
-            var today = (useManualDate && manualDateValue) ? manualDateValue : new Date().toISOString().split('T')[0];
+            var today = new Date().toISOString().split('T')[0];
             currentPrediction = {
                 tanggal: today,
                 pasaran: pasaran,
@@ -545,44 +528,9 @@
         }
 
         /* ===== TANGGAL DISPLAY ===== */
-        var useManualDate = false;
-        var manualDateValue = null;
-        
         function updateDateDisplay() {
-            if (useManualDate && manualDateValue) {
-                var d = new Date(manualDateValue + 'T00:00:00');
-                document.getElementById('dateText').textContent = d.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) + ' (manual)';
-            } else {
-                var now = new Date();
-                document.getElementById('dateText').textContent = now.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' }) + ' WIB';
-            }
-        }
-        
-        /* ===== SET TANGGAL MANUAL ===== */
-        function applyManualDate(dateStr) {
-            if (!dateStr) {
-                useManualDate = false;
-                manualDateValue = null;
-                updateDateDisplay();
-                // Reset prediction date to today
-                if (currentPrediction) {
-                    currentPrediction.tanggal = new Date().toISOString().split('T')[0];
-                    displayPrediction(currentPrediction);
-                }
-                return;
-            }
-            useManualDate = true;
-            manualDateValue = dateStr;
-            updateDateDisplay();
-            // Update prediction date
-            if (currentPrediction) {
-                currentPrediction.tanggal = dateStr;
-                displayPrediction(currentPrediction);
-            }
-            // Regenerate prediction with new date
-            if (currentPasaran) {
-                generatePrediction(currentPasaran);
-            }
+            var now = new Date();
+            document.getElementById('dateText').textContent = now.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' }) + ' WIB';
         }
 
         /* ===== RENDER PASARAN GRID ===== */
