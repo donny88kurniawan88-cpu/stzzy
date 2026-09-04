@@ -913,12 +913,12 @@
           return;
         }
         const json = await res.json();
-        if (!json.success || !json.data) {
-          window.location.href = '/Login.html';
-          return;
-        }
-        const meRole = json.data.role;
-        const meAccess = json.data.access || {};
+        if (!json.success || (!json.user && !json.data)) {
+    window.location.href = '/Login.html';
+    return;
+}
+const meRole = (json.user || json.data).role;
+const meAccess = (json.user || json.data).access || {};
 
         // Persist updated role + access for other modules
         localStorage.setItem('aura_user_role', meRole);
