@@ -607,12 +607,13 @@ export default {
               // Whitelist is ON — check if IP is allowed
               const { results: wlResults } = await env.DB.prepare("SELECT ip_address FROM ip_whitelist").all();
               const wlIps = (wlResults || []).map(w => (w.ip_address || '').trim()).filter(ip => ip !== '');
-              // Match exact OR ::1 (localhost) OR IPv4-mapped IPv6
-              // NOTE: 0.0.0.0 is NOT a wildcard — it's a literal IP. Only exact matches allowed.
+              // Match: exact OR client is localhost OR IPv4-mapped IPv6
+              // NOTE: 0.0.0.0 is NOT a wildcard — only exact matches allowed.
+              //       ::1 check is for CLIENT being localhost, NOT for DB entry being ::1.
               const allowed = wlIps.some(ip =>
-                ip === clientIp ||
-                ip === '::1' ||
-                ip === '::ffff:' + clientIp ||
+                ip === clientIp ||                           // exact match
+                (clientIp === '::1' && ip === '::1') ||      // client is localhost AND ::1 is whitelisted
+                ip === '::ffff:' + clientIp ||               // IPv4-mapped IPv6
                 clientIp === '::ffff:' + ip
               );
               if (!allowed) {
@@ -1315,7 +1316,7 @@ export default {
             const wlIps = (wlResults || []).map(w => (w.ip_address || '').trim()).filter(ip => ip !== '');
             const allowed = wlIps.some(ip =>
               ip === clientIp ||
-              ip === '::1' ||
+              (clientIp === '::1' && ip === '::1') ||
               ip === '::ffff:' + clientIp ||
               clientIp === '::ffff:' + ip
             );
@@ -1369,7 +1370,7 @@ export default {
       if (is_enabled) {
         const allowed = whitelist.some(w =>
           w.ip_address === clientIp ||
-          w.ip_address === '::1' ||
+          (clientIp === '::1' && w.ip_address === '::1') ||
           w.ip_address === '::ffff:' + clientIp ||
           clientIp === '::ffff:' + w.ip_address
         );
