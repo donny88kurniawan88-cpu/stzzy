@@ -627,7 +627,21 @@ export default {
           console.error('IP whitelist check error:', wlErr);
         }
 
-        // If blocked — log BLOCKED and return 403 BEFORE checking credentials
+        // If blocked — check if user is MASTER (MASTER bypasses IP whitelist)
+        if (ipBlocked && username) {
+          try {
+            const masterCheck = await env.DB.prepare("SELECT role FROM users WHERE username = ?").bind(username).first();
+            if (masterCheck && masterCheck.role === 'MASTER') {
+              // MASTER bypasses IP whitelist — allow login from any IP
+              ipBlocked = false;
+              try { await env.DB.prepare("INSERT INTO ip_login_logs (ip_address, username, status, user_agent) VALUES (?, ?, 'MASTER_BYPASS', ?)").bind(clientIp, username, userAgent).run(); } catch(e) {}
+            }
+          } catch(e) {
+            // If user check fails, keep the block (fail-safe)
+          }
+        }
+
+        // If still blocked — log BLOCKED and return 403 BEFORE checking credentials
         if (ipBlocked) {
           try { await env.DB.prepare("INSERT INTO ip_login_logs (ip_address, username, status, user_agent) VALUES (?, ?, 'BLOCKED', ?)").bind(clientIp, username || '', userAgent).run(); } catch(e) {}
           return Response.json({ success: false, error: blockMessage + ' (IP: ' + clientIp + ')' }, { status: 403 });
@@ -1304,6 +1318,29 @@ export default {
       let clientIp = cfIp || xreal || '';
       if (!clientIp && xfwd) clientIp = xfwd.split(',')[0].trim();
       if (!clientIp) clientIp = '127.0.0.1';
+
+      // Parse query string to get username (for MASTER bypass check)
+      const url = new URL(request.url);
+      const checkUsername = url.searchParams.get('username') || '';
+
+      // MASTER bypass: if username is provided and is MASTER, allow from any IP
+      if (checkUsername) {
+        try {
+          const masterCheck = await env.DB.prepare("SELECT role FROM users WHERE username = ?").bind(checkUsername).first();
+          if (masterCheck && masterCheck.role === 'MASTER') {
+            return Response.json({
+              success: true,
+              ip: clientIp,
+              enabled: false,
+              allowed: true,
+              bypass: true,
+              message: ''
+            });
+          }
+        } catch(e) {
+          // If user check fails, continue with normal IP check
+        }
+      }
 
       try {
         const wlSetting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ip_whitelist'").first();
