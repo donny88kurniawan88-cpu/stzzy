@@ -210,12 +210,11 @@
     /* ===== CENTER-SCREEN CARD MODAL (notifications) ===== */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 10000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; padding: 20px; }
     .modal-overlay.show { opacity: 1; visibility: visible; }
-    .modal-card { position: relative; width: 400px; max-width: 100%; padding: 40px 36px 32px; background: rgba(20, 20, 30, 0.95); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(239,68,68,0.18); text-align: center; color: var(--text-main); transform: scale(0.9); opacity: 0; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease, box-shadow 0.3s ease; overflow: hidden; }
+    .modal-card { position: relative; width: 400px; max-width: 100%; padding: 40px 36px 32px; background: #14141c; backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.06); border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(239,68,68,0.18); text-align: center; color: var(--text-main); transform: scale(0.9); opacity: 0; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease, box-shadow 0.3s ease; overflow: hidden; }
     .modal-overlay.show .modal-card { transform: scale(1); opacity: 1; }
-    .modal-accent { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #3b82f6, #8b5cf6); z-index: 1; }
     /* ===== DETERMINATE PROGRESS BAR (fills 0% → 100% like a duration indicator) ===== */
-    .modal-loading-bar { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: rgba(255,255,255,0.06); overflow: hidden; z-index: 2; border-radius: 24px 24px 0 0; }
-    .modal-loading-bar::before { content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899); box-shadow: 0 0 12px rgba(139, 92, 246, 0.8), 0 0 20px rgba(236, 72, 153, 0.4); animation: loading-fill 4s linear infinite; }
+    .modal-loading-bar { position: absolute; top: 0; left: 0; right: 0; height: 5px; overflow: hidden; z-index: 3; border-radius: 24px 24px 0 0; }
+    .modal-loading-bar::before { content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #ec4899); box-shadow: 0 0 16px rgba(139, 92, 246, 1), 0 0 24px rgba(236, 72, 153, 0.6), 0 0 32px rgba(59, 130, 246, 0.4); animation: loading-fill 4s linear infinite; }
     @keyframes loading-fill { 0% { width: 0%; } 100% { width: 100%; } }
     /* ===== FX LOADER SPINNER (dual-ring purple/pink) ===== */
     .fx-loader-spinner { position: relative; width: 56px; height: 56px; border-radius: 50%; border: 3px solid transparent; border-top-color: #8b5cf6; border-right-color: #8b5cf6; animation: fx-spin 1s linear infinite; margin: 4px auto 20px; }
@@ -726,7 +725,6 @@
   <div class="modal-overlay" id="alertBox">
     <div class="modal-card alert-error">
       <div class="modal-loading-bar"></div>
-      <div class="modal-accent"></div>
       <button type="button" class="modal-close" data-close aria-label="Tutup"><i class="fas fa-xmark"></i></button>
       <div class="modal-icon"><i class="fas fa-circle-xmark" id="alertIcon"></i></div>
       <div class="fx-loader-spinner"><span></span></div>
@@ -738,7 +736,6 @@
   <div class="modal-overlay" id="regAlertBox">
     <div class="modal-card alert-error">
       <div class="modal-loading-bar"></div>
-      <div class="modal-accent"></div>
       <button type="button" class="modal-close" data-close aria-label="Tutup"><i class="fas fa-xmark"></i></button>
       <div class="modal-icon"><i class="fas fa-circle-xmark" id="regAlertIcon"></i></div>
       <div class="fx-loader-spinner"><span></span></div>
