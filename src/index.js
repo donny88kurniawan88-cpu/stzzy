@@ -276,6 +276,188 @@ function isBankBlockLabel(cell) {
   return BANK_LABEL_KEYWORDS.some(k => new RegExp('\\b' + k + '\\b').test(up));
 }
 
+// ============================================================
+// NAMA REKENG PARSER — Pendekatan C (Hybrid: Header + Validation)
+// Hanya untuk fungsi ini. Tidak mengubah logic lain.
+// ============================================================
+
+// Pattern keterangan/status yang BUKAN nama rekening (blacklist)
+const KETERANGAN_PATTERNS = [
+  /^CABUT\s+KAS/i,
+  /^DANA\s+MASUK/i,
+  /^DI\s+OFFKAN/i,
+  /^OFFKAN/i,
+  /^TIDAK\s+DIKETAHUI/i,
+  /SEMENTARA/i,
+  /BERMASALAH/i,
+  /^BLOKIR/i,
+  /^TUTUP/i,
+  /^NONAKTIF/i,
+  /^PENDING/i,
+  /^PROSES/i,
+  /^GAGAL/i,
+  /^SUSPEND/i,
+  /^REJECT/i,
+  /^CANCEL/i,
+  /^HAPUS/i,
+  /^KOSONG/i,
+  /^BELUM/i,
+  /^SUDAH\s+(DI|D)/i,
+  /^AKAN\s+DI/i,
+  /^HARUS\s+DI/i,
+  /^PERLU\s+DI/i,
+  /^DI\s+(PROSES|CEK|TARIK|TRANSFER|BAYAR|KIRIM|TERIMA|OFF|HAPUS|TUTUP|BLOK)/i,
+  /^SUDAH\s+(OFF|TUTUP|BLOK|HAPUS)/i,
+  /^AKAN\s+(OFF|TUTUP|BLOK|HAPUS)/i,
+];
+
+// Pattern ciri-ciri NAMA ORANG (whitelist heuristik)
+// Nama orang Indonesia biasanya: 2-5 kata, ada spasi, Title Case atau Mixed Case,
+// minimal 3 huruf, tanpa angka, panjang 5-60 char
+function isLikelyPersonName(text) {
+  if (!text || typeof text !== 'string') return false;
+  const t = text.trim();
+  if (t.length < 3 || t.length > 60) return false;
+  // Tolak kalau ada angka
+  if (/\d/.test(t)) return false;
+  // Tolak kalau ada karakter aneh (kecuali titik, apostrof, spasi, strip)
+  if (!/^[A-Za-z\s.'-]+$/.test(t)) return false;
+  // Harus ada minimal 1 spasi (2+ kata) ATAU minimal 4 huruf (nama tunggal)
+  const words = t.split(/\s+/).filter(w => w.length > 0);
+  if (words.length < 1) return false;
+  // Tolak kalau satu kata dan pendek (< 4 huruf)
+  if (words.length === 1 && t.length < 4) return false;
+  // Tolak kalau match pattern keterangan
+  for (const pat of KETERANGAN_PATTERNS) {
+    if (pat.test(t)) return false;
+  }
+  // Tolak kalau match label bank block
+  if (isBankBlockLabel(t)) return false;
+  // Tolak kalau ALL CAPS dan ada kata dari LABEL_HEADER_EXCLUDE
+  const up = t.toUpperCase();
+  if (LABEL_HEADER_EXCLUDE.some(w => up.includes(w))) return false;
+  // Ciri nama orang: tidak semua huruf besar (kecuali singkatan 1-3 huruf)
+  // Tapi di sheet Indonesia, nama sering ALL CAPS. Jadi kita allow ALL CAPS
+  // asal tidak match keterangan pattern.
+  return true;
+}
+
+// Cek apakah text adalah keterangan (bukan nama)
+function isKeterangan(text) {
+  if (!text || typeof text !== 'string') return false;
+  const t = text.trim();
+  if (t === '') return false;
+  const up = t.toUpperCase();
+  // Cek pattern keterangan
+  for (const pat of KETERANGAN_PATTERNS) {
+    if (pat.test(t)) return true;
+  }
+  // Cek LABEL_HEADER_EXCLUDE
+  if (LABEL_HEADER_EXCLUDE.some(w => up.includes(w))) return true;
+  // Cek label bank block
+  if (isBankBlockLabel(t)) return true;
+  // Ciri keterangan: ALL CAPS + ada angka + pendek
+  if (up === t && /\d/.test(t) && t.length <= 30) return true;
+  return false;
+}
+
+// Deteksi kolom NAMA berdasarkan header row (row pertama yang punya "NAMA")
+// Return: index kolom NAMA, atau -1 kalau tidak ketemu
+function detectNamaColumn(values, maxScanRows) {
+  const maxRows = Math.min(maxScanRows || 5, values.length);
+  for (let r = 0; r < maxRows; r++) {
+    const row = values[r] || [];
+    for (let c = 0; c < row.length; c++) {
+      const cell = String(row[c] || '').trim().toUpperCase();
+      // Header harus persis "NAMA" atau "NAMA REKENING" atau "ATAS NAMA"
+      // Bukan "KETERANGAN", "NOMOR", dll
+      if (cell === 'NAMA' || cell === 'NAMA REKENING' || cell === 'ATAS NAMA' || cell === 'A.N') {
+        return c;
+      }
+    }
+  }
+  return -1;
+}
+
+// ===== MAIN: extractNamaRekening (Hybrid) =====
+// row: row data saat ini
+// defaultColNama: kolom NAMA default (dari isShifted logic, tetap dipakai sebagai fallback)
+// rekCol: index kolom rekening (untuk exclude)
+// values: semua rows (untuk header detection)
+// rowIndex: index row saat ini (untuk batasi scan header)
+function extractNamaRekening(row, defaultColNama, rekCol, values, rowIndex) {
+  // ===== LAYER 1: Header Detection =====
+  // Cari kolom NAMA dari header (row 0-4). Kalau ketemu, pakai itu.
+  // Kalau tidak ketemu, pakai defaultColNama (logic lama).
+  let headerColNama = detectNamaColumn(values, 5);
+  let colNama = headerColNama >= 0 ? headerColNama : defaultColNama;
+
+  // ===== LAYER 2: Baca value dari kolom NAMA + Validasi =====
+  let candidate = String(row[colNama] || '').trim();
+
+  // Validasi: kalau candidate match keterangan pattern → reject
+  if (candidate && isKeterangan(candidate)) {
+    candidate = '';
+  }
+
+  // Validasi: kalau candidate tidak terlihat seperti nama orang → reject
+  // (tapi allow kalau ada huruf minimal, mungkin nama all-caps)
+  if (candidate && !/[A-Za-z]{3,}/.test(candidate)) {
+    candidate = '';
+  }
+
+  // Kalau candidate valid → return
+  if (candidate && /[A-Za-z]/.test(candidate)) {
+    return candidate;
+  }
+
+  // ===== LAYER 3: Smart Fallback =====
+  // Kolom NAMA kosong/invalid → cari kolom lain yang terlihat seperti nama orang
+  let best = '';
+  let bestScore = 0;
+
+  for (let c2 = 0; c2 < row.length; c2++) {
+    if (c2 === rekCol) continue;          // skip kolom rekening
+    if (c2 === colNama) continue;          // skip kolom NAMA (sudah dicek)
+    const t = String(row[c2] || '').trim();
+    if (t === '') continue;
+
+    // Skip kalau match keterangan
+    if (isKeterangan(t)) continue;
+
+    // Skip kalau tidak ada huruf 3+
+    if (!/[A-Za-z]{3,}/.test(t)) continue;
+
+    // Skip kalau ada 5+ digit (kemungkinan nomor)
+    if (/\d{5,}/.test(t)) continue;
+
+    // Skip kalau terlalu panjang (> 60 char)
+    if (t.length > 60) continue;
+
+    // Scoring: kandidat nama
+    let score = 0;
+    // Score 1: ada spasi (2+ kata) — ciri nama orang
+    if (/\s/.test(t)) score += 3;
+    // Score 2: tidak ada angka
+    if (!/\d/.test(t)) score += 2;
+    // Score 3: panjang reasonable (5-40 char)
+    if (t.length >= 5 && t.length <= 40) score += 2;
+    // Score 4: tidak all-caps (Title/Mixed Case = ciri nama)
+    if (t !== t.toUpperCase()) score += 3;
+    // Score 5: posisi (kolom setelah rekening = biasanya nama di kanan)
+    if (c2 > rekCol) score += 1;
+    // Score 6: kalau isLikelyPersonName → bonus
+    if (isLikelyPersonName(t)) score += 2;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = t;
+    }
+  }
+
+  return best;
+}
+
 function parseCsvSimple(text) {
   const rows = []; let row = [], cur = '', inQ = false;
   for (let i = 0; i < text.length; i++) {
@@ -412,20 +594,10 @@ async function buildValidatorDatabaseFromSheets() {
             // Label sebaris hanya valid kalau DI KIRI rekening (bukan nama orang di kanan)
             if (kasLabel !== '' && labelCol !== -1 && labelCol < rekCol) currentBank = kasLabel;
 
-            let namaFinal = String(row[COL_NAMA] || '').trim();
-            if (!namaFinal || !/[A-Za-z]/.test(namaFinal)) {
-              namaFinal = '';
-              let best = '';
-              for (let c2 = 0; c2 < row.length; c2++) {
-                if (c2 === rekCol) continue;
-                const t = String(row[c2] || '').trim();
-                if (t !== '' && /[A-Za-z]{3,}/.test(t) && !isBankBlockLabel(t) && !/\d{5,}/.test(t) && t.length <= 40) {
-                  if (c2 < rekCol && t.length > best.length) best = t;
-                  else if (best === '' && t.length > best.length) best = t;
-                }
-              }
-              namaFinal = best;
-            }
+            // ===== NAMA PARSER (Hybrid: Header + Validation) =====
+            // Pendekatan C: cek kolom NAMA (header-detected), validasi bukan keterangan,
+            // fallback smart ke kolom lain yang terlihat seperti nama orang.
+            let namaFinal = extractNamaRekening(row, COL_NAMA, rekCol, values, r);
 
             const cat = currentBank || sheetNameUpper;
             if (!db[cat]) db[cat] = [];
