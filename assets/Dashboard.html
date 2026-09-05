@@ -1621,9 +1621,18 @@ function changePassword() {
 
     /* ============================================================
        CROSS-DEVICE SYNC: Poll /api/data-version every 30 seconds.
-       If version changes (admin changed access / clicked Clear All Data
-       on another device) → re-fetch /api/me → update access + localStorage.
+       If version changes (admin changed access / deleted user / clicked
+       Clear All Data on another device) â re-fetch /api/me.
+       - If /api/me returns 404 (user deleted) â auto-logout â redirect to Login.
+       - If /api/me returns 401 (not authenticated) â auto-logout â redirect to Login.
+       - Otherwise â update access + localStorage + applyAccess().
        ============================================================ */
+    function _forceLogout(reason) {
+      try { addTerminalLog('Auto-logout: ' + reason); } catch(e) {}
+      localStorage.clear();
+      window.location.replace('/Login.html');
+    }
+
     var lastDataVersion = parseInt(localStorage.getItem('aura_data_version') || '0', 10);
     setInterval(function() {
       fetch('/api/data-version')
@@ -1634,13 +1643,19 @@ function changePassword() {
             if (currentVersion !== lastDataVersion) {
               lastDataVersion = currentVersion;
               localStorage.setItem('aura_data_version', String(currentVersion));
-              // Version changed → re-fetch access from database
-              addTerminalLog('Data version changed to ' + currentVersion + ' — refreshing access...');
+              // Version changed â re-fetch access from database
+              addTerminalLog('Data version changed to ' + currentVersion + ' â refreshing access...');
               fetch('/api/me', {
                 headers: { 'x-auth-token': localStorage.getItem('aura_auth_token') || '' }
               })
-                .then(function(r) { return r.json(); })
+                .then(function(r) {
+                  // 404 = user deleted, 401 = not authenticated â force logout
+                  if (r.status === 404) { _forceLogout('akun telah dihapus dari sistem'); return null; }
+                  if (r.status === 401) { _forceLogout('sesi tidak valid'); return null; }
+                  return r.json();
+                })
                 .then(function(meData) {
+                  if (!meData) return; // already force-logged-out
                   if (meData && meData.success) {
                     var me = meData.user || meData.data;
                     if (me) {
@@ -1650,14 +1665,18 @@ function changePassword() {
                       localStorage.setItem('aura_user_access', JSON.stringify(access));
                       applyAccess(role, access);
                       showToast('Access control diperbarui (v' + currentVersion + ')', 'success');
+                    } else {
+                      _forceLogout('data user tidak ditemukan');
                     }
+                  } else {
+                    _forceLogout(meData && meData.error ? meData.error : 'sesi berakhir');
                   }
                 })
                 .catch(function(e) { console.error('Re-fetch /api/me error:', e); });
             }
           }
         })
-        .catch(function(e) { /* silently fail — will retry next interval */ });
+        .catch(function(e) { /* silently fail â will retry next interval */ });
     }, 30000); // 30 seconds
   </script>
 </body>
