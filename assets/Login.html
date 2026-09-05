@@ -207,9 +207,24 @@
     .feature-text p { font-size: 14px; color: rgba(255,255,255,0.7); }
     .brand-footer { position: absolute; bottom: 40px; left: 80px; color: rgba(255,255,255,0.5); font-size: 13px; z-index: 2; font-family: monospace; }
 
-    .alert-box { padding: 14px 16px; border-radius: 10px; margin-bottom: 24px; font-size: 14px; display: none; align-items: center; gap: 12px; font-weight: 500; }
-    .alert-error { background: rgba(239, 68, 68, 0.1); color: var(--accent-danger); border: 1px solid rgba(239, 68, 68, 0.3); }
-    .alert-success { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .alert-box { position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-150%); opacity: 0; background: linear-gradient(135deg, rgba(20,20,30,0.85), rgba(15,15,22,0.85)); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255,255,255,0.08); border-left: 4px solid #ef4444; border-radius: 12px; padding: 14px 18px 14px 14px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; color: var(--text-main); box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 30px rgba(239,68,68,0.18); z-index: 10000; max-width: calc(100% - 32px); min-width: 280px; transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease; overflow: hidden; }
+    .alert-box.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .alert-box.alert-error { border-left-color: #ef4444; box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 30px rgba(239,68,68,0.28); }
+    .alert-box.alert-success { border-left-color: #10b981; box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 30px rgba(16,185,129,0.28); }
+    .alert-box.alert-warning { border-left-color: #f59e0b; box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 30px rgba(245,158,11,0.28); }
+    .alert-box.alert-info { border-left-color: #3b82f6; box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 30px rgba(59,130,246,0.28); }
+    .alert-ic { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; background: rgba(239,68,68,0.15); color: #ef4444; }
+    .alert-box.alert-success .alert-ic { background: rgba(16,185,129,0.15); color: #10b981; }
+    .alert-box.alert-warning .alert-ic { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .alert-box.alert-info .alert-ic { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .alert-box #alertMsg, .alert-box #regAlertMsg { flex: 1; line-height: 1.4; }
+    .alert-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; transform-origin: left center; background: #ef4444; opacity: 0.85; }
+    .alert-box.alert-success .alert-progress { background: #10b981; }
+    .alert-box.alert-warning .alert-progress { background: #f59e0b; }
+    .alert-box.alert-info .alert-progress { background: #3b82f6; }
+    @keyframes alertProgress { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+    .alert-box.show .alert-progress { animation: alertProgress 4s linear forwards; }
+    @media (max-width: 480px) { .alert-box { left: 12px; right: 12px; max-width: none; min-width: 0; transform: translateY(-150%); padding: 12px 14px 12px 12px; } .alert-box.show { transform: translateY(0); } }
 
     @keyframes shake { 0%,100%{transform:translateX(0)} 10%,30%,50%,70%,90%{transform:translateX(-5px)} 20%,40%,60%,80%{transform:translateX(5px)} }
     .shake { animation: shake 0.4s ease; }
@@ -231,11 +246,6 @@
         
         <h2 class="form-title">Sign In</h2>
         <p class="subtitle">Masuk ke panel kontrol AURA.OS menggunakan kredensial Anda.</p>
-
-        <div class="alert-box" id="alertBox">
-          <i class="fas fa-exclamation-circle" id="alertIcon"></i>
-          <span id="alertMsg"></span>
-        </div>
 
         <form id="loginForm" onsubmit="handleLogin(event)">
           <div class="input-group">
@@ -279,11 +289,6 @@
 
           <h2 class="form-title">Create Account</h2>
           <p class="subtitle">Buat akun baru untuk mengakses seluruh modul AURA.OS.</p>
-
-          <div class="alert-box" id="regAlertBox">
-            <i class="fas fa-exclamation-circle" id="regAlertIcon"></i>
-            <span id="regAlertMsg"></span>
-          </div>
 
           <form id="registerForm" onsubmit="handleRegister(event)">
             <div class="input-group">
@@ -390,28 +395,40 @@
       }
     }
 
-    /* ===== ALERT (LOGIN) ===== */
+    /* ===== ALERT (LOGIN) — top-center toast ===== */
+    var alertTimer = null;
     function showAlert(message, type) {
       var box = document.getElementById('alertBox');
       var icon = document.getElementById('alertIcon');
       var msg = document.getElementById('alertMsg');
-      box.style.display = 'flex';
-      box.className = 'alert-box alert-' + type;
-      icon.className = type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+      var icons = { error: 'fa-circle-xmark', success: 'fa-circle-check', warning: 'fa-triangle-exclamation', info: 'fa-circle-info' };
+      type = type || 'error';
+      icon.className = 'fas ' + (icons[type] || icons.error);
       msg.textContent = message;
-      if (type === 'error') setTimeout(function() { box.style.display = 'none'; }, 5000);
+      box.className = 'alert-box alert-' + type;
+      var prog = box.querySelector('.alert-progress');
+      if (prog) { prog.style.animation = 'none'; void prog.offsetWidth; prog.style.animation = ''; }
+      requestAnimationFrame(function() { box.classList.add('show'); });
+      clearTimeout(alertTimer);
+      alertTimer = setTimeout(function() { box.classList.remove('show'); }, 4000);
     }
 
-    /* ===== ALERT (REGISTER) ===== */
+    /* ===== ALERT (REGISTER) — top-center toast ===== */
+    var regAlertTimer = null;
     function showRegAlert(message, type) {
       var box = document.getElementById('regAlertBox');
       var icon = document.getElementById('regAlertIcon');
       var msg = document.getElementById('regAlertMsg');
-      box.style.display = 'flex';
-      box.className = 'alert-box alert-' + type;
-      icon.className = type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+      var icons = { error: 'fa-circle-xmark', success: 'fa-circle-check', warning: 'fa-triangle-exclamation', info: 'fa-circle-info' };
+      type = type || 'error';
+      icon.className = 'fas ' + (icons[type] || icons.error);
       msg.textContent = message;
-      if (type === 'error') setTimeout(function() { box.style.display = 'none'; }, 5000);
+      box.className = 'alert-box alert-' + type;
+      var prog = box.querySelector('.alert-progress');
+      if (prog) { prog.style.animation = 'none'; void prog.offsetWidth; prog.style.animation = ''; }
+      requestAnimationFrame(function() { box.classList.add('show'); });
+      clearTimeout(regAlertTimer);
+      regAlertTimer = setTimeout(function() { box.classList.remove('show'); }, 4000);
     }
 
     /* ===== REGISTER PANEL OPEN/CLOSE ===== */
@@ -419,7 +436,7 @@
       document.getElementById('formBox').classList.add('blurred');
       document.getElementById('registerOverlay').classList.add('open');
       document.getElementById('registerForm').reset();
-      document.getElementById('regAlertBox').style.display = 'none';
+      document.getElementById('regAlertBox').classList.remove('show');
       document.getElementById('strFill').style.width = '0%';
       document.getElementById('matchMsg').innerHTML = '';
       document.getElementById('strLabel').textContent = 'Strength';
@@ -655,5 +672,17 @@
     };
 
   </script>
+  <!-- ===== TOP-CENTER ALERT TOASTS (moved to body level so position:fixed is viewport-relative) ===== -->
+  <div class="alert-box" id="alertBox">
+    <div class="alert-ic"><i class="fas fa-circle-exclamation" id="alertIcon"></i></div>
+    <span id="alertMsg"></span>
+    <div class="alert-progress"></div>
+  </div>
+  <div class="alert-box" id="regAlertBox">
+    <div class="alert-ic"><i class="fas fa-circle-exclamation" id="regAlertIcon"></i></div>
+    <span id="regAlertMsg"></span>
+    <div class="alert-progress"></div>
+  </div>
+
 </body>
 </html>
