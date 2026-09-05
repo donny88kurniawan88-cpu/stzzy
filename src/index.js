@@ -712,6 +712,15 @@ export default {
         }
 
         await env.DB.prepare("DELETE FROM users WHERE username = ?").bind(usernameToDelete).run();
+        // Bump data_version so all devices (including the deleted user's devices) refresh.
+        // The deleted user's device will get 404 from /api/me → auto-logout to Login page.
+        try {
+          const dvRow = await env.DB.prepare("SELECT value FROM settings WHERE key = 'data_version'").first();
+          let dv = 0;
+          if (dvRow && dvRow.value) { try { dv = parseInt(JSON.parse(dvRow.value), 10) || 0; } catch(e) { dv = parseInt(dvRow.value, 10) || 0; } }
+          dv++;
+          await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('data_version', ?)").bind(JSON.stringify(dv)).run();
+        } catch(e) {}
         return Response.json({ success: true, message: 'User berhasil dihapus' });
       } catch (err) {
         return Response.json({ error: 'Gagal menghapus user' }, { status: 500 });
@@ -842,6 +851,14 @@ export default {
           return Response.json({ success: true, message: 'Registrasi disetujui' });
         } else if (body.action === 'reject') {
           await env.DB.prepare("DELETE FROM users WHERE username = ? AND status = 'PENDING'").bind(username).run();
+          // Bump data_version (rejected user's device will get 404 → auto-logout)
+          try {
+            const dvRow = await env.DB.prepare("SELECT value FROM settings WHERE key = 'data_version'").first();
+            let dv = 0;
+            if (dvRow && dvRow.value) { try { dv = parseInt(JSON.parse(dvRow.value), 10) || 0; } catch(e) { dv = parseInt(dvRow.value, 10) || 0; } }
+            dv++;
+            await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('data_version', ?)").bind(JSON.stringify(dv)).run();
+          } catch(e) {}
           return Response.json({ success: true, message: 'Registrasi ditolak' });
         }
         return Response.json({ error: 'Action tidak valid' }, { status: 400 });
