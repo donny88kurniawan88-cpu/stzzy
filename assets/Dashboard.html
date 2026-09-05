@@ -1156,7 +1156,6 @@ function changePassword() {
                     setTimeout(function() { location.reload(); }, 1000);
                   })
               });
-              });
             });
           }, 100);
           break;
@@ -1488,8 +1487,16 @@ function changePassword() {
        INIT
        =================================================================== */
     (function init() {
-            var username = localStorage.getItem('aura_auth_token') || 'User';
-      document.getElementById('userName').textContent = username;
+      var username = localStorage.getItem('aura_auth_token') || 'User';
+      var email = username;
+      var userNameEl = document.getElementById('userName');
+      if (userNameEl) userNameEl.textContent = username;
+      var avatarEl = document.getElementById('topProfileAvatar');
+      if (avatarEl) avatarEl.textContent = (username || 'U').charAt(0).toUpperCase();
+      var pName = document.getElementById('profilName');
+      if (pName) pName.textContent = username;
+      var pUser = document.getElementById('profilUsername');
+      if (pUser) pUser.textContent = username;
 
       var bootMsgs = [
         'AURA.OS v3.0.1 initialized',
