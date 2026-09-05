@@ -1656,12 +1656,13 @@ function changePassword() {
       .catch(function(e) { console.error('Fetch /api/me error:', e); });
 
     /* ============================================================
-       REAL-TIME SYNC: Server-Sent Events (SSE) — instant push from server.
-       When admin deletes user / edits access / clicks Clear All Data:
-       - Server pushes "version-changed" event INSTANTLY (no 30s polling delay)
-       - Client re-fetches /api/me immediately
-       - If 404 (user deleted) → auto-logout → redirect to Login
-       - If 200 (user still exists) → update access + stay logged in
+       PRODUCTION REAL-TIME SYNC: Direct database polling.
+       Polls /api/me every 5 seconds (reads directly from D1 database).
+       - If 404 (user deleted from database) → INSTANT auto-logout to Login page.
+       - If 401 (not authenticated) → auto-logout.
+       - If 200 + access changed → update access control in UI.
+       No localStorage dependency for detection — directly reads database.
+       Works on Cloudflare Workers (no SSE needed).
        ============================================================ */
     function _forceLogout(reason) {
       try { addTerminalLog('Auto-logout: ' + reason); } catch(e) {}
@@ -1669,75 +1670,56 @@ function changePassword() {
       window.location.replace('/Login.html');
     }
 
-    function _handleVersionChanged(currentVersion) {
-      var lastVersion = parseInt(localStorage.getItem('aura_data_version') || '0', 10);
-      if (currentVersion === lastVersion) return; // already handled
-      localStorage.setItem('aura_data_version', String(currentVersion));
-      addTerminalLog('Data version changed to ' + currentVersion + ' \xe2\x80\x94 refreshing access...');
-      // Re-fetch /api/me immediately
+    function _checkUserExistsInDatabase() {
+      var token = localStorage.getItem('aura_auth_token') || '';
+      if (!token) { _forceLogout('tidak ada token'); return; }
       fetch('/api/me', {
-        headers: { 'x-auth-token': localStorage.getItem('aura_auth_token') || '' }
+        headers: { 'x-auth-token': token }
       })
         .then(function(r) {
-          if (r.status === 404) { _forceLogout('akun telah dihapus dari sistem'); return null; }
+          // 404 = user deleted from database → INSTANT logout
+          if (r.status === 404) { _forceLogout('akun telah dihapus dari database'); return null; }
+          // 401 = not authenticated → logout
           if (r.status === 401) { _forceLogout('sesi tidak valid'); return null; }
           return r.json();
         })
         .then(function(meData) {
-          if (!meData) return;
+          if (!meData) return; // already force-logged-out
           if (meData && meData.success) {
             var me = meData.user || meData.data;
             if (me) {
-              localStorage.setItem('aura_user_role', me.role || 'MEMBER');
-              localStorage.setItem('aura_user_access', JSON.stringify(me.access || {}));
-              applyAccess(me.role || 'MEMBER', me.access || {});
-              showToast('Access control diperbarui (v' + currentVersion + ')', 'success');
+              var role = me.role || 'MEMBER';
+              var access = me.access || {};
+              var accessStr = JSON.stringify(access);
+              var storedAccess = localStorage.getItem('aura_user_access') || '';
+              var storedRole = localStorage.getItem('aura_user_role') || '';
+              // Only update if access or role changed (avoid unnecessary UI re-renders)
+              if (accessStr !== storedAccess || role !== storedRole) {
+                localStorage.setItem('aura_user_role', role);
+                localStorage.setItem('aura_user_access', accessStr);
+                applyAccess(role, access);
+                showToast('Access control diperbarui', 'success');
+                try { addTerminalLog('Access updated from database: role=' + role); } catch(e) {}
+              }
             } else {
               _forceLogout('data user tidak ditemukan');
             }
           } else {
+            // /api/me returned success: false → force logout
             _forceLogout(meData && meData.error ? meData.error : 'sesi berakhir');
           }
         })
-        .catch(function(e) { console.error('Re-fetch /api/me error:', e); });
+        .catch(function(e) {
+          // Network error — silently retry next interval (don't logout on network glitch)
+          console.error('Database check error:', e);
+        });
     }
 
-    // Connect to SSE endpoint for INSTANT push notifications
-    (function connectSSE() {
-      try {
-        var evtSource = new EventSource('/api/sync-events');
-        evtSource.addEventListener('message', function(e) {
-          try {
-            var data = JSON.parse(e.data);
-            if (data.type === 'version-changed') {
-              _handleVersionChanged(parseInt(data.version, 10));
-            } else if (data.type === 'init') {
-              // Initial sync — set version if newer
-              var v = parseInt(data.version, 10);
-              var lastV = parseInt(localStorage.getItem('aura_data_version') || '0', 10);
-              if (v > lastV) {
-                localStorage.setItem('aura_data_version', String(v));
-              }
-            }
-          } catch(err) { /* ignore parse errors (ping comments) */ }
-        });
-        evtSource.onerror = function() {
-          // Connection lost — will auto-reconnect via EventSource
-          try { addTerminalLog('Sync connection lost, reconnecting...'); } catch(e) {}
-        };
-      } catch(e) {
-        console.error('SSE connection failed:', e);
-        // Fallback to polling every 30s if SSE not supported
-        setInterval(function() {
-          fetch('/api/data-version')
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-              if (data && data.success) _handleVersionChanged(parseInt(data.version, 10));
-            })
-            .catch(function() {});
-        }, 30000);
-      }
-    })();
+    // Start polling /api/me every 5 seconds (reads directly from D1 database)
+    // This ensures INSTANT logout when user is deleted from user management
+    setInterval(_checkUserExistsInDatabase, 5000);
+    // Also check immediately on page load
+    setTimeout(_checkUserExistsInDatabase, 2000);
   </script>
 </body>
 </html>
