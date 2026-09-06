@@ -1125,17 +1125,9 @@ function changePassword() {
        PROFIL: SWITCH TO PROFIL VIEW
        =================================================================== */
     function switchToProfil() {
-      document.getElementById('dashboardView').style.display = 'none';
-      var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
-      var akv2 = document.getElementById('apiKeyView'); if (akv2) akv2.style.display = 'none';
-      var akv2 = document.getElementById('apiKeyView'); if (akv2) akv2.style.display = 'none';
-      var akv2 = document.getElementById('apiKeyView'); if (akv2) akv2.style.display = 'none';
-      var akv2 = document.getElementById('apiKeyView'); if (akv2) akv2.style.display = 'none';
-      var akv2 = document.getElementById('apiKeyView'); if (akv2) akv2.style.display = 'none';
+      hideAllViews();
       document.getElementById('profilView').style.display = 'block';
-      document.getElementById('pencairanView').style.display = 'none';
-      var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
-      document.getElementById('breadcrumbPage').textContent = 'profil';
+document.getElementById('breadcrumbPage').textContent = 'profil';
 
             /* Isi data dari server */
       var username = localStorage.getItem('aura_auth_token') || 'User';
@@ -1516,12 +1508,19 @@ function changePassword() {
     /* ===================================================================
        VIEW SWITCHING
        =================================================================== */
-    function switchToDashboard() {
-      document.getElementById('dashboardView').style.display = 'block';
-      var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
-      document.getElementById('profilView').style.display = 'none';
-      document.getElementById('pencairanView').style.display = 'none';
+    /* Helper: hide ALL views before showing target view */
+    function hideAllViews() {
+      var dv = document.getElementById('dashboardView'); if (dv) dv.style.display = 'none';
+      var pv = document.getElementById('profilView'); if (pv) pv.style.display = 'none';
+      var penV = document.getElementById('pencairanView'); if (penV) penV.style.display = 'none';
       var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
+      var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
+      var akv = document.getElementById('apiKeyView'); if (akv) akv.style.display = 'none';
+    }
+
+    function switchToDashboard() {
+      hideAllViews();
+      document.getElementById('dashboardView').style.display = 'block';
       document.getElementById('breadcrumbPage').textContent = 'dashboard';
       currentView = 'dashboard';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
@@ -1531,12 +1530,9 @@ function changePassword() {
     }
 
     function switchToPencairan() {
-      document.getElementById('dashboardView').style.display = 'none';
-      var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
-      document.getElementById('profilView').style.display = 'none';
+      hideAllViews();
       document.getElementById('pencairanView').style.display = 'block';
-      var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
-      document.getElementById('breadcrumbPage').textContent = 'saldo pencairan';
+document.getElementById('breadcrumbPage').textContent = 'saldo pencairan';
       currentView = 'pencairan';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
       var pen = document.querySelector('.nav-item[data-action="loadPencairan"]');
@@ -1555,13 +1551,9 @@ function changePassword() {
        IP WHITELIST MANAGEMENT
        =================================================================== */
     function switchToIpWhitelist() {
-      document.getElementById('dashboardView').style.display = 'none';
-      var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
-      document.getElementById('profilView').style.display = 'none';
-      document.getElementById('pencairanView').style.display = 'none';
-      var ipV = document.getElementById('ipWhitelistView');
-      if (ipV) ipV.style.display = 'block';
-      document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
+      hideAllViews();
+      var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'block';
+document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
       currentView = 'ipWhitelist';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
       var ipNav = document.querySelector('.nav-item[data-action="ipWhitelist"]');
@@ -1574,11 +1566,7 @@ function changePassword() {
        MY EVENT FUNCTIONS
        =================================================================== */
     function switchToApiKey() {
-      document.getElementById('dashboardView').style.display = 'none';
-      document.getElementById('profilView').style.display = 'none';
-      document.getElementById('pencairanView').style.display = 'none';
-      var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
-      var mev = document.getElementById('myEventView'); if (mev) mev.style.display = 'none';
+      hideAllViews();
       var akv = document.getElementById('apiKeyView'); if (akv) akv.style.display = 'block';
       document.getElementById('breadcrumbPage').textContent = 'api key';
       currentView = 'apiKey';
@@ -1609,10 +1597,7 @@ function changePassword() {
     }
 
     function switchToMyEvent() {
-      document.getElementById('dashboardView').style.display = 'none';
-      document.getElementById('profilView').style.display = 'none';
-      document.getElementById('pencairanView').style.display = 'none';
-      var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
+      hideAllViews();
       var mev = document.getElementById('myEventView'); if (mev) mev.style.display = 'block';
       document.getElementById('breadcrumbPage').textContent = 'my event';
       currentView = 'myEvent';
