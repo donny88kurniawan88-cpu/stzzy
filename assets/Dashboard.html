@@ -338,6 +338,51 @@
     @media (max-width: 768px) { .content { padding: 20px; } .top-bar { padding: 0 20px; } .stats-grid { grid-template-columns: 1fr; } .modules-grid { grid-template-columns: 1fr; } .hero-section { padding: 28px; } .hero-title { font-size: 24px; } .saldoKasCards { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 680px) { .saldoKasWrap { padding: 10px; border-radius: 16px; } .saldoKasCards { grid-template-columns: 1fr; } .saldoKasToolbar { flex-direction: column; } .saldoKasControls { flex-direction: column; align-items: stretch; } .saldoKasControls input, .sk-btn-load, .sk-btn-copy { width: 100%; justify-content: center; } .pwd-submit-row { flex-direction: column; align-items: stretch; } .pwd-submit-row .btn { justify-content: center; } }
     @media (max-width: 480px) { .content { padding: 16px; } .stat-card { padding: 18px; } .module-card { padding: 18px; } .pwd-card { padding: 20px; } }
+
+    /* ===== MY EVENT VIEW ===== */
+    .myEventWrap { width: 100%; margin-top: 22px; padding: 24px; border-radius: 32px; background: radial-gradient(circle at top left, #1a0b2e, #0a0a0f 45%, #0a0a0f); box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 100px rgba(180, 108, 255, 0.05); position: relative; overflow: hidden; }
+    .myEventHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .myEventHeader h3 { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px; }
+    .myEventSub { font-size: 12px; color: var(--text-tertiary); }
+    .myEventControls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .myEventControls input { background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text-primary); font-size: 13px; outline: none; min-width: 220px; }
+    .myEventControls input:focus { border-color: var(--accent-primary); }
+    .myEvent-btn-delete { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: var(--accent-danger); padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+    .myEvent-btn-delete:hover { background: rgba(239,68,68,0.22); }
+    .myEvent-btn-deleteall { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-secondary); padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+    .myEvent-btn-deleteall:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+    .myEventStats { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .myEventStat { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; padding: 12px 18px; min-width: 110px; }
+    .myEventStat-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+    .myEventStat-value { font-size: 20px; font-weight: 800; color: var(--text-primary); }
+    .myEventStat.approved .myEventStat-value { color: var(--accent-success); }
+    .myEventStat.rejected .myEventStat-value { color: var(--accent-danger); }
+    .myEventStat.pending .myEventStat-value { color: var(--accent-warning); }
+    .myEventTableWrap { overflow-x: auto; border-radius: 16px; border: 1px solid var(--border); }
+    .myEventTable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .myEventTable thead { background: rgba(15,15,30,0.95); }
+    .myEventTable th { padding: 12px 14px; text-align: left; color: var(--text-tertiary); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .myEventTable td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text-primary); vertical-align: middle; }
+    .myEventTable tbody tr { transition: background 0.15s; }
+    .myEventTable tbody tr:hover { background: rgba(255,255,255,0.03); }
+    .myEventTable tr.row-approved { background: rgba(16, 185, 129, 0.10); }
+    .myEventTable tr.row-approved:hover { background: rgba(16, 185, 129, 0.16); }
+    .myEventTable tr.row-rejected { background: rgba(239, 68, 68, 0.10); }
+    .myEventTable tr.row-rejected:hover { background: rgba(239, 68, 68, 0.16); }
+    .myEventTable tr.row-pending { background: transparent; }
+    .me-badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+    .me-badge.approved { background: rgba(16,185,129,0.18); color: #34d399; }
+    .me-badge.rejected { background: rgba(239,68,68,0.18); color: #f87171; }
+    .me-badge.pending { background: rgba(245,158,11,0.18); color: #fbbf24; }
+    .me-badge.game { background: rgba(59,130,246,0.18); color: #60a5fa; }
+    .me-badge.klaim { background: rgba(236,72,153,0.18); color: #f472b6; }
+    .me-mono { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-secondary); }
+    .me-copy-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: 2px 4px; font-size: 11px; }
+    .me-copy-btn:hover { color: var(--accent-primary); }
+    .me-screenshot { width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .me-screenshot:hover { background: rgba(255,255,255,0.12); }
+    .me-screenshot i { color: var(--text-tertiary); font-size: 13px; }
+    @media (max-width: 680px) { .myEventWrap { padding: 10px; border-radius: 16px; } .myEventHeader { flex-direction: column; } .myEventControls { width: 100%; } .myEventControls input { min-width: 100%; } .myEventTable { font-size: 11px; } .myEventTable th, .myEventTable td { padding: 8px 10px; } }
   </style>
 </head>
 <body>
@@ -431,7 +476,7 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" data-action="comingSoon">My Event</div>
+            <div class="submenu-item" onclick="switchToMyEvent()">My Event</div>
             <div class="submenu-item" data-action="comingSoon">History Event</div>
             <div class="submenu-item" onclick="window.location.href='/PgReport.html'">PG Report</div>
           </div>
@@ -513,7 +558,7 @@
           <div class="module-card" data-color="blue" onclick="window.location.href='/Syair.html'"><div class="module-icon">📊</div><div class="module-name" data-access-item-card="prediction_tools">Syair Database</div><div class="module-desc">Access shio prediction engine</div><div class="module-badge">v2.1.0</div></div>
           <div class="module-card" data-color="purple" onclick="window.location.href='/Prediksi.html'"><div class="module-icon">🔮</div><div class="module-name" data-access-item-card="prediction_tools">AI Prediction</div><div class="module-desc">Neural probability calculation</div><div class="module-badge">v3.0.0</div></div>
           <div class="module-card" data-color="red" data-action="appInfo"><div class="module-icon">🎰</div><div class="module-name" data-access-item-card="prediction_tools">Gas Slot Engine</div><div class="module-desc">AI Slot Gacor Predictor System</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="green" data-action="comingSoon"><div class="module-icon">📅</div><div class="module-name" data-access-item-card="event_tools">My Event</div><div class="module-desc">Manage active events</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="green" onclick="switchToMyEvent()"><div class="module-icon">📅</div><div class="module-name" data-access-item-card="event_tools">My Event</div><div class="module-desc">Manage active events</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">🕐</div><div class="module-name" data-access-item-card="event_tools">History Event</div><div class="module-desc">Event history &amp; logs</div><div class="module-badge">Soon</div></div>
           <div class="module-card" data-color="green" onclick="window.location.href='/PgReport.html'"><div class="module-icon">🧾</div><div class="module-name" data-access-item-card="event_tools">PG Report</div><div class="module-desc">PG Soft credit calculator engine</div><div class="module-badge">v5.0.0</div></div>
           <div class="module-card" data-color="pink" data-action="comingSoon"><div class="module-icon">✏️</div><div class="module-name" data-access-item-card="edit_bukti">Edit Bukti</div><div class="module-desc">Edit &amp; manage proof of payment</div><div class="module-badge">Soon</div></div>
@@ -715,6 +760,46 @@
       </div>
 
     </div>
+      <!-- ===== MY EVENT VIEW ===== -->
+      <div id="myEventView" style="display:none;">
+        <div class="myEventWrap">
+          <div class="myEventHeader">
+            <div>
+              <h3>My Event</h3>
+              <div class="myEventSub">Data scatter approved dari extension (auto-refresh 10s)</div>
+            </div>
+            <div class="myEventControls">
+              <input type="text" id="myEventSearch" placeholder="Cari berdasarkan User ID..." oninput="filterMyEvent()">
+              <button class="myEvent-btn-delete" onclick="deleteMyEventSelected()"><i class="fas fa-trash"></i> Delete Selected</button>
+              <button class="myEvent-btn-deleteall" onclick="deleteMyEventAll()"><i class="fas fa-trash-can"></i> Delete All</button>
+            </div>
+          </div>
+          <div class="myEventStats" id="myEventStats"></div>
+          <div class="myEventTableWrap">
+            <table class="myEventTable" id="myEventTable">
+              <thead>
+                <tr>
+                  <th style="width:32px;"><input type="checkbox" id="myEventSelectAll" onchange="toggleSelectAllMyEvent(this)"></th>
+                  <th>SITUS</th>
+                  <th>USER ID</th>
+                  <th>TIPE GAME</th>
+                  <th>KODE TIKET</th>
+                  <th>HADIAH</th>
+                  <th>KLAIM</th>
+                  <th>BUKTI</th>
+                  <th>STATUS</th>
+                  <th>KETERANGAN</th>
+                  <th>TANGGAL</th>
+                </tr>
+              </thead>
+              <tbody id="myEventBody">
+                <tr><td colspan="11" style="text-align:center; color: var(--text-tertiary); padding: 40px;">Loading data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
   </main>
 
   <!-- Right Panel -->
@@ -879,6 +964,7 @@ function changePassword() {
        =================================================================== */
     function switchToProfil() {
       document.getElementById('dashboardView').style.display = 'none';
+      var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
       document.getElementById('profilView').style.display = 'block';
       document.getElementById('pencairanView').style.display = 'none';
       var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
@@ -1167,6 +1253,7 @@ function changePassword() {
        =================================================================== */
     function switchToDashboard() {
       document.getElementById('dashboardView').style.display = 'block';
+      var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
       document.getElementById('profilView').style.display = 'none';
       document.getElementById('pencairanView').style.display = 'none';
       var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
@@ -1180,6 +1267,7 @@ function changePassword() {
 
     function switchToPencairan() {
       document.getElementById('dashboardView').style.display = 'none';
+      var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
       document.getElementById('profilView').style.display = 'none';
       document.getElementById('pencairanView').style.display = 'block';
       var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
@@ -1203,6 +1291,7 @@ function changePassword() {
        =================================================================== */
     function switchToIpWhitelist() {
       document.getElementById('dashboardView').style.display = 'none';
+      var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
       document.getElementById('profilView').style.display = 'none';
       document.getElementById('pencairanView').style.display = 'none';
       var ipV = document.getElementById('ipWhitelistView');
@@ -1214,6 +1303,148 @@ function changePassword() {
       if (ipNav) ipNav.classList.add('active');
       addTerminalLog('Switched to IP Whitelist view');
       loadIpWhitelist();
+    }
+
+    /* ===================================================================
+       MY EVENT FUNCTIONS
+       =================================================================== */
+    function switchToMyEvent() {
+      document.getElementById('dashboardView').style.display = 'none';
+      document.getElementById('profilView').style.display = 'none';
+      document.getElementById('pencairanView').style.display = 'none';
+      var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
+      var mev = document.getElementById('myEventView'); if (mev) mev.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'my event';
+      currentView = 'myEvent';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to My Event view');
+      loadMyEventData();
+      if (window.__myEventInterval) clearInterval(window.__myEventInterval);
+      window.__myEventInterval = setInterval(loadMyEventData, 10000);
+    }
+
+    var myEventData = [];
+    function loadMyEventData() {
+      var token = localStorage.getItem('aura_auth_token') || '';
+      if (!token) return;
+      fetch('/api/event/list', { headers: { 'x-auth-token': token } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            myEventData = data.events || [];
+            renderMyEventTable(myEventData);
+            renderMyEventStats(myEventData);
+          }
+        })
+        .catch(function(e) { console.error('MyEvent load error:', e); });
+    }
+
+    function renderMyEventStats(events) {
+      var approved = events.filter(function(e) { return (e.status || '').toUpperCase() === 'APPROVED'; }).length;
+      var rejected = events.filter(function(e) { return (e.status || '').toUpperCase() === 'REJECTED'; }).length;
+      var pending = events.filter(function(e) { return (e.status || '').toUpperCase() === 'PENDING'; }).length;
+      var html = '';
+      html += '<div class="myEventStat"><div class="myEventStat-label">Total</div><div class="myEventStat-value">' + events.length + '</div></div>';
+      html += '<div class="myEventStat approved"><div class="myEventStat-label">Approved</div><div class="myEventStat-value">' + approved + '</div></div>';
+      html += '<div class="myEventStat rejected"><div class="myEventStat-label">Rejected</div><div class="myEventStat-value">' + rejected + '</div></div>';
+      html += '<div class="myEventStat pending"><div class="myEventStat-label">Pending</div><div class="myEventStat-value">' + pending + '</div></div>';
+      var statsEl = document.getElementById('myEventStats');
+      if (statsEl) statsEl.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      return String(text).replace(/[&<>"']/g, function(c) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+    }
+
+    function renderMyEventTable(events) {
+      var tbody = document.getElementById('myEventBody');
+      if (!tbody) return;
+      if (!events || events.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color: var(--text-tertiary); padding: 40px;">Belum ada data event. Data dari extension akan muncul di sini.</td></tr>';
+        return;
+      }
+      var html = '';
+      events.forEach(function(e) {
+        var statusUp = (e.status || 'PENDING').toUpperCase();
+        var rowClass = 'row-' + statusUp.toLowerCase();
+        var statusBadge = '<span class="me-badge ' + statusUp.toLowerCase() + '">' + statusUp + '</span>';
+        var gameBadge = e.tipe_game ? '<span class="me-badge game">' + escapeHtml(e.tipe_game) + '</span>' : '-';
+        var klaimBadge = e.klaim ? '<span class="me-badge klaim">' + escapeHtml(e.klaim) + '</span>' : '-';
+        var tanggal = e.tanggal || (e.created_at ? new Date(e.created_at).toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '-');
+        var bukti = e.bukti_screenshot ? '<div class="me-screenshot" onclick="viewScreenshot(\'' + escapeHtml(e.bukti_screenshot) + '\')"><i class="fas fa-image"></i></div>' : '<div class="me-screenshot"><i class="fas fa-image"></i></div>';
+        html += '<tr class="' + rowClass + '" data-userid="' + escapeHtml((e.user_id || '').toLowerCase()) + '" data-id="' + (e.id || '') + '">';
+        html += '<td><input type="checkbox" class="me-row-check" value="' + (e.id || '') + '"></td>';
+        html += '<td>' + escapeHtml(e.situs || '-') + '</td>';
+        html += '<td>' + escapeHtml(e.user_id || '-') + ' <button class="me-copy-btn" onclick="copyText(\'' + escapeHtml(e.user_id || '') + '\')"><i class="fas fa-copy"></i></button></td>';
+        html += '<td>' + gameBadge + '</td>';
+        html += '<td><span class="me-mono">' + escapeHtml(e.kode_tiket || '-') + '</span> <button class="me-copy-btn" onclick="copyText(\'' + escapeHtml(e.kode_tiket || '') + '\')"><i class="fas fa-copy"></i></button></td>';
+        html += '<td>' + escapeHtml(e.hadiah || '-') + '</td>';
+        html += '<td>' + klaimBadge + '</td>';
+        html += '<td>' + bukti + '</td>';
+        html += '<td>' + statusBadge + '</td>';
+        html += '<td>' + escapeHtml(e.keterangan || '-') + '</td>';
+        html += '<td style="font-size:11px; color:var(--text-secondary); white-space:nowrap;">' + escapeHtml(tanggal) + '</td>';
+        html += '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function filterMyEvent() {
+      var query = (document.getElementById('myEventSearch').value || '').toLowerCase().trim();
+      var filtered = myEventData.filter(function(e) {
+        return !query || String(e.user_id || '').toLowerCase().includes(query);
+      });
+      renderMyEventTable(filtered);
+    }
+
+    function toggleSelectAllMyEvent(master) {
+      document.querySelectorAll('.me-row-check').forEach(function(cb) { cb.checked = master.checked; });
+    }
+
+    function deleteMyEventSelected() {
+      var ids = Array.from(document.querySelectorAll('.me-row-check:checked')).map(function(cb) { return parseInt(cb.value, 10); }).filter(function(id) { return !isNaN(id); });
+      if (ids.length === 0) { showToast('Pilih baris yang ingin dihapus', 'warning'); return; }
+      if (!confirm('Hapus ' + ids.length + ' baris terpilih?')) return;
+      var token = localStorage.getItem('aura_auth_token') || '';
+      fetch('/api/event/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({ ids: ids })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) { showToast(ids.length + ' baris dihapus', 'success'); loadMyEventData(); }
+          else { showToast(data.error || 'Gagal hapus', 'error'); }
+        })
+        .catch(function() { showToast('Kesalahan koneksi', 'error'); });
+    }
+
+    function deleteMyEventAll() {
+      if (!confirm('Hapus SEMUA data event? Tindakan ini tidak dapat dibatalkan.')) return;
+      var token = localStorage.getItem('aura_auth_token') || '';
+      fetch('/api/event/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({ all: true })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) { showToast('Semua data dihapus', 'success'); loadMyEventData(); }
+          else { showToast(data.error || 'Gagal hapus', 'error'); }
+        })
+        .catch(function() { showToast('Kesalahan koneksi', 'error'); });
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(function() { showToast('Disalin: ' + text.substring(0, 30), 'info'); });
+    }
+
+    function viewScreenshot(url) {
+      if (!url || url === '') { showToast('Tidak ada screenshot', 'info'); return; }
+      window.open(url, '_blank');
     }
 
     function loadIpWhitelist() {
