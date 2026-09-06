@@ -1734,40 +1734,50 @@ export default {
     // API EVENT SUBMIT (PUBLIC — x-api-key header)
     // Used by browser extension to submit event data
     // ============================================
-    if (path === '/api/event/submit' && request.method === 'POST') {
+    // Accept POST on BOTH /api/event/submit AND /api/event/list (extension uses /list URL)
+    if ((path === '/api/event/submit' || path === '/api/event/list') && request.method === 'POST') {
       try {
-        const apiKey = request.headers.get('x-api-key');
+        // API key validation — accept both x-api-key and X-API-Key headers
+        const apiKey = request.headers.get('x-api-key') || request.headers.get('X-API-Key') || '';
         if (!apiKey) return Response.json({ error: 'API key wajib diisi (header x-api-key)' }, { status: 401 });
-        // Validate API key
-        const keyRow = await env.DB.prepare("SELECT id, label, active FROM api_keys WHERE key = ?").bind(apiKey).first();
+        const keyRow = await env.DB.prepare("SELECT id, label, scope, active FROM api_keys WHERE key = ?").bind(apiKey).first();
         if (!keyRow || !keyRow.active) {
           return Response.json({ error: 'API key tidak valid atau telah dicabut' }, { status: 403 });
         }
         const body = await request.json();
-        const { situs, user_id, tipe_game, kode_tiket, hadiah, klaim, bukti_screenshot, status, keterangan, tanggal } = body;
-        if (!user_id || !kode_tiket) {
-          return Response.json({ error: 'user_id dan kode_tiket wajib diisi' }, { status: 400 });
-        }
+        // ===== FIELD MAPPING: accept BOTH extension format AND standard format =====
+        // Extension: { date, userId, bec, scater, periode, lampiran, situs, game, status, reason }
+        // Standard:  { situs, user_id, tipe_game, kode_tiket, hadiah, klaim, bukti_screenshot, status, keterangan, tanggal }
+        const situs_val = body.situs || body.site || '';
+        const user_id_val = body.user_id || body.userId || '';
+        const tipe_game_val = body.tipe_game || body.game || '';
+        const kode_tiket_val = body.kode_tiket || body.periode || body.roundId || '';
+        const hadiah_val = body.hadiah || body.bec || body.amount || '';
+        const klaim_val = body.klaim || body.lampiran || body.shot || '';
+        const bukti_val = body.bukti_screenshot || '';
+        // Status mapping: Success->APPROVED, Rejected->REJECTED, Pending->PENDING
+        let status_val = (body.status || 'PENDING').toUpperCase();
+        if (status_val === 'SUCCESS') status_val = 'APPROVED';
+        const keterangan_val = body.keterangan || body.reason || '';
         const now = new Date();
         const pad = (n) => String(n).padStart(2, '0');
         const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const tanggalFinal = tanggal || (pad(now.getDate()) + ' ' + months[now.getMonth()] + ' ' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds()));
-        const statusFinal = status || 'PENDING';
+        const tanggal_val = body.tanggal || body.date || (pad(now.getDate()) + ' ' + months[now.getMonth()] + ' ' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds()));
         const result = await env.DB.prepare(
           "INSERT INTO events (situs, user_id, tipe_game, kode_tiket, hadiah, klaim, bukti_screenshot, status, keterangan, tanggal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         ).bind(
-          situs || null,
-          String(user_id),
-          tipe_game || null,
-          String(kode_tiket),
-          hadiah || null,
-          klaim || null,
-          bukti_screenshot || null,
-          statusFinal,
-          keterangan || null,
-          tanggalFinal
+          situs_val || null,
+          String(user_id_val),
+          tipe_game_val || null,
+          String(kode_tiket_val),
+          hadiah_val || null,
+          klaim_val || null,
+          bukti_val || null,
+          status_val,
+          keterangan_val || null,
+          tanggal_val
         ).run();
-        return Response.json({ success: true, id: result.meta ? result.meta.last_row_id : null });
+        return Response.json({ success: true, id: result.meta ? result.meta.last_row_id : null, message: 'Event tersimpan' });
       } catch (err) {
         return Response.json({ error: 'Gagal submit event: ' + (err.message || err) }, { status: 500 });
       }
