@@ -276,6 +276,17 @@ function isBankBlockLabel(cell) {
   return BANK_LABEL_KEYWORDS.some(k => new RegExp('\\b' + k + '\\b').test(up));
 }
 
+// ===== CLEAN BANK LABEL: hapus prefix "NO", "NO.", "NOMOR" dari label bank =====
+// Misal: "NO KAS BCA" → "KAS BCA", "NO. WD BRI" → "WD BRI"
+// Hanya hapus prefix di AWAL text, tidak hapus "NO" di tengah.
+function cleanBankLabel(label) {
+  if (!label) return label;
+  let cleaned = label.trim();
+  // Hapus prefix "NO." atau "NO " atau "NOMOR " di awal (case insensitive)
+  cleaned = cleaned.replace(/^(NO\.?\s+|NOMOR\s+)+/i, '');
+  return cleaned.trim();
+}
+
 // ============================================================
 // NAMA REKENG PARSER — Pendekatan C (Hybrid: Header + Validation)
 // Hanya untuk fungsi ini. Tidak mengubah logic lain.
@@ -566,7 +577,7 @@ async function buildValidatorDatabaseFromSheets() {
             if (cell === '') continue;
 
             if (kasLabel === '' && isBankBlockLabel(cell)) {
-              kasLabel = cell.toUpperCase().split('\n')[0].trim();
+              kasLabel = cleanBankLabel(cell.toUpperCase().split('\n')[0].trim());
               labelCol = c;
             }
 
