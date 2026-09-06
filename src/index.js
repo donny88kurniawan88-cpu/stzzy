@@ -1818,7 +1818,7 @@ export default {
     if (path === '/api/apikeys' && request.method === 'GET') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
       try {
-        const { results } = await env.DB.prepare("SELECT id, key, label, created_by, created_at, active FROM api_keys ORDER BY datetime(created_at) DESC").all();
+        const { results } = await env.DB.prepare("SELECT id, key, label, scope, created_by, created_at, active FROM api_keys ORDER BY datetime(created_at) DESC").all();
         return Response.json({ success: true, keys: results || [] });
       } catch (err) {
         return Response.json({ error: 'Gagal memuat API keys: ' + (err.message || err) }, { status: 500 });
@@ -1834,6 +1834,7 @@ export default {
       try {
         const body = await request.json().catch(() => ({}));
         const label = (body && body.label) ? String(body.label).slice(0, 80) : '';
+        const scope = (body && body.scope) ? String(body.scope).slice(0, 40) : 'all';
         const grantedBy = request.headers.get('x-auth-token') || '';
         // Generate 32-char random key (uppercase + digits, no ambiguous chars)
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789abcdefghijkmnpqrstuvwxyz';
@@ -1842,10 +1843,10 @@ export default {
         crypto.getRandomValues(buf);
         for (let i = 0; i < 32; i++) key += chars[buf[i] % chars.length];
         const result = await env.DB.prepare(
-          "INSERT INTO api_keys (key, label, created_by) VALUES (?, ?, ?)"
-        ).bind(key, label, grantedBy).run();
+          "INSERT INTO api_keys (key, label, scope, created_by) VALUES (?, ?, ?, ?)"
+        ).bind(key, label, scope, grantedBy).run();
         const newId = result.meta ? result.meta.last_row_id : null;
-        return Response.json({ success: true, id: newId, key: key, label: label, created_by: grantedBy, created_at: new Date().toISOString(), active: 1 });
+        return Response.json({ success: true, id: newId, key: key, label: label, scope: scope, created_by: grantedBy, created_at: new Date().toISOString(), active: 1 });
       } catch (err) {
         return Response.json({ error: 'Gagal membuat API key: ' + (err.message || err) }, { status: 500 });
       }
