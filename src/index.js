@@ -642,6 +642,7 @@ export default {
     if (path === '/analyzer' || path === '/Analyzer.html') return env.ASSETS.fetch(new Request(new URL('/Analyzer.html', request.url), request));
     if (path === '/pgreport' || path === '/PgReport.html') return env.ASSETS.fetch(new Request(new URL('/PgReport.html', request.url), request));
     if (path === '/bank' || path === '/Bank.html') return env.ASSETS.fetch(new Request(new URL('/Bank.html', request.url), request));
+    if (path === '/myevent' || path === '/MyEvent.html') return env.ASSETS.fetch(new Request(new URL('/MyEvent.html', request.url), request));
 
     // ============================================
     // HELPERS
@@ -1726,6 +1727,144 @@ export default {
         await env.DB.prepare("DELETE FROM ip_whitelist WHERE id = ?").bind(id).run();
         return Response.json({ success: true, message: 'IP dihapus dari whitelist' });
       } catch (err) { return Response.json({ error: 'Gagal menghapus IP' }, { status: 500 }); }
+    }
+
+
+    // ============================================
+    // API EVENT SUBMIT (PUBLIC — x-api-key header)
+    // Used by browser extension to submit event data
+    // ============================================
+    if (path === '/api/event/submit' && request.method === 'POST') {
+      try {
+        const apiKey = request.headers.get('x-api-key');
+        if (!apiKey) return Response.json({ error: 'API key wajib diisi (header x-api-key)' }, { status: 401 });
+        // Validate API key
+        const keyRow = await env.DB.prepare("SELECT id, label, active FROM api_keys WHERE key = ?").bind(apiKey).first();
+        if (!keyRow || !keyRow.active) {
+          return Response.json({ error: 'API key tidak valid atau telah dicabut' }, { status: 403 });
+        }
+        const body = await request.json();
+        const { situs, user_id, tipe_game, kode_tiket, hadiah, klaim, bukti_screenshot, status, keterangan, tanggal } = body;
+        if (!user_id || !kode_tiket) {
+          return Response.json({ error: 'user_id dan kode_tiket wajib diisi' }, { status: 400 });
+        }
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const tanggalFinal = tanggal || (pad(now.getDate()) + ' ' + months[now.getMonth()] + ' ' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds()));
+        const statusFinal = status || 'PENDING';
+        const result = await env.DB.prepare(
+          "INSERT INTO events (situs, user_id, tipe_game, kode_tiket, hadiah, klaim, bukti_screenshot, status, keterangan, tanggal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        ).bind(
+          situs || null,
+          String(user_id),
+          tipe_game || null,
+          String(kode_tiket),
+          hadiah || null,
+          klaim || null,
+          bukti_screenshot || null,
+          statusFinal,
+          keterangan || null,
+          tanggalFinal
+        ).run();
+        return Response.json({ success: true, id: result.meta ? result.meta.last_row_id : null });
+      } catch (err) {
+        return Response.json({ error: 'Gagal submit event: ' + (err.message || err) }, { status: 500 });
+      }
+    }
+
+    // ============================================
+    // API EVENT LIST (ADMIN — x-auth-token header)
+    // Returns events from last 2 days + auto-cleanup older
+    // ============================================
+    if (path === '/api/event/list' && request.method === 'GET') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
+      try {
+        // Auto-cleanup: delete events older than 2 days
+        await env.DB.prepare("DELETE FROM events WHERE created_at < datetime('now', '-2 days')").run();
+        // Return recent events
+        const { results } = await env.DB.prepare("SELECT * FROM events ORDER BY datetime(created_at) DESC LIMIT 500").all();
+        return Response.json({ success: true, events: results || [] });
+      } catch (err) {
+        return Response.json({ error: 'Gagal memuat event: ' + (err.message || err) }, { status: 500 });
+      }
+    }
+
+    // ============================================
+    // API EVENT DELETE (ADMIN)
+    // Body: { ids: [1,2,3] } or { all: true }
+    // ============================================
+    if (path === '/api/event/delete' && request.method === 'DELETE') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
+      try {
+        const body = await request.json();
+        if (body.all === true) {
+          await env.DB.prepare("DELETE FROM events").run();
+          return Response.json({ success: true, message: 'Semua event dihapus' });
+        }
+        const ids = Array.isArray(body.ids) ? body.ids.map(Number).filter((n) => !isNaN(n)) : [];
+        if (ids.length === 0) return Response.json({ error: 'ids array wajib diisi atau set all=true' }, { status: 400 });
+        const placeholders = ids.map(() => '?').join(',');
+        await env.DB.prepare("DELETE FROM events WHERE id IN (" + placeholders + ")").bind(...ids).run();
+        return Response.json({ success: true, message: ids.length + ' event dihapus' });
+      } catch (err) {
+        return Response.json({ error: 'Gagal menghapus event: ' + (err.message || err) }, { status: 500 });
+      }
+    }
+
+    // ============================================
+    // API APIKEYS LIST (ADMIN)
+    // ============================================
+    if (path === '/api/apikeys' && request.method === 'GET') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
+      try {
+        const { results } = await env.DB.prepare("SELECT id, key, label, created_by, created_at, active FROM api_keys ORDER BY datetime(created_at) DESC").all();
+        return Response.json({ success: true, keys: results || [] });
+      } catch (err) {
+        return Response.json({ error: 'Gagal memuat API keys: ' + (err.message || err) }, { status: 500 });
+      }
+    }
+
+    // ============================================
+    // API APIKEYS CREATE (ADMIN)
+    // Body: { label }
+    // ============================================
+    if (path === '/api/apikeys' && request.method === 'POST') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
+      try {
+        const body = await request.json().catch(() => ({}));
+        const label = (body && body.label) ? String(body.label).slice(0, 80) : '';
+        const grantedBy = request.headers.get('x-auth-token') || '';
+        // Generate 32-char random key (uppercase + digits, no ambiguous chars)
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789abcdefghijkmnpqrstuvwxyz';
+        let key = '';
+        const buf = new Uint8Array(32);
+        crypto.getRandomValues(buf);
+        for (let i = 0; i < 32; i++) key += chars[buf[i] % chars.length];
+        const result = await env.DB.prepare(
+          "INSERT INTO api_keys (key, label, created_by) VALUES (?, ?, ?)"
+        ).bind(key, label, grantedBy).run();
+        const newId = result.meta ? result.meta.last_row_id : null;
+        return Response.json({ success: true, id: newId, key: key, label: label, created_by: grantedBy, created_at: new Date().toISOString(), active: 1 });
+      } catch (err) {
+        return Response.json({ error: 'Gagal membuat API key: ' + (err.message || err) }, { status: 500 });
+      }
+    }
+
+    // ============================================
+    // API APIKEYS DELETE / REVOKE (ADMIN)
+    // DELETE /api/apikeys/:id
+    // ============================================
+    const apiKeyDeleteMatch = path.match(/^\/api\/apikeys\/(\d+)$/);
+    if (apiKeyDeleteMatch && request.method === 'DELETE') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
+      try {
+        const id = parseInt(apiKeyDeleteMatch[1]);
+        await env.DB.prepare("DELETE FROM api_keys WHERE id = ?").bind(id).run();
+        return Response.json({ success: true, message: 'API key dihapus' });
+      } catch (err) {
+        return Response.json({ error: 'Gagal menghapus API key: ' + (err.message || err) }, { status: 500 });
+      }
     }
 
     // ============================================
