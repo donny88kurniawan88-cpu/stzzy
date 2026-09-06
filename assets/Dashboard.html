@@ -1112,6 +1112,112 @@ function changePassword() {
     document.getElementById('popupCancelBtn').addEventListener('click', closePopup);
 
     /* ===================================================================
+       API KEY MANAGER FUNCTIONS
+       =================================================================== */
+    var APIKEY_SCOPES = {
+      'event_tools': { label: 'My Event', icon: 'fa-calendar-check', color: '#10b981' },
+      'rek_validator': { label: 'Rek Validator', icon: 'fa-circle-check', color: '#14b8a6' },
+      'bank_processor': { label: 'Bank Processor', icon: 'fa-building-columns', color: '#3b82f6' },
+      'qris_tools': { label: 'QRIS Tools', icon: 'fa-qrcode', color: '#ec4899' },
+      'prediction_tools': { label: 'Prediction Tools', icon: 'fa-chart-line', color: '#8b5cf6' },
+      'saldo_pencairan': { label: 'Saldo Pencairan', icon: 'fa-layer-group', color: '#f59e0b' },
+      'authority_panel': { label: 'Authority Panel', icon: 'fa-shield-halved', color: '#ef4444' },
+      'ip_whitelist': { label: 'IP Whitelist', icon: 'fa-shield-virus', color: '#06b6d4' },
+      'edit_bukti': { label: 'Edit Bukti', icon: 'fa-pen', color: '#ec4899' },
+      'keep_memo': { label: 'Keep Memo', icon: 'fa-clipboard', color: '#f59e0b' },
+      'setting': { label: 'Setting', icon: 'fa-gear', color: '#64748b' },
+      'all': { label: 'All Access', icon: 'fa-crown', color: '#fbbf24' }
+    };
+
+    function generateApiKey() {
+      var scope = document.getElementById('apikeyScopeSelect')?.value || 'event_tools';
+      var label = document.getElementById('apikeyLabelInput')?.value.trim() || '';
+      var btn = document.getElementById('apikeyGenBtn');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generate'; }
+      var token = localStorage.getItem('aura_auth_token') || '';
+      fetch('/api/apikeys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({ scope: scope, label: label })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Generate'; }
+          if (data.success) {
+            showToast('API Key berhasil dibuat untuk ' + (APIKEY_SCOPES[scope]?.label || scope), 'success');
+            addTerminalLog('API Key generated: ' + scope + ' (' + (label || 'no label') + ')');
+            if (document.getElementById('apikeyLabelInput')) document.getElementById('apikeyLabelInput').value = '';
+            loadApiKeys();
+          } else {
+            showToast(data.error || 'Gagal generate API key', 'error');
+          }
+        })
+        .catch(function() {
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Generate'; }
+          showToast('Kesalahan koneksi', 'error');
+        });
+    }
+
+    function loadApiKeys() {
+      var listEl = document.getElementById('apikeyList');
+      if (!listEl) return;
+      listEl.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-tertiary); font-size:13px;"><i class="fas fa-spinner fa-spin" style="font-size:20px; margin-bottom:8px; display:block;"></i>Memuat...</div>';
+      var token = localStorage.getItem('aura_auth_token') || '';
+      fetch('/api/apikeys', { headers: { 'x-auth-token': token } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success || !data.keys || data.keys.length === 0) {
+            listEl.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-tertiary); font-size:13px;"><i class="fas fa-key" style="font-size:24px; margin-bottom:10px; display:block; opacity:0.4;"></i>Belum ada API Key. Generate di atas.</div>';
+            return;
+          }
+          var html = '';
+          data.keys.forEach(function(k) {
+            var scope = k.scope || 'all';
+            var sc = APIKEY_SCOPES[scope] || APIKEY_SCOPES['all'];
+            var created = k.created_at ? new Date(k.created_at).toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '-';
+            var masked = k.key.substring(0, 8) + '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' + k.key.substring(k.key.length - 4);
+            html += '<div style="background:rgba(15,15,22,0.6); border:1px solid var(--border); border-radius:12px; padding:14px; transition:all 0.2s;" onmouseover="this.style.borderColor=\'' + sc.color + '50\'" onmouseout="this.style.borderColor=\'var(--border)\'">';
+            html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px;">';
+            html += '<div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">';
+            html += '<div style="width:32px; height:32px; border-radius:8px; background:' + sc.color + '20; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fas ' + sc.icon + '" style="color:' + sc.color + '; font-size:13px;"></i></div>';
+            html += '<div style="min-width:0; flex:1;"><div style="font-size:13px; font-weight:600; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escapeHtml(k.label || sc.label) + '</div>';
+            html += '<div style="font-size:10.5px; color:var(--text-tertiary); margin-top:2px;">' + sc.label + ' · by ' + escapeHtml(k.created_by || '-') + ' · ' + created + '</div></div></div>';
+            html += '<button onclick="deleteApiKey(' + k.id + ')" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:var(--accent-danger); width:30px; height:30px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s;" onmouseover="this.style.background=\'rgba(239,68,68,0.2)\'" onmouseout="this.style.background=\'rgba(239,68,68,0.1)\'"><i class="fas fa-trash" style="font-size:11px;"></i></button>';
+            html += '</div>';
+            html += '<div style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.3); border-radius:8px; padding:8px 12px;">';
+            html += '<code style="flex:1; font-family:var(--font-mono); font-size:12px; color:' + sc.color + '; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + masked + '</code>';
+            html += '<button onclick="copyApiKey(\'' + k.key + '\')" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-secondary); width:28px; height:28px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s;" onmouseover="this.style.color=\'var(--accent-primary)\'" onmouseout="this.style.color=\'var(--text-secondary)\'"><i class="fas fa-copy" style="font-size:11px;"></i></button>';
+            html += '</div></div>';
+          });
+          listEl.innerHTML = html;
+        })
+        .catch(function() {
+          listEl.innerHTML = '<div style="text-align:center; padding:30px; color:var(--accent-danger); font-size:13px;"><i class="fas fa-exclamation-circle" style="font-size:20px; margin-bottom:8px; display:block;"></i>Gagal memuat API keys</div>';
+        });
+    }
+
+    function deleteApiKey(id) {
+      if (!confirm('Hapus API Key ini? Extension yang pakai key ini akan tidak bisa akses lagi.')) return;
+      var token = localStorage.getItem('aura_auth_token') || '';
+      fetch('/api/apikeys/' + id, {
+        method: 'DELETE',
+        headers: { 'x-auth-token': token }
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) { showToast('API Key dihapus', 'success'); loadApiKeys(); }
+          else { showToast(data.error || 'Gagal hapus', 'error'); }
+        })
+        .catch(function() { showToast('Kesalahan koneksi', 'error'); });
+    }
+
+    function copyApiKey(key) {
+      navigator.clipboard.writeText(key).then(function() {
+        showToast('API Key disalin ke clipboard', 'success');
+      });
+    }
+
+    /* ===================================================================
        TERMINAL LOG
        =================================================================== */
     function addTerminalLog(msg) {
@@ -1184,14 +1290,9 @@ function changePassword() {
           addTerminalLog('Keep Memo opened');
           break;
         case 'apiKey':
-          var storedKey = localStorage.getItem('aura_api_key') || '';
-          showPopup('API Key', '<div style="padding:10px;"><label style="display:block; font-size:12px; color:var(--text-tertiary); font-weight:600; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">API Key</label><input type="text" id="apiKeyInput" value="' + storedKey + '" style="width:100%; padding:12px 14px; background:rgba(15,15,22,0.8); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--neon-cyan); font-size:13px; font-family:var(--font-mono); outline:none;" placeholder="Masukkan API key..."><p style="font-size:11px; color:var(--text-tertiary); margin-top:8px;">Key disimpan secara lokal di browser.</p></div>', true, function() {
-            var val = document.getElementById('apiKeyInput').value.trim();
-            localStorage.setItem('aura_api_key', val);
-            showToast('API Key berhasil disimpan!', 'success');
-            addTerminalLog('API Key updated');
-          });
-          addTerminalLog('API Key panel opened');
+          showPopup('API Key Manager', '<div style="padding:14px; max-width:560px;"><div style="margin-bottom:16px;"><div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.8px; font-weight:600; margin-bottom:8px;">Generate API Key per Fungsi</div><div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;"><select id="apikeyScopeSelect" style="flex:1; min-width:200px; padding:11px 14px; background:rgba(15,15,22,0.8); border:1px solid var(--border); border-radius:10px; color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;"><option value="event_tools">My Event (Extension Submit)</option><option value="rek_validator">Rek Validator</option><option value="bank_processor">Bank Processor</option><option value="qris_tools">QRIS Tools</option><option value="prediction_tools">Prediction Tools</option><option value="saldo_pencairan">Saldo Pencairan</option><option value="authority_panel">Authority Panel</option><option value="ip_whitelist">IP Whitelist</option><option value="edit_bukti">Edit Bukti</option><option value="keep_memo">Keep Memo</option><option value="setting">Setting</option><option value="all">All Access (Super Key)</option></select><input type="text" id="apikeyLabelInput" placeholder="Label (cth: Chrome Ext)" maxlength="60" style="flex:1; min-width:180px; padding:11px 14px; background:rgba(15,15,22,0.8); border:1px solid var(--border); border-radius:10px; color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;"><button id="apikeyGenBtn" onclick="generateApiKey()" style="padding:11px 18px; background:linear-gradient(135deg, var(--accent-primary), var(--accent-primary-dark)); color:#fff; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap; transition:transform 0.15s;"><i class="fas fa-plus"></i> Generate</button></div></div><div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;"><div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.8px; font-weight:600;">Active API Keys</div><button onclick="loadApiKeys()" style="background:none; border:none; color:var(--text-tertiary); cursor:pointer; font-size:11px; display:flex; align-items:center; gap:4px;"><i class="fas fa-rotate"></i> Refresh</button></div><div id="apikeyList" style="max-height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"><div style="text-align:center; padding:30px; color:var(--text-tertiary); font-size:13px;"><i class="fas fa-spinner fa-spin" style="font-size:20px; margin-bottom:8px; display:block;"></i>Memuat...</div></div></div>', false, null, true);
+          loadApiKeys();
+          addTerminalLog('API Key Manager opened');
           break;
         case 'setting':
           showPopup('Setting', '<div style="padding:10px;"><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Terminal Auto-Scroll</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setAutoScroll" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setAutoScrollDot"></span></label></div><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Toast Notifications</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setToast" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setToastDot"></span></label></div><div style="padding:14px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius-md); cursor:pointer; text-align:center; color:var(--accent-danger); font-weight:600; font-size:14px;" id="clearDataBtn">Clear All Local Data</div></div>', false);
