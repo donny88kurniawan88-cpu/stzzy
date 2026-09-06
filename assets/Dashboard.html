@@ -339,25 +339,37 @@
     @media (max-width: 680px) { .saldoKasWrap { padding: 10px; border-radius: 16px; } .saldoKasCards { grid-template-columns: 1fr; } .saldoKasToolbar { flex-direction: column; } .saldoKasControls { flex-direction: column; align-items: stretch; } .saldoKasControls input, .sk-btn-load, .sk-btn-copy { width: 100%; justify-content: center; } .pwd-submit-row { flex-direction: column; align-items: stretch; } .pwd-submit-row .btn { justify-content: center; } }
     @media (max-width: 480px) { .content { padding: 16px; } .stat-card { padding: 18px; } .module-card { padding: 18px; } .pwd-card { padding: 20px; } }
 
-    /* ===== MY EVENT VIEW ===== */
-    .myEventWrap { width: 100%; margin-top: 22px; padding: 24px; border-radius: 32px; background: radial-gradient(circle at top left, #1a0b2e, #0a0a0f 45%, #0a0a0f); box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 100px rgba(180, 108, 255, 0.05); position: relative; overflow: hidden; }
-    .myEventHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-    .myEventHeader h3 { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px; }
-    .myEventSub { font-size: 12px; color: var(--text-tertiary); }
+    /* ===== MY EVENT VIEW (Minimalist & Elegant) ===== */
+    .myEventWrap { width: 100%; margin-top: 22px; padding: 28px; border-radius: 24px; background: linear-gradient(145deg, rgba(20,20,30,0.6), rgba(10,10,15,0.8)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 20px 60px rgba(0,0,0,0.4); position: relative; overflow: hidden; }
+    .myEventHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 14px; }
+    .myEventHeader h3 { font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; letter-spacing: -0.3px; }
+    .myEventSub { font-size: 12.5px; color: var(--text-tertiary); font-weight: 400; }
     .myEventControls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .myEventControls input { background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text-primary); font-size: 13px; outline: none; min-width: 220px; }
-    .myEventControls input:focus { border-color: var(--accent-primary); }
-    .myEvent-btn-delete { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: var(--accent-danger); padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
-    .myEvent-btn-delete:hover { background: rgba(239,68,68,0.22); }
-    .myEvent-btn-deleteall { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-secondary); padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
-    .myEvent-btn-deleteall:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
-    .myEventStats { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-    .myEventStat { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; padding: 12px 18px; min-width: 110px; }
-    .myEventStat-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
-    .myEventStat-value { font-size: 20px; font-weight: 800; color: var(--text-primary); }
-    .myEventStat.approved .myEventStat-value { color: var(--accent-success); }
-    .myEventStat.rejected .myEventStat-value { color: var(--accent-danger); }
-    .myEventStat.pending .myEventStat-value { color: var(--accent-warning); }
+    .myEventControls input { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px; color: var(--text-primary); font-size: 13px; outline: none; min-width: 240px; transition: all 0.2s; }
+    .myEventControls input::placeholder { color: var(--text-tertiary); }
+    .myEventControls input:focus { border-color: rgba(139,92,246,0.4); background: rgba(139,92,246,0.05); box-shadow: 0 0 0 3px rgba(139,92,246,0.08); }
+    .myEvent-btn-delete { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.18); color: var(--accent-danger); padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+    .myEvent-btn-delete:hover { background: rgba(239,68,68,0.16); border-color: rgba(239,68,68,0.35); transform: translateY(-1px); }
+    .myEvent-btn-deleteall { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-secondary); padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+    .myEvent-btn-deleteall:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); transform: translateY(-1px); }
+    .myEventStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .myEventStat { position: relative; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; padding: 18px 20px; overflow: hidden; transition: all 0.25s cubic-bezier(0.4,0,0.2,1); }
+    .myEventStat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--stat-accent, rgba(255,255,255,0.1)); opacity: 0.6; }
+    .myEventStat:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .myEventStat:hover::before { opacity: 1; height: 3px; }
+    .myEventStat-label { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600; }
+    .myEventStat-label i { font-size: 11px; opacity: 0.5; }
+    .myEventStat-value { font-size: 28px; font-weight: 800; color: var(--text-primary); line-height: 1; letter-spacing: -0.5px; transition: color 0.2s; }
+    .myEventStat.total { --stat-accent: rgba(139,92,246,0.5); }
+    .myEventStat.total .myEventStat-value { color: #a78bfa; }
+    .myEventStat.approved { --stat-accent: rgba(16,185,129,0.5); }
+    .myEventStat.approved .myEventStat-value { color: #34d399; }
+    .myEventStat.rejected { --stat-accent: rgba(239,68,68,0.5); }
+    .myEventStat.rejected .myEventStat-value { color: #f87171; }
+    .myEventStat.pending { --stat-accent: rgba(245,158,11,0.5); }
+    .myEventStat.pending .myEventStat-value { color: #fbbf24; }
+    .myEventStat-bar { margin-top: 10px; height: 3px; background: rgba(255,255,255,0.05); border-radius: 100px; overflow: hidden; }
+    .myEventStat-bar-fill { height: 100%; background: var(--stat-accent); border-radius: 100px; transition: width 0.4s ease; }
     .myEventTableWrap { overflow-x: auto; border-radius: 16px; border: 1px solid var(--border); }
     .myEventTable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
     .myEventTable thead { background: rgba(15,15,30,0.95); }
@@ -1340,14 +1352,16 @@ function changePassword() {
     }
 
     function renderMyEventStats(events) {
+      var total = events.length;
       var approved = events.filter(function(e) { return (e.status || '').toUpperCase() === 'APPROVED'; }).length;
       var rejected = events.filter(function(e) { return (e.status || '').toUpperCase() === 'REJECTED'; }).length;
       var pending = events.filter(function(e) { return (e.status || '').toUpperCase() === 'PENDING'; }).length;
+      var pct = function(n) { return total > 0 ? Math.round((n / total) * 100) : 0; };
       var html = '';
-      html += '<div class="myEventStat"><div class="myEventStat-label">Total</div><div class="myEventStat-value">' + events.length + '</div></div>';
-      html += '<div class="myEventStat approved"><div class="myEventStat-label">Approved</div><div class="myEventStat-value">' + approved + '</div></div>';
-      html += '<div class="myEventStat rejected"><div class="myEventStat-label">Rejected</div><div class="myEventStat-value">' + rejected + '</div></div>';
-      html += '<div class="myEventStat pending"><div class="myEventStat-label">Pending</div><div class="myEventStat-value">' + pending + '</div></div>';
+      html += '<div class="myEventStat total"><div class="myEventStat-label"><i class="fas fa-layer-group"></i> Total</div><div class="myEventStat-value">' + total + '</div><div class="myEventStat-bar"><div class="myEventStat-bar-fill" style="width:100%"></div></div></div>';
+      html += '<div class="myEventStat approved"><div class="myEventStat-label"><i class="fas fa-circle-check"></i> Approved</div><div class="myEventStat-value">' + approved + '</div><div class="myEventStat-bar"><div class="myEventStat-bar-fill" style="width:' + pct(approved) + '%"></div></div></div>';
+      html += '<div class="myEventStat rejected"><div class="myEventStat-label"><i class="fas fa-circle-xmark"></i> Rejected</div><div class="myEventStat-value">' + rejected + '</div><div class="myEventStat-bar"><div class="myEventStat-bar-fill" style="width:' + pct(rejected) + '%"></div></div></div>';
+      html += '<div class="myEventStat pending"><div class="myEventStat-label"><i class="fas fa-clock"></i> Pending</div><div class="myEventStat-value">' + pending + '</div><div class="myEventStat-bar"><div class="myEventStat-bar-fill" style="width:' + pct(pending) + '%"></div></div></div>';
       var statsEl = document.getElementById('myEventStats');
       if (statsEl) statsEl.innerHTML = html;
     }
