@@ -1818,7 +1818,11 @@ export default {
     if (path === '/api/apikeys' && request.method === 'GET') {
       if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak!' }, { status: 403 });
       try {
-        const { results } = await env.DB.prepare("SELECT id, key, label, scope, created_by, created_at, active FROM api_keys ORDER BY datetime(created_at) DESC").all();
+        let { results } = await env.DB.prepare("SELECT id, key, label, scope, created_by, created_at, active FROM api_keys ORDER BY datetime(created_at) DESC").all();
+        // Backward compat: if scope column doesn't exist yet, add default
+        if (results && results.length > 0 && results[0].scope === undefined) {
+          results = results.map(function(k) { k.scope = k.scope || 'all'; return k; });
+        }
         return Response.json({ success: true, keys: results || [] });
       } catch (err) {
         return Response.json({ error: 'Gagal memuat API keys: ' + (err.message || err) }, { status: 500 });
@@ -1842,9 +1846,17 @@ export default {
         const buf = new Uint8Array(32);
         crypto.getRandomValues(buf);
         for (let i = 0; i < 32; i++) key += chars[buf[i] % chars.length];
-        const result = await env.DB.prepare(
-          "INSERT INTO api_keys (key, label, scope, created_by) VALUES (?, ?, ?, ?)"
-        ).bind(key, label, scope, grantedBy).run();
+        let result;
+        try {
+          result = await env.DB.prepare(
+            "INSERT INTO api_keys (key, label, scope, created_by) VALUES (?, ?, ?, ?)"
+          ).bind(key, label, scope, grantedBy).run();
+        } catch(e) {
+          // Fallback: scope column might not exist yet
+          result = await env.DB.prepare(
+            "INSERT INTO api_keys (key, label, created_by) VALUES (?, ?, ?)"
+          ).bind(key, label, grantedBy).run();
+        }
         const newId = result.meta ? result.meta.last_row_id : null;
         return Response.json({ success: true, id: newId, key: key, label: label, scope: scope, created_by: grantedBy, created_at: new Date().toISOString(), active: 1 });
       } catch (err) {
