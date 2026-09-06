@@ -395,6 +395,49 @@
     .me-screenshot:hover { background: rgba(255,255,255,0.12); }
     .me-screenshot i { color: var(--text-tertiary); font-size: 13px; }
     @media (max-width: 680px) { .myEventWrap { padding: 10px; border-radius: 16px; } .myEventHeader { flex-direction: column; } .myEventControls { width: 100%; } .myEventControls input { min-width: 100%; } .myEventTable { font-size: 11px; } .myEventTable th, .myEventTable td { padding: 8px 10px; } }
+
+    /* ===== API KEY PANEL (2-column) ===== */
+    .akp-grid { display: grid; grid-template-columns: 45% 1fr; gap: 20px; margin-top: 22px; }
+    .akp-card { background: rgba(15,15,25,0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+    .akp-card h3 { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; letter-spacing: -0.3px; }
+    .akp-card .akp-desc { font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 18px; line-height: 1.5; }
+    .akp-label { font-size: 10.5px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-bottom: 6px; }
+    .akp-input, .akp-select { width: 100%; padding: 11px 14px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: var(--text-primary); font-size: 13px; outline: none; font-family: inherit; transition: all 0.2s; }
+    .akp-input:focus, .akp-select:focus { border-color: rgba(6,182,212,0.5); box-shadow: 0 0 0 3px rgba(6,182,212,0.08); }
+    .akp-input::placeholder { color: var(--text-tertiary); }
+    .akp-field { margin-bottom: 14px; }
+    .akp-info-box { background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(6,182,212,0.12)); border: 1px solid rgba(16,185,129,0.25); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .akp-info-box i { color: #34d399; font-size: 16px; }
+    .akp-info-box .akp-info-text { font-size: 12px; color: var(--text-primary); font-weight: 600; }
+    .akp-info-box .akp-info-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+    .akp-btn-gen { width: 100%; padding: 13px; background: linear-gradient(135deg, #7c3aed, #06b6d4); color: #fff; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+    .akp-btn-gen:hover { transform: translateY(-1px); box-shadow: 0 0 24px rgba(124,58,237,0.35); }
+    .akp-btn-gen:active { transform: scale(0.98); }
+    .akp-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-top: 14px; }
+    .akp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .akp-table thead { background: rgba(255,255,255,0.03); }
+    .akp-table th { padding: 10px 14px; text-align: left; color: var(--text-tertiary); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
+    .akp-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text-primary); }
+    .akp-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    .akp-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+    .akp-badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+    .akp-status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; }
+    .akp-btn-icon { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: var(--text-secondary); width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 11px; }
+    .akp-btn-icon:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+    .akp-btn-icon.danger:hover { background: rgba(239,68,68,0.15); color: var(--accent-danger); border-color: rgba(239,68,68,0.3); }
+    .akp-endpoint { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; }
+    .akp-method { font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; color: #fff; flex-shrink: 0; }
+    .akp-method.get { background: #16a34a; }
+    .akp-method.post { background: #ea580c; }
+    .akp-method.del { background: #dc2626; }
+    .akp-url { flex: 1; font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .akp-code-block { background: #0a0a0f; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 16px; overflow-x: auto; margin-top: 10px; }
+    .akp-code { font-family: var(--font-mono); font-size: 12px; line-height: 1.6; color: #c4b5fd; }
+    .akp-code .tk-com { color: #4b5563; }
+    .akp-code .tk-str { color: #34d399; }
+    .akp-code .tk-key { color: #06b6d4; }
+    .akp-code .tk-fn { color: #fbbf24; }
+    @media (max-width: 980px) { .akp-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -812,6 +855,113 @@
         </div>
       </div>
 
+      <!-- ===== API KEY VIEW (2-column) ===== -->
+      <div id="apiKeyView" style="display:none;">
+        <div class="akp-grid">
+          <!-- LEFT: Generate + Table -->
+          <div>
+            <div class="akp-card" style="margin-bottom:16px;">
+              <h3>Generate API</h3>
+              <div class="akp-desc">Buat API key untuk menghubungkan extension atau aplikasi eksternal ke Dashboard AURA.OS.</div>
+              <div class="akp-field">
+                <div class="akp-label">Fungsi / Menu</div>
+                <select class="akp-select" id="akpScopeSelect" onchange="updateAkpAccessInfo()">
+                  <option value="event_tools">My Event (Extension Submit)</option>
+                  <option value="rek_validator">Rek Validator</option>
+                  <option value="bank_processor">Bank Processor</option>
+                  <option value="qris_tools">QRIS Tools</option>
+                  <option value="prediction_tools">Prediction Tools</option>
+                  <option value="saldo_pencairan">Saldo Pencairan</option>
+                  <option value="authority_panel">Authority Panel</option>
+                  <option value="ip_whitelist">IP Whitelist</option>
+                  <option value="edit_bukti">Edit Bukti</option>
+                  <option value="keep_memo">Keep Memo</option>
+                  <option value="setting">Setting</option>
+                  <option value="all">All Access (Super Key)</option>
+                </select>
+              </div>
+              <div class="akp-field">
+                <div class="akp-label">Label</div>
+                <input type="text" class="akp-input" id="akpLabelInput" placeholder="cth: Chrome Extension" maxlength="60">
+              </div>
+              <div class="akp-field">
+                <div class="akp-label">Masa Berlaku</div>
+                <select class="akp-select" id="akpExpirySelect">
+                  <option value="7">7 Hari</option>
+                  <option value="30" selected>30 Hari</option>
+                  <option value="90">90 Hari</option>
+                  <option value="0">Permanent</option>
+                </select>
+              </div>
+              <div class="akp-info-box">
+                <i class="fas fa-shield-halved"></i>
+                <div><div class="akp-info-text" id="akpAccessInfo">ACCESS: My Event</div><div class="akp-info-sub">Key hanya bisa akses fungsi terpilih</div></div>
+              </div>
+              <button class="akp-btn-gen" id="akpGenBtn" onclick="generateApiKey()"><i class="fas fa-bolt"></i> Generate API Key</button>
+            </div>
+            <div class="akp-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h3>API Key Aktif</h3>
+                <button onclick="loadApiKeys()" class="akp-btn-icon"><i class="fas fa-rotate"></i></button>
+              </div>
+              <div class="akp-desc">Jangan bagikan key ke pihak yang tidak berwenang.</div>
+              <div class="akp-table-wrap">
+                <table class="akp-table">
+                  <thead><tr><th>NAMA</th><th>SCOPE</th><th>STATUS</th><th>DIBUAT</th><th>AKSI</th></tr></thead>
+                  <tbody id="akpTableBody"><tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-tertiary);">Memuat...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- RIGHT: Documentation + Code -->
+          <div>
+            <div class="akp-card" style="margin-bottom:16px;">
+              <div style="font-size:10.5px; color:#06b6d4; text-transform:uppercase; letter-spacing:1.5px; font-weight:600; margin-bottom:4px;">Endpoint API</div>
+              <h3>Universal API Endpoint</h3>
+              <div class="akp-desc">Gunakan endpoint berikut untuk menghubungkan extension atau aplikasi ke AURA.OS.</div>
+              <div class="akp-endpoint"><span class="akp-method get">GET</span><code class="akp-url">/api/event/list</code><button class="akp-btn-icon" onclick="copyAkpUrl(this,'/api/event/list')"><i class="fas fa-copy"></i></button></div>
+              <div class="akp-endpoint"><span class="akp-method post">POST</span><code class="akp-url">/api/event/submit</code><button class="akp-btn-icon" onclick="copyAkpUrl(this,'/api/event/submit')"><i class="fas fa-copy"></i></button></div>
+              <div class="akp-endpoint"><span class="akp-method del">DEL</span><code class="akp-url">/api/event/delete</code><button class="akp-btn-icon" onclick="copyAkpUrl(this,'/api/event/delete')"><i class="fas fa-copy"></i></button></div>
+            </div>
+            <div class="akp-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h3>Contoh JavaScript</h3>
+                <button onclick="copyAkpCode()" class="akp-btn-icon"><i class="fas fa-copy"></i></button>
+              </div>
+              <div class="akp-desc">Contoh penggunaan API key di background.js extension.</div>
+              <div class="akp-code-block">
+                <pre class="akp-code"><span class="tk-com">// background.js - Extension AURA.OS</span>
+<span class="tk-key">const</span> API_KEY = <span class="tk-str">'YOUR_API_KEY_HERE'</span>;
+<span class="tk-key">const</span> API_URL = <span class="tk-str">'https://aura.hundjagers.workers.dev/api/event/submit'</span>;
+
+<span class="tk-key">async function</span> <span class="tk-fn">submitEvent</span>(data) {
+  <span class="tk-key">const</span> res = <span class="tk-key">await</span> <span class="tk-fn">fetch</span>(API_URL, {
+    method: <span class="tk-str">'POST'</span>,
+    headers: {
+      <span class="tk-str">'Content-Type'</span>: <span class="tk-str">'application/json'</span>,
+      <span class="tk-str">'x-api-key'</span>: API_KEY
+    },
+    body: JSON.<span class="tk-fn">stringify</span>(data)
+  });
+  <span class="tk-key">return</span> res.<span class="tk-fn">json</span>();
+}
+
+<span class="tk-com">// Usage: submit scatter approved</span>
+<span class="tk-fn">submitEvent</span>({
+  situs: <span class="tk-str">'LunaTogel'</span>,
+  user_id: <span class="tk-str">'player123'</span>,
+  tipe_game: <span class="tk-str">'MAHJONG'</span>,
+  kode_tiket: <span class="tk-str">'20964641048993138946'</span>,
+  hadiah: <span class="tk-str">'Rp 15,000'</span>,
+  klaim: <span class="tk-str">'LIVECHAT'</span>,
+  status: <span class="tk-str">'APPROVED'</span>
+});</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
   </main>
 
   <!-- Right Panel -->
@@ -977,6 +1127,11 @@ function changePassword() {
     function switchToProfil() {
       document.getElementById('dashboardView').style.display = 'none';
       var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
+      var akv2 = document.getElementById('apiKeyView'); if (akv2) akv2.style.display = 'none';
+      var akv2 = document.getElementById('apiKeyView'); if (akv2) akv2.style.display = 'none';
+      var akv2 = document.getElementById('apiKeyView'); if (akv2) akv2.style.display = 'none';
+      var akv2 = document.getElementById('apiKeyView'); if (akv2) akv2.style.display = 'none';
+      var akv2 = document.getElementById('apiKeyView'); if (akv2) akv2.style.display = 'none';
       document.getElementById('profilView').style.display = 'block';
       document.getElementById('pencairanView').style.display = 'none';
       var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
@@ -1130,9 +1285,9 @@ function changePassword() {
     };
 
     function generateApiKey() {
-      var scope = document.getElementById('apikeyScopeSelect')?.value || 'event_tools';
-      var label = document.getElementById('apikeyLabelInput')?.value.trim() || '';
-      var btn = document.getElementById('apikeyGenBtn');
+      var scope = document.getElementById('akpScopeSelect')?.value || 'event_tools';
+      var label = document.getElementById('akpLabelInput')?.value.trim() || '';
+      var btn = document.getElementById('akpGenBtn');
       if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generate'; }
       var token = localStorage.getItem('aura_auth_token') || '';
       fetch('/api/apikeys', {
@@ -1142,24 +1297,24 @@ function changePassword() {
       })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Generate'; }
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt"></i> Generate API Key'; }
           if (data.success) {
             showToast('API Key berhasil dibuat untuk ' + (APIKEY_SCOPES[scope]?.label || scope), 'success');
             addTerminalLog('API Key generated: ' + scope + ' (' + (label || 'no label') + ')');
-            if (document.getElementById('apikeyLabelInput')) document.getElementById('apikeyLabelInput').value = '';
+            if (document.getElementById('akpLabelInput')) document.getElementById('akpLabelInput').value = '';
             loadApiKeys();
           } else {
             showToast(data.error || 'Gagal generate API key', 'error');
           }
         })
         .catch(function() {
-          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Generate'; }
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt"></i> Generate API Key'; }
           showToast('Kesalahan koneksi', 'error');
         });
     }
 
     function loadApiKeys() {
-      var listEl = document.getElementById('apikeyList');
+      var listEl = document.getElementById('akpTableBody');
       if (!listEl) return;
       listEl.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-tertiary); font-size:13px;"><i class="fas fa-spinner fa-spin" style="font-size:20px; margin-bottom:8px; display:block;"></i>Memuat...</div>';
       var token = localStorage.getItem('aura_auth_token') || '';
@@ -1175,19 +1330,18 @@ function changePassword() {
             var scope = k.scope || 'all';
             var sc = APIKEY_SCOPES[scope] || APIKEY_SCOPES['all'];
             var created = k.created_at ? new Date(k.created_at).toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '-';
-            var masked = k.key.substring(0, 8) + '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' + k.key.substring(k.key.length - 4);
-            html += '<div style="background:rgba(15,15,22,0.6); border:1px solid var(--border); border-radius:12px; padding:14px; transition:all 0.2s;" onmouseover="this.style.borderColor=\'' + sc.color + '50\'" onmouseout="this.style.borderColor=\'var(--border)\'">';
-            html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px;">';
-            html += '<div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">';
-            html += '<div style="width:32px; height:32px; border-radius:8px; background:' + sc.color + '20; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fas ' + sc.icon + '" style="color:' + sc.color + '; font-size:13px;"></i></div>';
-            html += '<div style="min-width:0; flex:1;"><div style="font-size:13px; font-weight:600; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escapeHtml(k.label || sc.label) + '</div>';
-            html += '<div style="font-size:10.5px; color:var(--text-tertiary); margin-top:2px;">' + sc.label + ' · by ' + escapeHtml(k.created_by || '-') + ' · ' + created + '</div></div></div>';
-            html += '<button onclick="deleteApiKey(' + k.id + ')" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:var(--accent-danger); width:30px; height:30px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s;" onmouseover="this.style.background=\'rgba(239,68,68,0.2)\'" onmouseout="this.style.background=\'rgba(239,68,68,0.1)\'"><i class="fas fa-trash" style="font-size:11px;"></i></button>';
-            html += '</div>';
-            html += '<div style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.3); border-radius:8px; padding:8px 12px;">';
-            html += '<code style="flex:1; font-family:var(--font-mono); font-size:12px; color:' + sc.color + '; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + masked + '</code>';
-            html += '<button onclick="copyApiKey(\'' + k.key + '\')" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-secondary); width:28px; height:28px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s;" onmouseover="this.style.color=\'var(--accent-primary)\'" onmouseout="this.style.color=\'var(--text-secondary)\'"><i class="fas fa-copy" style="font-size:11px;"></i></button>';
-            html += '</div></div>';
+            var masked = k.key.substring(0, 8) + '••••••••' + k.key.substring(k.key.length - 4);
+            var created = k.created_at ? new Date(k.created_at).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) : '-';
+            var isActive = k.active === 1 || k.active === true;
+            var statusDot = isActive ? '#10b981' : '#ef4444';
+            var statusText = isActive ? 'Aktif' : 'Diblokir';
+            html += '<tr>';
+            html += '<td><div style="font-weight:600;">' + escapeHtml(k.label || sc.label) + '</div><div style="font-family:var(--font-mono); font-size:11px; color:var(--text-tertiary); margin-top:2px;">' + masked + '</div></td>';
+            html += '<td><span class="akp-badge" style="background:' + sc.color + '20; color:' + sc.color + '; border:1px solid ' + sc.color + '40;">' + sc.label + '</span></td>';
+            html += '<td><span class="akp-status-dot" style="background:' + statusDot + ';"></span>' + statusText + '</td>';
+            html += '<td style="font-size:11px; color:var(--text-tertiary);">' + created + '</td>';
+            html += '<td><button class="akp-btn-icon" onclick="copyApiKey(\'' + k.key + '\')" title="Copy"><i class="fas fa-copy"></i></button> <button class="akp-btn-icon danger" onclick="deleteApiKey(' + k.id + ')" title="Hapus"><i class="fas fa-trash"></i></button></td>';
+            html += '</tr>';
           });
           listEl.innerHTML = html;
         })
@@ -1290,9 +1444,7 @@ function changePassword() {
           addTerminalLog('Keep Memo opened');
           break;
         case 'apiKey':
-          showPopup('API Key Manager', '<div style="padding:14px; max-width:560px;"><div style="margin-bottom:16px;"><div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.8px; font-weight:600; margin-bottom:8px;">Generate API Key per Fungsi</div><div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;"><select id="apikeyScopeSelect" style="flex:1; min-width:200px; padding:11px 14px; background:rgba(15,15,22,0.8); border:1px solid var(--border); border-radius:10px; color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;"><option value="event_tools">My Event (Extension Submit)</option><option value="rek_validator">Rek Validator</option><option value="bank_processor">Bank Processor</option><option value="qris_tools">QRIS Tools</option><option value="prediction_tools">Prediction Tools</option><option value="saldo_pencairan">Saldo Pencairan</option><option value="authority_panel">Authority Panel</option><option value="ip_whitelist">IP Whitelist</option><option value="edit_bukti">Edit Bukti</option><option value="keep_memo">Keep Memo</option><option value="setting">Setting</option><option value="all">All Access (Super Key)</option></select><input type="text" id="apikeyLabelInput" placeholder="Label (cth: Chrome Ext)" maxlength="60" style="flex:1; min-width:180px; padding:11px 14px; background:rgba(15,15,22,0.8); border:1px solid var(--border); border-radius:10px; color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;"><button id="apikeyGenBtn" onclick="generateApiKey()" style="padding:11px 18px; background:linear-gradient(135deg, var(--accent-primary), var(--accent-primary-dark)); color:#fff; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap; transition:transform 0.15s;"><i class="fas fa-plus"></i> Generate</button></div></div><div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;"><div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.8px; font-weight:600;">Active API Keys</div><button onclick="loadApiKeys()" style="background:none; border:none; color:var(--text-tertiary); cursor:pointer; font-size:11px; display:flex; align-items:center; gap:4px;"><i class="fas fa-rotate"></i> Refresh</button></div><div id="apikeyList" style="max-height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"><div style="text-align:center; padding:30px; color:var(--text-tertiary); font-size:13px;"><i class="fas fa-spinner fa-spin" style="font-size:20px; margin-bottom:8px; display:block;"></i>Memuat...</div></div></div>', false, null, true);
-          loadApiKeys();
-          addTerminalLog('API Key Manager opened');
+          switchToApiKey();
           break;
         case 'setting':
           showPopup('Setting', '<div style="padding:10px;"><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Terminal Auto-Scroll</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setAutoScroll" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setAutoScrollDot"></span></label></div><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Toast Notifications</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setToast" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setToastDot"></span></label></div><div style="padding:14px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius-md); cursor:pointer; text-align:center; color:var(--accent-danger); font-weight:600; font-size:14px;" id="clearDataBtn">Clear All Local Data</div></div>', false);
@@ -1421,6 +1573,41 @@ function changePassword() {
     /* ===================================================================
        MY EVENT FUNCTIONS
        =================================================================== */
+    function switchToApiKey() {
+      document.getElementById('dashboardView').style.display = 'none';
+      document.getElementById('profilView').style.display = 'none';
+      document.getElementById('pencairanView').style.display = 'none';
+      var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
+      var mev = document.getElementById('myEventView'); if (mev) mev.style.display = 'none';
+      var akv = document.getElementById('apiKeyView'); if (akv) akv.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'api key';
+      currentView = 'apiKey';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to API Key view');
+      loadApiKeys();
+    }
+
+    function updateAkpAccessInfo() {
+      var scope = document.getElementById('akpScopeSelect')?.value || 'all';
+      var sc = APIKEY_SCOPES[scope] || APIKEY_SCOPES['all'];
+      var infoEl = document.getElementById('akpAccessInfo');
+      if (infoEl) infoEl.textContent = 'ACCESS: ' + sc.label;
+    }
+
+    function copyAkpUrl(btn, url) {
+      var fullUrl = window.location.origin + url;
+      navigator.clipboard.writeText(fullUrl).then(function() {
+        showToast('URL disalin: ' + fullUrl, 'success');
+      });
+    }
+
+    function copyAkpCode() {
+      var code = document.querySelector('.akp-code')?.textContent || '';
+      navigator.clipboard.writeText(code).then(function() {
+        showToast('Code snippet disalin', 'success');
+      });
+    }
+
     function switchToMyEvent() {
       document.getElementById('dashboardView').style.display = 'none';
       document.getElementById('profilView').style.display = 'none';
