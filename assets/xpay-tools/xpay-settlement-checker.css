@@ -1,10 +1,10 @@
 :root{
-  --bg:#f4f7fb;--card:#ffffff;--text:#162033;--muted:#718096;--line:#e6ebf2;
+  --bg:#0a0a0f;--card:rgba(20,20,30,0.9);--text:#f1f5f9;--muted:#94a3b8;--line:rgba(255,255,255,0.08);
   --navy:#12203b;--gold:#e2bd45;--pink:#e74b97;--green:#20a44b;--teal:#119d8c;
   --purple:#7456a8;--shadow:0 3px 12px rgba(20,32,59,.08);
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#eef3f8 0,#f8fafc 100%);color:var(--text)}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a0a0f;color:var(--text)}
 .wrap{max-width:1600px;margin:0 auto;padding:20px 26px 42px}
 .title{display:flex;align-items:center;gap:11px;font-size:20px;font-weight:800;margin-bottom:14px}
 .title .icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:#fff8dc;color:#aa8a18;border:1px solid #f1e4a5}
@@ -81,3 +81,26 @@ td{color:#f5f8ff;border-color:rgba(255,255,255,.08)!important}
 tr:hover td{background:rgba(255,255,255,.035)!important}
 .cloud-api-note{margin-top:8px;color:rgba(225,237,255,.68);font-size:11px}
 .cloud-api-note code{padding:3px 7px;border:1px solid rgba(255,255,255,.10);border-radius:7px;color:#bce3ff;background:rgba(5,12,25,.45)}
+
+/* ===== AURA.OS DARK THEME OVERRIDE ===== */
+html,body{background:#0a0a0f!important;color:#f8fbff!important}
+.panel{background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.025)),rgba(10,10,15,.6)!important;border-color:rgba(255,255,255,.12)!important;backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%)}
+.card{background:linear-gradient(145deg,rgba(255,255,255,.06),rgba(255,255,255,.02)),rgba(10,10,15,.5)!important;border-color:rgba(255,255,255,.10)!important}
+.section{background:rgba(10,10,15,.5)!important;border-color:rgba(255,255,255,.10)!important}
+.filebox{background:rgba(5,12,25,.48)!important;border-color:rgba(255,255,255,.16)!important;color:#f8fbff!important}
+.filebox strong{color:#fff!important}
+.filebox small{color:rgba(239,245,255,.76)!important}
+.date-input{background:rgba(5,12,25,.48)!important;border-color:rgba(255,255,255,.16)!important;color:#f8fbff!important}
+.search{background:rgba(5,12,25,.48)!important;border-color:rgba(255,255,255,.16)!important;color:#f8fbff!important}
+.btn-file{background:rgba(255,255,255,.08)!important;color:#f8fbff!important;border:1px solid rgba(255,255,255,.12)}
+.btn-export{background:rgba(255,255,255,.06)!important;color:#f8fbff!important;border:1px solid rgba(255,255,255,.12)}
+th{background:rgba(7,16,31,.92)!important;color:#cbd5e1!important;border-color:rgba(255,255,255,.10)!important}
+td{color:#f5f8ff!important;border-color:rgba(255,255,255,.08)!important}
+tr:hover td{background:rgba(255,255,255,.035)!important}
+.eyebrow{color:rgba(239,245,255,.76)!important}
+.line{color:rgba(239,245,255,.76)!important}
+.hint{color:rgba(239,245,255,.76)!important}
+.status{color:rgba(239,245,255,.76)!important}
+.section-title{color:#fff!important}
+.section-head{border-color:rgba(255,255,255,.11)!important}
+.empty{color:rgba(239,245,255,.5)!important}
