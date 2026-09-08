@@ -1895,6 +1895,13 @@ export default {
     // ============================================
     // BUKTI GENERATOR — serve static files from /bukti-generator/
     // ============================================
+    // ============================================
+    // XPAY TOOLS — serve static files from /xpay-tools/
+    // ============================================
+    if (path.startsWith('/xpay-tools/')) {
+      return env.ASSETS.fetch(new Request(new URL(path, request.url), request));
+    }
+
     if (path.startsWith('/bukti-generator/')) {
       return env.ASSETS.fetch(new Request(new URL(path, request.url), request));
     }
