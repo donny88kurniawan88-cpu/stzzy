@@ -537,7 +537,7 @@
           </div>
         </div>
 
-        <div class="nav-item" onclick="window.open('/bukti-generator/generate-bukti.html', '_blank')" data-access-item="edit_bukti">
+        <div class="nav-item" data-action="editBukti" data-access-item="edit_bukti">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Bukti
         </div>
@@ -616,7 +616,7 @@
           <div class="module-card" data-color="green" onclick="switchToMyEvent()"><div class="module-icon">📅</div><div class="module-name" data-access-item-card="event_tools">My Event</div><div class="module-desc">Manage active events</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">🕐</div><div class="module-name" data-access-item-card="event_tools">History Event</div><div class="module-desc">Event history &amp; logs</div><div class="module-badge">Soon</div></div>
           <div class="module-card" data-color="green" onclick="window.location.href='/PgReport.html'"><div class="module-icon">🧾</div><div class="module-name" data-access-item-card="event_tools">PG Report</div><div class="module-desc">PG Soft credit calculator engine</div><div class="module-badge">v5.0.0</div></div>
-          <div class="module-card" data-color="pink" data-action="comingSoon"><div class="module-icon">✏️</div><div class="module-name" data-access-item-card="edit_bukti">Edit Bukti</div><div class="module-desc">Edit &amp; manage proof of payment</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="pink" data-action="editBukti"><div class="module-icon">✏️</div><div class="module-name" data-access-item-card="edit_bukti">Edit Bukti</div><div class="module-desc">Edit &amp; manage proof of payment</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="orange" data-action="keepMemo"><div class="module-icon">📝</div><div class="module-name" data-access-item-card="keep_memo">Keep Memo</div><div class="module-desc">Simpan &amp; kelola catatan memo</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="teal" data-action="loadPencairan"><div class="module-icon">💸</div><div class="module-name" data-access-item-card="saldo_pencairan">Saldo Pencairan</div><div class="module-desc">Monitor rekening &amp; pencairan</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="blue" data-action="apiKey"><div class="module-icon">🔑</div><div class="module-name" data-access-item-card="api_key">API Key</div><div class="module-desc">Manage API credentials</div><div class="module-badge">v2.0.0</div></div>
@@ -959,6 +959,13 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ===== EDIT BUKTI VIEW ===== -->
+      <div id="editBuktiView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#e2e8f0; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+          <iframe src="/bukti-generator/generate-bukti.html" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="Bukti Transfer Generator"></iframe>
         </div>
       </div>
 
@@ -1412,6 +1419,9 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
         case 'profil':
           switchToProfil();
           break;
+        case 'editBukti':
+          switchToEditBukti();
+          break;
         case 'comingSoon':
           showToast('Modul ini sedang dalam pengembangan', 'warning');
           addTerminalLog('Access denied: module in development');
@@ -1516,6 +1526,7 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
       var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
       var akv = document.getElementById('apiKeyView'); if (akv) akv.style.display = 'none';
+      var ebv = document.getElementById('editBuktiView'); if (ebv) ebv.style.display = 'none';
     }
 
     function switchToDashboard() {
@@ -1565,6 +1576,15 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
     /* ===================================================================
        MY EVENT FUNCTIONS
        =================================================================== */
+    function switchToEditBukti() {
+      hideAllViews();
+      var ebv = document.getElementById('editBuktiView'); if (ebv) ebv.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'edit bukti';
+      currentView = 'editBukti';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to Edit Bukti view');
+    }
+
     function switchToApiKey() {
       hideAllViews();
       var akv = document.getElementById('apiKeyView'); if (akv) akv.style.display = 'block';
