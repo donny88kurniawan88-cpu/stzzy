@@ -1,5 +1,5 @@
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI','Inter',-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif}
-body{background:#e2e8f0;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:20px;gap:24px;flex-wrap:wrap;position:relative}
+body{background:#0a0a0f;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:20px;gap:24px;flex-wrap:wrap;position:relative}
 .control-panel{position:fixed;top:20px;left:20px;width:320px;background:white;border-radius:24px;padding:20px;box-shadow:0 20px 35px -8px rgba(0,0,0,.2),0 0 0 1px rgba(0,0,0,.02);z-index:999;max-height:calc(100vh - 40px);overflow-y:auto}
 .control-panel h3{font-size:18px;color:#0a2b4e;margin-bottom:16px;text-align:center;border-bottom:2px solid #e9edf2;padding-bottom:10px}
 .control-group{margin-bottom:14px}.control-group label{display:block;font-size:12px;font-weight:600;color:#1e4663;margin-bottom:5px}
