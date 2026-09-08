@@ -1,0 +1,444 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+}
+
+body {
+    background: #e2e8f0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px;
+    gap: 24px;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+/* ========== PANEL KONTROL (POJOK KIRI ATAS, TIDAK MASUK CAPTURE) ========== */
+.control-panel {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 320px;
+    background: white;
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0,0,0,0.02);
+    z-index: 999;
+    backdrop-filter: blur(0px);
+    transition: all 0.2s ease;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
+.control-panel h3 {
+    font-size: 18px;
+    color: #0a2b4e;
+    margin-bottom: 16px;
+    text-align: center;
+    border-bottom: 2px solid #e9edf2;
+    padding-bottom: 10px;
+}
+
+.control-group {
+    margin-bottom: 16px;
+}
+
+.control-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e4663;
+    margin-bottom: 5px;
+}
+
+.control-group input, .control-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #e2edf7;
+    border-radius: 12px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.control-group input:focus {
+    border-color: #0f5b9c;
+    box-shadow: 0 0 0 3px rgba(15, 91, 156, 0.1);
+}
+
+.control-row {
+    display: flex;
+    gap: 12px;
+}
+
+.control-row .control-group {
+    flex: 1;
+}
+
+.btn-reset {
+    width: 100%;
+    padding: 12px;
+    background: #0a2b4e;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-weight: bold;
+    margin-top: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-reset:active {
+    transform: scale(0.97);
+}
+
+.btn-save {
+    width: 100%;
+    padding: 12px;
+    background: #1e6f3f;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-weight: bold;
+    margin-top: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-save:active {
+    transform: scale(0.97);
+    background: #155a34;
+}
+
+.upload-group {
+    margin-top: 8px;
+}
+
+.upload-group input[type="file"] {
+    padding: 8px 10px;
+    font-size: 12px;
+    background: #f0f4f9;
+    cursor: pointer;
+}
+
+/* ================= AREA CAPTURE - FULL LEBAR ================= */
+#captureArea {
+    position: relative;
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 1400px;
+}
+
+/* BIG-WALLPAPER - SUPER HD, FULL LEBAR TANPA BATASAN */
+.big-wallpaper{
+    position: relative;
+    width: 100%;
+    height: auto;
+    margin: 0 auto;
+    overflow: hidden;
+    cursor: grab;
+    background: transparent;
+}
+
+.big-wallpaper:active {
+    cursor: grabbing;
+}
+
+.bg-zoom-container {
+    width: 100%;
+    height: 100%;
+    display: block;
+    transform-origin: 0 0;
+    transition: none;
+}
+
+/* WALLPAPER SUPER HD - RESOLUSI TINGGI */
+.big-wallpaper img{
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+    filter: none;
+    opacity: 1;
+    image-rendering: auto;
+    pointer-events: none;
+}
+
+/* ========== STRUK BCA - SESUAI SCRIPT PERTAMA ========== */
+.app {
+    position: absolute;
+    width: 380px;
+    max-width: 85%;
+    background: #fff;
+    overflow: hidden;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.3);
+    border: 1px solid #d1d9e6;
+    z-index: 10;
+    cursor: grab;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+}
+
+.app:active {
+    cursor: grabbing;
+}
+
+/* WATERMARK */
+.watermark {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.07;
+    pointer-events: none;
+}
+
+.watermark img {
+    position: absolute;
+    width: 94px;
+    transform: rotate(-25deg);
+}
+
+.w1 { top: 4.5%; left: -5%; }
+.w2 { top: 4.5%; left: 20%; }
+.w3 { top: 4.5%; left: 55%; }
+.w4 { top: 4.5%; right: -2%; }
+.w5 { top: 15%; left: -5%; }
+.w6 { top: 25%; left: 100%; }
+.w7 { top: 15%; left: 82%; }
+.w8 { top: 20%; right: -25%; }
+.w9 { top: 32%; left: -6%; }
+.w10 { top: 32%; left: 24%; }
+.w11 { top: 32%; left: 50%; }
+.w12 { top: 31%; right: -3%; }
+.w13 { top: 45%; left: -5%; }
+.w14 { top: 45%; left: 22%; }
+.w15 { top: 45%; left: 52%; }
+.w16 { top: 45%; right: -3%; }
+.w17 { top: 56%; left: -4%; }
+.w18 { top: 56%; left: 25%; }
+.w19 { top: 56%; left: 50%; }
+.w20 { top: 56%; right: -2%; }
+.w21 { top: 69%; left: -5%; }
+.w22 { top: 69%; left: 25%; }
+.w23 { top: 69%; left: 50%; }
+.w24 { top: 69%; right: -2%; }
+
+.content {
+    position: relative;
+    z-index: 2;
+    padding: 20px;
+}
+
+.logo {
+    text-align: center;
+}
+
+.logo img {
+    width: 100px;
+    height: auto;
+}
+
+.line {
+    border-top: 3px dashed #e9edf2;
+    margin: 20px 0;
+}
+
+.success {
+    text-align: center;
+}
+
+.check {
+    width: 220px;
+    margin: 0 auto;
+}
+
+.check img {
+    width: 100%;
+}
+
+.success h2 {
+    margin-top: 6px;
+    font-size: 20px;
+    color: #154a7a;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+}
+
+.time-text {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #5a6e7c;
+    font-weight: 500;
+}
+
+.idr-nominal {
+    margin-top: 7px;
+    font-size: 20px;
+    font-weight: 795;
+    color: #144578;
+    letter-spacing: 0.5px;
+    text-align: center;
+}
+
+.list {
+    margin-top: 18px;
+}
+
+.item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eff2f8;
+    padding: 14px 0;
+}
+
+.item-row .display-value {
+    width: 60%;
+    text-align: right;
+    font-size: 16px;
+    font-weight: 600;
+    color: #697680;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eff2f8;
+    padding: 14px 0;
+}
+
+.row .display-value {
+    width: 60%;
+    text-align: right;
+    font-weight: 600;
+    font-size: 16px;
+    color: #697680;
+}
+
+.label {
+    color: #7c8b9c;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+.bottom-image {
+    margin-top: 24px;
+}
+
+.bottom-image img {
+    width: 100%;
+    display: block;
+    border-radius: 16px;
+}
+
+.footer-note {
+    text-align: center;
+    font-size: 9px;
+    color: #b9c7d4;
+    margin-top: 18px;
+    letter-spacing: 0.5px;
+    border-top: 1px solid #eff2f8;
+    padding-top: 14px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 780px) {
+    body {
+        flex-direction: column;
+        align-items: flex-start;
+        padding-top: 380px;
+    }
+    .control-panel {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        width: auto;
+        max-width: 95%;
+        max-height: 340px;
+    }
+    .app {
+        width: 320px;
+    }
+    .content {
+        padding: 16px;
+    }
+    .check {
+        width: 180px;
+    }
+    .success h2 {
+        font-size: 18px;
+    }
+    .idr-nominal {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 450px) {
+    .content {
+        padding: 16px;
+    }
+    .check {
+        width: 180px;
+    }
+    .item-row .display-value,
+    .row .display-value {
+        width: 55%;
+        font-size: 14px;
+    }
+    .success h2 {
+        font-size: 18px;
+    }
+    .idr-nominal {
+        font-size: 28px;
+    }
+    .watermark img {
+        width: 70px;
+    }
+    body {
+        padding-top: 400px;
+    }
+    .app {
+        width: 290px;
+    }
+    .logo img {
+        width: 80px;
+    }
+}
+
+@media (min-width: 781px) {
+    body {
+        justify-content: center;
+        padding-left: 360px;
+        padding-right: 20px;
+    }
+}
+
+
+/* ========== MODE TANPA BACKGROUND BESAR ========== */
+#captureArea {
+    width: 420px;
+    max-width: 100%;
+    margin: 20px auto;
+    display: block;
+    position: relative;
+}
+
+.app {
+    position: relative;
+    left: auto;
+    top: auto;
+    margin: 0 auto;
+    transform: translate(0, 0) scale(1);
+}
