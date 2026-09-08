@@ -102,7 +102,7 @@
       fee:headers.indexOf('RECORD FEE'),
       status:headers.indexOf('STATUS'),
       member:headers.indexOf('MEMBER'),
-      partner:headers.indexOf('PARTNER ID')
+      partner:headers.indexOf('PARTNER ID')>=0 ? headers.indexOf('PARTNER ID') : headers.indexOf('PATNER ID')
     };
 
     if(idx.payment<0 || idx.value<0 || idx.fee<0){
@@ -147,11 +147,17 @@
     const s=String(value ?? '').trim();
     if(!s) return '';
 
-    let m=s.match(/^(\d{4}-\d{2}-\d{2})/);
-    if(m) return m[1];
+    // Format: YYYY-MM-DD (ISO)
+    let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
 
-    m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-    if(m) return `${m[3]}-${m[2]}-${m[1]}`;
+    // Format: M/D/YYYY (US format — XPay uses this, e.g. 9/8/2026 = Sep 8, 2026)
+    m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if(m) return `${m[3]}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
+
+    // Format: DD-MM-YYYY
+    m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
+    if(m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
 
     return '';
   }
@@ -481,9 +487,17 @@
 
     renderTable();
 
-    statusEl.textContent=
-      `${mode==='db' ? 'IndexedDB' : 'CSV'} • V25 • Settlement ${displayDate(settlementDate)} + `+
-      `Cutoff ${displayDate(cutoffDate)} → Total Cair ${displayDate(cairDate)}.`;
+    // Debug info if no results
+    if(resultRows.length===0){
+      statusEl.textContent=
+        `Tidak ada data cocok. Cek: Tanggal Cair=${displayDate(cairDate)}, `+
+        `Settlement(H-1)=${displayDate(settlementDate)}, Cutoff(H-2)=${displayDate(cutoffDate)}. `+
+        `Total baris dianalisa: ${rows.length}. Pastikan PAYMENT date cocok dengan H-1 atau H-2.`;
+    }else{
+      statusEl.textContent=
+        `${mode==='db' ? 'IndexedDB' : 'CSV'} • V25 • Settlement ${displayDate(settlementDate)} + `+
+        `Cutoff ${displayDate(cutoffDate)} → Total Cair ${displayDate(cairDate)}.`;
+    }
   }
 
   async function check(){
