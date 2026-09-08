@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA.OS // P2M Data Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="/analyzer-tools/analyzer.css?v=1.0.0">
+</head>
+<body>
+<div class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-left">
+          <div class="hero-icon"><i class="fas fa-chart-line"></i></div>
+          <div>
+            <h1 class="hero-title">Data Comparison Analyzer</h1>
+            <p class="hero-sub">Analisis P2M vs Zonamain vs Report — upload multi-format, export 8 format</p>
+          </div>
+        </div>
+        <div class="hero-badge">AURA v3.0.1</div>
+      </div>
+    </section>
+
+    <div class="quick-stats fade-in-up" style="animation-delay: 0.1s;">
+      <div class="stat-card"><div class="stat-value" id="overallP2M">0</div><div class="stat-label">Total P2M Nominal</div></div>
+      <div class="stat-card"><div class="stat-value" style="color: var(--accent-success);" id="overallReport">0</div><div class="stat-label">Total Report Nominal</div></div>
+      <div class="stat-card"><div class="stat-value" style="color: var(--accent-warning);" id="overallDifference">0</div><div class="stat-label">Overall Difference</div></div>
+    </div>
+
+    <section class="fade-in-up" style="animation-delay: 0.2s;">
+      <h2 class="section-title"><i class="fas fa-upload"></i> Upload Files</h2>
+      <div class="input-grid">
+        <div class="input-card">
+          <div class="input-header"><div class="input-title"><span class="input-icon" style="color: var(--accent-primary);"><i class="fas fa-database"></i></span> P2M Data</div><span class="input-count" id="p2mCount">0 lines</span></div>
+          <div class="input-body">
+            <div class="upload-area" onclick="document.getElementById('p2mFile').click()"><input type="file" id="p2mFile" accept=".txt,.csv,.tsv,.xlsx,.xls,.xlsm,.xlsb,.json,.xml,.html,.htm,.dat,.prn,.tab" style="display: none;" onchange="handleFileUpload(this, 'p2m')"><i class="fas fa-cloud-upload-alt"></i><span>Click to upload P2M file<br>Supported: ALL — txt, csv, tsv, xlsx, xls, json, xml, html</span></div>
+            <div class="file-info" id="p2mFileInfo"><div class="file-name" id="p2mFileName"></div><div class="file-stats"><span><i class="fas fa-calendar"></i> <span id="p2mFileDate"></span></span><span><i class="fas fa-file-lines"></i> <span id="p2mFileSize"></span></span></div></div>
+            <div class="input-help"><strong>Format:</strong> Merchant, Order ID, RRN, Amount, Fee, Total, Memo</div>
+          </div>
+        </div>
+        <div class="input-card">
+          <div class="input-header"><div class="input-title"><span class="input-icon" style="color: var(--accent-purple);"><i class="fas fa-server"></i></span> Zonamain Data</div><span class="input-count" id="zonaCount">0 lines</span></div>
+          <div class="input-body">
+            <div class="upload-area" onclick="document.getElementById('zonaFile').click()"><input type="file" id="zonaFile" accept=".txt,.csv,.tsv,.xlsx,.xls,.xlsm,.xlsb,.json,.xml,.html,.htm,.dat,.prn,.tab" style="display: none;" onchange="handleFileUpload(this, 'zona')"><i class="fas fa-cloud-upload-alt"></i><span>Click to upload Zonamain file<br>Supported: ALL — txt, csv, tsv, xlsx, xls, json, xml, html</span></div>
+            <div class="file-info" id="zonaFileInfo"><div class="file-name" id="zonaFileName"></div><div class="file-stats"><span><i class="fas fa-calendar"></i> <span id="zonaFileDate"></span></span><span><i class="fas fa-file-lines"></i> <span id="zonaFileSize"></span></span></div></div>
+            <div class="input-help"><strong>Format:</strong> Tanggal, Order ID, RRN, User ID, Jumlah, PPN, Total</div>
+          </div>
+        </div>
+        <div class="input-card">
+          <div class="input-header"><div class="input-title"><span class="input-icon" style="color: var(--accent-success);"><i class="fas fa-file-alt"></i></span> Report Data</div><span class="input-count" id="reportCount">0 lines</span></div>
+          <div class="input-body">
+            <div class="upload-area" onclick="document.getElementById('reportFile').click()"><input type="file" id="reportFile" accept=".txt,.csv,.tsv,.xlsx,.xls,.xlsm,.xlsb,.json,.xml,.html,.htm,.dat,.prn,.tab" style="display: none;" onchange="handleFileUpload(this, 'report')"><i class="fas fa-cloud-upload-alt"></i><span>Click to upload Report file<br>Supported: ALL — txt, csv, tsv, xlsx, xls, json, xml, html</span></div>
+            <div class="file-info" id="reportFileInfo"><div class="file-name" id="reportFileName"></div><div class="file-stats"><span><i class="fas fa-calendar"></i> <span id="reportFileDate"></span></span><span><i class="fas fa-file-lines"></i> <span id="reportFileSize"></span></span></div></div>
+            <div class="input-help"><strong>Format:</strong> Date, Info, TO (User), BY, Coin</div>
+          </div>
+        </div>
+
+        <div class="input-card" style="grid-column: 1 / -1;">
+          <div class="input-header"><div class="input-title"><span class="input-icon" style="color: var(--accent-warning);"><i class="fas fa-filter"></i></span> P2M Data Filter</div>
+            <div style="display: flex; align-items: center; gap: 15px;"><label class="switch"><input type="checkbox" id="filterToggle" onchange="toggleFilter()"><span class="slider"></span></label><span class="input-count" id="filterStatus" style="background: var(--accent-warning-light); color: var(--accent-warning); border: 1px solid rgba(245,158,11,0.3);">Filter: OFF</span></div>
+          </div>
+          <div class="input-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+              <div><h4 style="color: var(--text-primary); margin-bottom: 15px;"><i class="fas fa-mobile-alt"></i> Phone &amp; Month Filter</h4><label class="checkbox-label"><input type="checkbox" id="filterPhoneNumbers" checked><span>Exclude IDs starting with 0</span></label><label class="checkbox-label"><input type="checkbox" id="filterMonthPattern" checked><span>Exclude month patterns</span></label></div>
+              <div><h4 style="color: var(--text-primary); margin-bottom: 15px;"><i class="fas fa-list"></i> Custom Exclusions</h4><textarea id="customExclusions" placeholder="User IDs to exclude:" style="width: 100%; height: 80px; padding: 12px; background: rgba(10,10,16,0.5); color: var(--text-primary); border: 1px solid var(--border); border-radius: 10px; resize: vertical; font-family: var(--font-mono);"></textarea><div style="display: flex; gap: 10px; margin-top: 10px;"><button onclick="testFilter()" class="copy-btn"><i class="fas fa-vial"></i> Test</button><button onclick="clearFilter()" class="copy-btn" style="color: var(--accent-warning); border-color: rgba(245,158,11,0.3);"><i class="fas fa-trash"></i> Clear</button></div></div>
+            </div>
+            <div id="filterPreview" style="display: none; margin-top: 25px; padding: 20px; background: rgba(10,10,16,0.4); border-radius: var(--radius-lg); border: 1px solid var(--border);"><div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;"><div><div style="color: var(--text-tertiary); font-size: 12px;">Total P2M:</div><div style="font-size: 18px; font-weight: bold;" id="previewTotal">0</div></div><div><div style="color: var(--text-tertiary); font-size: 12px;">Will be filtered:</div><div style="font-size: 18px; font-weight: bold; color: var(--accent-warning);" id="previewFiltered">0</div></div><div><div style="color: var(--text-tertiary); font-size: 12px;">Will be shown:</div><div style="font-size: 18px; font-weight: bold; color: var(--accent-success);" id="previewRemaining">0</div></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="process-section">
+        <button class="btn-process" onclick="processUploadedFiles()"><i class="fas fa-bolt"></i> ANALYZE UPLOADED FILES</button>
+        <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
+          <button class="copy-btn" onclick="exportAllXLSX()" style="background: var(--accent-success-light); border-color: rgba(16,185,129,0.3); color: var(--accent-success);"><i class="fas fa-file-export"></i> Export All (Excel)</button>
+          <button class="copy-btn" onclick="clearAllFiles()" style="background: var(--accent-danger-light); border-color: rgba(239,68,68,0.3); color: var(--accent-danger);"><i class="fas fa-trash"></i> Clear All</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="analysisSection" style="display: none;" class="fade-in-up">
+      <h2 class="section-title"><i class="fas fa-chart-bar"></i> Difference Analysis</h2>
+      <div class="analysis-grid">
+        <div class="analysis-card"><div class="analysis-header"><div class="analysis-title"><i class="fas fa-exchange-alt" style="color: var(--accent-primary);"></i> P2M - Report</div><div class="analysis-value" id="diffP2MReportValue" style="color: var(--accent-primary);">0</div></div><div class="analysis-details"><div class="detail-item"><span class="detail-label">P2M Total</span><span class="detail-value" id="p2mTotal">0</span></div><div class="detail-item"><span class="detail-label">Report Total</span><span class="detail-value" id="reportTotal">0</span></div><div class="detail-item"><span class="detail-label">Difference</span><span class="detail-value" id="calculatedDiff" style="color: var(--accent-primary);">0</span></div></div></div>
+        <div class="analysis-card highlight"><div class="analysis-header"><div class="analysis-title"><i class="fas fa-plus-circle" style="color: var(--accent-success);"></i> Missing in Zona</div><div class="analysis-value" id="p2mMissingValue" style="color: var(--accent-success);">+0</div></div><div class="analysis-details"><div class="detail-item"><span class="detail-label">Count</span><span class="detail-value" id="p2mMissingCount">0</span></div><div class="detail-item"><span class="detail-label">Total Nominal</span><span class="detail-value" style="color: var(--accent-success);" id="p2mMissingNominal">+0</span></div></div></div>
+        <div class="analysis-card critical"><div class="analysis-header"><div class="analysis-title"><i class="fas fa-minus-circle" style="color: var(--accent-danger);"></i> Missing in P2M</div><div class="analysis-value" id="zonaMissingValue" style="color: var(--accent-danger);">-0</div></div><div class="analysis-details"><div class="detail-item"><span class="detail-label">Count</span><span class="detail-value" id="zonaMissingCount">0</span></div><div class="detail-item"><span class="detail-label">Total Nominal</span><span class="detail-value" style="color: var(--accent-danger);" id="zonaMissingNominal">-0</span></div></div></div>
+      </div>
+      <div class="analysis-card" style="margin-top: 24px;"><div class="analysis-header"><div class="analysis-title"><i class="fas fa-balance-scale" style="color: var(--accent-warning);"></i> Balance Analysis</div><div class="analysis-value" id="balanceStatus" style="color: var(--accent-success);">BALANCED</div></div><div class="analysis-details"><div class="detail-item"><span class="detail-label">Expected</span><span class="detail-value" id="expectedDiff">0</span></div><div class="detail-item"><span class="detail-label">Actual</span><span class="detail-value" id="actualDiff">0</span></div><div class="detail-item"><span class="detail-label">Status</span><span class="detail-value" id="balanceResult" style="color: var(--accent-success);">Balanced ✓</span></div></div></div>
+    </section>
+
+    <section id="resultsSection" style="display: none; margin-top: 48px;" class="fade-in-up">
+      <h2 class="section-title"><i class="fas fa-search"></i> Detailed Results</h2>
+      <div class="results-grid">
+        
+        <div class="result-card">
+          <div class="result-header">
+            <div class="result-title"><i class="fas fa-times-circle" style="color: var(--accent-success);"></i> P2M ❌ Zona</div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button class="copy-btn" onclick="copyData('p2mNotZona')"><i class="fas fa-copy"></i> Copy</button>
+              <div class="result-badge positive" id="p2mNotZonaBadge">0</div>
+            </div>
+          </div>
+          <div class="result-body"><textarea class="result-field" id="p2mNotZona" readonly></textarea></div>
+          <div class="result-footer"><div class="result-label">Missing in Zona</div><div class="result-total positive" id="p2mNotZonaTotal">+0</div></div>
+        </div>
+
+        <div class="result-card">
+          <div class="result-header">
+            <div class="result-title"><i class="fas fa-times-circle" style="color: var(--accent-danger);"></i> Zona ❌ P2M</div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button class="copy-btn" onclick="copyData('zonaNotP2M')"><i class="fas fa-copy"></i> Copy</button>
+              <div class="result-badge negative" id="zonaNotP2MBadge">0</div>
+            </div>
+          </div>
+          <div class="result-body"><textarea class="result-field" id="zonaNotP2M" readonly></textarea></div>
+          <div class="result-footer"><div class="result-label">Missing in P2M</div><div class="result-total negative" id="zonaNotP2MTotal">-0</div></div>
+        </div>
+
+        <div class="result-card">
+          <div class="result-header">
+            <div class="result-title"><i class="fas fa-user-cog" style="color: var(--accent-primary);"></i> Zona ❌ Report </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button class="copy-btn" onclick="copyData('diffZonaReport')"><i class="fas fa-copy"></i> Copy</button>
+              <div class="result-badge neutral" id="diffZonaReportBadge">0</div>
+            </div>
+          </div>
+          <div class="result-body"><textarea class="result-field" id="diffZonaReport" readonly></textarea></div>
+          <div class="result-footer"><div class="result-label">Difference</div><div class="result-total" id="diffZonaReportTotal">0</div></div>
+        </div>
+
+        <div class="result-card">
+          <div class="result-header">
+            <div class="result-title"><i class="fas fa-file-excel" style="color: var(--accent-warning);"></i> P2M ❌ Report</div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button class="copy-btn" onclick="copyData('diffP2MReport')"><i class="fas fa-copy"></i> Copy</button>
+              <div class="result-badge warning" id="diffP2MReportBadge">0</div>
+            </div>
+          </div>
+          <div class="result-body"><textarea class="result-field" id="diffP2MReport" readonly></textarea></div>
+          <div class="result-footer"><div class="result-label">Overall Difference</div><div class="result-total warning" id="diffP2MReportTotal">0</div></div>
+        </div>
+
+        <div class="result-card full-width" id="filteredDataCard" style="display: none;">
+          <div class="result-header">
+            <div class="result-title"><i class="fas fa-filter" style="color: var(--accent-danger);"></i> Filtered</div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button class="copy-btn" onclick="copyData('filteredData')"><i class="fas fa-copy"></i> Copy</button>
+              <div class="result-badge" id="filteredBadge" style="background: var(--accent-danger-light); color: var(--accent-danger); border: 1px solid rgba(239,68,68,0.25);">0</div>
+            </div>
+          </div>
+          <div class="result-body"><textarea class="result-field" id="filteredData" readonly style="min-height: 150px;"></textarea></div>
+          <div class="result-footer"><div class="result-label">Excluded Data</div><div class="result-total" style="color: var(--accent-danger);" id="filteredTotal">-0</div></div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+<script src="/analyzer-tools/analyzer.js?v=1.0.0" defer></script>
+</body>
+</html>
