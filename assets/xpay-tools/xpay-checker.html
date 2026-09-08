@@ -22,7 +22,7 @@
     <section class="input-grid">
       <article class="input-card">
         <div class="input-head">
-          <h2 class="input-title">DATA XPAY / LEONPAY <span class="badge">P2M</span></h2>
+          <h2 class="input-title">DATA XPAY <span class="badge">Xpay</span></h2>
           <div class="mapping">Diambil: <b>MEMBER</b> → Userid, <b>RECORD VALUE</b> → Nominal, <b>PARTNER ID / PATNER ID</b> → Order ID.</div>
         </div>
         <div class="input-body">
@@ -59,20 +59,20 @@
     </section>
     <section id="summary" class="summary hidden">
       <article class="summary-card"><div class="summary-name">TIDAK CETAK ZONAMAIN</div><div id="countZona" class="summary-value">0</div></article>
-      <article class="summary-card"><div class="summary-name">TIDAK CETAK P2M</div><div id="countP2M" class="summary-value">0</div></article>
+      <article class="summary-card"><div class="summary-name">TIDAK CETAK Xpay</div><div id="countXpay" class="summary-value">0</div></article>
       <article class="summary-card"><div class="summary-name">USERID SELISIH</div><div id="countUserid" class="summary-value">0</div></article>
       <article class="summary-card"><div class="summary-name">TIDAK LEWAT KOIN IDN</div><div id="countCoin" class="summary-value">0</div></article>
     </section>
     <section id="results" class="results hidden">
       <article class="result-card">
-        <div class="result-head"><div><h3 class="result-title">TIDAK CETAK ZONAMAIN</h3><div class="result-desc">Baris ZonaMain yang ORDER ID-nya tidak ditemukan pada PARTNER ID XPAY/LEONPAY.</div></div>
+        <div class="result-head"><div><h3 class="result-title">TIDAK CETAK ZONAMAIN</h3><div class="result-desc">Baris ZonaMain yang ORDER ID-nya tidak ditemukan pada PARTNER ID XPAY.</div></div>
         <div class="result-actions"><button class="btn-secondary btn-small" data-copy="zonaMissing">COPY</button><button class="btn-secondary btn-small" data-csv="zonaMissing">CSV</button></div></div>
         <div id="tableZonaMissing" class="table-wrap"></div>
       </article>
       <article class="result-card">
-        <div class="result-head"><div><h3 class="result-title">TIDAK CETAK P2M</h3><div class="result-desc">Baris XPAY/LEONPAY yang PARTNER ID-nya tidak ditemukan pada ORDER ID ZonaMain.</div></div>
-        <div class="result-actions"><button class="btn-secondary btn-small" data-copy="p2mMissing">COPY</button><button class="btn-secondary btn-small" data-csv="p2mMissing">CSV</button></div></div>
-        <div id="tableP2MMissing" class="table-wrap"></div>
+        <div class="result-head"><div><h3 class="result-title">TIDAK CETAK Xpay</h3><div class="result-desc">Baris XPAY yang PARTNER ID-nya tidak ditemukan pada ORDER ID ZonaMain.</div></div>
+        <div class="result-actions"><button class="btn-secondary btn-small" data-copy="XpayMissing">COPY</button><button class="btn-secondary btn-small" data-csv="XpayMissing">CSV</button></div></div>
+        <div id="tableXpayMissing" class="table-wrap"></div>
       </article>
       <article class="result-card">
         <div class="result-head"><div><h3 class="result-title">USERID SELISIH</h3><div class="result-desc">Total Coin Admin per userid dikurangi total JUMLAH ZonaMain per userid.</div></div>
@@ -88,7 +88,7 @@
     <div class="footer-note">
       <b>Logika yang digunakan:</b><br>
       1. TIDAK CETAK ZONAMAIN = ORDER ID ZonaMain tidak ada di PARTNER ID XPAY.<br>
-      2. TIDAK CETAK P2M = PARTNER ID XPAY tidak ada di ORDER ID ZonaMain.<br>
+      2. TIDAK CETAK Xpay = PARTNER ID XPAY tidak ada di ORDER ID ZonaMain.<br>
       3. USERID SELISIH = total Coin Admin per userid − total ZonaMain per userid.<br>
       4. TIDAK LEWAT KOIN IDN = kombinasi userid + nominal ZonaMain tidak ada di kombinasi userid + nominal Coin Admin.<br>
     </div>
