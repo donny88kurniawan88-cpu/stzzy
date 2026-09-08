@@ -504,10 +504,10 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" onclick="window.location.href='/Analyzer.html'">P2M Analyzer</div>
+            <div class="submenu-item" data-action="analyzer">P2M Analyzer</div>
             <div class="submenu-item" data-action="xpayChecker">XPAY Analyzer</div>
             <div class="submenu-item" data-action="xpayFull">XPAY Settlement</div>
-            <div class="submenu-item" data-action="xpaySettlementChecker">Settlement Xpay Checker</div>
+            <div class="submenu-item" data-action="xpaySettlementChecker">Settlement Checker</div>
             <div class="submenu-item" data-action="comingSoon">MNPAY Analyzer</div>
           </div>
         </div>
@@ -607,7 +607,7 @@
         <div class="modules-grid">
           <div class="module-card" data-color="teal" onclick="window.location.href='/Validator.html'"><div class="module-icon">🏦</div><div class="module-name" data-access-item-card="rek_validator">Rek Validator</div><div class="module-desc">Cross-check 4 databases</div><div class="module-badge">v1.5.0</div></div>
           <div class="module-card" data-color="blue" onclick="window.location.href='/Bank.html'"><div class="module-icon">💰</div><div class="module-name" data-access-item-card="bank_processor">Bank Processor</div><div class="module-desc">Formatter &amp; validator rekening bank</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="pink" onclick="window.location.href='/Analyzer.html'"><div class="module-icon">📈</div><div class="module-name" data-access-item-card="qris_tools">P2M Analyzer</div><div class="module-desc">P2M vs Zonamain vs Report analysis</div><div class="module-badge">v2.0.0</div></div>
+          <div class="module-card" data-color="pink" data-action="analyzer"><div class="module-icon">📈</div><div class="module-name" data-access-item-card="qris_tools">P2M Analyzer</div><div class="module-desc">P2M vs Zonamain vs Report analysis</div><div class="module-badge">v2.0.0</div></div>
           <div class="module-card" data-color="purple" data-action="comingSoon"><div class="module-icon">🔍</div><div class="module-name" data-access-item-card="qris_tools">XPAY Analyzer</div><div class="module-desc">XPAY transaction analyzer engine</div><div class="module-badge">Soon</div></div>
           <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">📋</div><div class="module-name" data-access-item-card="qris_tools">XPAY Settlement</div><div class="module-desc">XPAY settlement reconciliation</div><div class="module-badge">Soon</div></div>
           <div class="module-card" data-color="teal" data-action="comingSoon"><div class="module-icon">📊</div><div class="module-name" data-access-item-card="qris_tools">MNPAY Analyzer</div><div class="module-desc">MNPAY payment flow analyzer</div><div class="module-badge">Soon</div></div>
@@ -963,6 +963,13 @@
         </div>
       </div>
 
+      <!-- ===== P2M ANALYZER VIEW ===== -->
+      <div id="analyzerView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/analyzer-tools/analyzer.html?v=1.0.0" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="P2M Data Analyzer"></iframe>
+        </div>
+      </div>
+
       <!-- ===== XPAY CHECKER VIEW ===== -->
       <div id="xpayCheckerView" style="display:none;">
         <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
@@ -977,10 +984,10 @@
         </div>
       </div>
 
-      <!-- ===== XPAY Settlement Xpay Checker VIEW ===== -->
+      <!-- ===== XPAY SETTLEMENT CHECKER VIEW ===== -->
       <div id="xpaySettlementView" style="display:none;">
         <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
-          <iframe src="/xpay-tools/xpay-settlement-checker.html?v=3.0.1" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="XPAY Settlement Xpay Checker"></iframe>
+          <iframe src="/xpay-tools/xpay-settlement-checker.html?v=3.0.1" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="XPAY Settlement Checker"></iframe>
         </div>
       </div>
 
@@ -1441,6 +1448,9 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
         case 'profil':
           switchToProfil();
           break;
+        case 'analyzer':
+          switchToAnalyzer();
+          break;
         case 'xpayChecker':
           switchToXpayChecker();
           break;
@@ -1559,6 +1569,7 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var akv = document.getElementById('apiKeyView'); if (akv) akv.style.display = 'none';
       var ebv = document.getElementById('editBuktiView'); if (ebv) ebv.style.display = 'none';
       var xcv = document.getElementById('xpayCheckerView'); if (xcv) xcv.style.display = 'none';
+      var anv = document.getElementById('analyzerView'); if (anv) anv.style.display = 'none';
       var xfv = document.getElementById('xpayFullView'); if (xfv) xfv.style.display = 'none';
       var xsv = document.getElementById('xpaySettlementView'); if (xsv) xsv.style.display = 'none';
     }
@@ -1610,6 +1621,15 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
     /* ===================================================================
        MY EVENT FUNCTIONS
        =================================================================== */
+    function switchToAnalyzer() {
+      hideAllViews();
+      var anv = document.getElementById('analyzerView'); if (anv) anv.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'p2m analyzer';
+      currentView = 'analyzer';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to P2M Analyzer view');
+    }
+
     function switchToXpayChecker() {
       hideAllViews();
       var xcv = document.getElementById('xpayCheckerView'); if (xcv) xcv.style.display = 'block';
@@ -1631,10 +1651,10 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
     function switchToXpaySettlement() {
       hideAllViews();
       var xsv = document.getElementById('xpaySettlementView'); if (xsv) xsv.style.display = 'block';
-      document.getElementById('breadcrumbPage').textContent = 'Settlement Xpay Checker';
+      document.getElementById('breadcrumbPage').textContent = 'settlement checker';
       currentView = 'xpaySettlement';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
-      addTerminalLog('Switched to Settlement Xpay Checker view');
+      addTerminalLog('Switched to Settlement Checker view');
     }
 
     function switchToEditBukti() {
