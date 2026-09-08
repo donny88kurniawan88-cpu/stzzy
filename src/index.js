@@ -1893,6 +1893,13 @@ export default {
     }
 
     // ============================================
+    // BUKTI GENERATOR — serve static files from /bukti-generator/
+    // ============================================
+    if (path.startsWith('/bukti-generator/')) {
+      return env.ASSETS.fetch(new Request(new URL(path, request.url), request));
+    }
+
+    // ============================================
     // FALLBACK: serve static assets
     // ============================================
     return env.ASSETS.fetch(request);
