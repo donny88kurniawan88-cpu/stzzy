@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Cari Selisih XPAY</title>
+  <link rel="stylesheet" href="/xpay-tools/xpay-tools/xpay-checker.css?v=1.0.0">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="/xpay-tools/xpay-tools/xpay-checker.js?v=1.0.0" defer></script>
+</head>
+<body>
+<main class="container">
+    <section class="hero">
+      <h1>Checker Selisih XPAY / ZonaMain / Coin Admin</h1>
+      <p class="subtitle">
+        Pilih file untuk ketiga sumber data. Sistem mendeteksi baris judul secara otomatis,
+        menormalisasi huruf besar-kecil, spasi, serta format nominal Indonesia.
+      </p>
+      <div class="privacy">🔒 Semua data diproses lokal di browser</div>
+    </section>
+    <section class="input-grid">
+      <article class="input-card">
+        <div class="input-head">
+          <h2 class="input-title">DATA XPAY / LEONPAY <span class="badge">P2M</span></h2>
+          <div class="mapping">Diambil: <b>MEMBER</b> → Userid, <b>RECORD VALUE</b> → Nominal, <b>PARTNER ID / PATNER ID</b> → Order ID.</div>
+        </div>
+        <div class="input-body">
+          <div class="file-row"><input id="fileXpay" type="file" accept=".csv,.txt,.xlsx,.xls" /></div>
+          <div id="statusXpay" class="source-status">Belum ada data.</div>
+        </div>
+      </article>
+      <article class="input-card">
+        <div class="input-head">
+          <h2 class="input-title">DATA ZONAMAIN <span class="badge">ZONA</span></h2>
+          <div class="mapping">Diambil: <b>USER ID / USERID</b>, <b>JUMLAH</b> → Nominal, dan <b>ORDER ID / ORDERID</b>.</div>
+        </div>
+        <div class="input-body">
+          <div class="file-row"><input id="fileZona" type="file" accept=".csv,.txt,.xlsx,.xls" /></div>
+          <div id="statusZona" class="source-status">Belum ada data.</div>
+        </div>
+      </article>
+      <article class="input-card">
+        <div class="input-head">
+          <h2 class="input-title">DATA COIN ADMIN <span class="badge">ADMIN</span></h2>
+          <div class="mapping">Diambil: <b>TO</b> → Userid dan <b>COIN / AMOUNT / NOMINAL</b> → Nominal.</div>
+        </div>
+        <div class="input-body">
+          <div class="file-row"><input id="fileAdmin" type="file" accept=".csv,.txt,.xlsx,.xls" /></div>
+          <div id="statusAdmin" class="source-status">Belum ada data.</div>
+        </div>
+      </article>
+    </section>
+    <section class="actions">
+      <button id="btnProcess" class="btn-primary">PROSES & CARI SELISIH</button>
+      <button id="btnReset" class="btn-secondary">RESET</button>
+      <button id="btnDownloadAll" class="btn-green" disabled>DOWNLOAD SEMUA XLSX</button>
+      <span id="globalStatus" class="global-status">Masukkan tiga sumber data.</span>
+    </section>
+    <section id="summary" class="summary hidden">
+      <article class="summary-card"><div class="summary-name">TIDAK CETAK ZONAMAIN</div><div id="countZona" class="summary-value">0</div></article>
+      <article class="summary-card"><div class="summary-name">TIDAK CETAK P2M</div><div id="countP2M" class="summary-value">0</div></article>
+      <article class="summary-card"><div class="summary-name">USERID SELISIH</div><div id="countUserid" class="summary-value">0</div></article>
+      <article class="summary-card"><div class="summary-name">TIDAK LEWAT KOIN IDN</div><div id="countCoin" class="summary-value">0</div></article>
+    </section>
+    <section id="results" class="results hidden">
+      <article class="result-card">
+        <div class="result-head"><div><h3 class="result-title">TIDAK CETAK ZONAMAIN</h3><div class="result-desc">Baris ZonaMain yang ORDER ID-nya tidak ditemukan pada PARTNER ID XPAY/LEONPAY.</div></div>
+        <div class="result-actions"><button class="btn-secondary btn-small" data-copy="zonaMissing">COPY</button><button class="btn-secondary btn-small" data-csv="zonaMissing">CSV</button></div></div>
+        <div id="tableZonaMissing" class="table-wrap"></div>
+      </article>
+      <article class="result-card">
+        <div class="result-head"><div><h3 class="result-title">TIDAK CETAK P2M</h3><div class="result-desc">Baris XPAY/LEONPAY yang PARTNER ID-nya tidak ditemukan pada ORDER ID ZonaMain.</div></div>
+        <div class="result-actions"><button class="btn-secondary btn-small" data-copy="p2mMissing">COPY</button><button class="btn-secondary btn-small" data-csv="p2mMissing">CSV</button></div></div>
+        <div id="tableP2MMissing" class="table-wrap"></div>
+      </article>
+      <article class="result-card">
+        <div class="result-head"><div><h3 class="result-title">USERID SELISIH</h3><div class="result-desc">Total Coin Admin per userid dikurangi total JUMLAH ZonaMain per userid.</div></div>
+        <div class="result-actions"><button class="btn-secondary btn-small" data-copy="useridDiff">COPY</button><button class="btn-secondary btn-small" data-csv="useridDiff">CSV</button></div></div>
+        <div id="tableUseridDiff" class="table-wrap"></div>
+      </article>
+      <article class="result-card">
+        <div class="result-head"><div><h3 class="result-title">TIDAK LEWAT KOIN IDN</h3><div class="result-desc">Pasangan USERID + NOMINAL dari ZonaMain yang tidak ditemukan sebagai pasangan TO + COIN di Coin Admin.</div></div>
+        <div class="result-actions"><button class="btn-secondary btn-small" data-copy="coinMissing">COPY</button><button class="btn-secondary btn-small" data-csv="coinMissing">CSV</button></div></div>
+        <div id="tableCoinMissing" class="table-wrap"></div>
+      </article>
+    </section>
+    <div class="footer-note">
+      <b>Logika yang digunakan:</b><br>
+      1. TIDAK CETAK ZONAMAIN = ORDER ID ZonaMain tidak ada di PARTNER ID XPAY.<br>
+      2. TIDAK CETAK P2M = PARTNER ID XPAY tidak ada di ORDER ID ZonaMain.<br>
+      3. USERID SELISIH = total Coin Admin per userid − total ZonaMain per userid.<br>
+      4. TIDAK LEWAT KOIN IDN = kombinasi userid + nominal ZonaMain tidak ada di kombinasi userid + nominal Coin Admin.<br>
+    </div>
+  </main>
+</body>
+</html>
