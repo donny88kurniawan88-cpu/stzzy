@@ -28,7 +28,7 @@ body{background:#0a0a0f;display:flex;justify-content:center;align-items:flex-sta
     top:0;
     left:0;
     width:calc(380px * var(--card-scale));
-    background:rgba(20,20,30,0.9);
+    background:#fff;
     overflow:hidden;
     border-radius:calc(20px * var(--card-scale));
     box-shadow:0 calc(20px * var(--card-scale)) calc(40px * var(--card-scale)) calc(-12px * var(--card-scale)) rgba(0,0,0,.3);
