@@ -507,6 +507,7 @@
             <div class="submenu-item" onclick="window.location.href='/Analyzer.html'">P2M Analyzer</div>
             <div class="submenu-item" data-action="xpayChecker">XPAY Analyzer</div>
             <div class="submenu-item" data-action="xpayFull">XPAY Settlement</div>
+            <div class="submenu-item" data-action="xpaySettlementChecker">Settlement Checker</div>
             <div class="submenu-item" data-action="comingSoon">MNPAY Analyzer</div>
           </div>
         </div>
@@ -976,6 +977,13 @@
         </div>
       </div>
 
+      <!-- ===== XPAY SETTLEMENT CHECKER VIEW ===== -->
+      <div id="xpaySettlementView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/xpay-tools/xpay-settlement-checker.html?v=1.0.0" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="XPAY Settlement Checker"></iframe>
+        </div>
+      </div>
+
       <!-- ===== EDIT BUKTI VIEW ===== -->
       <div id="editBuktiView" style="display:none;">
         <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
@@ -1439,6 +1447,9 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
         case 'xpayFull':
           switchToXpayFull();
           break;
+        case 'xpaySettlementChecker':
+          switchToXpaySettlement();
+          break;
         case 'editBukti':
           switchToEditBukti();
           break;
@@ -1549,6 +1560,7 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var ebv = document.getElementById('editBuktiView'); if (ebv) ebv.style.display = 'none';
       var xcv = document.getElementById('xpayCheckerView'); if (xcv) xcv.style.display = 'none';
       var xfv = document.getElementById('xpayFullView'); if (xfv) xfv.style.display = 'none';
+      var xsv = document.getElementById('xpaySettlementView'); if (xsv) xsv.style.display = 'none';
     }
 
     function switchToDashboard() {
@@ -1614,6 +1626,15 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
       currentView = 'xpayFull';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
       addTerminalLog('Switched to XPAY Settlement view');
+    }
+
+    function switchToXpaySettlement() {
+      hideAllViews();
+      var xsv = document.getElementById('xpaySettlementView'); if (xsv) xsv.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'settlement checker';
+      currentView = 'xpaySettlement';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to Settlement Checker view');
     }
 
     function switchToEditBukti() {
