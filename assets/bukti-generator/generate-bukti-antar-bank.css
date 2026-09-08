@@ -23,10 +23,10 @@ body {
     top: 20px;
     left: 20px;
     width: 320px;
-    background: rgba(20, 20, 30, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    background: #ffffff;
     border-radius: 24px;
     padding: 20px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+    box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0,0,0,0.02);
     z-index: 999;
     backdrop-filter: blur(0px);
     transition: all 0.2s ease;
@@ -36,10 +36,10 @@ body {
 
 .control-panel h3 {
     font-size: 18px;
-    color: #f1f5f9;
+    color: #0a2b4e;
     margin-bottom: 16px;
     text-align: center;
-    border-bottom: 2px solid rgba(255,255,255,0.08);
+    border-bottom: 2px solid #e9edf2;
     padding-bottom: 10px;
 }
 
@@ -175,7 +175,7 @@ body {
     position: absolute;
     width: 380px;
     max-width: 85%;
-    background: rgba(20, 20, 30, 0.9);
+    background: #fff;
     overflow: hidden;
     border-radius: 20px;
     box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.3);
