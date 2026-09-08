@@ -1753,8 +1753,10 @@ export default {
         const tipe_game_val = body.tipe_game || body.game || '';
         const kode_tiket_val = body.kode_tiket || body.periode || body.roundId || '';
         const hadiah_val = body.hadiah || body.bec || body.amount || '';
-        const klaim_val = body.klaim || body.lampiran || body.shot || '';
-        const bukti_val = body.bukti_screenshot || '';
+        // KLAIM = metode klaim (Livechat, marketing, WA, dll)
+        // BUKTI = URL printscreen/screenshot (dari extension field: lampiran/shot)
+        const klaim_val = body.klaim || '';
+        const bukti_val = body.bukti_screenshot || body.lampiran || body.shot || '';
         // Status mapping: Success->APPROVED, Rejected->REJECTED, Pending->PENDING
         let status_val = (body.status || 'PENDING').toUpperCase();
         if (status_val === 'SUCCESS') status_val = 'APPROVED';
