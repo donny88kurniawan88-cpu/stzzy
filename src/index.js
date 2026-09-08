@@ -1898,6 +1898,13 @@ export default {
     // ============================================
     // XPAY TOOLS — serve static files from /xpay-tools/
     // ============================================
+    // ============================================
+    // ANALYZER TOOLS — serve static files from /analyzer-tools/
+    // ============================================
+    if (path.startsWith('/analyzer-tools/')) {
+      return env.ASSETS.fetch(new Request(new URL(path, request.url), request));
+    }
+
     if (path.startsWith('/xpay-tools/')) {
       return env.ASSETS.fetch(new Request(new URL(path, request.url), request));
     }
