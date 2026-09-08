@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Generate Bukti</title>
+  <link rel="stylesheet" href="/generate-bukti.css?v=54.0.0">
+</head>
+<body>
+  <div class="gb-toolbar">
+    <label class="gb-select">
+      <span>BCA</span>
+      <select id="gbType">
+        <option value="antar-bank">Antar Bank</option>
+        <option value="sesama-bca">Sesama BCA</option>
+      </select>
+    </label>
+  </div>
+  <iframe
+    id="gbFrame"
+    class="gb-frame"
+    src="/generate-bukti-antar-bank.html?v=54.0.0"
+    title="Generate Bukti Preview"
+    sandbox="allow-scripts allow-same-origin">
+  </iframe>
+
+  <script src="/generate-bukti.js?v=54.0.0"></script>
+</body>
+</html>

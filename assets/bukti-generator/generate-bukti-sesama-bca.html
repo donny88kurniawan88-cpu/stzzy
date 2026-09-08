@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Template Transaksi 9 Baris</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<link rel="stylesheet" href="/generate-bukti-sesama-bca.css?v=54.0.0">
+</head>
+<body>
+<div class="control-panel">
+<h3>✎ Edit Data Transaksi</h3>
+<div class="control-row">
+<div class="control-group"><label>📅 Tanggal</label><input id="ctrlTanggal" value="12/01/2026"></div>
+<div class="control-group"><label>⏰ Waktu</label><input id="ctrlWaktu" value="17:05:12"></div>
+</div>
+<div class="control-group"><label>👤 Nama Penerima</label><input id="ctrlNama" value="Samuel"></div>
+<div class="control-group"><label>🔢 Rekening Tujuan</label><input id="ctrlRekening" value="123 - 456 - 7891"></div>
+<div class="control-group"><label>🔄 Jenis Transaksi</label><input id="ctrlJenis" value="Transfer ke rekening"></div>
+<div class="control-group"><label>💱 Mata Uang Tujuan</label><input id="ctrlMataTujuan" value="IDR - Indonesian Rupiah"></div>
+<div class="control-group"><label>💰 Dari Rekening</label><input id="ctrlDari" value="077 - 1** - **60"></div>
+<div class="control-group"><label>💱 Mata Uang Asal</label><input id="ctrlMataAsal" value="IDR - Indonesian Rupiah"></div>
+<div class="control-group"><label>💵 Nominal Tujuan</label><input id="ctrlNominal" value="50000"></div>
+<div class="control-group"><label>📝 Berita</label><input id="ctrlBerita" value="-"></div>
+<div class="control-group"><label>🔖 No. Referensi</label><input id="ctrlReferensi" value="95271202601121705121 76TRF1069709634"></div>
+<button class="btn-reset" id="resetAllBtn">↺ Reset ke Data Awal</button>
+<div class="view-hint">🖱 Drag struk untuk pindahkan<br>Scroll mouse di atas struk untuk besar / kecil</div>
+<button class="btn-view" id="resetViewBtn">⤢ Reset Posisi & Ukuran</button>
+<button class="btn-save" id="saveToPcBtn">💾 Save ke PC (Struk)</button>
+</div>
+
+<div id="captureArea">
+<div class="app" id="strukToSave">
+<img class="extra-image" src="https://lh3.googleusercontent.com/d/10e6Aalg7PoFQJ7BiODk3vr3qg7U6Goae" crossorigin="anonymous" alt="">
+<div class="watermark">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w1">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w2">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w3">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w4">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w5">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w6">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w7">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w8">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w9">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w10">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w11">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w12">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w13">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w14">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w15">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w16">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w17">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w18">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w19">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w20">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w21">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w22">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w23">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w24">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w25">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w26">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w27">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w28">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w29">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w30">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w31">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w32">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w33">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w34">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w35">
+<img src="https://lh3.googleusercontent.com/d/11XluPaeFMpv5We6VcafXPhiLu4vsa3z7" class="w36">
+</div>
+<div class="content">
+<div class="logo"></div>
+<div class="line"></div>
+<div class="success"><div class="check"><img src="https://i.postimg.cc/rDvp3SCs/image.png" data-source="https://postimg.cc/rDvp3SCs" alt="Berhasil"></div><h2>Transaksi Berhasil</h2><div class="time-text" id="displayTanggalWaktu">12 Januari 2026 17:05:12</div></div>
+<div class="idr-nominal" id="displayIdrNominal">IDR 50,000.00</div>
+<div class="list">
+<div class="item-row"><div class="label">Nama Penerima</div><div class="display-value" id="displayNama">Samuel</div></div>
+<div class="item-row"><div class="label">Rekening Tujuan</div><div class="display-value" id="displayRekening">123 - 456 - 7891</div></div>
+<div class="item-row"><div class="label">Jenis Transaksi</div><div class="display-value" id="displayJenis">Transfer ke rekening</div></div>
+<div class="item-row"><div class="label">Mata Uang Tujuan</div><div class="display-value" id="displayMataTujuan">IDR - Indonesian Rupiah</div></div>
+<div class="item-row"><div class="label">Dari Rekening</div><div class="display-value" id="displayDari">077 - 1** - **60</div></div>
+<div class="item-row"><div class="label">Mata Uang Asal</div><div class="display-value" id="displayMataAsal">IDR - Indonesian Rupiah</div></div>
+<div class="item-row"><div class="label">Nominal Tujuan</div><div class="display-value" id="displayNominal">IDR 50,000.00</div></div>
+<div class="item-row"><div class="label">Berita</div><div class="display-value" id="displayBerita">-</div></div>
+<div class="item-row"><div class="label">No. Referensi</div><div class="display-value" id="displayReferensi">95271202601121705121 76TRF1069709634</div></div>
+</div>
+</div>
+</div>
+</div>
+<script src="/generate-bukti-sesama-bca.js?v=54.0.0"></script>
+</body>
+</html>

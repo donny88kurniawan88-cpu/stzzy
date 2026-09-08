@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>BCA Transfer Berhasil - Bukti Transfer (Super HD Full Area)</title>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<link rel="stylesheet" href="/generate-bukti-antar-bank.css?v=54.0.0">
+
+</head>
+<body>
+
+<!-- PANEL EDIT DATA - DI LUAR captureArea -->
+<div class="control-panel">
+    <h3>✎ Edit Data Transaksi</h3>
+
+    <div class="control-row">
+        <div class="control-group">
+            <label>📅 Tanggal</label>
+            <input type="text" id="ctrlTanggal" value="">
+        </div>
+        <div class="control-group">
+            <label>⏰ Waktu</label>
+            <input type="text" id="ctrlWaktu" value="00:00:00">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label>👤 Nama Penerima</label>
+        <input type="text" id="ctrlNama" value="Ahmad Fauzi">
+    </div>
+
+    <div class="control-group">
+        <label>🏦 Bank Tujuan</label>
+        <input type="text" id="ctrlBank" value="BCA">
+    </div>
+
+    <div class="control-group">
+        <label>🔢 No. Rekening Tujuan</label>
+        <input type="text" id="ctrlRekening" value="1234567890">
+    </div>
+
+    <div class="control-group">
+        <label>💰 Dari Rekening</label>
+        <input type="text" id="ctrlDariRekening" value="123 456 789 / BCA">
+    </div>
+
+    <div class="control-row">
+        <div class="control-group">
+            <label>💵 Nominal</label>
+            <input type="text" id="ctrlNominal" value="750000">
+        </div>
+        <div class="control-group">
+            <label>📊 Biaya</label>
+            <input type="text" id="ctrlBiaya" value="4500">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label>🔄 Layanan Transfer</label>
+        <input type="text" id="ctrlLayanan" value="Realtime Online">
+    </div>
+
+    <button class="btn-reset" id="resetAllBtn">
+        ↺ Reset ke Data Awal
+    </button>
+
+    <button class="btn-save" id="saveToPcBtn">
+        💾 Save ke PC (Struk)
+    </button>
+</div>
+
+<!-- AREA CAPTURE - STRUK SAJA -->
+<div id="captureArea">
+
+    <!-- STRUK BCA -->
+    <div class="app" id="strukToSave">
+        <div class="watermark">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w1">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w2">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w3">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w4">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w5">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w6">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w7">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w8">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w9">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w10">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w11">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w12">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w13">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w14">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w15">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w16">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w17">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w18">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w19">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w20">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w21">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w22">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w23">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w24">
+        </div>
+
+        <div class="content">
+            <div class="logo">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg">
+            </div>
+            <div class="line"></div>
+            <div class="success">
+                <div class="check">
+                    <img src="https://i.postimg.cc/433hKPY6/image.png">
+                </div>
+                <h2>Transfer Berhasil</h2>
+                <div class="time-text" id="displayTanggalWaktu">19 Mei 2026 21:23:24</div>
+            </div>
+            <div class="idr-nominal" id="displayIdrNominal">IDR 750,000.00</div>
+            <div class="list">
+                <div class="item-row"><div class="label">Nama Penerima</div><div class="display-value" id="displayNama">Ahmad Fauzi</div></div>
+                <div class="item-row"><div class="label">Bank Tujuan</div><div class="display-value" id="displayBank">BCA</div></div>
+                <div class="item-row"><div class="label">No. Rekening Tujuan</div><div class="display-value" id="displayRekening">1234567890</div></div>
+                <div class="item-row"><div class="label">Dari Rekening</div><div class="display-value" id="displayDariRekening">123 456 789 / BCA</div></div>
+                <div class="row"><div class="label">Nominal</div><div class="display-value" id="displayNominal">IDR 750,000.00</div></div>
+                <div class="row"><div class="label">Biaya</div><div class="display-value" id="displayBiaya">IDR 4,500.00</div></div>
+                <div class="row"><div class="label">Layanan Transfer</div><div class="display-value" id="displayLayanan">Realtime Online</div></div>
+            </div>
+            <div class="bottom-image"><img src="https://i.postimg.cc/RhRT5Rq7/image.png"></div>
+            <div class="footer-note" id="footerNote">BCA ● Secure Transaction</div>
+        </div>
+    </div>
+</div>
+
+<script src="/generate-bukti-antar-bank.js?v=54.0.0"></script>
+
+</body>
+</html>
