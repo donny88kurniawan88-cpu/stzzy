@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Xpay Settlement Checker</title>
+  <link rel="stylesheet" href="/xpay-tools/xpay-settlement-checker.css?v=1.0.0">
+</head>
+<body>
+<div class="wrap">
+    <div class="title"><span class="icon">🗓</span> Cek Settlement per Tanggal</div>
+    <div class="panel">
+      <div class="upload-row" id="uploadRow">
+        <div class="filebox">
+          <div class="left">
+            <strong>Upload data XPay</strong>
+            <small id="fileText">Pilih minimal 2 CSV. Contoh: xpay 13.csv + xpay 14.csv</small>
+          </div>
+          <label class="btn-file" for="files">Pilih CSV</label>
+          <input id="files" type="file" accept=".csv,text/csv" multiple />
+        </div>
+      </div>
+      <div class="db-note" id="dbNote">
+        💾 Data disimpan langsung di browser ini menggunakan IndexedDB. Tidak memakai API/Cloudflare, jadi proses baca lebih cepat. Setelah CSV pernah di-upload di browser ini, menu Cek Settlement 23:30 dapat membaca data lokal tanpa upload ulang.
+      </div>
+      <div class="date-row">
+        <input class="date-input" id="dateCair" type="date" value="2026-08-15" />
+        <button class="btn-check" id="btnCheck">🔍 Cek <span class="loader" id="loader"></span></button>
+      </div>
+      <div class="hint" id="hintText">
+        Tanggal Cair dipakai untuk menentukan otomatis: <b>Settlement = H-1</b> dan <b>Cutoff = H-2</b>.
+        Settlement normal mengambil PAYMENT <b>00:00:00–23:29:59</b>; Cutoff normal mengambil PAYMENT <b>23:30:01–23:59:59</b>.
+        Khusus tepat <b>23:30:00</b>, sistem membaca kolom <b>SETTLEMENT</b>: tanggal sama dengan <b>H-1 / tanggal settlement</b> = <b>SETTLEMENT</b>; jika kosong pada H-2 = <b>CUTOFF</b>. Hanya STATUS <b>SUCCESS</b>.
+      </div>
+      <div class="status" id="status">Belum ada CSV yang dimuat.</div>
+    </div>
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" id="tabCsv" type="button">📄 Cek Settlement per Tanggal</button>
+      <button class="mode-tab" id="tabDb" type="button">💾 Cek Settlement 23:30</button>
+    </div>
+    <div class="cards">
+      <div class="card settlement">
+        <div class="eyebrow"><span class="dot">💜</span>SETTLEMENT <span id="settlementDateLabel"></span></div>
+        <div class="count"><span id="settlementCount">0</span> trx</div>
+        <div class="line cair"><strong>Cair: <span id="settlementCair">Rp 0</span></strong></div>
+        <div class="line value">Value: <span id="settlementValue">Rp 0</span></div>
+        <div class="line fee">Fee: <span id="settlementFee">Rp 0</span></div>
+      </div>
+      <div class="card cutoff">
+        <div class="eyebrow"><span class="dot">💜</span>CUTOFF <span id="cutoffDateLabel"></span></div>
+        <div class="count"><span id="cutoffCount">0</span> trx</div>
+        <div class="line cair"><strong>Cair: <span id="cutoffCair">Rp 0</span></strong></div>
+        <div class="line value">Value: <span id="cutoffValue">Rp 0</span></div>
+        <div class="line fee">Fee: <span id="cutoffFee">Rp 0</span></div>
+      </div>
+      <div class="card total">
+        <div class="eyebrow"><span class="dot">💚</span>TOTAL CAIR <span id="totalDateLabel"></span></div>
+        <div class="count"><span id="totalCount">0</span> trx</div>
+        <div class="line cair"><strong>💰 Cair: <span id="totalCair">Rp 0</span></strong></div>
+        <div class="line value">Value: <span id="totalValue">Rp 0</span></div>
+        <div class="line fee"><strong>🧾 Total Fee: <span id="totalFee">Rp 0</span></strong></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">▣ Detail Transaksi (<span id="detailCount">0</span> record)</div>
+        <div class="tools">
+          <input class="search" id="search" placeholder="Cari member / partner ID..." />
+          <button class="btn-export" id="btnExport">Export Hasil CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>TIPE</th><th>PAYMENT</th><th>MEMBER</th><th>PARTNER ID</th><th>STATUS</th>
+              <th style="text-align:right">RECORD VALUE</th><th style="text-align:right">RECORD FEE</th><th style="text-align:right">CAIR</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div class="empty" id="empty">Upload CSV lalu klik Cek.</div>
+      </div>
+    </div>
+  </div>
+<script src="/xpay-tools/xpay-settlement-checker.js?v=1.0.0" defer></script>
+</body>
+</html>
