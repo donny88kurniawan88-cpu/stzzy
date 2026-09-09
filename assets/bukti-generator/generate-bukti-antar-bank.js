@@ -27,7 +27,7 @@ function convertToIndonesianDate(dateStr) {
         let month = parseInt(parts[1], 10);
         let year = parts[2];
         const bulanIndo = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-        if (month >= 1 && month <= 12) return ${day} ${bulanIndo[month-1]} ${year};
+        if (month >= 1 && month <= 12) return `${day} ${bulanIndo[month-1]} ${year}`;
     }
     return dateStr;
 }
@@ -40,7 +40,7 @@ function formatRupiah(angka) {
 function updateStruk() {
     let tgl = ctrlTanggal.value;
     let waktu = ctrlWaktu.value;
-    displayTanggal.innerText = ${convertToIndonesianDate(tgl)} ${waktu};
+    displayTanggal.innerText = `${convertToIndonesianDate(tgl)} ${waktu}`;
     let nominalFormatted = formatRupiah(ctrlNominal.value);
     let biayaFormatted = formatRupiah(ctrlBiaya.value);
     displayIdrNominal.innerText = nominalFormatted;
@@ -64,7 +64,7 @@ function getTodayDDMMYYYY() {
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();
-    return ${day}/${month}/${year};
+    return `${day}/${month}/${year}`;
 }
 
 function resetToDefault() {
@@ -109,7 +109,7 @@ document.getElementById('saveToPcBtn').addEventListener('click', function() {
             footerElement.style.display = originalDisplay;
             const link = document.createElement('a');
             const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-            link.download = BCA_Transfer_${timestamp}.png;
+            link.download = `BCA_Transfer_${timestamp}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
             this.innerText = originalText;
@@ -135,7 +135,7 @@ const minStrukScale = 0.4;
 const maxStrukScale = 2.5;
 
 function setStrukTransform() {
-    dragItem.style.transform = translate(${strukX}px, ${strukY}px) scale(${strukScale});
+    dragItem.style.transform = `translate(${strukX}px, ${strukY}px) scale(${strukScale})`;
 }
 
 function strukDragStart(e) {

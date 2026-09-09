@@ -1,9 +1,9 @@
 const ids=['Tanggal','Waktu','Nama','Rekening','Jenis','MataTujuan','Dari','MataAsal','Nominal','Berita','Referensi'];
 const $=id=>document.getElementById(id);
-function convertToIndonesianDate(dateStr){if(!dateStr)return'';const p=dateStr.split('/');if(p.length===3){const b=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];const m=parseInt(p[1],10);if(m>=1&&m<=12)return ${p[0]} ${b[m-1]} ${p[2]}}return dateStr}
+function convertToIndonesianDate(dateStr){if(!dateStr)return'';const p=dateStr.split('/');if(p.length===3){const b=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];const m=parseInt(p[1],10);if(m>=1&&m<=12)return `${p[0]} ${b[m-1]} ${p[2]}`}return dateStr}
 function formatRupiah(v){let n=parseInt(String(v).replace(/[^0-9]/g,''),10)||0;return 'IDR '+n.toLocaleString('en-US')+'.00'}
 function update(){
-$('displayTanggalWaktu').innerText=${convertToIndonesianDate($('ctrlTanggal').value)} ${$('ctrlWaktu').value};
+$('displayTanggalWaktu').innerText=`${convertToIndonesianDate($('ctrlTanggal').value)} ${$('ctrlWaktu').value}`;
 $('displayNama').innerText=$('ctrlNama').value||'-';
 $('displayRekening').innerText=$('ctrlRekening').value||'-';
 $('displayJenis').innerText=$('ctrlJenis').value||'-';
@@ -45,13 +45,13 @@ function randomReference(){
 }
 function randomMaskedAccount(){
     const d=()=>randomInt(10);
-    return ${d()}${d()}${d()} - ${d()}** - **${d()}${d()};
+    return `${d()}${d()}${d()} - ${d()}** - **${d()}${d()}`;
 }
 function todayDDMMYYYY(){
     const now=new Date();
     const dd=String(now.getDate()).padStart(2,'0');
     const mm=String(now.getMonth()+1).padStart(2,'0');
-    return ${dd}/${mm}/${now.getFullYear()};
+    return `${dd}/${mm}/${now.getFullYear()}`;
 }
 function applyDynamicDefaults(){
     $('ctrlTanggal').value=todayDDMMYYYY();
