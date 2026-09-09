@@ -113,11 +113,58 @@
       const stored = localStorage.getItem('aura_user_access');
       if (stored) DASHBOARD.accessMap = JSON.parse(stored);
       DASHBOARD.role = localStorage.getItem('aura_user_role') || 'MEMBER';
-      DASHBOARD.username = localStorage.getItem('aura_username') || 'User';
+      // Username: prefer aura_username, fallback to aura_auth_token (which stores username)
+      DASHBOARD.username = localStorage.getItem('aura_username') || localStorage.getItem('aura_auth_token') || 'User';
     } catch (e) {
       DASHBOARD.accessMap = {};
     }
   };
+
+  // Action handler mapping — maps module action names to actual global functions
+  // This fixes the bug where action names didn't match real function names
+  DASHBOARD.triggerAction = function (action) {
+    // Direct switchTo* functions (exist as globals in Dashboard.html)
+    const switchToMap = {
+      'switchToDashboard': 'switchToDashboard',
+      'switchToProfil': 'switchToProfil',
+      'switchToMyEvent': 'switchToMyEvent',
+      'loadPencairan': 'switchToPencairan',
+      'analyzer': 'switchToAnalyzer',
+      'xpayChecker': 'switchToXpayChecker',
+      'xpayFull': 'switchToXpayFull',
+      'xpaySettlementChecker': 'switchToXpaySettlement',
+      'editBukti': 'switchToEditBukti',
+      'apiKey': 'switchToApiKey',
+      'ipWhitelist': 'switchToIpWhitelist',
+    };
+    if (switchToMap[action] && typeof window[switchToMap[action]] === 'function') {
+      window[switchToMap[action]]();
+      return;
+    }
+    // Actions handled by handleAction() in Dashboard.html
+    const handleActionMap = ['setting', 'comingSoon', 'appInfo', 'keepMemo'];
+    if (handleActionMap.indexOf(action) !== -1 && typeof window.handleAction === 'function') {
+      window.handleAction(action);
+      return;
+    }
+    // Fallback: try handleAction with the action name
+    if (typeof window.handleAction === 'function') {
+      window.handleAction(action);
+      return;
+    }
+    // Last resort: try to call as global function
+    if (typeof window[action] === 'function') {
+      window[action]();
+      return;
+    }
+    console.warn('Unknown action:', action);
+    if (typeof window.showToast === 'function') {
+      window.showToast('Action "' + action + '" tidak ditemukan', 'warning');
+    }
+  };
+
+  // Expose globally so onclick handlers can call it
+  window.triggerModuleAction = DASHBOARD.triggerAction;
 
   DASHBOARD.hasAccess = function (key) {
     if (DASHBOARD.role === 'MASTER' || DASHBOARD.role === 'ADMIN') return true;
@@ -220,14 +267,14 @@
             <div class="pro-quick-action-sub">Akun & Security</div>
           </div>
         </a>
-        <a class="pro-quick-action" onclick="ipWhitelist()">
+        <a class="pro-quick-action" onclick="triggerModuleAction('ipWhitelist')">
           <div class="pro-quick-action-icon"><i class="fas fa-shield-halved"></i></div>
           <div class="pro-quick-action-text">
             <div class="pro-quick-action-title">IP Whitelist</div>
             <div class="pro-quick-action-sub">Akses kontrol</div>
           </div>
         </a>
-        <a class="pro-quick-action" onclick="apiKey()">
+        <a class="pro-quick-action" onclick="triggerModuleAction('apiKey')">
           <div class="pro-quick-action-icon"><i class="fas fa-key"></i></div>
           <div class="pro-quick-action-text">
             <div class="pro-quick-action-title">API Key</div>
@@ -248,7 +295,7 @@
             <div class="pro-quick-action-sub">User mgmt</div>
           </div>
         </a>
-        <a class="pro-quick-action" onclick="setting()">
+        <a class="pro-quick-action" onclick="triggerModuleAction('setting')">
           <div class="pro-quick-action-icon"><i class="fas fa-cog"></i></div>
           <div class="pro-quick-action-text">
             <div class="pro-quick-action-title">Setting</div>
@@ -296,7 +343,7 @@
         const badgeClass = m.badge === 'soon' ? 'soon' : (m.badge === 'restricted' ? 'restricted' : 'live');
         const trigger = m.href
           ? `onclick="window.location.href='${m.href}'"`
-          : (m.action ? `onclick="${m.action}()"` : '');
+          : (m.action ? `onclick="triggerModuleAction('${m.action}')"` : '');
         return `
           <div class="pro-module-card ${hasAccess ? '' : 'disabled'}" data-color="${m.color}" ${hasAccess ? trigger : ''}>
             <div class="pro-module-head">
@@ -386,6 +433,33 @@
   };
 
   DASHBOARD.loadLiveStats = function () {
+    // Sync user data from /api/me (username, role, access) — fixes "User" greeting bug
+    (async () => {
+      const res = await api('/api/me', { method: 'GET' });
+      if (res.ok && res.data && res.data.success && res.data.user) {
+        const me = res.data.user;
+        // Sync to localStorage
+        if (me.username) localStorage.setItem('aura_username', me.username);
+        if (me.role) localStorage.setItem('aura_user_role', me.role);
+        if (me.access) localStorage.setItem('aura_user_access', JSON.stringify(me.access));
+        if (me.status) localStorage.setItem('aura_user_status', me.status);
+        // Update DASHBOARD state
+        DASHBOARD.username = me.username || DASHBOARD.username;
+        DASHBOARD.role = me.role || DASHBOARD.role;
+        DASHBOARD.accessMap = me.access || DASHBOARD.accessMap;
+        // Re-render hero greeting + avatar with real username
+        const nameEl = document.querySelector('.pro-hero-avatar-name');
+        const titleEl = document.querySelector('.pro-hero-title .accent');
+        const avatarEl = document.querySelector('.pro-hero-avatar');
+        if (nameEl) nameEl.textContent = me.username || DASHBOARD.username;
+        if (titleEl) titleEl.textContent = me.username || DASHBOARD.username;
+        if (avatarEl && me.username) avatarEl.textContent = (me.username[0] || 'U').toUpperCase();
+        // Update meta row
+        const metaRole = document.querySelectorAll('.pro-hero-meta-item strong');
+        if (metaRole[1]) metaRole[1].textContent = me.role || DASHBOARD.role;
+      }
+    })();
+
     // Load whitelist status
     (async () => {
       const res = await api('/api/ip/whitelist', { method: 'GET' });
@@ -424,12 +498,28 @@
   // ============================================================
   const PROFILE = {
     async load() {
+      const view = $('#profilView');
+      // Show loading state
+      if (view) {
+        view.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;"><i class="fas fa-spinner" style="animation:spin 1s linear infinite;margin-right:8px;"></i> Loading profile...</div>';
+      }
       const res = await api('/api/user/profile', { method: 'GET' });
       if (!res.ok || !res.data || !res.data.success) {
-        showToast('Gagal memuat profil', 'error');
+        const errMsg = (res.data && res.data.error) ? res.data.error : 'Gagal memuat profil';
+        showToast(errMsg, 'error');
+        // Render error state with retry button instead of stuck loading
+        if (view) {
+          view.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--accent-danger);font-family:var(--font-mono);font-size:13px;"><i class="fas fa-exclamation-triangle" style="font-size:24px;margin-bottom:12px;display:block;"></i>Gagal memuat profil: ' + escapeHtml(errMsg) + '<br><br><button onclick="PROFILE.load()" style="padding:10px 20px;background:var(--accent-primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:var(--font-mono);">Retry</button></div>';
+        }
         return;
       }
       const data = res.data.data;
+      // Sync username to localStorage for dashboard greeting
+      if (data && data.username) {
+        localStorage.setItem('aura_username', data.username);
+        localStorage.setItem('aura_user_role', data.role || 'MEMBER');
+        localStorage.setItem('aura_user_status', data.status || 'ACTIVE');
+      }
       PROFILE.render(data);
     },
 
