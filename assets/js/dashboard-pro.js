@@ -84,7 +84,7 @@
       // Operational — Event Tools
       { cat: 'operational', color: 'green', icon: '📅', name: 'My Event', desc: 'Manage active events realtime', badge: 'live', badgeText: 'v1.0', access: 'event_tools', action: 'switchToMyEvent' },
       { cat: 'operational', color: 'orange', icon: '🕐', name: 'History Event', desc: 'Event history & logs archive', badge: 'soon', badgeText: 'Soon', access: 'event_tools', action: 'comingSoon' },
-      { cat: 'operational', color: 'green', icon: '🧾', name: 'PG Report', desc: 'PG Soft credit calculator engine', badge: 'live', badgeText: 'v5.0', access: 'event_tools', href: '/PgReport.html' },
+      { cat: 'operational', color: 'green', icon: '🧾', name: 'PG Report', desc: 'PG Soft credit calculator engine', badge: 'live', badgeText: 'v5.0', access: 'event_tools', action: 'pgReport' },
       // Operational — Bukti & Memo
       { cat: 'operational', color: 'pink', icon: '✏️', name: 'Edit Bukti', desc: 'Edit & manage proof of payment', badge: 'live', badgeText: 'v1.0', access: 'edit_bukti', action: 'editBukti' },
       { cat: 'operational', color: 'orange', icon: '📝', name: 'Keep Memo', desc: 'Simpan & kelola catatan memo', badge: 'live', badgeText: 'v1.0', access: 'keep_memo', action: 'keepMemo' },
@@ -136,6 +136,7 @@
       'editBukti': 'switchToEditBukti',
       'apiKey': 'switchToApiKey',
       'ipWhitelist': 'switchToIpWhitelist',
+      'pgReport': 'switchToPgReport',
     };
     if (switchToMap[action] && typeof window[switchToMap[action]] === 'function') {
       window[switchToMap[action]]();
