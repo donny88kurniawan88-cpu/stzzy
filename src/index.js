@@ -1442,18 +1442,26 @@ export default {
         const user = await env.DB.prepare("SELECT username, role, status, access, created_at FROM users WHERE username = ?").bind(username).first();
         if (!user) return Response.json({ success: false, error: 'User tidak ditemukan' }, { status: 404 });
 
+        // Safe parse access — gunakan safeParseAccess agar tidak throw pada JSON rusak
+        var profileAccess = null;
+        try {
+          profileAccess = user.access ? safeParseAccess(user.access, user.role || 'MEMBER') : null;
+        } catch(e2) {
+          profileAccess = defaultAccessFor(user.role || 'MEMBER');
+        }
+
         return Response.json({
           success: true,
           data: {
             username: user.username,
             role: user.role,
             status: user.status,
-            access: user.access ? JSON.parse(user.access) : null,
+            access: profileAccess,
             since: user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'
           }
         });
       } catch (err) {
-        return Response.json({ success: false, error: 'Gagal mengambil profil' }, { status: 500 });
+        return Response.json({ success: false, error: 'Gagal mengambil profil: ' + (err.message || err) }, { status: 500 });
       }
     }
 
