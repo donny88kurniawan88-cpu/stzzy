@@ -900,6 +900,58 @@
             .live-stats { gap: 12px !important; margin-top: 20px !important; }
             .stat-card { padding: 18px !important; }
         }
+
+        /* ============================================================
+           EMBEDDED MODE — saat PgReport di-iframe di dalam Dashboard
+           - Hilangkan back button (tidak perlu, sudah ada sidebar Dashboard)
+           - Full width (match dashboard content area)
+           - Kurangi padding atas (iframe sudah positioned di content area)
+           ============================================================ */
+        body.embedded-mode .back-button {
+            display: none !important;
+        }
+
+        body.embedded-mode .main-container {
+            max-width: 100% !important;
+            padding: 16px 20px !important;
+            margin: 0 !important;
+        }
+
+        body.embedded-mode .neon-header {
+            padding: 22px 28px !important;
+            margin-bottom: 24px !important;
+        }
+
+        body.embedded-mode .logo-section {
+            margin-bottom: 18px !important;
+            gap: 20px !important;
+        }
+
+        body.embedded-mode .logo-icon {
+            width: 60px !important;
+            height: 60px !important;
+            font-size: 2rem !important;
+            border-radius: 16px !important;
+        }
+
+        body.embedded-mode .logo-title h1 {
+            font-size: 1.8rem !important;
+        }
+
+        body.embedded-mode .logo-title p {
+            font-size: 0.85rem !important;
+        }
+
+        body.embedded-mode .live-stats {
+            margin-top: 20px !important;
+            gap: 14px !important;
+        }
+
+        body.embedded-mode .neon-footer {
+            padding: 24px 20px !important;
+        }
+
+        /* Auto-detect iframe mode via JS (added below) */
     </style>
 </head>
 <body>
@@ -907,6 +959,31 @@
     <script>
         const authToken = localStorage.getItem('aura_auth_token');
         if (!authToken) window.location.href = '/Login.html';
+
+        // Auto-detect iframe mode: jika PgReport di-embed di dalam Dashboard iframe,
+        // tambah class 'embedded-mode' ke body untuk hide back button + full width
+        (function() {
+            try {
+                if (window.self !== window.top) {
+                    document.documentElement.classList.add('embedded-mode');
+                    // Tambah class ke body setelah DOM ready
+                    function addEmbeddedClass() {
+                        document.body.classList.add('embedded-mode');
+                    }
+                    if (document.body) {
+                        addEmbeddedClass();
+                    } else {
+                        document.addEventListener('DOMContentLoaded', addEmbeddedClass);
+                    }
+                }
+            } catch(e) {
+                // cross-origin blocked → anggap embedded
+                document.documentElement.classList.add('embedded-mode');
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.body.classList.add('embedded-mode');
+                });
+            }
+        })();
     </script>
 
     <!-- BACK TO DASHBOARD -->
