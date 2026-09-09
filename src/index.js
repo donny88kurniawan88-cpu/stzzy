@@ -1439,7 +1439,8 @@ export default {
       const username = request.headers.get('x-auth-token');
       if (!username) return Response.json({ success: false, error: 'Login dulu.' }, { status: 401 });
       try {
-        const user = await env.DB.prepare("SELECT username, role, status, access, created_at FROM users WHERE username = ?").bind(username).first();
+        // SELECT * untuk avoid error kalau kolom created_at/granted_by belum ada
+        const user = await env.DB.prepare("SELECT * FROM users WHERE username = ?").bind(username).first();
         if (!user) return Response.json({ success: false, error: 'User tidak ditemukan' }, { status: 404 });
 
         // Safe parse access — gunakan safeParseAccess agar tidak throw pada JSON rusak
@@ -1450,6 +1451,17 @@ export default {
           profileAccess = defaultAccessFor(user.role || 'MEMBER');
         }
 
+        // Safe access to created_at (mungkin tidak ada di database lama)
+        var sinceVal = '-';
+        try {
+          if (user.created_at) {
+            var d = new Date(user.created_at);
+            if (!isNaN(d.getTime())) {
+              sinceVal = d.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+            }
+          }
+        } catch(e3) { sinceVal = '-'; }
+
         return Response.json({
           success: true,
           data: {
@@ -1457,7 +1469,7 @@ export default {
             role: user.role,
             status: user.status,
             access: profileAccess,
-            since: user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'
+            since: sinceVal
           }
         });
       } catch (err) {
