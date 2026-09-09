@@ -736,6 +736,170 @@
             .button-group-3d { grid-template-columns: 1fr; }
             .neon-header { padding: 20px; }
         }
+
+        /* ============================================================
+           PRO THEME OVERRIDE — match Dashboard pro aesthetic
+           - Tone down rainbow border jadi subtle static gradient
+           - Back button lebih clean (subtle, bukan gradient block)
+           - KPI cards lebih premium dengan accent bar
+           - Panels dengan hover accent bar
+           - Polish scrollbars, inputs, buttons
+           ============================================================ */
+
+        /* === Subtle border untuk neon-header (ganti rainbow animated) === */
+        .neon-header::before {
+            background: linear-gradient(90deg, rgba(59,130,246,0.4), rgba(139,92,246,0.3), rgba(236,72,153,0.2)) !important;
+            animation: none !important;
+            filter: none !important;
+            padding: 1px !important;
+            opacity: 0.6;
+        }
+
+        .neon-header {
+            box-shadow:
+                0 4px 16px rgba(0, 0, 0, 0.35),
+                0 1px 3px rgba(0, 0, 0, 0.25) !important;
+        }
+
+        /* === Back button — clean subtle style (match Dashboard nav-item) === */
+        .back-button {
+            top: 16px !important;
+            left: 16px !important;
+        }
+
+        .back-btn {
+            background: rgba(15, 15, 22, 0.92) !important;
+            border: 1px solid rgba(255, 255, 255, 0.07) !important;
+            color: var(--text-dim) !important;
+            padding: 10px 18px !important;
+            border-radius: 12px !important;
+            font-size: 0.85rem !important;
+            font-weight: 600 !important;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+
+        .back-btn:hover {
+            background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(139,92,246,0.15)) !important;
+            color: #ffffff !important;
+            border-color: rgba(59, 130, 246, 0.6) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25), inset 0 0 10px rgba(59, 130, 246, 0.1) !important;
+        }
+
+        .back-btn:hover i {
+            color: var(--neon-cyan);
+            filter: drop-shadow(0 0 5px var(--neon-cyan));
+            transform: scale(1.1);
+        }
+
+        .back-btn i {
+            transition: all 0.18s ease;
+        }
+
+        /* === KPI cards — accent bar lebih subtle === */
+        .stat-card {
+            padding: 22px 24px !important;
+        }
+
+        .stat-card::before {
+            background: linear-gradient(90deg, var(--primary), var(--accent-blue)) !important;
+            height: 2px !important;
+        }
+
+        /* === Logo icon — kurangi glow berlebihan === */
+        .logo-icon {
+            animation: none !important;
+            box-shadow: 0 6px 24px rgba(59, 130, 246, 0.35) !important;
+        }
+
+        .logo-title h1 {
+            animation: none !important;
+        }
+
+        /* === Panel hover accent bar === */
+        .panel {
+            position: relative;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent-blue), var(--accent-purple));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-radius: 24px 24px 0 0;
+            z-index: 1;
+        }
+
+        .panel:hover::before {
+            transform: scaleX(1);
+        }
+
+        /* === Button hover glow lebih subtle === */
+        .btn-3d {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+
+        .btn-primary-3d:hover {
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.35) !important;
+        }
+
+        .btn-success-3d:hover {
+            box-shadow: 0 8px 24px rgba(0, 255, 179, 0.3) !important;
+        }
+
+        .btn-danger-3d:hover {
+            box-shadow: 0 8px 24px rgba(255, 48, 72, 0.3) !important;
+        }
+
+        /* === Result card — polish hover === */
+        .result-card-glass {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+
+        .result-card-glass:hover {
+            border-color: rgba(0, 240, 255, 0.3) !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 240, 255, 0.1) !important;
+        }
+
+        /* === Input/textarea focus ring (match Dashboard) === */
+        textarea:focus, input:focus {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+            outline: none;
+        }
+
+        /* === Scrollbar styling (match Dashboard) === */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-surface);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        /* === Badge polish === */
+        .badge {
+            transition: all 0.18s ease;
+        }
+
+        /* === Responsive tweaks === */
+        @media (max-width: 768px) {
+            .neon-header { padding: 20px !important; }
+            .logo-section { gap: 16px !important; margin-bottom: 18px !important; }
+            .live-stats { gap: 12px !important; margin-top: 20px !important; }
+            .stat-card { padding: 18px !important; }
+        }
     </style>
 </head>
 <body>
