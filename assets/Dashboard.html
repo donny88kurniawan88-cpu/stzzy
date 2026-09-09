@@ -535,7 +535,7 @@
           <div class="submenu">
             <div class="submenu-item" onclick="switchToMyEvent()">My Event</div>
             <div class="submenu-item" data-action="comingSoon">History Event</div>
-            <div class="submenu-item" onclick="window.location.href='/PgReport.html'">PG Report</div>
+            <div class="submenu-item" onclick="switchToPgReport()">PG Report</div>
           </div>
         </div>
 
@@ -821,6 +821,13 @@
       <div id="xpaySettlementView" style="display:none;">
         <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
           <iframe src="/xpay-tools/xpay-settlement-checker.html?v=3.0.1" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="XPAY Settlement Checker"></iframe>
+        </div>
+      </div>
+
+      <!-- ===== PG REPORT VIEW (inline iframe) ===== -->
+      <div id="pgReportView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/PgReport.html?v=2.2" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="PG Report Engine"></iframe>
         </div>
       </div>
 
@@ -1352,6 +1359,19 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var anv = document.getElementById('analyzerView'); if (anv) anv.style.display = 'none';
       var xfv = document.getElementById('xpayFullView'); if (xfv) xfv.style.display = 'none';
       var xsv = document.getElementById('xpaySettlementView'); if (xsv) xsv.style.display = 'none';
+      var pgV = document.getElementById('pgReportView'); if (pgV) pgV.style.display = 'none';
+    }
+
+    /* ===================================================================
+       PG REPORT: SWITCH TO PG REPORT VIEW (inline iframe)
+       =================================================================== */
+    function switchToPgReport() {
+      hideAllViews();
+      var pgV = document.getElementById('pgReportView'); if (pgV) pgV.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'PG Report';
+      currentView = 'pgReport';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to PG Report view');
     }
 
     function switchToDashboard() {
