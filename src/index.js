@@ -1753,10 +1753,8 @@ export default {
         const tipe_game_val = body.tipe_game || body.game || '';
         const kode_tiket_val = body.kode_tiket || body.periode || body.roundId || '';
         const hadiah_val = body.hadiah || body.bec || body.amount || '';
-        // KLAIM = metode klaim (Livechat, marketing, WA, dll)
-        // BUKTI = URL printscreen/screenshot (dari extension field: lampiran/shot)
-        const klaim_val = body.klaim || '';
-        const bukti_val = body.bukti_screenshot || body.lampiran || body.shot || '';
+        const klaim_val = body.klaim || body.lampiran || body.shot || '';
+        const bukti_val = body.bukti_screenshot || '';
         // Status mapping: Success->APPROVED, Rejected->REJECTED, Pending->PENDING
         let status_val = (body.status || 'PENDING').toUpperCase();
         if (status_val === 'SUCCESS') status_val = 'APPROVED';
@@ -1890,23 +1888,6 @@ export default {
       } catch (err) {
         return Response.json({ error: 'Gagal menghapus API key: ' + (err.message || err) }, { status: 500 });
       }
-    }
-
-    // ============================================
-    // BUKTI GENERATOR — serve static files from /bukti-generator/
-    // ============================================
-    // ============================================
-    // XPAY TOOLS — serve static files from /xpay-tools/
-    // ============================================
-    // ============================================
-    // ANALYZER TOOLS — serve static files from /analyzer-tools/
-    // ============================================
-    if (path.startsWith('/analyzer-tools/')) {
-      return env.ASSETS.fetch(new Request(new URL(path, request.url), request));
-    }
-
-    if (path.startsWith('/xpay-tools/')) {
-      return env.ASSETS.fetch(new Request(new URL(path, request.url), request));
     }
 
     if (path.startsWith('/bukti-generator/')) {
