@@ -2152,28 +2152,42 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
     // Also check immediately on page load
     setTimeout(_checkUserExistsInDatabase, 2000);
   </script>
-  <script src="/js/dashboard-pro.js?v=2.1.0"></script>
+  <script src="/js/dashboard-pro.js?v=2.1.1"></script>
   <script>
     // Auto-render Pro Dashboard on initial page load (dashboardView is default visible)
     (function() {
+      var attempts = 0;
       function tryRenderDashboard() {
+        attempts++;
         if (window.DASHBOARD && typeof window.DASHBOARD.renderDashboard === 'function') {
           try {
             window.DASHBOARD.initAccess();
             window.DASHBOARD.renderDashboard();
+            return;
           } catch(e) {
-            console.error('Initial dashboard render error:', e);
+            console.error('Dashboard render error:', e);
+            showError(e.message);
+            return;
           }
-        } else {
+        }
+        if (attempts < 30) {
           setTimeout(tryRenderDashboard, 100);
+        } else {
+          showError('dashboard-pro.js failed to load after 3s');
+        }
+      }
+      function showError(msg) {
+        var v = document.getElementById('dashboardView');
+        if (v) {
+          v.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--accent-danger);font-family:var(--font-mono);font-size:13px;"><i class="fas fa-exclamation-triangle" style="font-size:24px;margin-bottom:12px;display:block;"></i>Dashboard render error: ' + msg + '<br><br><button onclick="location.reload()" style="padding:10px 20px;background:var(--accent-primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:var(--font-mono);">Reload</button></div>';
         }
       }
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
-          setTimeout(tryRenderDashboard, 300);
+          setTimeout(tryRenderDashboard, 100);
         });
       } else {
-        setTimeout(tryRenderDashboard, 300);
+        setTimeout(tryRenderDashboard, 100);
       }
     })();
   </script>
