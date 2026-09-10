@@ -197,7 +197,7 @@
       return '' +
         '<div class="pro-hero">' +
           '<div class="pro-hero-body">' +
-            '<div class="pro-hero-eyebrow"><span class="pulse-dot"></span> AURA.OS // DASHBOARD</div>' +
+            '<div class="pro-hero-eyebrow"><span class="pulse-dot"></span> AURA.OS DASHBOARD</div>' +
             '<h1 class="pro-hero-title">' + g.word + ', <span class="accent">' + escapeHtml(name) + '</span> <i class="fas ' + g.icon + '" style="font-size:0.7em; opacity:0.7; margin-left:6px;"></i></h1>' +
             '<p class="pro-hero-subtitle">Quantum interface loaded. All systems operational. Pilih modul di bawah untuk memulai sesi kerja Anda.</p>' +
             '<div class="pro-hero-meta">' +
