@@ -126,7 +126,7 @@
       { cat: 'system', color: 'blue',   icon: 'fa-key',            name: 'API Key',         desc: 'Manage API credentials',          badge: 'live',       badgeText: 'v2.0.0',   access: 'api_key',           action: 'apiKey' },
       { cat: 'system', color: 'red',    icon: 'fa-shield-halved', name: 'IP Whitelist',    desc: 'Kelola whitelist IP login',       badge: 'live',       badgeText: 'v1.0.0',   access: 'ip_whitelist',      action: 'ipWhitelist' },
       { cat: 'system', color: 'orange', icon: 'fa-sliders',       name: 'Setting',         desc: 'System configuration panel',      badge: 'info',       badgeText: 'v1.2.0',   access: 'setting',           action: 'setting' },
-      { cat: 'system', color: 'purple', icon: 'fa-user-gear',     name: 'Authority Panel', desc: 'Admin access & user management',  badge: 'restricted', badgeText: 'Restricted', access: 'authority_panel', href: '/Authority.html' }
+      { cat: 'system', color: 'purple', icon: 'fa-user-gear',     name: 'Authority Panel', desc: 'Admin access & user management',  badge: 'restricted', badgeText: 'Restricted', access: 'authority_panel', action: 'authority' }
     ],
 
     // --- Access handling ---
@@ -159,6 +159,7 @@
         apiKey:                   'switchToApiKey',
         ipWhitelist:              'switchToIpWhitelist',
         pgReport:                 'switchToPgReport',
+        authority:                'switchToAuthority',
         switchToDashboard:        'switchToDashboard',
         switchToProfil:           'switchToProfil',
         switchToMyEvent:          'switchToMyEvent'
