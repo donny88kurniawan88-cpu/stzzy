@@ -51,35 +51,32 @@
   position: relative;
   width: 100%;
   margin-top: 22px;
-  margin-bottom: 26px;
-  padding: 28px 30px;
-  border-radius: var(--radius-xl);
-  background:
-    radial-gradient(ellipse 500px 240px at 100% 0%, rgba(59, 130, 246, 0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 400px 200px at 0% 100%, rgba(139, 92, 246, 0.06) 0%, transparent 60%),
-    linear-gradient(145deg, rgba(20, 20, 30, 0.6), rgba(10, 10, 15, 0.85));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: var(--pro-shadow-card);
-  border: 1px solid var(--pro-border-soft);
+  margin-bottom: 24px;
+  padding: 32px 36px;
+  border-radius: 20px;
+  background: rgba(15, 17, 24, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
-  animation: proFadeInUp 0.5s ease backwards;
+  animation: proFadeInUp 0.4s ease backwards;
 }
 
+/* Subtle radial glow — very minimal, no neon */
 .pro-hero::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple), #ec4899, var(--accent-primary));
-  background-size: 200% 100%;
-  animation: proAccentShimmer 6s linear infinite;
-  z-index: 1;
+  top: -100px; right: -50px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .pro-hero-body {
@@ -216,54 +213,30 @@
 /* --- Stats grid --- */
 .pro-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 16px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
 }
 
 .pro-stat-card {
   position: relative;
-  background:
-    linear-gradient(145deg, rgba(20, 20, 30, 0.7), rgba(12, 12, 20, 0.85));
-  border: 1px solid var(--pro-border-soft);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
+  background: rgba(15, 17, 24, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  padding: 20px 22px;
   overflow: hidden;
-  transition: all 0.25s var(--pro-ease-smooth);
-  animation: proFadeInUp 0.5s ease backwards;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  animation: proFadeInUp 0.4s ease backwards;
 }
 
-.pro-stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--pro-stat-accent, linear-gradient(90deg, var(--accent-primary), var(--accent-purple)));
-  opacity: 0.85;
-  transition: opacity 0.2s, height 0.2s;
-}
-
-.pro-stat-card::after {
-  content: '';
-  position: absolute;
-  top: -40px; right: -40px;
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  background: var(--pro-stat-glow, rgba(59, 130, 246, 0.06));
-  filter: blur(40px);
-  pointer-events: none;
-  transition: opacity 0.25s;
-  opacity: 0.5;
-}
+/* Remove neon top bar and glow circle — flat design */
+.pro-stat-card::before { display: none; }
+.pro-stat-card::after { display: none; }
 
 .pro-stat-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--pro-border-hover);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  background: rgba(20, 23, 32, 0.6);
+  border-color: rgba(255, 255, 255, 0.08);
 }
-
-.pro-stat-card:hover::before { opacity: 1; height: 4px; }
-.pro-stat-card:hover::after { opacity: 0.9; }
 
 .pro-stat-card.blue    { --pro-stat-accent: linear-gradient(90deg, #3b82f6, #60a5fa); --pro-stat-glow: rgba(59, 130, 246, 0.18); }
 .pro-stat-card.success { --pro-stat-accent: linear-gradient(90deg, #10b981, #34d399); --pro-stat-glow: rgba(16, 185, 129, 0.16); }
@@ -279,37 +252,37 @@
 }
 
 .pro-stat-icon {
-  width: 34px; height: 34px;
-  border-radius: 10px;
+  width: 32px; height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--pro-border-soft);
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-.pro-stat-card.blue    .pro-stat-icon { color: #60a5fa; background: rgba(59, 130, 246, 0.10); border-color: rgba(59, 130, 246, 0.22); }
-.pro-stat-card.success .pro-stat-icon { color: #34d399; background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.22); }
-.pro-stat-card.warning .pro-stat-icon { color: #fbbf24; background: rgba(245, 158, 11, 0.10); border-color: rgba(245, 158, 11, 0.22); }
-.pro-stat-card.danger  .pro-stat-icon { color: #f87171; background: rgba(239, 68, 68, 0.10); border-color: rgba(239, 68, 68, 0.22); }
-.pro-stat-card.purple  .pro-stat-icon { color: #a78bfa; background: rgba(139, 92, 246, 0.10); border-color: rgba(139, 92, 246, 0.22); }
+.pro-stat-card.blue    .pro-stat-icon { color: #60a5fa; }
+.pro-stat-card.success .pro-stat-icon { color: #34d399; }
+.pro-stat-card.warning .pro-stat-icon { color: #fbbf24; }
+.pro-stat-card.danger  .pro-stat-icon { color: #f87171; }
+.pro-stat-card.purple  .pro-stat-icon { color: #a78bfa; }
 
 .pro-stat-trend {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
-  border-radius: 100px;
+  padding: 2px 8px;
+  border-radius: 6px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   font-family: var(--font-mono);
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
 }
 
-.pro-stat-trend.up    { background: rgba(16, 185, 129, 0.10); border: 1px solid rgba(16, 185, 129, 0.22); color: #34d399; }
-.pro-stat-trend.down  { background: rgba(239, 68, 68, 0.10); border: 1px solid rgba(239, 68, 68, 0.22); color: #f87171; }
-.pro-stat-trend.flat  { background: rgba(100, 116, 139, 0.10); border: 1px solid rgba(100, 116, 139, 0.22); color: var(--text-secondary); }
+.pro-stat-trend.up    { background: transparent; border: none; color: #34d399; }
+.pro-stat-trend.down  { background: transparent; border: none; color: #f87171; }
+.pro-stat-trend.flat  { background: transparent; border: none; color: var(--text-tertiary); }
 
 .pro-stat-label {
   font-size: 11px;
@@ -321,19 +294,20 @@
 }
 
 .pro-stat-value {
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 32px;
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: -0.6px;
+  letter-spacing: -0.5px;
   font-family: var(--font-mono);
-  color: var(--text-primary);
+  color: #ffffff;
 }
 
-.pro-stat-card.blue    .pro-stat-value { color: #60a5fa; }
-.pro-stat-card.success .pro-stat-value { color: #34d399; }
-.pro-stat-card.warning .pro-stat-value { color: #fbbf24; }
-.pro-stat-card.danger  .pro-stat-value { color: #f87171; }
-.pro-stat-card.purple  .pro-stat-value { color: #a78bfa; }
+/* All stat values white — flat, clean */
+.pro-stat-card.blue    .pro-stat-value,
+.pro-stat-card.success .pro-stat-value,
+.pro-stat-card.warning .pro-stat-value,
+.pro-stat-card.danger  .pro-stat-value,
+.pro-stat-card.purple  .pro-stat-value { color: #ffffff; }
 
 .pro-stat-foot {
   margin-top: 10px;
@@ -2191,4 +2165,283 @@
 
 .pro-quick-btn:hover {
   transform: translateY(-2px);
+}
+
+/* ============================================================
+   FLAT DESIGN OVERRIDE — match desired minimal aesthetic
+   Remove neon borders, gradient bars, glow circles
+   ============================================================ */
+
+/* Module cards — flat */
+.pro-module-card {
+  background: rgba(15, 17, 24, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 14px !important;
+  padding: 20px !important;
+  transition: border-color 0.2s ease, background 0.2s ease !important;
+}
+
+.pro-module-card::before { display: none !important; }
+.pro-module-card::after { display: none !important; }
+
+.pro-module-card:hover {
+  background: rgba(20, 23, 32, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Profil card — flat */
+.pro-profil-card {
+  background: rgba(15, 17, 24, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 20px !important;
+  overflow: hidden;
+}
+
+.pro-profil-banner {
+  height: 80px !important;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.1)) !important;
+}
+
+.pro-profil-banner::before { display: none !important; }
+.pro-profil-banner::after { display: none !important; }
+
+.pro-pwd-card,
+.pro-audit-card {
+  background: rgba(15, 17, 24, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 16px !important;
+}
+
+.pro-pwd-card::before,
+.pro-audit-card::before { display: none !important; }
+
+/* Quick actions — flat */
+.pro-quick-btn {
+  background: rgba(15, 17, 24, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 12px !important;
+  transition: border-color 0.2s ease, background 0.2s ease !important;
+}
+
+.pro-quick-btn:hover {
+  background: rgba(20, 23, 32, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Activity feed — flat */
+.pro-activity {
+  background: rgba(15, 17, 24, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 14px !important;
+}
+
+/* Section headers — simpler */
+.pro-section-header {
+  margin-bottom: 14px !important;
+}
+
+.pro-section-title {
+  font-size: 14px !important;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: -0.2px;
+}
+
+.pro-section-title::before {
+  display: none !important;
+}
+
+/* Stat label — cleaner */
+.pro-stat-label {
+  font-size: 11px !important;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px !important;
+  font-weight: 500 !important;
+  margin-bottom: 6px !important;
+}
+
+/* Stat foot — no bullet */
+.pro-stat-foot {
+  font-size: 11px !important;
+  color: var(--text-tertiary);
+  margin-top: 8px;
+}
+
+.pro-stat-foot::before { display: none !important; }
+
+/* Module icon — flat square */
+.pro-module-icon {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 10px !important;
+}
+
+/* Hero avatar — simpler */
+.pro-hero-avatar {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: none !important;
+}
+
+.pro-hero-avatar-chip {
+  background: rgba(15, 17, 24, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+/* ============================================================
+   FINAL POLISH — subtle depth, consistent radius, icon containers
+   ============================================================ */
+
+/* Hero — subtle blue/purple glow behind */
+.pro-hero {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), 0 0 60px rgba(59, 130, 246, 0.04) !important;
+}
+
+/* Hero avatar — gradient border */
+.pro-hero-avatar {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  border: 2px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Stat cards — very subtle depth */
+.pro-stat-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.pro-stat-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Module cards — subtle depth */
+.pro-module-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.pro-module-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Module icon — consistent square with subtle bg */
+.pro-module-icon {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  font-size: 18px !important;
+}
+
+/* Profil avatar — gradient with border */
+.pro-profil-avatar {
+  border: 3px solid rgba(15, 17, 24, 1) !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Pwd/Audit card — subtle depth */
+.pro-pwd-card,
+.pro-audit-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Activity feed — subtle depth */
+.pro-activity {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Quick actions — subtle depth */
+.pro-quick-btn {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.pro-quick-btn:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Consistent border radius */
+.pro-stat-card,
+.pro-module-card,
+.pro-quick-btn,
+.pro-activity {
+  border-radius: 14px !important;
+}
+
+.pro-pwd-card,
+.pro-audit-card,
+.pro-profil-card {
+  border-radius: 18px !important;
+}
+
+/* Hero meta items — cleaner */
+.pro-hero-meta-item {
+  font-size: 12px !important;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.pro-hero-meta-item i {
+  font-size: 10px !important;
+  opacity: 0.5;
+  margin-right: 4px;
+}
+
+.pro-hero-meta-item strong {
+  color: var(--text-secondary) !important;
+  font-weight: 600;
+}
+
+/* Hero meta divider — subtle */
+.pro-hero-meta-divider {
+  width: 1px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 4px;
+}
+
+/* Profil mini stats — cleaner */
+.pro-profil-mini-stat-value {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+}
+
+.pro-profil-mini-stat-label {
+  font-size: 9px !important;
+  color: var(--text-tertiary) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* IPWL stat — match flat style */
+.pro-ipwl-stat {
+  background: rgba(15, 17, 24, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.pro-ipwl-stat:hover {
+  background: rgba(20, 23, 32, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.pro-ipwl-stat-icon {
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+/* IPWL settings/add/table cards — flat */
+.pro-ipwl-settings,
+.pro-ipwl-add-card,
+.pro-ipwl-table-card {
+  background: rgba(15, 17, 24, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
 }
