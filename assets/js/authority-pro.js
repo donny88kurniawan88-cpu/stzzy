@@ -169,6 +169,11 @@
     var regis = $('viewRegistration');
     if (users) users.classList.toggle('active', view === 'users');
     if (regis) regis.classList.toggle('active', view === 'registration');
+    // Update nav tabs
+    $$('.auth-nav-tab').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-view') === view);
+    });
+    // Legacy nav sub-items
     $$('.nav-sub-item').forEach(function (el) {
       el.classList.toggle('active', el.getAttribute('data-view') === view);
     });
