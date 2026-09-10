@@ -2051,3 +2051,166 @@
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   transform: scale(1.12) rotate(-5deg);
 }
+
+/* ============================================================
+   ULTRA SMOOTH TRANSITIONS — fade-in + slide-up for all panels
+   ============================================================ */
+
+/* Profil view fade */
+#profilView {
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#profilView .pro-profil-wrap {
+  animation: proSlideUpFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+#profilView .pro-profil-card {
+  animation: proSlideUpFade 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s backwards;
+}
+
+#profilView .pro-pwd-card,
+#profilView .pro-audit-card {
+  animation: proSlideUpFade 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s backwards;
+}
+
+/* Dashboard view fade */
+#dashboardView {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#dashboardView .pro-hero {
+  animation: proSlideUpFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+#dashboardView .pro-stats-grid .pro-stat-card:nth-child(1) { animation-delay: 0.05s; }
+#dashboardView .pro-stats-grid .pro-stat-card:nth-child(2) { animation-delay: 0.1s; }
+#dashboardView .pro-stats-grid .pro-stat-card:nth-child(3) { animation-delay: 0.15s; }
+#dashboardView .pro-stats-grid .pro-stat-card:nth-child(4) { animation-delay: 0.2s; }
+
+#dashboardView .pro-quick-actions {
+  animation: proSlideUpFade 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s backwards;
+}
+
+#dashboardView .pro-modules-section {
+  animation: proSlideUpFade 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s backwards;
+}
+
+#dashboardView .pro-activity {
+  animation: proSlideUpFade 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s backwards;
+}
+
+/* IP Whitelist view fade */
+#ipWhitelistView {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#ipWhitelistView .pro-ipwhitelist-wrap {
+  animation: proSlideUpFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+#ipWhitelistView .pro-ipwl-stats .pro-ipwl-stat:nth-child(1) { animation: proSlideUpFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s backwards; }
+#ipWhitelistView .pro-ipwl-stats .pro-ipwl-stat:nth-child(2) { animation: proSlideUpFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s backwards; }
+#ipWhitelistView .pro-ipwl-stats .pro-ipwl-stat:nth-child(3) { animation: proSlideUpFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s backwards; }
+#ipWhitelistView .pro-ipwl-stats .pro-ipwl-stat:nth-child(4) { animation: proSlideUpFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards; }
+
+#ipWhitelistView .pro-ipwl-settings {
+  animation: proSlideUpFade 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s backwards;
+}
+
+#ipWhitelistView .pro-ipwl-add-card {
+  animation: proSlideUpFade 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards;
+}
+
+#ipWhitelistView .pro-ipwl-table-card {
+  animation: proSlideUpFade 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s backwards;
+}
+
+/* Keyframe for smooth slide-up + fade */
+@keyframes proSlideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === Refined stat card hover — less jarring === */
+.pro-stat-card {
+  transition:
+    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s ease,
+    box-shadow 0.35s ease;
+}
+
+.pro-stat-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--pro-border-hover);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    0 0 20px var(--pro-stat-glow, rgba(59, 130, 246, 0.08));
+}
+
+/* Smooth glow circle */
+.pro-stat-card::after {
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pro-stat-card:hover::after {
+  opacity: 0.8;
+  transform: scale(1.15);
+}
+
+/* Module card refined hover */
+.pro-module-card {
+  transition:
+    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s ease,
+    box-shadow 0.35s ease;
+}
+
+.pro-module-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.pro-module-card::before {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Icon smooth transition */
+.pro-stat-icon {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pro-stat-card:hover .pro-stat-icon {
+  transform: scale(1.08);
+}
+
+.pro-module-card:hover .pro-module-icon {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: scale(1.1) rotate(-3deg);
+}
+
+/* Quick action smooth */
+.pro-quick-btn {
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.25s ease,
+    box-shadow 0.3s ease,
+    background 0.25s ease;
+}
+
+.pro-quick-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Remove jarring scale on hover (smoother feel) */
+.pro-stat-card:hover,
+.pro-module-card:hover,
+.pro-quick-btn:hover {
+  /* No scale — just translateY for smoother feel */
+}
