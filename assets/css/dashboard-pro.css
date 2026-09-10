@@ -2283,3 +2283,60 @@
   padding: 20px !important;
   min-height: 160px !important;
 }
+
+/* ============================================================
+   MODULE CARD — subtle color tint (dark but with color hint)
+   Left border accent + very subtle background tint per color
+   ============================================================ */
+
+/* Blue */
+.pro-module-card[data-color="blue"] {
+  background: linear-gradient(145deg, rgba(59, 130, 246, 0.04), rgba(15, 17, 24, 0.6)) !important;
+  border-left: 3px solid rgba(59, 130, 246, 0.3) !important;
+}
+/* Green */
+.pro-module-card[data-color="green"] {
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.04), rgba(15, 17, 24, 0.6)) !important;
+  border-left: 3px solid rgba(16, 185, 129, 0.3) !important;
+}
+/* Purple */
+.pro-module-card[data-color="purple"] {
+  background: linear-gradient(145deg, rgba(139, 92, 246, 0.04), rgba(15, 17, 24, 0.6)) !important;
+  border-left: 3px solid rgba(139, 92, 246, 0.3) !important;
+}
+/* Orange */
+.pro-module-card[data-color="orange"] {
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.04), rgba(15, 17, 24, 0.6)) !important;
+  border-left: 3px solid rgba(245, 158, 11, 0.3) !important;
+}
+/* Teal */
+.pro-module-card[data-color="teal"] {
+  background: linear-gradient(145deg, rgba(20, 184, 166, 0.04), rgba(15, 17, 24, 0.6)) !important;
+  border-left: 3px solid rgba(20, 184, 166, 0.3) !important;
+}
+/* Pink */
+.pro-module-card[data-color="pink"] {
+  background: linear-gradient(145deg, rgba(236, 72, 153, 0.04), rgba(15, 17, 24, 0.6)) !important;
+  border-left: 3px solid rgba(236, 72, 153, 0.3) !important;
+}
+/* Red */
+.pro-module-card[data-color="red"] {
+  background: linear-gradient(145deg, rgba(239, 68, 68, 0.04), rgba(15, 17, 24, 0.6)) !important;
+  border-left: 3px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Hover — intensify color slightly */
+.pro-module-card[data-color="blue"]:hover   { background: linear-gradient(145deg, rgba(59, 130, 246, 0.08), rgba(20, 23, 32, 0.7)) !important; border-left-color: rgba(59, 130, 246, 0.6) !important; }
+.pro-module-card[data-color="green"]:hover  { background: linear-gradient(145deg, rgba(16, 185, 129, 0.08), rgba(20, 23, 32, 0.7)) !important; border-left-color: rgba(16, 185, 129, 0.6) !important; }
+.pro-module-card[data-color="purple"]:hover { background: linear-gradient(145deg, rgba(139, 92, 246, 0.08), rgba(20, 23, 32, 0.7)) !important; border-left-color: rgba(139, 92, 246, 0.6) !important; }
+.pro-module-card[data-color="orange"]:hover { background: linear-gradient(145deg, rgba(245, 158, 11, 0.08), rgba(20, 23, 32, 0.7)) !important; border-left-color: rgba(245, 158, 11, 0.6) !important; }
+.pro-module-card[data-color="teal"]:hover   { background: linear-gradient(145deg, rgba(20, 184, 166, 0.08), rgba(20, 23, 32, 0.7)) !important; border-left-color: rgba(20, 184, 166, 0.6) !important; }
+.pro-module-card[data-color="pink"]:hover   { background: linear-gradient(145deg, rgba(236, 72, 153, 0.08), rgba(20, 23, 32, 0.7)) !important; border-left-color: rgba(236, 72, 153, 0.6) !important; }
+.pro-module-card[data-color="red"]:hover    { background: linear-gradient(145deg, rgba(239, 68, 68, 0.08), rgba(20, 23, 32, 0.7)) !important; border-left-color: rgba(239, 68, 68, 0.6) !important; }
+
+/* Stat card — also subtle color tint */
+.pro-stat-card.blue    { background: linear-gradient(145deg, rgba(59, 130, 246, 0.03), rgba(15, 17, 24, 0.6)) !important; }
+.pro-stat-card.success { background: linear-gradient(145deg, rgba(16, 185, 129, 0.03), rgba(15, 17, 24, 0.6)) !important; }
+.pro-stat-card.warning { background: linear-gradient(145deg, rgba(245, 158, 11, 0.03), rgba(15, 17, 24, 0.6)) !important; }
+.pro-stat-card.danger  { background: linear-gradient(145deg, rgba(239, 68, 68, 0.03), rgba(15, 17, 24, 0.6)) !important; }
+.pro-stat-card.purple  { background: linear-gradient(145deg, rgba(139, 92, 246, 0.03), rgba(15, 17, 24, 0.6)) !important; }
