@@ -479,6 +479,10 @@
       var root = document.getElementById('dashboardView');
       if (!root) { console.warn('[dashboard-pro] #dashboardView not found'); return; }
 
+      // Smooth fade transition
+      root.style.opacity = '0';
+      root.style.transition = 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+
       var html = '' +
         this._renderHero() +
         this._renderStats() +
@@ -489,6 +493,13 @@
 
       root.innerHTML = html;
       this.animateStats(root);
+
+      // Fade in
+      requestAnimationFrame(function() {
+        root.style.opacity = '1';
+        setTimeout(function() { root.style.transition = ''; }, 400);
+      });
+
       logSafe('Pro dashboard rendered');
     },
 
@@ -627,6 +638,23 @@
       var root = document.getElementById(this._containerId);
       if (!root) return;
 
+      // Fade out loading state first, then fade in new content (smooth transition)
+      root.style.opacity = '0';
+      root.style.transition = 'opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+
+      var self = this;
+      setTimeout(function() {
+        self._doRender(data, root);
+        // Fade in new content
+        requestAnimationFrame(function() {
+          root.style.opacity = '1';
+          // Clean up transition after animation
+          setTimeout(function() { root.style.transition = ''; }, 400);
+        });
+      }, 250);
+    },
+
+    _doRender: function (data, root) {
       DASHBOARD.initAccess();
       var d = data || {};
       var username = d.username || getLS('aura_auth_token', 'User');
@@ -990,8 +1018,15 @@
     load: function () {
       var root = document.getElementById('ipWhitelistView');
       if (!root) { console.warn('[dashboard-pro] #ipWhitelistView not found'); return; }
+      // Smooth fade in
+      root.style.opacity = '0';
+      root.style.transition = 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
       this.renderShell();
       this._fetch();
+      requestAnimationFrame(function() {
+        root.style.opacity = '1';
+        setTimeout(function() { root.style.transition = ''; }, 400);
+      });
     },
 
     _fetch: function () {
