@@ -441,6 +441,8 @@
   </style>
   <link rel="stylesheet" href="/css/dashboard-pro.css?v=3.0.0">
   <link rel="stylesheet" href="/css/myevent-pro.css?v=1.1.0">
+  <link rel="stylesheet" href="/css/setting-pro.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/keepmemo-pro.css?v=1.0.0">
 </head>
 <body>
 
@@ -565,7 +567,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Setting
         </div>
-        <div class="nav-item" data-access-item="authority_panel" onclick="window.location.href='/Authority.html'">
+        <div class="nav-item" data-access-item="authority_panel" onclick="switchToAuthority()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
           Authority Panel
         </div>
@@ -858,6 +860,19 @@
           <iframe src="/PgReport.html?v=2.3" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="PG Report Engine"></iframe>
         </div>
       </div>
+
+      <!-- ===== AUTHORITY PANEL VIEW (inline iframe) ===== -->
+      <div id="authorityView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/Authority.html?v=1.0.0" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="Authority Panel - User Management"></iframe>
+        </div>
+      </div>
+
+      <!-- ===== KEEP MEMO VIEW (Pro - rendered by keepmemo-pro.js) ===== -->
+      <div id="keepMemoView" style="display:none;"></div>
+
+      <!-- ===== SETTING VIEW (Pro - rendered by setting-pro.js) ===== -->
+      <div id="settingView" style="display:none;"></div>
 
   </main>
 
@@ -1342,80 +1357,13 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
           switchToIpWhitelist();
           break;
         case 'keepMemo':
-          showPopup('Keep Memo', '<div style="padding:10px;"><textarea id="memoArea" style="width:100%; min-height:180px; padding:14px; background:rgba(15,15,22,0.8); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--text-primary); font-size:14px; font-family:var(--font-sans); outline:none; resize:vertical;" placeholder="Tulis catatan di sini...">' + (localStorage.getItem('aura_memo') || '') + '</textarea></div>', true, function() {
-            var val = document.getElementById('memoArea').value;
-            localStorage.setItem('aura_memo', val);
-            showToast('Memo berhasil disimpan!', 'success');
-            addTerminalLog('Memo saved (' + val.length + ' chars)');
-          });
-          addTerminalLog('Keep Memo opened');
+          switchToKeepMemo();
           break;
         case 'apiKey':
           switchToApiKey();
           break;
         case 'setting':
-          showPopup('Setting', '<div style="padding:10px;"><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Terminal Auto-Scroll</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setAutoScroll" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setAutoScrollDot"></span></label></div><div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:rgba(15,15,22,0.6); border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:12px;"><span style="font-size:14px; font-weight:500;">Toast Notifications</span><label style="position:relative;width:44px;height:24px;cursor:pointer;"><input type="checkbox" id="setToast" checked style="display:none;"><span style="position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;transition:0.3s;"></span><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;" id="setToastDot"></span></label></div><div style="padding:14px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius-md); cursor:pointer; text-align:center; color:var(--accent-danger); font-weight:600; font-size:14px;" id="clearDataBtn">Clear All Local Data</div></div>', false);
-          addTerminalLog('Settings panel opened');
-          setTimeout(function() {
-            var clearBtn = document.getElementById('clearDataBtn');
-            if (clearBtn) clearBtn.addEventListener('click', function() {
-              showPopup('Konfirmasi Clear All Data', '<div style="padding:20px; color:var(--text-secondary); text-align:center;"><p style="margin-bottom:12px;">Semua data lokal akan dihapus dan <strong style="color:var(--accent-warning);">semua perangkat</strong> yang sedang membuka Dashboard akan otomatis refresh access control.</p><p style="font-size:12px; color:var(--text-tertiary);">Anda tetap login di perangkat ini.</p></div>', true, function() {
-                // Preserve admin auth token — only clear stale access/role data
-                var preservedToken = localStorage.getItem('aura_auth_token') || '';
-                // Call API to bump data_version (forces all OTHER devices to refresh)
-                fetch('/api/clear-all-data', {
-                  method: 'POST',
-                  headers: { 'x-auth-token': preservedToken }
-                })
-                  .then(function(r) { return r.json(); })
-                  .then(function(data) {
-                    // Clear stale access/role/memo data but KEEP auth token
-                    localStorage.removeItem('aura_user_role');
-                    localStorage.removeItem('aura_user_access');
-                    localStorage.removeItem('aura_data_version');
-                    localStorage.removeItem('aura_memo');
-                    if (data.success) {
-                      localStorage.setItem('aura_data_version', String(data.version));
-                      showToast('Clear all data berhasil. Version: ' + data.version + '. Semua perangkat akan refresh.', 'success');
-                      addTerminalLog('Clear all data — version bumped to ' + data.version);
-                      // Re-fetch fresh access from database (admin stays logged in)
-                      fetch('/api/me', { headers: { 'x-auth-token': preservedToken } })
-                        .then(function(r) { return r.json(); })
-                        .then(function(meData) {
-                          if (meData && meData.success) {
-                            var me = meData.user || meData.data;
-                            if (me) {
-                              localStorage.setItem('aura_user_role', me.role || 'MEMBER');
-                              localStorage.setItem('aura_user_access', JSON.stringify(me.access || {}));
-                              applyAccess(me.role || 'MEMBER', me.access || {});
-                              showToast('Access control refreshed', 'success');
-                              setTimeout(function() { location.reload(); }, 1200);
-                            } else {
-                              setTimeout(function() { location.reload(); }, 1200);
-                            }
-                          } else {
-                            setTimeout(function() { location.reload(); }, 1200);
-                          }
-                        })
-                        .catch(function() { setTimeout(function() { location.reload(); }, 1200); });
-                    } else {
-                      showToast('Clear lokal berhasil (API sync gagal: ' + (data.error || 'unknown') + ')', 'success');
-                      addTerminalLog('All local data cleared (API sync failed)');
-                      setTimeout(function() { location.reload(); }, 1200);
-                    }
-                  })
-                  .catch(function(err) {
-                    // Fallback: clear stale data but keep token
-                    localStorage.removeItem('aura_user_role');
-                    localStorage.removeItem('aura_user_access');
-                    localStorage.removeItem('aura_data_version');
-                    showToast('Clear lokal berhasil (koneksi error)', 'success');
-                    addTerminalLog('All local data cleared (connection error)');
-                    setTimeout(function() { location.reload(); }, 1000);
-                  })
-              });
-            });
-          }, 100);
+          switchToSetting();
           break;
       }
     }
@@ -1437,6 +1385,9 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var xsv = document.getElementById('xpaySettlementView'); if (xsv) xsv.style.display = 'none';
       var ebv = document.getElementById('editBuktiView'); if (ebv) ebv.style.display = 'none';
       var pgV = document.getElementById('pgReportView'); if (pgV) pgV.style.display = 'none';
+      var autV = document.getElementById('authorityView'); if (autV) autV.style.display = 'none';
+      var kmV = document.getElementById('keepMemoView'); if (kmV) kmV.style.display = 'none';
+      var stV = document.getElementById('settingView'); if (stV) stV.style.display = 'none';
     }
 
     /* === P2M ANALYZER === */
@@ -1499,6 +1450,48 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       currentView = 'pgReport';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
       addTerminalLog('Switched to PG Report view');
+    }
+
+    /* === AUTHORITY PANEL === */
+    function switchToAuthority() {
+      hideAllViews();
+      var autV = document.getElementById('authorityView'); if (autV) autV.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'authority';
+      currentView = 'authority';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      var autNav = document.querySelector('.nav-item[data-access-item="authority_panel"]');
+      if (autNav) autNav.classList.add('active');
+      addTerminalLog('Switched to Authority Panel view');
+    }
+
+    /* === KEEP MEMO (Pro) === */
+    function switchToKeepMemo() {
+      hideAllViews();
+      var kmV = document.getElementById('keepMemoView'); if (kmV) kmV.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'keep memo';
+      currentView = 'keepMemo';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      var kmNav = document.querySelector('.nav-item[data-action="keepMemo"]');
+      if (kmNav) kmNav.classList.add('active');
+      addTerminalLog('Switched to Keep Memo view');
+      if (window.KeepMemoPro && typeof window.KeepMemoPro.load === 'function') {
+        window.KeepMemoPro.load();
+      }
+    }
+
+    /* === SETTING (Pro) === */
+    function switchToSetting() {
+      hideAllViews();
+      var stV = document.getElementById('settingView'); if (stV) stV.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'setting';
+      currentView = 'setting';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      var stNav = document.querySelector('.nav-item[data-action="setting"]');
+      if (stNav) stNav.classList.add('active');
+      addTerminalLog('Switched to Setting view');
+      if (window.SettingPro && typeof window.SettingPro.load === 'function') {
+        window.SettingPro.load();
+      }
     }
 
     function switchToDashboard() {
@@ -2258,5 +2251,7 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
   </script>
   <script src="/js/dashboard-pro.js?v=3.0.0"></script>
   <script src="/js/myevent-pro.js?v=1.1.0"></script>
+  <script src="/js/setting-pro.js?v=1.0.0"></script>
+  <script src="/js/keepmemo-pro.js?v=1.0.0"></script>
 </body>
 </html>
