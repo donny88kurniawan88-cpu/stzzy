@@ -1,1553 +1,848 @@
 /* ============================================================
-   AURA.OS // AUTHORITY-PRO.CSS
-   Professional, structured styling for Authority Panel
-   (User Management + Registration Settings + Edit Access).
-   Dark glassmorphism aesthetic — matches dashboard-pro.css.
-   Pairs with authority-pro.js (AUTHORITY).
+   AURA.OS // AUTHORITY-PRO.JS
+   Authority Panel logic — User management, access control,
+   registration settings, pending approvals, search, toasts.
+   Pairs with authority-pro.css (AUTHORITY).
    ============================================================ */
 
-/* ============================================================
-   SHARED TOKENS & ANIMATIONS
-   ============================================================ */
-:root {
-  --pro-bg-card: linear-gradient(145deg, rgba(20, 20, 30, 0.6), rgba(10, 10, 15, 0.85));
-  --pro-bg-card-flat: rgba(255, 255, 255, 0.025);
-  --pro-border-soft: rgba(255, 255, 255, 0.07);
-  --pro-border-hover: rgba(255, 255, 255, 0.14);
-  --pro-shadow-card: 0 20px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  --pro-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --pro-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Color tokens (mirror dashboard) */
-  --aura-bg-primary: #0a0a0f;
-  --aura-bg-secondary: #111118;
-  --aura-bg-tertiary: #1a1a24;
-  --aura-surface: rgba(15, 15, 22, 0.97);
-  --aura-surface-elevated: #181822;
-  --aura-border: rgba(255, 255, 255, 0.07);
-  --aura-border-focus: rgba(255, 255, 255, 0.18);
-  --aura-text-primary: #f1f5f9;
-  --aura-text-secondary: #94a3b8;
-  --aura-text-tertiary: #64748b;
-  --aura-accent-primary: #3b82f6;
-  --aura-accent-primary-light: rgba(59, 130, 246, 0.12);
-  --aura-accent-primary-dark: #2563eb;
-  --aura-accent-success: #10b981;
-  --aura-accent-success-light: rgba(16, 185, 129, 0.12);
-  --aura-accent-warning: #f59e0b;
-  --aura-accent-warning-light: rgba(245, 158, 11, 0.12);
-  --aura-accent-danger: #ef4444;
-  --aura-accent-danger-light: rgba(239, 68, 68, 0.12);
-  --aura-accent-purple: #8b5cf6;
-  --aura-accent-purple-light: rgba(139, 92, 246, 0.12);
-  --aura-accent-pink: #ec4899;
-  --aura-accent-teal: #14b8a6;
-  --aura-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --aura-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --aura-shadow-xl: 0 12px 36px rgba(0, 0, 0, 0.6);
-  --aura-radius-sm: 8px;
-  --aura-radius-md: 12px;
-  --aura-radius-lg: 16px;
-  --aura-radius-xl: 24px;
-  --aura-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --aura-font-mono: 'JetBrains Mono', monospace;
-  --aura-sidebar-width: 280px;
-  --aura-header-height: 64px;
-}
-
-@keyframes authorityFadeInUp {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes authorityPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.55; transform: scale(1.18); }
-}
-
-@keyframes authorityAccentShimmer {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
-}
-
-@keyframes authoritySpin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes authoritySlideIn {
-  from { opacity: 0; transform: translateX(120%); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes authorityModalPop {
-  from { opacity: 0; transform: translateY(20px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* ============================================================
-   PAGE LAYOUT — works both standalone and inside iframe
-   ============================================================ */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html, body {
-  background: var(--aura-bg-primary);
-  color: var(--aura-text-primary);
-  font-family: var(--aura-font-sans);
-  font-size: 14px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
-}
-
-body {
-  position: relative;
-  overflow-x: hidden;
-  background:
-    radial-gradient(ellipse 800px 400px at 20% -10%, rgba(59, 130, 246, 0.08) 0%, transparent 55%),
-    radial-gradient(ellipse 600px 320px at 100% 100%, rgba(139, 92, 246, 0.06) 0%, transparent 55%),
-    var(--aura-bg-primary);
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 60px 60px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* === Top-bar (compact for iframe embedding) === */
-.auth-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 28px;
-  background: linear-gradient(180deg, rgba(10, 10, 15, 0.92), rgba(10, 10, 15, 0.78));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--pro-border-soft);
-}
-
-.auth-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--aura-font-mono);
-  font-size: 12px;
-  color: var(--aura-text-secondary);
-  letter-spacing: 0.3px;
-  flex-wrap: wrap;
-}
-
-.auth-breadcrumb .crumb-user {
-  color: var(--aura-accent-primary);
-  font-weight: 600;
-}
-
-.auth-breadcrumb .crumb-sep {
-  color: var(--aura-text-tertiary);
-  opacity: 0.6;
-}
-
-.auth-breadcrumb .crumb-active {
-  color: var(--aura-text-primary);
-  font-weight: 500;
-}
-
-.auth-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.22);
-  border-radius: 100px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #34d399;
-  font-family: var(--aura-font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-}
-
-.auth-status .dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--aura-accent-success);
-  box-shadow: 0 0 8px var(--aura-accent-success);
-  animation: authorityPulse 2s infinite;
-}
-
-/* === Main content area === */
-.auth-shell {
-  position: relative;
-  z-index: 1;
-  padding: 24px 28px 48px;
-  max-width: 1480px;
-  margin: 0 auto;
-}
-
-/* ============================================================
-   VIEW SECTIONS
-   ============================================================ */
-.auth-view {
-  display: none;
-  animation: authorityFadeInUp 0.45s var(--pro-ease-smooth);
-}
-
-.auth-view.active {
-  display: block;
-}
-
-/* ============================================================
-   SECTION HEADER (per-view hero)
-   ============================================================ */
-.auth-section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  flex-wrap: wrap;
-  margin-bottom: 24px;
-  animation: authorityFadeInUp 0.5s ease backwards;
-}
-
-.auth-section-head-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-width: 0;
-}
-
-.auth-section-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--aura-radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  background: var(--aura-accent-primary-light);
-  color: var(--aura-accent-primary);
-  border: 1px solid rgba(59, 130, 246, 0.22);
-  position: relative;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.auth-section-icon::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 60%);
-  pointer-events: none;
-}
-
-.auth-section-icon.purple {
-  background: var(--aura-accent-purple-light);
-  color: var(--aura-accent-purple);
-  border-color: rgba(139, 92, 246, 0.22);
-}
-
-.auth-section-title {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--aura-text-primary);
-  letter-spacing: -0.4px;
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-
-.auth-section-subtitle {
-  font-size: 13px;
-  color: var(--aura-text-secondary);
-  font-weight: 400;
-  letter-spacing: 0.2px;
-}
-
-.auth-section-head-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-/* ============================================================
-   BUTTONS
-   ============================================================ */
-.auth-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: var(--aura-radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--aura-font-sans);
-  cursor: pointer;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--aura-text-secondary);
-  transition: all 0.2s var(--pro-ease-smooth);
-  white-space: nowrap;
-  user-select: none;
-}
-
-.auth-btn i { font-size: 12px; }
-
-.auth-btn:hover {
-  border-color: var(--pro-border-hover);
-  color: var(--aura-text-primary);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.auth-btn-primary {
-  background: linear-gradient(135deg, var(--aura-accent-primary), var(--aura-accent-primary-dark));
-  color: #fff;
-  border-color: rgba(59, 130, 246, 0.4);
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.28);
-}
-
-.auth-btn-primary:hover {
-  background: linear-gradient(135deg, #4f8ff5, #2f6ee8);
-  color: #fff;
-  border-color: rgba(59, 130, 246, 0.55);
-  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.38);
-  transform: translateY(-1px);
-}
-
-.auth-btn-ghost {
-  background: rgba(255, 255, 255, 0.025);
-  border-color: var(--pro-border-soft);
-  color: var(--aura-text-secondary);
-}
-
-.auth-btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--aura-text-primary);
-}
-
-.auth-btn-danger-ghost {
-  background: rgba(239, 68, 68, 0.06);
-  border-color: rgba(239, 68, 68, 0.18);
-  color: #f87171;
-}
-
-.auth-btn-danger-ghost:hover {
-  background: rgba(239, 68, 68, 0.14);
-  color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.32);
-}
-
-.auth-btn-success-ghost {
-  background: rgba(16, 185, 129, 0.06);
-  border-color: rgba(16, 185, 129, 0.18);
-  color: #34d399;
-}
-
-.auth-btn-success-ghost:hover {
-  background: rgba(16, 185, 129, 0.14);
-  color: #6ee7b7;
-  border-color: rgba(16, 185, 129, 0.32);
-}
-
-.auth-btn-icon {
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border-radius: var(--aura-radius-sm);
-}
-
-.auth-btn-icon i { font-size: 13px; }
-
-.auth-btn-sm {
-  padding: 6px 11px;
-  font-size: 11px;
-  border-radius: 6px;
-}
-
-.auth-btn-block {
-  width: 100%;
-  padding: 13px 16px;
-  font-size: 14px;
-}
-
-/* ============================================================
-   STATS GRID
-   ============================================================ */
-.auth-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 28px;
-}
-
-.auth-stat {
-  position: relative;
-  background: var(--pro-bg-card);
-  border: 1px solid var(--pro-border-soft);
-  border-radius: var(--aura-radius-lg);
-  padding: 18px 20px;
-  overflow: hidden;
-  transition: all 0.25s var(--pro-ease-smooth);
-  animation: authorityFadeInUp 0.5s ease backwards;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-.auth-stat::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--stat-accent, linear-gradient(90deg, var(--aura-accent-primary), var(--aura-accent-purple)));
-  opacity: 0.85;
-  transition: opacity 0.2s, height 0.2s;
-}
-
-.auth-stat::after {
-  content: '';
-  position: absolute;
-  top: -40px; right: -40px;
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  background: var(--stat-glow, rgba(59, 130, 246, 0.10));
-  filter: blur(40px);
-  pointer-events: none;
-  opacity: 0.45;
-  transition: opacity 0.25s;
-}
-
-.auth-stat:hover {
-  transform: translateY(-4px);
-  border-color: var(--pro-border-hover);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-}
-
-.auth-stat:hover::before { opacity: 1; height: 4px; }
-.auth-stat:hover::after  { opacity: 0.9; }
-
-.auth-stat.blue    { --stat-accent: linear-gradient(90deg, #3b82f6, #60a5fa); --stat-glow: rgba(59, 130, 246, 0.18); }
-.auth-stat.success { --stat-accent: linear-gradient(90deg, #10b981, #34d399); --stat-glow: rgba(16, 185, 129, 0.16); }
-.auth-stat.warning { --stat-accent: linear-gradient(90deg, #f59e0b, #fbbf24); --stat-glow: rgba(245, 158, 11, 0.14); }
-.auth-stat.danger  { --stat-accent: linear-gradient(90deg, #ef4444, #f87171); --stat-glow: rgba(239, 68, 68, 0.14); }
-.auth-stat.purple  { --stat-accent: linear-gradient(90deg, #8b5cf6, #a78bfa); --stat-glow: rgba(139, 92, 246, 0.16); }
-.auth-stat.pink    { --stat-accent: linear-gradient(90deg, #ec4899, #f472b6); --stat-glow: rgba(236, 72, 153, 0.14); }
-.auth-stat.teal    { --stat-accent: linear-gradient(90deg, #14b8a6, #2dd4bf); --stat-glow: rgba(20, 184, 166, 0.14); }
-
-.auth-stat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.auth-stat-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--pro-border-soft);
-}
-
-.auth-stat.blue    .auth-stat-icon { color: #60a5fa; background: rgba(59, 130, 246, 0.10); border-color: rgba(59, 130, 246, 0.22); }
-.auth-stat.success .auth-stat-icon { color: #34d399; background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.22); }
-.auth-stat.warning .auth-stat-icon { color: #fbbf24; background: rgba(245, 158, 11, 0.10); border-color: rgba(245, 158, 11, 0.22); }
-.auth-stat.danger  .auth-stat-icon { color: #f87171; background: rgba(239, 68, 68, 0.10); border-color: rgba(239, 68, 68, 0.22); }
-.auth-stat.purple  .auth-stat-icon { color: #a78bfa; background: rgba(139, 92, 246, 0.10); border-color: rgba(139, 92, 246, 0.22); }
-.auth-stat.pink    .auth-stat-icon { color: #f472b6; background: rgba(236, 72, 153, 0.10); border-color: rgba(236, 72, 153, 0.22); }
-.auth-stat.teal    .auth-stat-icon { color: #2dd4bf; background: rgba(20, 184, 166, 0.10); border-color: rgba(20, 184, 166, 0.22); }
-
-.auth-stat-label {
-  font-size: 11px;
-  font-family: var(--aura-font-mono);
-  color: var(--aura-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-
-.auth-stat-value {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--aura-text-primary);
-  font-family: var(--aura-font-mono);
-  line-height: 1;
-  letter-spacing: -0.5px;
-}
-
-.auth-stat.blue    .auth-stat-value { color: #60a5fa; }
-.auth-stat.success .auth-stat-value { color: #34d399; }
-.auth-stat.warning .auth-stat-value { color: #fbbf24; }
-.auth-stat.danger  .auth-stat-value { color: #f87171; }
-.auth-stat.purple  .auth-stat-value { color: #a78bfa; }
-.auth-stat.pink    .auth-stat-value { color: #f472b6; }
-.auth-stat.teal    .auth-stat-value { color: #2dd4bf; }
-
-.auth-stat-value.text-md { font-size: 18px; }
-.auth-stat-value.text-sm { font-size: 14px; }
-
-.auth-stat-trend {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 8px;
-  padding: 3px 9px;
-  border-radius: 100px;
-  font-size: 10px;
-  font-weight: 700;
-  font-family: var(--aura-font-mono);
-  letter-spacing: 0.4px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--aura-text-tertiary);
-}
-
-/* ============================================================
-   CARD / PANEL WRAPPER
-   ============================================================ */
-.auth-card {
-  position: relative;
-  background: var(--pro-bg-card);
-  border: 1px solid var(--pro-border-soft);
-  border-radius: var(--aura-radius-lg);
-  padding: 22px 24px;
-  box-shadow: var(--pro-shadow-card);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  margin-bottom: 24px;
-  animation: authorityFadeInUp 0.55s ease backwards;
-}
-
-.auth-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 16px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--pro-border-soft);
-}
-
-.auth-card-head-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--aura-text-primary);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.auth-card-head-title i {
-  color: var(--aura-accent-primary);
-  font-size: 13px;
-}
-
-.auth-card-head-sub {
-  font-size: 11px;
-  font-family: var(--aura-font-mono);
-  color: var(--aura-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-}
-
-/* ============================================================
-   TOOLBAR (search + filters)
-   ============================================================ */
-.auth-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
-  flex-wrap: wrap;
-}
-
-.auth-search {
-  position: relative;
-  flex: 1;
-  min-width: 240px;
-  max-width: 460px;
-}
-
-.auth-search i {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--aura-text-tertiary);
-  font-size: 13px;
-  pointer-events: none;
-}
-
-.auth-search input {
-  width: 100%;
-  padding: 11px 14px 11px 40px;
-  background: rgba(15, 15, 22, 0.6);
-  border: 1px solid var(--pro-border-soft);
-  border-radius: var(--aura-radius-sm);
-  color: var(--aura-text-primary);
-  font-family: var(--aura-font-sans);
-  font-size: 13px;
-  transition: all 0.2s var(--pro-ease-smooth);
-}
-
-.auth-search input::placeholder {
-  color: var(--aura-text-tertiary);
-}
-
-.auth-search input:focus {
-  outline: none;
-  border-color: rgba(59, 130, 246, 0.4);
-  background: rgba(15, 15, 22, 0.9);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.10);
-}
-
-/* ============================================================
-   FORM INPUTS
-   ============================================================ */
-.auth-form-group {
-  margin-bottom: 16px;
-}
-
-.auth-form-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--aura-text-secondary);
-  margin-bottom: 8px;
-  letter-spacing: 0.3px;
-}
-
-.auth-input,
-.auth-select,
-.auth-textarea {
-  width: 100%;
-  padding: 11px 14px;
-  background: rgba(15, 15, 22, 0.6);
-  border: 1px solid var(--pro-border-soft);
-  border-radius: var(--aura-radius-sm);
-  color: var(--aura-text-primary);
-  font-family: var(--aura-font-sans);
-  font-size: 13px;
-  transition: all 0.2s var(--pro-ease-smooth);
-}
-
-.auth-input::placeholder,
-.auth-textarea::placeholder {
-  color: var(--aura-text-tertiary);
-}
-
-.auth-input:focus,
-.auth-select:focus,
-.auth-textarea:focus {
-  outline: none;
-  border-color: rgba(59, 130, 246, 0.4);
-  background: rgba(15, 15, 22, 0.9);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.10);
-}
-
-.auth-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 38px;
-  cursor: pointer;
-}
-
-.auth-select option {
-  background: var(--aura-bg-secondary);
-  color: var(--aura-text-primary);
-}
-
-.auth-select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.auth-input-width-sm { max-width: 200px; }
-.auth-input-width-md { max-width: 280px; }
-
-/* ============================================================
-   TABLE
-   ============================================================ */
-.auth-table-wrap {
-  position: relative;
-  background: var(--pro-bg-card);
-  border: 1px solid var(--pro-border-soft);
-  border-radius: var(--aura-radius-lg);
-  overflow: hidden;
-  box-shadow: var(--pro-shadow-card);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  animation: authorityFadeInUp 0.6s ease backwards;
-}
-
-.auth-table-scroll {
-  max-height: 540px;
-  overflow-y: auto;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
-}
-
-.auth-table-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-.auth-table-scroll::-webkit-scrollbar-track { background: transparent; }
-.auth-table-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-}
-.auth-table-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.18); }
-
-.auth-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.auth-table thead {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: linear-gradient(180deg, rgba(20, 20, 30, 0.98), rgba(15, 15, 22, 0.96));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-.auth-table thead th {
-  padding: 14px 18px;
-  text-align: left;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--aura-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  border-bottom: 1px solid var(--pro-border-soft);
-  white-space: nowrap;
-  font-family: var(--aura-font-mono);
-}
-
-.auth-table thead th.text-right { text-align: right; }
-
-.auth-table tbody tr {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  transition: background 0.18s ease, transform 0.18s ease;
-}
-
-.auth-table tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.012);
-}
-
-.auth-table tbody tr:hover {
-  background: rgba(59, 130, 246, 0.06);
-}
-
-.auth-table tbody tr:last-child {
-  border-bottom: none;
-}
-
-.auth-table tbody td {
-  padding: 14px 18px;
-  color: var(--aura-text-primary);
-  vertical-align: middle;
-}
-
-.auth-table tbody td.text-right { text-align: right; }
-.auth-table tbody td.text-center { text-align: center; }
-
-.auth-table .empty-row td {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--aura-text-tertiary);
-  font-style: italic;
-}
-
-.auth-table .loading-row td {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--aura-text-tertiary);
-}
-
-.auth-table .loading-row i {
-  margin-right: 8px;
-  animation: authoritySpin 1s linear infinite;
-  color: var(--aura-accent-primary);
-}
-
-/* User cell (avatar + name) */
-.auth-user-cell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.auth-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--aura-accent-primary), var(--aura-accent-purple));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 800;
-  color: #fff;
-  font-family: var(--aura-font-mono);
-  text-transform: uppercase;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-
-.auth-avatar.warning-pink {
-  background: linear-gradient(135deg, #f59e0b, #ec4899);
-}
-
-.auth-avatar.purple-teal {
-  background: linear-gradient(135deg, #8b5cf6, #14b8a6);
-}
-
-.auth-avatar.success-blue {
-  background: linear-gradient(135deg, #10b981, #3b82f6);
-}
-
-.auth-user-name {
-  font-weight: 600;
-  color: var(--aura-text-primary);
-  font-size: 13px;
-}
-
-/* Role badge */
-.auth-role-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 11px;
-  border-radius: 100px;
-  font-size: 10px;
-  font-weight: 700;
-  font-family: var(--aura-font-mono);
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  border: 1px solid transparent;
-}
-
-.auth-role-badge::before {
-  content: '';
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 6px currentColor;
-}
-
-.auth-role-badge.role-master {
-  background: rgba(245, 158, 11, 0.10);
-  color: #fbbf24;
-  border-color: rgba(245, 158, 11, 0.28);
-}
-
-.auth-role-badge.role-admin {
-  background: rgba(59, 130, 246, 0.10);
-  color: #60a5fa;
-  border-color: rgba(59, 130, 246, 0.28);
-}
-
-.auth-role-badge.role-member {
-  background: rgba(148, 163, 184, 0.10);
-  color: #cbd5e1;
-  border-color: rgba(148, 163, 184, 0.22);
-}
-
-/* Status pill (OPEN/CLOSED/PENDING) */
-.auth-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 11px;
-  border-radius: 100px;
-  font-size: 10px;
-  font-weight: 700;
-  font-family: var(--aura-font-mono);
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  border: 1px solid transparent;
-}
-
-.auth-status-pill.open    { background: var(--aura-accent-success-light); color: var(--aura-accent-success); border-color: rgba(16, 185, 129, 0.28); }
-.auth-status-pill.closed  { background: var(--aura-accent-danger-light);  color: var(--aura-accent-danger);  border-color: rgba(239, 68, 68, 0.28); }
-.auth-status-pill.pending { background: var(--aura-accent-warning-light); color: var(--aura-accent-warning); border-color: rgba(245, 158, 11, 0.28); }
-
-/* Access chips */
-.auth-access-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.auth-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--aura-text-secondary);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--pro-border-soft);
-  font-family: var(--aura-font-mono);
-  letter-spacing: 0.3px;
-}
-
-.auth-chip::before {
-  content: '';
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  background: var(--aura-accent-primary);
-  opacity: 0.7;
-}
-
-.auth-chip-warning { color: var(--aura-accent-warning); border-color: rgba(245, 158, 11, 0.28); }
-.auth-chip-warning::before { background: var(--aura-accent-warning); }
-
-.auth-no-access {
-  font-size: 11px;
-  color: var(--aura-text-tertiary);
-  font-style: italic;
-}
-
-/* Action cell */
-.auth-action-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-/* ============================================================
-   SETTINGS CARD (registration control)
-   ============================================================ */
-.auth-settings-card {
-  position: relative;
-  background: var(--pro-bg-card);
-  border: 1px solid var(--pro-border-soft);
-  border-radius: var(--aura-radius-lg);
-  overflow: hidden;
-  box-shadow: var(--pro-shadow-card);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  margin-bottom: 24px;
-  animation: authorityFadeInUp 0.55s ease backwards;
-}
-
-.auth-setting-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--pro-border-soft);
-  flex-wrap: wrap;
-}
-
-.auth-setting-row:last-child {
-  border-bottom: none;
-  background: rgba(255, 255, 255, 0.012);
-}
-
-.auth-setting-info {
-  min-width: 0;
-  flex: 1;
-  min-width: 240px;
-}
-
-.auth-setting-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--aura-text-primary);
-  margin-bottom: 5px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.auth-setting-title b {
-  color: var(--aura-accent-primary);
-  font-weight: 700;
-}
-
-.auth-setting-desc {
-  font-size: 12px;
-  color: var(--aura-text-secondary);
-  line-height: 1.55;
-}
-
-.auth-setting-desc b {
-  color: var(--aura-text-primary);
-  font-weight: 600;
-}
-
-.auth-setting-control {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* ============================================================
-   TOGGLE SWITCH
-   ============================================================ */
-.auth-switch {
-  position: relative;
-  display: inline-block;
-  width: 48px;
-  height: 26px;
-  flex-shrink: 0;
-}
-
-.auth-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.auth-switch .auth-slider {
-  position: absolute;
-  cursor: pointer;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--pro-border-soft);
-  border-radius: 100px;
-  transition: all 0.25s var(--pro-ease-smooth);
-}
-
-.auth-switch .auth-slider::before {
-  content: '';
-  position: absolute;
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background: var(--aura-text-secondary);
-  border-radius: 50%;
-  transition: all 0.25s var(--pro-ease);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-}
-
-.auth-switch input:checked + .auth-slider {
-  background: linear-gradient(135deg, var(--aura-accent-success), #34d399);
-  border-color: rgba(16, 185, 129, 0.4);
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.28);
-}
-
-.auth-switch input:checked + .auth-slider::before {
-  transform: translateX(22px);
-  background: #fff;
-}
-
-.auth-switch input:focus-visible + .auth-slider {
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
-}
-
-/* ============================================================
-   MODAL
-   ============================================================ */
-.auth-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(5, 5, 10, 0.78);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s var(--pro-ease-smooth);
-  padding: 20px;
-}
-
-.auth-modal-overlay.active {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.auth-modal {
-  position: relative;
-  width: 100%;
-  max-width: 480px;
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-  background: linear-gradient(180deg, rgba(22, 22, 32, 0.98), rgba(15, 15, 22, 0.99));
-  border: 1px solid var(--pro-border-hover);
-  border-radius: var(--aura-radius-xl);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
-  transform: translateY(20px) scale(0.96);
-  opacity: 0;
-  transition: all 0.3s var(--pro-ease);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
-}
-
-.auth-modal::-webkit-scrollbar { width: 8px; }
-.auth-modal::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.10); border-radius: 8px; }
-
-.auth-modal-overlay.active .auth-modal {
-  transform: translateY(0) scale(1);
-  opacity: 1;
-}
-
-.auth-modal::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--aura-accent-primary), var(--aura-accent-purple), var(--aura-accent-pink), var(--aura-accent-primary));
-  background-size: 200% 100%;
-  animation: authorityAccentShimmer 6s linear infinite;
-  border-radius: var(--aura-radius-xl) var(--aura-radius-xl) 0 0;
-}
-
-.auth-modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 22px 26px;
-  border-bottom: 1px solid var(--pro-border-soft);
-}
-
-.auth-modal-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--aura-text-primary);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.auth-modal-title i {
-  color: var(--aura-accent-warning);
-  font-size: 14px;
-}
-
-.auth-modal-close {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--aura-text-tertiary);
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
-  transition: all 0.2s var(--pro-ease-smooth);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.auth-modal-close:hover {
-  background: rgba(239, 68, 68, 0.10);
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.22);
-}
-
-.auth-modal-body {
-  padding: 24px 26px;
-}
-
-.auth-modal-foot {
-  display: flex;
-  gap: 12px;
-  padding: 18px 26px;
-  border-top: 1px solid var(--pro-border-soft);
-  background: rgba(0, 0, 0, 0.18);
-}
-
-.auth-modal-foot .auth-btn { flex: 1; }
-
-/* Edit user head */
-.auth-edit-user-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 20px;
-  background: rgba(245, 158, 11, 0.05);
-  border: 1px solid rgba(245, 158, 11, 0.15);
-  border-radius: var(--aura-radius-md);
-  margin-bottom: 20px;
-}
-
-.auth-edit-user-head .auth-avatar {
-  width: 48px;
-  height: 48px;
-  font-size: 16px;
-}
-
-.auth-edit-user-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.auth-edit-user-info .name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--aura-text-primary);
-  font-family: var(--aura-font-mono);
-}
-
-.auth-edit-user-info .granted {
-  font-size: 11px;
-  color: var(--aura-text-tertiary);
-  font-family: var(--aura-font-mono);
-  letter-spacing: 0.3px;
-}
-
-/* Perm grid (toggle per module) */
-.auth-perm-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.auth-perm-head-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.auth-perm-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px;
-}
-
-.auth-perm-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  background: rgba(15, 15, 22, 0.6);
-  border: 1px solid var(--pro-border-soft);
-  border-radius: var(--aura-radius-sm);
-  cursor: pointer;
-  transition: all 0.22s var(--pro-ease-smooth);
-  user-select: none;
-}
-
-.auth-perm-item input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.auth-perm-item i.perm-icon {
-  font-size: 14px;
-  color: var(--aura-text-tertiary);
-  transition: color 0.2s;
-  width: 18px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.auth-perm-item .perm-label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--aura-text-secondary);
-  flex: 1;
-  min-width: 0;
-}
-
-.auth-perm-item .perm-check {
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--pro-border-soft);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  color: transparent;
-  transition: all 0.22s var(--pro-ease-smooth);
-  flex-shrink: 0;
-}
-
-.auth-perm-item:hover {
-  border-color: var(--pro-border-hover);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.auth-perm-item.checked {
-  border-color: rgba(16, 185, 129, 0.36);
-  background: rgba(16, 185, 129, 0.06);
-}
-
-.auth-perm-item.checked i.perm-icon {
-  color: var(--aura-accent-success);
-}
-
-.auth-perm-item.checked .perm-label {
-  color: var(--aura-text-primary);
-}
-
-.auth-perm-item.checked .perm-check {
-  background: linear-gradient(135deg, var(--aura-accent-success), #34d399);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #fff;
-}
-
-/* ============================================================
-   TOAST NOTIFICATION
-   ============================================================ */
-.auth-toast {
-  position: fixed;
-  bottom: 28px;
-  right: 28px;
-  z-index: 200;
-  min-width: 260px;
-  max-width: 380px;
-  background: linear-gradient(180deg, rgba(22, 22, 32, 0.98), rgba(15, 15, 22, 0.99));
-  border: 1px solid var(--pro-border-hover);
-  border-radius: var(--aura-radius-md);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
-  padding: 14px 18px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  opacity: 0;
-  transform: translateX(120%);
-  transition: all 0.4s var(--pro-ease);
-  pointer-events: none;
-}
-
-.auth-toast.show {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
-}
-
-.auth-toast::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: var(--aura-accent-primary);
-  border-radius: 3px 0 0 3px;
-}
-
-.auth-toast.success::before { background: var(--aura-accent-success); }
-.auth-toast.error::before   { background: var(--aura-accent-danger); }
-.auth-toast.warning::before { background: var(--aura-accent-warning); }
-
-.auth-toast-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  flex-shrink: 0;
-  background: var(--aura-accent-primary-light);
-  color: var(--aura-accent-primary);
-}
-
-.auth-toast.success .auth-toast-icon { background: var(--aura-accent-success-light); color: var(--aura-accent-success); }
-.auth-toast.error   .auth-toast-icon { background: var(--aura-accent-danger-light);  color: var(--aura-accent-danger); }
-.auth-toast.warning .auth-toast-icon { background: var(--aura-accent-warning-light); color: var(--aura-accent-warning); }
-
-.auth-toast-content {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--aura-text-primary);
-  line-height: 1.4;
-  flex: 1;
-  min-width: 0;
-}
-
-/* ============================================================
-   EMPTY / LOADING STATE
-   ============================================================ */
-.auth-empty-state {
-  text-align: center;
-  padding: 60px 24px;
-  color: var(--aura-text-tertiary);
-}
-
-.auth-empty-state i {
-  font-size: 36px;
-  color: var(--aura-text-tertiary);
-  opacity: 0.4;
-  margin-bottom: 14px;
-  display: block;
-}
-
-.auth-empty-state .empty-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--aura-text-secondary);
-  margin-bottom: 5px;
-}
-
-.auth-empty-state .empty-sub {
-  font-size: 12px;
-  color: var(--aura-text-tertiary);
-}
-
-/* ============================================================
-   CONFIRM DIALOG (custom)
-   ============================================================ */
-.auth-confirm-box {
-  text-align: center;
-  padding: 8px 12px 20px;
-}
-
-.auth-confirm-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: rgba(239, 68, 68, 0.10);
-  border: 2px solid rgba(239, 68, 68, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  color: var(--aura-accent-danger);
-  margin: 0 auto 18px;
-  animation: authorityPulse 2s infinite;
-}
-
-.auth-confirm-icon.warning {
-  background: rgba(245, 158, 11, 0.10);
-  border-color: rgba(245, 158, 11, 0.25);
-  color: var(--aura-accent-warning);
-}
-
-.auth-confirm-icon.info {
-  background: rgba(59, 130, 246, 0.10);
-  border-color: rgba(59, 130, 246, 0.25);
-  color: var(--aura-accent-primary);
-}
-
-.auth-confirm-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--aura-text-primary);
-  margin-bottom: 8px;
-}
-
-.auth-confirm-desc {
-  font-size: 13px;
-  color: var(--aura-text-secondary);
-  line-height: 1.55;
-  margin-bottom: 8px;
-}
-
-.auth-confirm-target {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 6px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.22);
-  color: #f87171;
-  font-family: var(--aura-font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  margin-top: 8px;
-}
-
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
-@media (max-width: 1024px) {
-  .auth-shell { padding: 20px 22px 40px; }
-  .auth-perm-grid { grid-template-columns: 1fr; }
-  .auth-stats-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-}
-
-@media (max-width: 768px) {
-  .auth-topbar { padding: 14px 18px; }
-  .auth-shell { padding: 18px 16px 36px; }
-  .auth-section-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
+(function () {
+  'use strict';
+
+  /* ============================================================
+     CONFIG — Access modules (kept in sync with Dashboard groups)
+     ============================================================ */
+  var ACCESS_MODULES = [
+    { key: 'core',                 label: 'Core',             icon: 'fa-gauge-high' },
+    { key: 'workspace',            label: 'Workspace',        icon: 'fa-briefcase' },
+    { key: 'operational',          label: 'Operational',      icon: 'fa-cogs' },
+    { key: 'system',               label: 'System',           icon: 'fa-server' },
+    { key: 'user_management',      label: 'User Management',  icon: 'fa-users-cog' },
+    { key: 'registration_control', label: 'Data Registrasi',  icon: 'fa-clipboard-check' }
+  ];
+
+  var ROLE_CLASS = {
+    MASTER: 'role-master',
+    ADMIN:  'role-admin',
+    MEMBER: 'role-member'
+  };
+
+  /* ============================================================
+     STATE
+     ============================================================ */
+  var authToken = '';
+  var userRole  = '';
+  var usersData = [];
+  var editUsername = null;
+  var regisSettings = { open: true, defaultRole: 'MEMBER', requireApproval: false };
+  var confirmCallback = null;
+
+  /* ============================================================
+     HELPERS
+     ============================================================ */
+  function $(id)  { return document.getElementById(id); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
   }
-  .auth-section-head-right {
-    width: 100%;
-  }
-  .auth-section-head-right .auth-btn {
-    flex: 1;
-  }
-  .auth-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  .auth-stat { padding: 14px 16px; }
-  .auth-stat-value { font-size: 22px; }
-  .auth-table thead th,
-  .auth-table tbody td { padding: 12px 14px; }
-  .auth-setting-row {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 16px 18px;
-  }
-  .auth-setting-control { width: 100%; justify-content: flex-start; }
-  .auth-modal { max-width: 100%; }
-  .auth-toast {
-    bottom: 16px;
-    right: 16px;
-    left: 16px;
-    max-width: none;
-  }
-}
 
-@media (max-width: 480px) {
-  .auth-stats-grid { grid-template-columns: 1fr; }
-  .auth-section-icon { width: 48px; height: 48px; font-size: 20px; }
-  .auth-section-title { font-size: 18px; }
-  .auth-modal-head,
-  .auth-modal-body,
-  .auth-modal-foot { padding-left: 18px; padding-right: 18px; }
-  .auth-table thead th,
-  .auth-table tbody td { padding: 10px 12px; font-size: 12px; }
-  .auth-avatar { width: 32px; height: 32px; font-size: 11px; }
-}
+  function escapeAttr(text) {
+    return escapeHtml(text).replace(/`/g, '&#96;');
+  }
 
-/* When the page is rendered inside a Dashboard iframe,
-   remove the sticky topbar padding to fit better */
-body.in-iframe .auth-topbar {
-  position: relative;
-  padding: 14px 22px 12px;
-  background: transparent;
-  border-bottom: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
+  function initials(name) {
+    return (name || '??').substring(0, 2).toUpperCase();
+  }
 
-body.in-iframe .auth-shell { padding-top: 6px; }
+  function avatarGradient(name) {
+    var n = (name || '').toLowerCase();
+    var hash = 0;
+    for (var i = 0; i < n.length; i++) hash = (hash * 31 + n.charCodeAt(i)) >>> 0;
+    var mod = hash % 3;
+    if (mod === 0) return 'warning-pink';
+    if (mod === 1) return 'purple-teal';
+    return 'success-blue';
+  }
+
+  /* ============================================================
+     ACCESS HELPERS
+     ============================================================ */
+  function accessFor(u) {
+    if (u && u.access && typeof u.access === 'object') return u.access;
+    if (u && u.role === 'MASTER') {
+      return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
+    }
+    if (u && u.role === 'ADMIN') {
+      return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
+    }
+    // MEMBER default — only Core
+    return { core: true, workspace: false, operational: false, system: false, user_management: false, registration_control: false };
+  }
+
+  function canEditUser(targetUser) {
+    if (userRole === 'MASTER') return true;
+    if (userRole === 'ADMIN')  return targetUser.role === 'MEMBER';
+    return false;
+  }
+
+  /* ============================================================
+     TOAST
+     ============================================================ */
+  var toastTimer = null;
+  function showToast(msg, type) {
+    var t = $('toastEl');
+    if (!t) return;
+    type = type || 'info';
+    var iconMap = {
+      success: 'fa-circle-check',
+      error:   'fa-circle-exclamation',
+      warning: 'fa-triangle-exclamation',
+      info:    'fa-circle-info'
+    };
+    t.className = 'auth-toast ' + type;
+    t.innerHTML =
+      '<div class="auth-toast-icon"><i class="fas ' + (iconMap[type] || iconMap.info) + '"></i></div>' +
+      '<div class="auth-toast-content">' + escapeHtml(msg) + '</div>';
+    // Force reflow then add show
+    void t.offsetWidth;
+    t.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 3200);
+  }
+
+  /* ============================================================
+     CUSTOM CONFIRM DIALOG (replaces native confirm())
+     ============================================================ */
+  function showConfirm(opts) {
+    opts = opts || {};
+    var overlay = $('confirmOverlay');
+    if (!overlay) return;
+
+    var icon   = opts.icon || 'danger';
+    var iconFa = opts.iconFa || 'fa-triangle-exclamation';
+    var title  = opts.title || 'Konfirmasi';
+    var desc   = opts.desc || '';
+    var target = opts.target || '';
+    var confirmText = opts.confirmText || 'Hapus';
+    var cancelText  = opts.cancelText  || 'Batal';
+
+    var iconEl = overlay.querySelector('.auth-confirm-icon');
+    iconEl.className = 'auth-confirm-icon ' + icon;
+    iconEl.innerHTML = '<i class="fas ' + iconFa + '"></i>';
+
+    overlay.querySelector('.auth-confirm-title').textContent = title;
+    overlay.querySelector('.auth-confirm-desc').textContent = desc;
+
+    var targetEl = overlay.querySelector('.auth-confirm-target');
+    if (target) {
+      targetEl.style.display = 'inline-block';
+      targetEl.textContent = target;
+    } else {
+      targetEl.style.display = 'none';
+    }
+
+    var confirmBtn = overlay.querySelector('[data-confirm-btn]');
+    var cancelBtn  = overlay.querySelector('[data-cancel-btn]');
+    confirmBtn.innerHTML = '<i class="fas ' + (icon === 'danger' ? 'fa-trash' : 'fa-check') + '"></i> ' + escapeHtml(confirmText);
+    confirmBtn.className = 'auth-btn ' + (icon === 'danger' ? 'auth-btn-danger-ghost' : 'auth-btn-primary');
+    cancelBtn.innerHTML = escapeHtml(cancelText);
+
+    confirmCallback = typeof opts.onConfirm === 'function' ? opts.onConfirm : null;
+
+    overlay.classList.add('active');
+  }
+
+  function closeConfirm() {
+    var overlay = $('confirmOverlay');
+    if (overlay) overlay.classList.remove('active');
+    confirmCallback = null;
+  }
+
+  /* ============================================================
+     VIEW SWITCHER (User Management ↔ Data Registrasi)
+     ============================================================ */
+  function switchView(view) {
+    var users = $('viewUsers');
+    var regis = $('viewRegistration');
+    if (users) users.classList.toggle('active', view === 'users');
+    if (regis) regis.classList.toggle('active', view === 'registration');
+    $$('.nav-sub-item').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-view') === view);
+    });
+    var crumb = $('crumbView');
+    if (crumb) crumb.textContent = view === 'users' ? 'user-management' : 'data-registrasi';
+    if (view === 'registration') {
+      loadRegisSettings();
+      loadPending();
+    }
+  }
+
+  /* ============================================================
+     LOAD USERS
+     ============================================================ */
+  function loadUsers() {
+    var tbody = $('userTableBody');
+    if (tbody) {
+      tbody.innerHTML =
+        '<tr class="loading-row"><td colspan="4"><i class="fas fa-spinner"></i> Memuat data user...</td></tr>';
+    }
+    fetch('/api/users', { headers: { 'x-auth-token': authToken } })
+      .then(function (res) {
+        if (res.status === 403) {
+          showToast('Sesi admin berakhir. Silakan login ulang.', 'warning');
+          setTimeout(function () { window.location.href = '/Login.html'; }, 1200);
+          return [];
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        usersData = Array.isArray(data) ? data : [];
+        renderStats();
+        renderTable();
+      })
+      .catch(function () {
+        if (tbody) {
+          tbody.innerHTML =
+            '<tr class="empty-row"><td colspan="4"><div class="auth-empty-state">' +
+            '<i class="fas fa-circle-exclamation"></i>' +
+            '<div class="empty-title">Gagal memuat data user</div>' +
+            '<div class="empty-sub">Periksa koneksi atau coba lagi nanti</div>' +
+            '</div></td></tr>';
+        }
+        showToast('Gagal memuat data user', 'error');
+      });
+  }
+
+  /* ============================================================
+     RENDER STATS (Total / Masters / Admins / Members / Pending)
+     ============================================================ */
+  function renderStats() {
+    var total   = usersData.length;
+    var masters = usersData.filter(function (u) { return u.role === 'MASTER'; }).length;
+    var admins  = usersData.filter(function (u) { return u.role === 'ADMIN';  }).length;
+    var members = usersData.filter(function (u) { return u.role === 'MEMBER'; }).length;
+
+    setText('statTotal',   total);
+    setText('statMasters', masters);
+    setText('statAdmins',  admins);
+    setText('statMembers', members);
+
+    var trendEl = $('statTotalTrend');
+    if (trendEl) {
+      var online = usersData.filter(function (u) {
+        return (u.status || 'active').toLowerCase() === 'active';
+      }).length;
+      trendEl.innerHTML = '<i class="fas fa-circle-check"></i> ' + online + ' active';
+    }
+  }
+
+  function setText(id, val) {
+    var el = $(id);
+    if (el) el.textContent = val;
+  }
+
+  /* ============================================================
+     RENDER TABLE (with search/filter)
+     ============================================================ */
+  function renderTable() {
+    var searchInput = $('searchInput');
+    var search = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    var filtered = usersData.filter(function (u) {
+      if (!search) return true;
+      return (u.username || '').toLowerCase().indexOf(search) >= 0 ||
+             (u.role || '').toLowerCase().indexOf(search) >= 0;
+    });
+
+    var tbody = $('userTableBody');
+    if (!tbody) return;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML =
+        '<tr class="empty-row"><td colspan="4"><div class="auth-empty-state">' +
+        '<i class="fas fa-users-slash"></i>' +
+        '<div class="empty-title">Tidak ada user ditemukan</div>' +
+        '<div class="empty-sub">' + (search ? 'Coba kata kunci lain' : 'Belum ada user terdaftar') + '</div>' +
+        '</div></td></tr>';
+      return;
+    }
+
+    var html = '';
+    filtered.forEach(function (u) {
+      var acc = accessFor(u);
+      var chips = ACCESS_MODULES.filter(function (m) { return acc[m.key]; })
+        .map(function (m) { return '<span class="auth-chip">' + escapeHtml(m.label) + '</span>'; })
+        .join('');
+      if (!chips) chips = '<span class="auth-no-access">No access</span>';
+
+      var actions;
+      if (u.role === 'MASTER') {
+        actions = '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Akun Master - Terproteksi" tabindex="-1"><i class="fas fa-lock"></i></button>';
+      } else if (canEditUser(u)) {
+        actions =
+          '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Edit Access Control" onclick="window.__AUTH.openEdit(' + JSON.stringify(u.username) + ')"><i class="fas fa-key"></i></button>' +
+          '<button class="auth-btn auth-btn-danger-ghost auth-btn-icon" title="Hapus User" onclick="window.__AUTH.confirmDelete(' + JSON.stringify(u.username) + ')"><i class="fas fa-trash"></i></button>';
+      } else {
+        actions = '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Hanya Master yang dapat mengubah Admin lain" tabindex="-1"><i class="fas fa-lock"></i></button>';
+      }
+
+      html +=
+        '<tr>' +
+          '<td>' +
+            '<div class="auth-user-cell">' +
+              '<div class="auth-avatar ' + avatarGradient(u.username) + '">' + escapeHtml(initials(u.username)) + '</div>' +
+              '<div class="auth-user-name">@' + escapeHtml(u.username) + '</div>' +
+            '</div>' +
+          '</td>' +
+          '<td><span class="auth-role-badge ' + (ROLE_CLASS[u.role] || '') + '">' + escapeHtml(u.role || 'MEMBER') + '</span></td>' +
+          '<td><div class="auth-access-chips">' + chips + '</div></td>' +
+          '<td class="text-right"><div class="auth-action-group">' + actions + '</div></td>' +
+        '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  /* ============================================================
+     EDIT ACCESS CONTROL
+     ============================================================ */
+  function buildPermGrid() {
+    var grid = $('permGrid');
+    if (!grid) return;
+    grid.innerHTML = ACCESS_MODULES.map(function (m) {
+      return '' +
+        '<label class="auth-perm-item" data-key="' + m.key + '">' +
+          '<input type="checkbox">' +
+          '<i class="fas ' + m.icon + ' perm-icon"></i>' +
+          '<span class="perm-label">' + escapeHtml(m.label) + '</span>' +
+          '<span class="perm-check"><i class="fas fa-check"></i></span>' +
+        '</label>';
+    }).join('');
+
+    // Toggle .checked class on checkbox change
+    $$('#permGrid .auth-perm-item').forEach(function (item) {
+      var cb = item.querySelector('input[type="checkbox"]');
+      cb.addEventListener('change', function () {
+        item.classList.toggle('checked', cb.checked);
+      });
+    });
+  }
+
+  function setAllPerm(v) {
+    $$('#permGrid .auth-perm-item').forEach(function (item) {
+      var cb = item.querySelector('input[type="checkbox"]');
+      cb.checked = !!v;
+      item.classList.toggle('checked', !!v);
+    });
+  }
+
+  function openEdit(username) {
+    var u = usersData.find(function (x) { return x.username === username; });
+    if (!u) return;
+    if (!canEditUser(u)) {
+      showToast('Akses ditolak! ' + (userRole === 'ADMIN' ? 'Admin hanya dapat mengubah user Member.' : 'Tidak memiliki hak akses.'), 'warning');
+      return;
+    }
+
+    editUsername = username;
+    var avatarEl = $('editAvatar');
+    if (avatarEl) {
+      avatarEl.textContent = initials(u.username);
+      avatarEl.className = 'auth-avatar ' + avatarGradient(u.username);
+    }
+    setText('editUserLabel', '@' + u.username);
+
+    var editRoleSelect = $('editRole');
+    if (editRoleSelect) {
+      editRoleSelect.value = u.role || 'MEMBER';
+      if (userRole === 'ADMIN') {
+        editRoleSelect.value = 'MEMBER';
+        editRoleSelect.disabled = true;
+        editRoleSelect.title = 'Admin hanya dapat mengubah user Member. Master dapat mengubah role.';
+      } else {
+        editRoleSelect.disabled = false;
+        editRoleSelect.title = '';
+      }
+    }
+
+    var acc = accessFor(u);
+    $$('#permGrid .auth-perm-item').forEach(function (item) {
+      var key = item.getAttribute('data-key');
+      var checked = !!acc[key];
+      var cb = item.querySelector('input[type="checkbox"]');
+      cb.checked = checked;
+      item.classList.toggle('checked', checked);
+    });
+
+    var grantEl = $('editGrantedBy');
+    if (grantEl) {
+      grantEl.textContent = 'access granted by ' + (userRole === 'MASTER' ? 'master' : 'admin');
+    }
+
+    var modal = $('editModal');
+    if (modal) modal.classList.add('active');
+  }
+
+  function closeEditModal() {
+    var modal = $('editModal');
+    if (modal) modal.classList.remove('active');
+    editUsername = null;
+  }
+
+  function submitEditAccess() {
+    if (!editUsername) return;
+    var roleSelect = $('editRole');
+    var role = roleSelect ? roleSelect.value : 'MEMBER';
+
+    if (userRole === 'ADMIN' && role !== 'MEMBER') {
+      showToast('Akses ditolak! Admin hanya dapat mengubah user Member.', 'warning');
+      return;
+    }
+
+    var access = {};
+    $$('#permGrid .auth-perm-item').forEach(function (item) {
+      var key = item.getAttribute('data-key');
+      var cb = item.querySelector('input[type="checkbox"]');
+      access[key] = !!cb.checked;
+    });
+
+    fetch('/api/users/' + encodeURIComponent(editUsername) + '/access', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
+      body: JSON.stringify({ role: role, access: access, grantedBy: authToken })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (result) {
+        if (result && result.success) {
+          closeEditModal();
+          showToast('Akses control @' + editUsername + ' berhasil diperbarui!', 'success');
+          loadUsers();
+        } else {
+          showToast((result && result.error) || 'Gagal menyimpan akses', 'error');
+        }
+      })
+      .catch(function () {
+        showToast('Kesalahan koneksi', 'error');
+      });
+  }
+
+  /* ============================================================
+     ADD USER MODAL
+     ============================================================ */
+  function openModal() {
+    var m = $('addModal');
+    if (m) m.classList.add('active');
+  }
+
+  function closeModal() {
+    var m = $('addModal');
+    if (m) m.classList.remove('active');
+  }
+
+  function submitAddUser() {
+    var username = ($('addUsername') && $('addUsername').value || '').trim();
+    var password = ($('addPassword') && $('addPassword').value || '');
+    var role     = ($('addRole')     && $('addRole').value     || '');
+
+    if (!username || !password || !role) {
+      showToast('Semua kolom wajib diisi!', 'warning');
+      return;
+    }
+
+    fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
+      body: JSON.stringify({ username: username, password: password, role: role })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (result) {
+        if (result && result.success) {
+          closeModal();
+          showToast('User @' + username + ' berhasil ditambahkan!', 'success');
+          if ($('addUsername')) $('addUsername').value = '';
+          if ($('addPassword')) $('addPassword').value = '';
+          if ($('addRole'))     $('addRole').value = '';
+          loadUsers();
+        } else {
+          showToast((result && result.error) || 'Gagal menambah user', 'error');
+        }
+      })
+      .catch(function () {
+        showToast('Kesalahan koneksi', 'error');
+      });
+  }
+
+  /* ============================================================
+     DELETE USER
+     ============================================================ */
+  function confirmDelete(username) {
+    showConfirm({
+      icon: 'danger',
+      iconFa: 'fa-trash',
+      title: 'Hapus User',
+      desc: 'User akan dihapus permanen dari database. Aksi ini tidak dapat dibatalkan.',
+      target: '@' + username,
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      onConfirm: function () {
+        fetch('/api/users/' + encodeURIComponent(username), {
+          method: 'DELETE',
+          headers: { 'x-auth-token': authToken }
+        })
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (data && data.success) {
+              showToast('User @' + username + ' berhasil dihapus!', 'success');
+              loadUsers();
+            } else {
+              showToast((data && data.error) || 'Gagal menghapus user', 'error');
+            }
+          })
+          .catch(function () {
+            showToast('Kesalahan koneksi', 'error');
+          });
+      }
+    });
+  }
+
+  /* ============================================================
+     REGISTRATION SETTINGS — LOAD / RENDER / SAVE
+     ============================================================ */
+  function loadRegisSettings() {
+    fetch('/api/settings/registration', { headers: { 'x-auth-token': authToken } })
+      .then(function (res) {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then(function (data) {
+        if (data && typeof data === 'object') {
+          regisSettings = {
+            open: data.open !== undefined ? !!data.open : regisSettings.open,
+            defaultRole: data.defaultRole || regisSettings.defaultRole,
+            requireApproval: !!data.requireApproval
+          };
+        }
+        renderRegisSettings();
+      })
+      .catch(function () { renderRegisSettings(); });
+  }
+
+  function renderRegisSettings() {
+    var openCb = $('regisOpen');
+    var apprCb = $('regisApproval');
+    var roleSel = $('regisDefaultRole');
+    if (openCb)  openCb.checked  = !!regisSettings.open;
+    if (apprCb)  apprCb.checked  = !!regisSettings.requireApproval;
+    if (roleSel) roleSel.value   = regisSettings.defaultRole || 'MEMBER';
+
+    var st = $('statRegisStatus');
+    if (st) {
+      st.innerHTML = regisSettings.open
+        ? '<span class="auth-status-pill open"><i class="fas fa-circle-check"></i> OPEN</span>'
+        : '<span class="auth-status-pill closed"><i class="fas fa-circle-xmark"></i> CLOSED</span>';
+    }
+    setText('statDefaultRole', regisSettings.defaultRole || 'MEMBER');
+  }
+
+  function saveRegisSettings() {
+    var payload = {
+      open:           $('regisOpen')      ? $('regisOpen').checked      : false,
+      defaultRole:    $('regisDefaultRole') ? $('regisDefaultRole').value : 'MEMBER',
+      requireApproval:$('regisApproval')  ? $('regisApproval').checked  : false
+    };
+    fetch('/api/settings/registration', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
+      body: JSON.stringify(payload)
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (result) {
+        if (result && result.success) {
+          regisSettings = payload;
+          renderRegisSettings();
+          showToast('Konfigurasi registrasi tersimpan!', 'success');
+          loadPending();
+        } else {
+          showToast((result && result.error) || 'Gagal menyimpan konfigurasi', 'error');
+        }
+      })
+      .catch(function () {
+        showToast('Kesalahan koneksi', 'error');
+      });
+  }
+
+  /* ============================================================
+     PENDING REGISTRATIONS — LOAD / APPROVE / REJECT
+     ============================================================ */
+  function loadPending() {
+    var wrap = $('pendingWrap');
+    var tbody = $('pendingBody');
+    fetch('/api/registrations/pending', { headers: { 'x-auth-token': authToken } })
+      .then(function (res) {
+        if (!res.ok) {
+          if (wrap) wrap.style.display = 'none';
+          setText('statPending', '0');
+          return null;
+        }
+        return res.json();
+      })
+      .then(function (list) {
+        if (!list) return;
+        list = Array.isArray(list) ? list : [];
+        setText('statPending',  list.length);
+        setText('statPending2', list.length);
+        var pcEl = $('pendingCount');
+        if (pcEl) pcEl.textContent = list.length + ' awaiting';
+        if (!list.length) {
+          if (wrap) wrap.style.display = 'none';
+          return;
+        }
+        if (wrap) wrap.style.display = 'block';
+        if (tbody) {
+          tbody.innerHTML = list.map(function (u) {
+            return '' +
+              '<tr>' +
+                '<td>' +
+                  '<div class="auth-user-cell">' +
+                    '<div class="auth-avatar ' + avatarGradient(u.username) + '">' + escapeHtml(initials(u.username)) + '</div>' +
+                    '<div class="auth-user-name">@' + escapeHtml(u.username) + '</div>' +
+                  '</div>' +
+                '</td>' +
+                '<td><span class="auth-role-badge ' + (ROLE_CLASS[u.role] || 'role-member') + '">' + escapeHtml(u.role || 'MEMBER') + '</span></td>' +
+                '<td><span class="auth-status-pill pending"><i class="fas fa-hourglass-half"></i> PENDING</span></td>' +
+                '<td class="text-right"><div class="auth-action-group">' +
+                  '<button class="auth-btn auth-btn-success-ghost auth-btn-icon" title="Approve" onclick="window.__AUTH.actRegistration(' + JSON.stringify(u.username) + ',\'approve\')"><i class="fas fa-check"></i></button>' +
+                  '<button class="auth-btn auth-btn-danger-ghost auth-btn-icon" title="Reject" onclick="window.__AUTH.actRegistration(' + JSON.stringify(u.username) + ',\'reject\')"><i class="fas fa-times"></i></button>' +
+                '</div></td>' +
+              '</tr>';
+          }).join('');
+        }
+      })
+      .catch(function () {
+        if (wrap) wrap.style.display = 'none';
+        setText('statPending',  '0');
+        setText('statPending2', '0');
+      });
+  }
+
+  function actRegistration(username, action) {
+    showConfirm({
+      icon: action === 'approve' ? 'info' : 'danger',
+      iconFa: action === 'approve' ? 'fa-circle-check' : 'fa-ban',
+      title: action === 'approve' ? 'Setujui Registrasi' : 'Tolak Registrasi',
+      desc: action === 'approve'
+        ? 'User akan diaktifkan dan dapat login ke sistem.'
+        : 'User akan ditolak dan dihapus dari antrian pending.',
+      target: '@' + username,
+      confirmText: action === 'approve' ? 'Setujui' : 'Tolak',
+      cancelText: 'Batal',
+      onConfirm: function () {
+        fetch('/api/registrations/' + encodeURIComponent(username), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
+          body: JSON.stringify({ action: action })
+        })
+          .then(function (res) { return res.json(); })
+          .then(function (result) {
+            if (result && result.success) {
+              showToast('Registrasi @' + username + ' berhasil ' + (action === 'approve' ? 'disetujui!' : 'ditolak!'),
+                action === 'approve' ? 'success' : 'warning');
+              loadPending();
+              loadUsers();
+            } else {
+              showToast((result && result.error) || 'Gagal memproses', 'error');
+            }
+          })
+          .catch(function () {
+            showToast('Kesalahan koneksi', 'error');
+          });
+      }
+    });
+  }
+
+  /* ============================================================
+     LOGOUT
+     ============================================================ */
+  function logout() {
+    localStorage.clear();
+    window.location.href = '/Login.html';
+  }
+
+  /* ============================================================
+     AUTH GUARD
+     ============================================================ */
+  function authGuard() {
+    authToken = localStorage.getItem('aura_auth_token') || '';
+    userRole  = (localStorage.getItem('aura_user_role')  || '').toUpperCase();
+
+    if (!authToken) {
+      window.location.href = '/Login.html';
+      return false;
+    }
+    if (userRole !== 'ADMIN' && userRole !== 'MASTER') {
+      // Show inline denied state instead of alert (better UX in iframe)
+      var denied = $('accessDenied');
+      if (denied) {
+        denied.style.display = 'flex';
+        var main = document.querySelector('.auth-shell');
+        if (main) main.style.display = 'none';
+      } else {
+        window.location.href = '/Dashboard.html';
+      }
+      return false;
+    }
+    var emailEl = $('userEmail');
+    if (emailEl) emailEl.textContent = authToken + '@aura.os';
+    return true;
+  }
+
+  /* ============================================================
+     INIT — wire events after DOM ready
+     ============================================================ */
+  function init() {
+    if (!authGuard()) return;
+
+    // Detect iframe embedding (Dashboard integration)
+    try {
+      if (window.self !== window.top) {
+        document.body.classList.add('in-iframe');
+      }
+    } catch (e) { /* cross-origin — assume standalone */ }
+
+    // Nav sub-menu toggle (kept for standalone view)
+    var authParent = $('authParent');
+    if (authParent) {
+      authParent.addEventListener('click', function () {
+        var sub = $('authSub');
+        if (sub) sub.classList.toggle('open');
+        authParent.classList.toggle('open');
+      });
+    }
+
+    // Nav sub-items
+    $$('.nav-sub-item').forEach(function (el) {
+      el.addEventListener('click', function () {
+        switchView(el.getAttribute('data-view'));
+      });
+    });
+
+    // Search input
+    var searchInput = $('searchInput');
+    if (searchInput) {
+      var debounce;
+      searchInput.addEventListener('input', function () {
+        clearTimeout(debounce);
+        debounce = setTimeout(renderTable, 120);
+      });
+    }
+
+    // Add-user modal buttons
+    var addBtns = $$('[data-action="openAddUser"]');
+    addBtns.forEach(function (b) { b.addEventListener('click', openModal); });
+    var closeAdd = $$('[data-action="closeAddUser"]');
+    closeAdd.forEach(function (b) { b.addEventListener('click', closeModal); });
+    var submitAdd = $('submitAddUser');
+    if (submitAdd) submitAdd.addEventListener('click', submitAddUser);
+
+    // Edit-access modal buttons
+    var closeEdit = $$('[data-action="closeEdit"]');
+    closeEdit.forEach(function (b) { b.addEventListener('click', closeEditModal); });
+    var permAll = $$('[data-action="permAll"]');
+    permAll.forEach(function (b) { b.addEventListener('click', function () { setAllPerm(true); }); });
+    var permNone = $$('[data-action="permNone"]');
+    permNone.forEach(function (b) { b.addEventListener('click', function () { setAllPerm(false); }); });
+    var submitEdit = $('submitEditAccess');
+    if (submitEdit) submitEdit.addEventListener('click', submitEditAccess);
+
+    // Registration settings
+    var saveRegis = $$('[data-action="saveRegis"]');
+    saveRegis.forEach(function (b) { b.addEventListener('click', saveRegisSettings); });
+
+    // Logout
+    var logoutBtns = $$('[data-action="logout"]');
+    logoutBtns.forEach(function (b) { b.addEventListener('click', logout); });
+
+    // Dashboard link (nav back)
+    var dashBtns = $$('[data-action="goDashboard"]');
+    dashBtns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        // If we're in an iframe, ask parent to switch back; else navigate
+        try {
+          if (window.self !== window.top && window.parent && typeof window.parent.switchToDashboard === 'function') {
+            window.parent.switchToDashboard();
+            return;
+          }
+        } catch (e) {}
+        window.location.href = '/Dashboard.html';
+      });
+    });
+
+    // Confirm dialog buttons
+    var confirmBtn = $('confirmConfirmBtn');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', function () {
+        var cb = confirmCallback;
+        closeConfirm();
+        if (typeof cb === 'function') {
+          try { cb(); } catch (e) { console.error('[authority-pro] confirm callback error', e); }
+        }
+      });
+    }
+    var cancelBtn = $('confirmCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeConfirm);
+
+    // Close modals on overlay click (but not when clicking the modal itself)
+    $$('.auth-modal-overlay').forEach(function (overlay) {
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) {
+          overlay.classList.remove('active');
+        }
+      });
+    });
+
+    // Esc to close any modal
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        $$('.auth-modal-overlay.active').forEach(function (m) { m.classList.remove('active'); });
+      }
+    });
+
+    // Build perm grid + initial load
+    buildPermGrid();
+    loadUsers();
+    loadPending(); // populate Pending stat card immediately
+  }
+
+  /* ============================================================
+     PUBLIC API (called from inline onclick handlers)
+     ============================================================ */
+  window.__AUTH = {
+    openModal:        openModal,
+    closeModal:       closeModal,
+    submitAddUser:    submitAddUser,
+    openEdit:         openEdit,
+    closeEditModal:   closeEditModal,
+    submitEditAccess: submitEditAccess,
+    setAllPerm:       setAllPerm,
+    confirmDelete:    confirmDelete,
+    saveRegisSettings:saveRegisSettings,
+    actRegistration:  actRegistration,
+    switchView:       switchView,
+    logout:           logout
+  };
+
+  // Expose switchView globally for inline onclick on nav items (legacy support)
+  window.switchView       = switchView;
+  window.toggleAuthMenu   = function () {
+    var sub = $('authSub'); var par = $('authParent');
+    if (sub)  sub.classList.toggle('open');
+    if (par)  par.classList.toggle('open');
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
