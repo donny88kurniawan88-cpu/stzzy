@@ -439,6 +439,7 @@
     .akp-code .tk-fn { color: #fbbf24; }
     @media (max-width: 980px) { .akp-grid { grid-template-columns: 1fr; } }
   </style>
+  <link rel="stylesheet" href="/css/dashboard-pro.css?v=3.0.0">
   <link rel="stylesheet" href="/css/myevent-pro.css?v=1.1.0">
 </head>
 <body>
@@ -592,183 +593,14 @@
 
     <div class="content">
 
-      <!-- ===== DASHBOARD VIEW ===== -->
-      <div id="dashboardView">
-        <div class="hero-section">
-                    <h1 class="hero-title"><i class="fas fa-hand-sparkles" style="font-size:0.7em; margin-right:8px; background:linear-gradient(135deg,var(--accent-primary),var(--accent-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;"></i>Welcome back, <span id="userName">User</span></h1>
-          <p class="hero-subtitle">Quantum interface loaded. All systems operational.</p>
-        </div>
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-label">Active Modules</div><div class="stat-value">18</div><div class="stat-trend positive">+5 this week</div></div>
-          <div class="stat-card"><div class="stat-label">Total Transactions</div><div class="stat-value">1,284</div><div class="stat-trend positive">+18%</div></div>
-          <div class="stat-card"><div class="stat-label">Pending Validation</div><div class="stat-value">23</div><div class="stat-trend negative">-5</div></div>
-          <div class="stat-card"><div class="stat-label">System Health</div><div class="stat-value">98%</div><div class="stat-trend positive">Optimal</div></div>
-        </div>
-        <div class="section-title">Quick Access Modules</div>
-        <div class="modules-grid">
-          <div class="module-card" data-color="teal" onclick="window.location.href='/Validator.html'"><div class="module-icon">🏦</div><div class="module-name" data-access-item-card="rek_validator">Rek Validator</div><div class="module-desc">Cross-check 4 databases</div><div class="module-badge">v1.5.0</div></div>
-          <div class="module-card" data-color="blue" onclick="window.location.href='/Bank.html'"><div class="module-icon">💰</div><div class="module-name" data-access-item-card="bank_processor">Bank Processor</div><div class="module-desc">Formatter &amp; validator rekening bank</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="pink" data-action="analyzer"><div class="module-icon">📈</div><div class="module-name" data-access-item-card="qris_tools">P2M Analyzer</div><div class="module-desc">P2M vs Zonamain vs Report analysis</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="purple" data-action="xpayChecker"><div class="module-icon">🔍</div><div class="module-name" data-access-item-card="qris_tools">XPAY Analyzer</div><div class="module-desc">XPAY transaction analyzer engine</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="orange" data-action="xpayFull"><div class="module-icon">📋</div><div class="module-name" data-access-item-card="qris_tools">XPAY Settlement</div><div class="module-desc">XPAY settlement reconciliation</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="teal" data-action="xpaySettlementChecker"><div class="module-icon">✅</div><div class="module-name" data-access-item-card="qris_tools">Settlement Checker</div><div class="module-desc">Cek settlement per tanggal</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="purple" data-action="comingSoon"><div class="module-icon">📊</div><div class="module-name" data-access-item-card="qris_tools">MNPAY Analyzer</div><div class="module-desc">MNPAY payment flow analyzer</div><div class="module-badge">Soon</div></div>
-          <div class="module-card" data-color="blue" onclick="window.location.href='/Syair.html'"><div class="module-icon">📊</div><div class="module-name" data-access-item-card="prediction_tools">Syair Database</div><div class="module-desc">Access shio prediction engine</div><div class="module-badge">v2.1.0</div></div>
-          <div class="module-card" data-color="purple" onclick="window.location.href='/Prediksi.html'"><div class="module-icon">🔮</div><div class="module-name" data-access-item-card="prediction_tools">AI Prediction</div><div class="module-desc">Neural probability calculation</div><div class="module-badge">v3.0.0</div></div>
-          <div class="module-card" data-color="red" data-action="appInfo"><div class="module-icon">🎰</div><div class="module-name" data-access-item-card="prediction_tools">Gas Slot Engine</div><div class="module-desc">AI Slot Gacor Predictor System</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="green" onclick="switchToMyEvent()"><div class="module-icon">📅</div><div class="module-name" data-access-item-card="event_tools">My Event</div><div class="module-desc">Manage active events</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">🕐</div><div class="module-name" data-access-item-card="event_tools">History Event</div><div class="module-desc">Event history &amp; logs</div><div class="module-badge">Soon</div></div>
-          <div class="module-card" data-color="green" data-action="pgReport"><div class="module-icon">🧾</div><div class="module-name" data-access-item-card="event_tools">PG Report</div><div class="module-desc">PG Soft credit calculator engine</div><div class="module-badge">v5.0.0</div></div>
-          <div class="module-card" data-color="pink" data-action="editBukti"><div class="module-icon">✏️</div><div class="module-name" data-access-item-card="edit_bukti">Edit Bukti</div><div class="module-desc">Edit &amp; manage proof of payment</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="orange" data-action="keepMemo"><div class="module-icon">📝</div><div class="module-name" data-access-item-card="keep_memo">Keep Memo</div><div class="module-desc">Simpan &amp; kelola catatan memo</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="teal" data-action="loadPencairan"><div class="module-icon">💸</div><div class="module-name" data-access-item-card="saldo_pencairan">Saldo Pencairan</div><div class="module-desc">Monitor rekening &amp; pencairan</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="blue" data-action="apiKey"><div class="module-icon">🔑</div><div class="module-name" data-access-item-card="api_key">API Key</div><div class="module-desc">Manage API credentials</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="red" data-action="ipWhitelist"><div class="module-icon">🛡️</div><div class="module-name" data-access-item-card="ip_whitelist">IP Whitelist</div><div class="module-desc">Kelola whitelist IP login</div><div class="module-badge">v1.0.0</div></div>
-          <div class="module-card" data-color="purple" onclick="window.location.href='/Authority.html'"><div class="module-icon">🛡️</div><div class="module-name" data-access-item-card="authority_panel">Authority Panel</div><div class="module-desc">Admin access &amp; user management</div><div class="module-badge">Restricted</div></div>
-          <div class="module-card" data-color="orange" data-action="setting"><div class="module-icon">⚙️</div><div class="module-name" data-access-item-card="setting">Setting</div><div class="module-desc">System configuration panel</div><div class="module-badge">v1.2.0</div></div>
-        </div>
-      </div>
+      <!-- ===== DASHBOARD VIEW (Pro - rendered by dashboard-pro.js) ===== -->
+      <div id="dashboardView"><div style="text-align:center;padding:60px 20px;color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;"><i class="fas fa-spinner" style="animation:spin 1s linear infinite;margin-right:8px;"></i> Loading dashboard...</div></div>
 
-      <!-- ===== IP WHITELIST VIEW ===== -->
-      <div id="ipWhitelistView" style="display:none;">
-        <div style="background: linear-gradient(135deg, rgba(15,15,22,0.9), rgba(18,18,28,0.85)); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 32px; max-width: 920px; animation: fadeInUp 0.5s ease;">
-          <div style="margin-bottom: 28px;">
-            <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 6px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">IP Whitelist</h2>
-            <p style="font-size: 13px; color: var(--text-tertiary);">Kelola akses IP untuk login</p>
-          </div>
+      <!-- ===== IP WHITELIST VIEW (Pro - rendered by dashboard-pro.js) ===== -->
+      <div id="ipWhitelistView" style="display:none;"><div style="text-align:center;padding:60px 20px;color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;"><i class="fas fa-spinner" style="animation:spin 1s linear infinite;margin-right:8px;"></i> Loading IP Whitelist...</div></div>
 
-          <!-- Toggle protection -->
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 20px; background:rgba(15,15,22,0.6); border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:24px;">
-            <div>
-              <div style="font-size:14px; font-weight:600; margin-bottom:4px;">Whitelist Protection</div>
-              <div style="font-size:12px; color:var(--text-tertiary);">Aktifkan untuk membatasi login hanya dari IP yang terdaftar</div>
-            </div>
-            <label style="position:relative; width:50px; height:26px; cursor:pointer; flex-shrink:0;">
-              <input type="checkbox" id="ipWlToggle" style="display:none;" onchange="toggleIpWhitelist()">
-              <span id="ipWlToggleTrack" style="position:absolute; inset:0; background:var(--bg-tertiary); border-radius:14px; transition:0.3s;"></span>
-              <span id="ipWlToggleThumb" style="position:absolute; top:3px; left:3px; width:20px; height:20px; background:#fff; border-radius:50%; transition:0.3s;"></span>
-            </label>
-          </div>
-
-          <!-- Custom message input -->
-          <div style="margin-bottom:24px;">
-            <label style="display:block; font-size:12px; color:var(--text-tertiary); font-weight:700; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Pesan Penolakan (Custom Message)</label>
-            <input type="text" id="ipWlMessage" placeholder="IP Anda tidak ada dalam whitelist. Hubungi admin." style="width:100%; padding:14px 16px; background:rgba(15,15,22,0.8); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--text-primary); font-size:14px; font-family:var(--font-sans); outline:none; transition:all 0.25s ease;">
-            <button class="btn" style="margin-top:12px; padding:10px 20px; font-size:13px;" onclick="saveIpWhitelistMessage()"><i class="fas fa-save"></i> Simpan Pesan</button>
-          </div>
-
-          <!-- Add IP form -->
-          <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; margin-bottom:24px;" id="ipWlAddForm">
-            <div>
-              <label style="display:block; font-size:11px; color:var(--text-tertiary); font-weight:600; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">IP Address</label>
-              <input type="text" id="ipWlIpInput" placeholder="192.168.1.1" style="width:100%; padding:12px 14px; background:rgba(15,15,22,0.8); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--neon-cyan); font-size:13px; font-family:var(--font-mono); outline:none;">
-            </div>
-            <div>
-              <label style="display:block; font-size:11px; color:var(--text-tertiary); font-weight:600; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Label</label>
-              <input type="text" id="ipWlLabelInput" placeholder="Office / Home" style="width:100%; padding:12px 14px; background:rgba(15,15,22,0.8); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--text-primary); font-size:13px; outline:none;">
-            </div>
-            <div style="display:flex; align-items:flex-end;">
-              <button class="btn" style="padding:12px 20px; font-size:13px; white-space:nowrap;" onclick="addIpToWhitelist()"><i class="fas fa-plus"></i> Tambah</button>
-            </div>
-          </div>
-
-          <!-- IP list -->
-          <div>
-            <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--accent-primary); text-transform:uppercase; letter-spacing:0.5px;">Daftar IP Terdaftar</div>
-            <div id="ipWlList" style="background:rgba(8,10,20,0.6); border:1px solid var(--border); border-radius:var(--radius-md); overflow:hidden; max-height:400px; overflow-y:auto;">
-              <div style="text-align:center; padding:40px; color:var(--text-tertiary); font-size:13px;">Memuat data...</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ===== PROFIL VIEW (Inline) ===== -->
-      <div id="profilView" style="display:none;">
-        <div class="profil-grid">
-          <!-- Kiri: Identity Card -->
-          <div class="profil-card">
-            <div class="profil-card-banner"></div>
-            <div class="profil-card-body">
-              <div class="profil-avatar-wrap">
-                <div class="profil-avatar" id="profilAvatar">U</div>
-                <div class="profil-status-chip"><span class="dot"></span><span id="profilStatusChip">Active</span></div>
-              </div>
-              <div class="profil-name" id="profilName">User</div>
-              <div class="profil-email" id="profilEmailDisplay">system@aura.os</div>
-              <div class="profil-meta-list">
-                <div class="profil-meta-item">
-                  <span class="profil-meta-label"><i class="fas fa-id-badge" style="color:var(--accent-primary);"></i> Username</span>
-                  <span class="profil-meta-value" id="profilUsername">User</span>
-                </div>
-                <div class="profil-meta-item">
-                  <span class="profil-meta-label"><i class="fas fa-calendar-alt" style="color:var(--accent-warning);"></i> Member Since</span>
-                  <span class="profil-meta-value" id="profilSince">-</span>
-                </div>
-                <div class="profil-meta-item">
-                  <span class="profil-meta-label"><i class="fas fa-key" style="color:var(--neon-purple);"></i> Password</span>
-                  <span class="profil-meta-value purple" id="pwdDisplay">•••••••</span>
-                </div>
-                <div class="profil-meta-item">
-                  <span class="profil-meta-label"><i class="fas fa-shield-alt" style="color:var(--accent-success);"></i> Status</span>
-                  <span class="profil-meta-value green" id="profilStatusText">Active</span>
-                </div>
-                <div class="profil-meta-item">
-                  <span class="profil-meta-label"><i class="fas fa-microchip" style="color:var(--neon-cyan);"></i> Session</span>
-                  <span class="profil-meta-value" id="profilSession" style="font-size:11px; color:var(--text-tertiary);">-</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Kanan: Change Password -->
-          <div class="pwd-card">
-            <div class="pwd-card-title"><i class="fas fa-lock"></i> Ubah Password</div>
-            <div class="pwd-card-desc">Pastikan password baru Anda memenuhi kriteria keamanan minimal untuk melindungi akun.</div>
-
-            <div class="pwd-form">
-              <div class="pwd-field">
-                <label>Password Lama</label>
-                <input type="password" id="pwdOld" placeholder="Masukkan password lama Anda" autocomplete="off">
-                <button type="button" onclick="togglePwdVis('pwdOld', this)"><i class="fas fa-eye"></i></button>
-              </div>
-
-              <div class="pwd-field">
-                <label>Password Baru</label>
-                <input type="password" id="pwdNew" placeholder="Minimal 6 karakter" autocomplete="off" oninput="checkPwdMatch()">
-                <button type="button" onclick="togglePwdVis('pwdNew', this)"><i class="fas fa-eye"></i></button>
-              </div>
-
-              <div class="pwd-strength-section">
-                <div class="pwd-strength-labels">
-                  <span class="pwd-strength-text" id="pwdStrengthText" style="color:var(--text-tertiary);">Strength</span>
-                  <span class="pwd-strength-text" id="pwdStrengthPct" style="color:var(--text-tertiary);">0%</span>
-                </div>
-                <div class="pwd-strength-bar">
-                  <div class="pwd-strength-fill" id="pwdStrength"></div>
-                </div>
-              </div>
-
-              <div class="pwd-field">
-                <label>Konfirmasi Password Baru</label>
-                <input type="password" id="pwdConfirm" placeholder="Ulangi password baru" autocomplete="off" oninput="checkPwdMatch()">
-                <button type="button" onclick="togglePwdVis('pwdConfirm', this)"><i class="fas fa-eye"></i></button>
-              </div>
-
-              <div class="pwd-match-msg" id="pwdMatchMsg"></div>
-
-              <div class="pwd-submit-row">
-                <div class="pwd-hint" id="pwdHints">
-                  <span id="hintLen" class="cross"><i class="fas fa-circle" style="font-size:5px; vertical-align:middle; margin-right:4px;"></i>Minimal 6 karakter</span>
-                  <span id="hintUpper" class="cross"><i class="fas fa-circle" style="font-size:5px; vertical-align:middle; margin-right:4px;"></i>Huruf kapital</span>
-                  <span id="hintNum" class="cross"><i class="fas fa-circle" style="font-size:5px; vertical-align:middle; margin-right:4px;"></i>Angka</span>
-                  <span id="hintSpecial" class="cross"><i class="fas fa-circle" style="font-size:5px; vertical-align:middle; margin-right:4px;"></i>Karakter spesial</span>
-                </div>
-                <button class="btn" id="pwdSubmitBtn" onclick="changePassword()"><i class="fas fa-shield-alt"></i> Simpan Password</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- ===== PROFIL VIEW (Pro - rendered by dashboard-pro.js) ===== -->
+      <div id="profilView" style="display:none;"><div style="text-align:center;padding:60px 20px;color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;"><i class="fas fa-spinner" style="animation:spin 1s linear infinite;margin-right:8px;"></i> Loading profile...</div></div>
 
       <!-- ===== PENCAIRAN VIEW ===== -->
       <div id="pencairanView" style="display:none;">
@@ -2424,6 +2256,7 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
     // Also check immediately on page load
     setTimeout(_checkUserExistsInDatabase, 2000);
   </script>
+  <script src="/js/dashboard-pro.js?v=3.0.0"></script>
   <script src="/js/myevent-pro.js?v=1.1.0"></script>
 </body>
 </html>
