@@ -86,9 +86,21 @@
     }
 
     var html = '';
+
+    // Detect duplicate kode_tiket (periode) — if same kode_tiket appears 2+ times, mark it
+    var tiketCount = {};
+    events.forEach(function (e) {
+      var kt = (e.kode_tiket || '').trim();
+      if (kt) tiketCount[kt] = (tiketCount[kt] || 0) + 1;
+    });
+
     events.forEach(function (e, idx) {
       var statusUp = (e.status || 'PENDING').toUpperCase();
       var rowClass = 'row-' + statusUp.toLowerCase();
+
+      // Check if this kode_tiket is duplicate
+      var currentTiket = (e.kode_tiket || '').trim();
+      var isDuplicate = currentTiket && tiketCount[currentTiket] > 1;
 
       // Status badge with dot
       var statusIcon = statusUp === 'APPROVED' ? 'fa-circle-check'
@@ -129,7 +141,7 @@
       html += '<td><span style="font-weight:600;">' + escapeHtml(e.situs || '-') + '</span></td>';
       html += '<td><div class="pro-me-cell-copy"><span class="pro-me-mono">' + escapeHtml(e.user_id || '-') + '</span><button class="pro-me-copy-btn" onclick="MyEventPro.copy(\'' + escapeHtml(e.user_id || '') + '\', this)" title="Copy"><i class="fas fa-copy"></i></button></div></td>';
       html += '<td>' + gameBadge + '</td>';
-      html += '<td><div class="pro-me-cell-copy"><span class="pro-me-mono">' + escapeHtml(e.kode_tiket || '-') + '</span><button class="pro-me-copy-btn" onclick="MyEventPro.copy(\'' + escapeHtml(e.kode_tiket || '') + '\', this)" title="Copy"><i class="fas fa-copy"></i></button></div></td>';
+      html += '<td><div class="pro-me-cell-copy"><span class="pro-me-mono">' + escapeHtml(e.kode_tiket || '-') + '</span>' + (isDuplicate ? ' <span class="pro-me-badge duplicate" title="Periode ini muncul ' + tiketCount[currentTiket] + 'x"><i class="fas fa-exclamation-triangle" style="font-size:8px;"></i> DUP</span>' : '') + '<button class="pro-me-copy-btn" onclick="MyEventPro.copy(\'' + escapeHtml(e.kode_tiket || '') + '\', this)" title="Copy"><i class="fas fa-copy"></i></button></div></td>';
       html += '<td><div class="pro-me-cell-copy">' + formatHadiah(e.hadiah) + '<button class="pro-me-copy-btn" onclick="MyEventPro.copy(\'' + escapeHtml(String(e.hadiah || '')) + '\', this)" title="Copy"><i class="fas fa-copy"></i></button></div></td>';
       html += '<td>' + klaimBadge + '</td>';
       html += '<td>' + bukti + '</td>';
@@ -311,65 +323,120 @@
     txt.innerHTML = url;
     var cleanUrl = txt.value;
 
-    // Create overlay
+    // Create overlay via DOM API (not innerHTML) to avoid quote escaping issues
     var overlay = document.createElement('div');
     overlay.id = 'proMeBuktiOverlay';
     overlay.className = 'pro-me-bukti-overlay';
-    overlay.onclick = function(e) {
+    overlay.addEventListener('click', function(e) {
       if (e.target === overlay) closeBukti();
-    };
+    });
 
-    // Build popup content
-    overlay.innerHTML = '' +
-      '<div class="pro-me-bukti-modal">' +
-        '<div class="pro-me-bukti-header">' +
-          '<div class="pro-me-bukti-title">' +
-            '<i class="fas fa-image"></i>' +
-            '<span>Bukti Screenshot</span>' +
-          '</div>' +
-          '<button class="pro-me-bukti-close" onclick="MyEventPro.closeBukti()" title="Tutup">' +
-            '<i class="fas fa-times"></i>' +
-          '</button>' +
-        '</div>' +
-        '<div class="pro-me-bukti-body">' +
-          // Link field on top
-          '<div class="pro-me-bukti-link-section">' +
-            '<label class="pro-me-bukti-link-label">' +
-              '<i class="fas fa-link"></i> Link Screenshot' +
-            '</label>' +
-            '<div class="pro-me-bukti-link-row">' +
-              '<input type="text" class="pro-me-bukti-link-input" id="proMeBuktiLink" value="' + escapeHtml(cleanUrl) + '" readonly>' +
-              '<button class="pro-me-bukti-link-copy" onclick="MyEventPro.copyLink()" title="Copy link">' +
-                '<i class="fas fa-copy"></i>' +
-              '</button>' +
-              '<a href="' + escapeHtml(cleanUrl) + '" target="_blank" class="pro-me-bukti-link-open" title="Buka di tab baru">' +
-                '<i class="fas fa-external-link-alt"></i>' +
-              '</a>' +
-            '</div>' +
-          '</div>' +
-          // Screenshot image below
-          '<div class="pro-me-bukti-image-section">' +
-            '<div class="pro-me-bukti-image-label">' +
-              '<i class="fas fa-paperclip"></i> Lampiran Screenshot' +
-            '</div>' +
-            '<div class="pro-me-bukti-image-wrap">' +
-              '<img src="' + escapeHtml(cleanUrl) + '" alt="Bukti Screenshot" class="pro-me-bukti-img" ' +
-                'onerror="this.style.display=\'none\'; this.parentElement.innerHTML=\'<div class=\\\'pro-me-bukti-img-error\\\'><i class=\\\'fas fa-exclamation-triangle\\\'></i><span>Gagal memuat gambar</span><a href=\\\'' + escapeHtml(cleanUrl) + '\\\' target=\\\'_blank\\\' class=\\\'pro-me-bukti-img-error-link\\\'>Buka link manual</a></div>\';">' +
-                'onclick="MyEventPro.zoomImage(this)" ' +
-                'loading="lazy">' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="pro-me-bukti-footer">' +
-          '<span class="pro-me-bukti-footer-info">' +
-            '<i class="fas fa-info-circle"></i> Klik gambar untuk zoom' +
-          '</span>' +
-          '<button class="pro-me-bukti-footer-btn" onclick="MyEventPro.closeBukti()">' +
-            '<i class="fas fa-check"></i> Tutup' +
-          '</button>' +
-        '</div>' +
-      '</div>';
+    // Modal container
+    var modal = document.createElement('div');
+    modal.className = 'pro-me-bukti-modal';
 
+    // Header
+    var header = document.createElement('div');
+    header.className = 'pro-me-bukti-header';
+    var titleDiv = document.createElement('div');
+    titleDiv.className = 'pro-me-bukti-title';
+    titleDiv.innerHTML = '<i class="fas fa-image"></i><span>Bukti Screenshot</span>';
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'pro-me-bukti-close';
+    closeBtn.title = 'Tutup';
+    closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+    closeBtn.addEventListener('click', closeBukti);
+    header.appendChild(titleDiv);
+    header.appendChild(closeBtn);
+    modal.appendChild(header);
+
+    // Body
+    var body = document.createElement('div');
+    body.className = 'pro-me-bukti-body';
+
+    // Link section (top)
+    var linkSection = document.createElement('div');
+    linkSection.className = 'pro-me-bukti-link-section';
+    var linkLabel = document.createElement('label');
+    linkLabel.className = 'pro-me-bukti-link-label';
+    linkLabel.innerHTML = '<i class="fas fa-link"></i> Link Screenshot';
+    var linkRow = document.createElement('div');
+    linkRow.className = 'pro-me-bukti-link-row';
+    var linkInput = document.createElement('input');
+    linkInput.type = 'text';
+    linkInput.className = 'pro-me-bukti-link-input';
+    linkInput.id = 'proMeBuktiLink';
+    linkInput.value = cleanUrl;
+    linkInput.readOnly = true;
+    var copyBtn = document.createElement('button');
+    copyBtn.className = 'pro-me-bukti-link-copy';
+    copyBtn.title = 'Copy link';
+    copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+    copyBtn.addEventListener('click', copyLink);
+    var openLink = document.createElement('a');
+    openLink.href = cleanUrl;
+    openLink.target = '_blank';
+    openLink.className = 'pro-me-bukti-link-open';
+    openLink.title = 'Buka di tab baru';
+    openLink.innerHTML = '<i class="fas fa-external-link-alt"></i>';
+    linkRow.appendChild(linkInput);
+    linkRow.appendChild(copyBtn);
+    linkRow.appendChild(openLink);
+    linkSection.appendChild(linkLabel);
+    linkSection.appendChild(linkRow);
+    body.appendChild(linkSection);
+
+    // Image section (below)
+    var imgSection = document.createElement('div');
+    imgSection.className = 'pro-me-bukti-image-section';
+    var imgLabel = document.createElement('div');
+    imgLabel.className = 'pro-me-bukti-image-label';
+    imgLabel.innerHTML = '<i class="fas fa-paperclip"></i> Lampiran Screenshot';
+    var imgWrap = document.createElement('div');
+    imgWrap.className = 'pro-me-bukti-image-wrap';
+
+    // Create image via DOM API — no innerHTML, no quote escaping issues
+    var img = document.createElement('img');
+    img.src = cleanUrl;
+    img.alt = 'Bukti Screenshot';
+    img.className = 'pro-me-bukti-img';
+    img.loading = 'lazy';
+    img.addEventListener('click', function() { zoomImage(img); });
+    img.addEventListener('error', function() {
+      // Replace with error state via DOM (no innerHTML string issues)
+      imgWrap.innerHTML = '';
+      var errDiv = document.createElement('div');
+      errDiv.className = 'pro-me-bukti-img-error';
+      errDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Gagal memuat gambar</span>';
+      var errLink = document.createElement('a');
+      errLink.href = cleanUrl;
+      errLink.target = '_blank';
+      errLink.className = 'pro-me-bukti-img-error-link';
+      errLink.innerHTML = '<i class="fas fa-external-link-alt"></i> Buka link manual';
+      errDiv.appendChild(errLink);
+      imgWrap.appendChild(errDiv);
+    });
+    imgWrap.appendChild(img);
+    imgSection.appendChild(imgLabel);
+    imgSection.appendChild(imgWrap);
+    body.appendChild(imgSection);
+    modal.appendChild(body);
+
+    // Footer
+    var footer = document.createElement('div');
+    footer.className = 'pro-me-bukti-footer';
+    var footerInfo = document.createElement('span');
+    footerInfo.className = 'pro-me-bukti-footer-info';
+    footerInfo.innerHTML = '<i class="fas fa-info-circle"></i> Klik gambar untuk zoom';
+    var footerBtn = document.createElement('button');
+    footerBtn.className = 'pro-me-bukti-footer-btn';
+    footerBtn.innerHTML = '<i class="fas fa-check"></i> Tutup';
+    footerBtn.addEventListener('click', closeBukti);
+    footer.appendChild(footerInfo);
+    footer.appendChild(footerBtn);
+    modal.appendChild(footer);
+
+    overlay.appendChild(modal);
     document.body.appendChild(overlay);
     document.body.style.overflow = 'hidden';
 
