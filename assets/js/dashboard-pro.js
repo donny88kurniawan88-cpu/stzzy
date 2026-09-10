@@ -105,7 +105,7 @@
       { cat: 'core', color: 'blue',   icon: 'fa-gauge-high',      name: 'Dashboard',       desc: 'Main control panel & system overview',   badge: 'live',       badgeText: 'Live',      access: null,                  action: 'switchToDashboard' },
       { cat: 'core', color: 'purple', icon: 'fa-user-shield',     name: 'Profil',          desc: 'Identity, password & security audit',    badge: 'live',       badgeText: 'Live',      access: null,                  action: 'switchToProfil' },
       // WORKSPACE
-      { cat: 'workspace', color: 'teal',   icon: 'fa-building-columns', name: 'Rek Validator',    desc: 'Cross-check 4 rekening databases',      badge: 'live',  badgeText: 'v1.5.0',   access: 'rek_validator',     href: '/Validator.html' },
+      { cat: 'workspace', color: 'teal',   icon: 'fa-building-columns', name: 'Rek Validator',    desc: 'Validasi rekening via 1 database',      badge: 'live',  badgeText: 'v1.5.0',   access: 'rek_validator',     href: '/Validator.html' },
       { cat: 'workspace', color: 'blue',   icon: 'fa-money-bill-transfer', name: 'Bank Processor', desc: 'Formatter & validator rekening bank',  badge: 'live',  badgeText: 'v2.0.0',   access: 'bank_processor',    href: '/Bank.html' },
       // OPERATIONAL
       { cat: 'operational', color: 'orange', icon: 'fa-layer-group',     name: 'Saldo Pencairan',    desc: 'Monitor rekening & pencairan saldo',   badge: 'live',       badgeText: 'v1.0.0',   access: 'saldo_pencairan',   action: 'loadPencairan' },
@@ -251,7 +251,7 @@
     // --- Render: quick actions ---
     _renderQuickActions: function () {
       var qa = [
-        { icon: 'fa-circle-check',    title: 'Rek Validator',  sub: 'Cross-check 4 DB',   action: null, href: '/Validator.html', access: 'rek_validator' },
+        { icon: 'fa-gear',            title: 'Setting',        sub: 'System config',      action: 'setting',        access: null },
         { icon: 'fa-calendar-check',  title: 'My Event',       sub: 'Manage events',      action: 'switchToMyEvent', access: 'event_tools' },
         { icon: 'fa-chart-line',      title: 'P2M Analyzer',   sub: 'Transaction analyzer', action: 'analyzer',     access: 'qris_tools' },
         { icon: 'fa-key',             title: 'API Key',        sub: 'Manage credentials', action: 'apiKey',        access: 'api_key' },
