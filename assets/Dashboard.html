@@ -439,6 +439,7 @@
     .akp-code .tk-fn { color: #fbbf24; }
     @media (max-width: 980px) { .akp-grid { grid-template-columns: 1fr; } }
   </style>
+  <link rel="stylesheet" href="/css/myevent-pro.css?v=1.1.0">
 </head>
 <body>
 
@@ -815,42 +816,62 @@
       </div>
 
     </div>
-      <!-- ===== MY EVENT VIEW ===== -->
+      <!-- ===== MY EVENT VIEW (Pro - rendered with myevent-pro.js) ===== -->
       <div id="myEventView" style="display:none;">
-        <div class="myEventWrap">
-          <div class="myEventHeader">
-            <div>
-              <h3>My Event</h3>
-              <div class="myEventSub">Data scatter approved dari extension (auto-refresh 10s)</div>
+        <div class="myEventWrap pro-myevent">
+          <div class="pro-me-header">
+            <div class="pro-me-title-block">
+              <div class="pro-me-eyebrow"><span class="pulse-dot"></span> Event Tools</div>
+              <div class="pro-me-title"><i class="fas fa-calendar-check"></i> My Event</div>
+              <div class="pro-me-sub">
+                Data scatter approved dari extension
+                <span class="auto-refresh-tag"><i class="fas fa-sync-alt"></i> Auto-refresh 10s</span>
+              </div>
             </div>
-            <div class="myEventControls">
-              <input type="text" id="myEventSearch" placeholder="Cari berdasarkan User ID..." oninput="filterMyEvent()">
-              <button class="myEvent-btn-delete" onclick="deleteMyEventSelected()"><i class="fas fa-trash"></i> Delete Selected</button>
-              <button class="myEvent-btn-deleteall" onclick="deleteMyEventAll()"><i class="fas fa-trash-can"></i> Delete All</button>
+            <div class="pro-me-actions">
+              <div class="pro-me-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="myEventSearch" placeholder="Cari berdasarkan User ID..." oninput="filterMyEvent()">
+              </div>
+              <button class="pro-me-btn pro-me-btn-delete" onclick="deleteMyEventSelected()"><i class="fas fa-trash"></i> Delete Selected</button>
+              <button class="pro-me-btn pro-me-btn-deleteall" onclick="deleteMyEventAll()"><i class="fas fa-trash-can"></i> Delete All</button>
             </div>
           </div>
-          <div class="myEventStats" id="myEventStats"></div>
-          <div class="myEventTableWrap">
-            <table class="myEventTable" id="myEventTable">
-              <thead>
-                <tr>
-                  <th style="width:32px;"><input type="checkbox" id="myEventSelectAll" onchange="toggleSelectAllMyEvent(this)"></th>
-                  <th>SITUS</th>
-                  <th>USER ID</th>
-                  <th>TIPE GAME</th>
-                  <th>KODE TIKET</th>
-                  <th>HADIAH</th>
-                  <th>KLAIM</th>
-                  <th>BUKTI</th>
-                  <th>STATUS</th>
-                  <th>KETERANGAN</th>
-                  <th>TANGGAL</th>
-                </tr>
-              </thead>
-              <tbody id="myEventBody">
-                <tr><td colspan="11" style="text-align:center; color: var(--text-tertiary); padding: 40px;">Loading data...</td></tr>
-              </tbody>
-            </table>
+          <div class="pro-me-stats" id="myEventStats"></div>
+          <div class="pro-me-table-card">
+            <div class="pro-me-table-header">
+              <div class="pro-me-table-title">
+                <i class="fas fa-database"></i>
+                Event Records
+                <span class="pro-me-table-count" id="myEventCount">0</span>
+              </div>
+              <div class="pro-me-table-meta">
+                <span class="live-dot">Live</span>
+                <span id="myEventLastUpdate">Updated --:--:--</span>
+              </div>
+            </div>
+            <div class="pro-me-table-wrap">
+              <table class="pro-me-table" id="myEventTable">
+                <thead>
+                  <tr>
+                    <th><input type="checkbox" id="myEventSelectAll" onchange="toggleSelectAllMyEvent(this)"></th>
+                    <th><span class="th-inner"><i class="fas fa-globe"></i> Situs</span></th>
+                    <th><span class="th-inner"><i class="fas fa-user"></i> User ID</span></th>
+                    <th><span class="th-inner"><i class="fas fa-gamepad"></i> Tipe Game</span></th>
+                    <th><span class="th-inner"><i class="fas fa-ticket"></i> Kode Tiket</span></th>
+                    <th><span class="th-inner"><i class="fas fa-coins"></i> Hadiah</span></th>
+                    <th><span class="th-inner"><i class="fas fa-tag"></i> Klaim</span></th>
+                    <th><span class="th-inner"><i class="fas fa-image"></i> Bukti</span></th>
+                    <th><span class="th-inner"><i class="fas fa-flag"></i> Status</span></th>
+                    <th><span class="th-inner"><i class="fas fa-info-circle"></i> Keterangan</span></th>
+                    <th><span class="th-inner"><i class="fas fa-clock"></i> Tanggal</span></th>
+                  </tr>
+                </thead>
+                <tbody id="myEventBody">
+                  <tr><td colspan="11"><div class="pro-me-loading"><i class="fas fa-spinner"></i> Loading data...</div></td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -2273,5 +2294,6 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
     // Also check immediately on page load
     setTimeout(_checkUserExistsInDatabase, 2000);
   </script>
+  <script src="/js/myevent-pro.js?v=1.1.0"></script>
 </body>
 </html>
