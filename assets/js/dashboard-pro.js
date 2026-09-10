@@ -102,31 +102,31 @@
 
     modules: [
       // CORE
-      { cat: 'core', color: 'blue',   icon: 'fa-gauge-high',      name: 'Dashboard',       desc: 'Main control panel & system overview',   badge: 'live',       badgeText: 'Live',      access: null,                  action: 'switchToDashboard' },
-      { cat: 'core', color: 'purple', icon: 'fa-user-shield',     name: 'Profil',          desc: 'Identity, password & security audit',    badge: 'live',       badgeText: 'Live',      access: null,                  action: 'switchToProfil' },
+      { cat: 'core', color: 'blue',   icon: 'fa-display',         name: 'Dashboard',       desc: 'Main control panel & system overview',   badge: 'live',       badgeText: 'Live',      access: null,                  action: 'switchToDashboard' },
+      { cat: 'core', color: 'purple', icon: 'fa-id-card-clip',    name: 'Profil',          desc: 'Identity, password & security audit',    badge: 'live',       badgeText: 'Live',      access: null,                  action: 'switchToProfil' },
       // WORKSPACE
-      { cat: 'workspace', color: 'teal',   icon: 'fa-building-columns', name: 'Rek Validator',    desc: 'Validasi rekening via 1 database',      badge: 'live',  badgeText: 'v1.5.0',   access: 'rek_validator',     href: '/Validator.html' },
-      { cat: 'workspace', color: 'blue',   icon: 'fa-money-bill-transfer', name: 'Bank Processor', desc: 'Formatter & validator rekening bank',  badge: 'live',  badgeText: 'v2.0.0',   access: 'bank_processor',    href: '/Bank.html' },
+      { cat: 'workspace', color: 'teal',   icon: 'fa-landmark',         name: 'Rek Validator',    desc: 'Validasi rekening via 1 database',      badge: 'live',  badgeText: 'v1.5.0',   access: 'rek_validator',     href: '/Validator.html' },
+      { cat: 'workspace', color: 'blue',   icon: 'fa-building-columns',  name: 'Bank Processor', desc: 'Formatter & validator rekening bank',  badge: 'live',  badgeText: 'v2.0.0',   access: 'bank_processor',    href: '/Bank.html' },
       // OPERATIONAL
-      { cat: 'operational', color: 'orange', icon: 'fa-layer-group',     name: 'Saldo Pencairan',    desc: 'Monitor rekening & pencairan saldo',   badge: 'live',       badgeText: 'v1.0.0',   access: 'saldo_pencairan',   action: 'loadPencairan' },
-      { cat: 'operational', color: 'pink',   icon: 'fa-chart-line',      name: 'P2M Analyzer',       desc: 'P2M vs Zonamain vs Report analysis',   badge: 'live',       badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'analyzer' },
-      { cat: 'operational', color: 'purple', icon: 'fa-magnifying-glass', name: 'XPAY Analyzer',      desc: 'XPAY transaction analyzer engine',     badge: 'live',       badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'xpayChecker' },
-      { cat: 'operational', color: 'orange', icon: 'fa-clipboard-list',  name: 'XPAY Settlement',    desc: 'XPAY settlement reconciliation',       badge: 'live',       badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'xpayFull' },
-      { cat: 'operational', color: 'teal',   icon: 'fa-circle-check',    name: 'Settlement Checker', desc: 'Cek settlement per tanggal',           badge: 'live',       badgeText: 'v1.0.0',   access: 'qris_tools',        action: 'xpaySettlementChecker' },
+      { cat: 'operational', color: 'orange', icon: 'fa-money-bill-trend-up', name: 'Saldo Pencairan', desc: 'Monitor rekening & pencairan saldo', badge: 'live',    badgeText: 'v1.0.0',   access: 'saldo_pencairan',   action: 'loadPencairan' },
+      { cat: 'operational', color: 'pink',   icon: 'fa-magnifying-glass-chart', name: 'P2M Analyzer', desc: 'P2M vs Zonamain vs Report analysis',  badge: 'live',    badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'analyzer' },
+      { cat: 'operational', color: 'purple', icon: 'fa-radar',            name: 'XPAY Analyzer',      desc: 'XPAY transaction analyzer engine',     badge: 'live',       badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'xpayChecker' },
+      { cat: 'operational', color: 'orange', icon: 'fa-file-invoice-dollar', name: 'XPAY Settlement', desc: 'XPAY settlement reconciliation',     badge: 'live',    badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'xpayFull' },
+      { cat: 'operational', color: 'teal',   icon: 'fa-clipboard-check', name: 'Settlement Checker', desc: 'Cek settlement per tanggal',          badge: 'live',       badgeText: 'v1.0.0',   access: 'qris_tools',        action: 'xpaySettlementChecker' },
       { cat: 'operational', color: 'purple', icon: 'fa-chart-bar',       name: 'MNPAY Analyzer',     desc: 'MNPAY payment flow analyzer',          badge: 'soon',       badgeText: 'Soon',     access: 'qris_tools',        action: 'comingSoon' },
-      { cat: 'operational', color: 'blue',   icon: 'fa-database',        name: 'Syair Database',     desc: 'Access shio prediction engine',        badge: 'live',       badgeText: 'v2.1.0',   access: 'prediction_tools',  href: '/Syair.html' },
-      { cat: 'operational', color: 'purple', icon: 'fa-wand-magic-sparkles', name: 'AI Prediction',  desc: 'Neural probability calculation',       badge: 'live',       badgeText: 'v3.0.0',   access: 'prediction_tools',  href: '/Prediksi.html' },
-      { cat: 'operational', color: 'red',    icon: 'fa-dice',            name: 'Gas Slot Engine',    desc: 'AI Slot Gacor Predictor System',       badge: 'info',       badgeText: 'v1.0.0',   access: 'prediction_tools',  action: 'appInfo' },
-      { cat: 'operational', color: 'green',  icon: 'fa-calendar-check',  name: 'My Event',           desc: 'Manage active events',                 badge: 'live',       badgeText: 'v1.0.0',   access: 'event_tools',       action: 'switchToMyEvent' },
+      { cat: 'operational', color: 'blue',   icon: 'fa-book-open',       name: 'Syair Database',     desc: 'Access shio prediction engine',        badge: 'live',       badgeText: 'v2.1.0',   access: 'prediction_tools',  href: '/Syair.html' },
+      { cat: 'operational', color: 'purple', icon: 'fa-brain',           name: 'AI Prediction',      desc: 'Neural probability calculation',       badge: 'live',       badgeText: 'v3.0.0',   access: 'prediction_tools',  href: '/Prediksi.html' },
+      { cat: 'operational', color: 'red',    icon: 'fa-fire-flame-curved', name: 'Gas Slot Engine',  desc: 'AI Slot Gacor Predictor System',       badge: 'info',       badgeText: 'v1.0.0',   access: 'prediction_tools',  action: 'appInfo' },
+      { cat: 'operational', color: 'green',  icon: 'fa-calendar-day',    name: 'My Event',           desc: 'Manage active events',                 badge: 'live',       badgeText: 'v1.0.0',   access: 'event_tools',       action: 'switchToMyEvent' },
       { cat: 'operational', color: 'orange', icon: 'fa-clock-rotate-left', name: 'History Event',    desc: 'Event history & logs',                 badge: 'soon',       badgeText: 'Soon',     access: 'event_tools',       action: 'comingSoon' },
-      { cat: 'operational', color: 'green',  icon: 'fa-receipt',         name: 'PG Report',          desc: 'PG Soft credit calculator engine',     badge: 'live',       badgeText: 'v5.0.0',   access: 'event_tools',       action: 'pgReport' },
-      { cat: 'operational', color: 'pink',   icon: 'fa-pen-to-square',   name: 'Edit Bukti',         desc: 'Edit & manage proof of payment',       badge: 'live',       badgeText: 'v1.0.0',   access: 'edit_bukti',        action: 'editBukti' },
-      { cat: 'operational', color: 'orange', icon: 'fa-note-sticky',     name: 'Keep Memo',          desc: 'Simpan & kelola catatan memo',         badge: 'live',       badgeText: 'v1.0.0',   access: 'keep_memo',         action: 'keepMemo' },
+      { cat: 'operational', color: 'green',  icon: 'fa-calculator',      name: 'PG Report',          desc: 'PG Soft credit calculator engine',     badge: 'live',       badgeText: 'v5.0.0',   access: 'event_tools',       action: 'pgReport' },
+      { cat: 'operational', color: 'pink',   icon: 'fa-image',           name: 'Edit Bukti',         desc: 'Edit & manage proof of payment',       badge: 'live',       badgeText: 'v1.0.0',   access: 'edit_bukti',        action: 'editBukti' },
+      { cat: 'operational', color: 'orange', icon: 'fa-bookmark',        name: 'Keep Memo',          desc: 'Simpan & kelola catatan memo',         badge: 'live',       badgeText: 'v1.0.0',   access: 'keep_memo',         action: 'keepMemo' },
       // SYSTEM
-      { cat: 'system', color: 'blue',   icon: 'fa-key',           name: 'API Key',         desc: 'Manage API credentials',          badge: 'live',       badgeText: 'v2.0.0',   access: 'api_key',           action: 'apiKey' },
+      { cat: 'system', color: 'blue',   icon: 'fa-key-skeleton',  name: 'API Key',         desc: 'Manage API credentials',          badge: 'live',       badgeText: 'v2.0.0',   access: 'api_key',           action: 'apiKey' },
       { cat: 'system', color: 'red',    icon: 'fa-shield-halved', name: 'IP Whitelist',    desc: 'Kelola whitelist IP login',       badge: 'live',       badgeText: 'v1.0.0',   access: 'ip_whitelist',      action: 'ipWhitelist' },
-      { cat: 'system', color: 'orange', icon: 'fa-gear',          name: 'Setting',         desc: 'System configuration panel',      badge: 'info',       badgeText: 'v1.2.0',   access: 'setting',           action: 'setting' },
-      { cat: 'system', color: 'purple', icon: 'fa-shield',        name: 'Authority Panel', desc: 'Admin access & user management',  badge: 'restricted', badgeText: 'Restricted', access: 'authority_panel', href: '/Authority.html' }
+      { cat: 'system', color: 'orange', icon: 'fa-sliders',       name: 'Setting',         desc: 'System configuration panel',      badge: 'info',       badgeText: 'v1.2.0',   access: 'setting',           action: 'setting' },
+      { cat: 'system', color: 'purple', icon: 'fa-users-gear',    name: 'Authority Panel', desc: 'Admin access & user management',  badge: 'restricted', badgeText: 'Restricted', access: 'authority_panel', href: '/Authority.html' }
     ],
 
     // --- Access handling ---
@@ -956,16 +956,40 @@
       return '' +
         '<div class="pro-profil-wrap">' +
           '<div class="pro-profil-card">' +
-            '<div class="pro-profil-banner"></div>' +
-            '<div class="pro-profil-body" style="padding-top:22px;">' +
-              '<div class="pro-ipwl-loading" style="padding:40px 16px;">' +
-                '<div class="pro-ipwl-loading-spinner"></div>' +
-                '<div class="pro-ipwl-loading-text">Memuat profil…</div>' +
+            '<div class="pro-profil-banner pro-skeleton-shimmer"></div>' +
+            '<div class="pro-profil-body">' +
+              '<div class="pro-profil-avatar-wrap">' +
+                '<div class="pro-skeleton-circle pro-skeleton-shimmer"></div>' +
+                '<div class="pro-skeleton-pill pro-skeleton-shimmer" style="width:60px;height:20px;"></div>' +
+              '</div>' +
+              '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:60%;height:22px;margin-bottom:8px;"></div>' +
+              '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:40%;height:14px;margin-bottom:20px;"></div>' +
+              '<div class="pro-profil-mini-stats">' +
+                '<div class="pro-skeleton-box pro-skeleton-shimmer" style="height:50px;border-radius:10px;"></div>' +
+                '<div class="pro-skeleton-box pro-skeleton-shimmer" style="height:50px;border-radius:10px;"></div>' +
+                '<div class="pro-skeleton-box pro-skeleton-shimmer" style="height:50px;border-radius:10px;"></div>' +
+              '</div>' +
+              '<div style="margin-top:20px;">' +
+                '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:100%;height:14px;margin-bottom:12px;"></div>' +
+                '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:100%;height:14px;margin-bottom:12px;"></div>' +
+                '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:80%;height:14px;"></div>' +
               '</div>' +
             '</div>' +
           '</div>' +
           '<div class="pro-profil-right">' +
-            '<div class="pro-pwd-card"><div class="pro-ipwl-skeleton-row" style="margin:8px 0;"></div><div class="pro-ipwl-skeleton-row"></div></div>' +
+            '<div class="pro-pwd-card">' +
+              '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:40%;height:18px;margin-bottom:16px;"></div>' +
+              '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:100%;height:40px;margin-bottom:14px;border-radius:10px;"></div>' +
+              '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:100%;height:40px;margin-bottom:14px;border-radius:10px;"></div>' +
+              '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:100%;height:40px;margin-bottom:14px;border-radius:10px;"></div>' +
+              '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:30%;height:36px;margin-top:8px;border-radius:10px;"></div>' +
+            '</div>' +
+            '<div class="pro-audit-card" style="margin-top:16px;">' +
+              '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:50%;height:16px;margin-bottom:16px;"></div>' +
+              '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:100%;height:36px;margin-bottom:10px;border-radius:10px;"></div>' +
+              '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:100%;height:36px;margin-bottom:10px;border-radius:10px;"></div>' +
+              '<div class="pro-skeleton-line pro-skeleton-shimmer" style="width:90%;height:36px;border-radius:10px;"></div>' +
+            '</div>' +
           '</div>' +
         '</div>';
     },
