@@ -1551,3 +1551,76 @@ body.in-iframe .auth-topbar {
 }
 
 body.in-iframe .auth-shell { padding-top: 6px; }
+
+/* ============================================================
+   NAV TABS — switch between User Management & Data Registrasi
+   ============================================================ */
+.auth-nav-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 6px;
+  background: rgba(15, 15, 22, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+}
+
+.auth-nav-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--aura-text-secondary, #94a3b8);
+  font-family: var(--aura-font-sans, 'Inter', sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.auth-nav-tab i {
+  font-size: 14px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.auth-nav-tab:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--aura-text-primary, #f1f5f9);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.auth-nav-tab:hover i {
+  opacity: 1;
+}
+
+.auth-nav-tab.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.1));
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
+}
+
+.auth-nav-tab.active i {
+  opacity: 1;
+  color: #60a5fa;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .auth-nav-tabs {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .auth-nav-tab {
+    width: 100%;
+    padding: 10px 16px;
+  }
+}
