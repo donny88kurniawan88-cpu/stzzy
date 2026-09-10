@@ -845,10 +845,10 @@
         </div>
       </div>
 
-      <!-- ===== EDIT BUKTI VIEW (inline iframe) ===== -->
+      <!-- ===== EDIT BUKTI VIEW (inline iframe — no sandbox, allow all scripts+watermark) ===== -->
       <div id="editBuktiView" style="display:none;">
         <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
-          <iframe src="/bukti-generator/generate-bukti.html?v=57.0.0" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="Edit Bukti Generator"></iframe>
+          <iframe src="/bukti-generator/generate-bukti.html?v=57.0.0" style="width:100%; height:calc(100vh - 100px); border:none; display:block; background:#0a0a0f;" title="Edit Bukti Generator" allow="clipboard-write; fullscreen" loading="lazy"></iframe>
         </div>
       </div>
 
