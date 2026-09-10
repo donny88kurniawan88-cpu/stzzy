@@ -120,7 +120,7 @@
       // BUKTI
       var buktiUrl = e.bukti_screenshot || (klaimVal && /^https?:\/\//i.test(klaimVal) ? klaimVal : '');
       var bukti = buktiUrl
-        ? '<div class="pro-me-screenshot" onclick="window.open(\'' + escapeHtml(buktiUrl) + '\', \'_blank\')" title="Lihat bukti">' + BUKTI_SVG + '</div>'
+        ? '<div class="pro-me-screenshot" onclick="MyEventPro.showBukti(\'' + escapeHtml(buktiUrl).replace(/'/g, '&#39;') + '\')" title="Lihat bukti">' + BUKTI_SVG + '</div>'
         : '<div class="pro-me-screenshot disabled" title="Tidak ada bukti">' + BUKTI_SVG + '</div>';
 
       // Build row
@@ -293,6 +293,128 @@
     }
   }
 
+  // ============================================================
+  // BUKTI POPUP — show screenshot with link field on top
+  // ============================================================
+  function showBukti(url) {
+    if (!url) {
+      if (typeof showToast === 'function') showToast('Tidak ada bukti screenshot', 'warning');
+      return;
+    }
+
+    // Remove existing popup if any
+    var existing = document.getElementById('proMeBuktiOverlay');
+    if (existing) existing.remove();
+
+    // Decode HTML entities from escapeHtml
+    var txt = document.createElement('textarea');
+    txt.innerHTML = url;
+    var cleanUrl = txt.value;
+
+    // Create overlay
+    var overlay = document.createElement('div');
+    overlay.id = 'proMeBuktiOverlay';
+    overlay.className = 'pro-me-bukti-overlay';
+    overlay.onclick = function(e) {
+      if (e.target === overlay) closeBukti();
+    };
+
+    // Build popup content
+    overlay.innerHTML = '' +
+      '<div class="pro-me-bukti-modal">' +
+        '<div class="pro-me-bukti-header">' +
+          '<div class="pro-me-bukti-title">' +
+            '<i class="fas fa-image"></i>' +
+            '<span>Bukti Screenshot</span>' +
+          '</div>' +
+          '<button class="pro-me-bukti-close" onclick="MyEventPro.closeBukti()" title="Tutup">' +
+            '<i class="fas fa-times"></i>' +
+          '</button>' +
+        '</div>' +
+        '<div class="pro-me-bukti-body">' +
+          // Link field on top
+          '<div class="pro-me-bukti-link-section">' +
+            '<label class="pro-me-bukti-link-label">' +
+              '<i class="fas fa-link"></i> Link Screenshot' +
+            '</label>' +
+            '<div class="pro-me-bukti-link-row">' +
+              '<input type="text" class="pro-me-bukti-link-input" id="proMeBuktiLink" value="' + escapeHtml(cleanUrl) + '" readonly>' +
+              '<button class="pro-me-bukti-link-copy" onclick="MyEventPro.copyLink()" title="Copy link">' +
+                '<i class="fas fa-copy"></i>' +
+              '</button>' +
+              '<a href="' + escapeHtml(cleanUrl) + '" target="_blank" class="pro-me-bukti-link-open" title="Buka di tab baru">' +
+                '<i class="fas fa-external-link-alt"></i>' +
+              '</a>' +
+            '</div>' +
+          '</div>' +
+          // Screenshot image below
+          '<div class="pro-me-bukti-image-section">' +
+            '<div class="pro-me-bukti-image-label">' +
+              '<i class="fas fa-paperclip"></i> Lampiran Screenshot' +
+            '</div>' +
+            '<div class="pro-me-bukti-image-wrap">' +
+              '<img src="' + escapeHtml(cleanUrl) + '" alt="Bukti Screenshot" class="pro-me-bukti-img" ' +
+                'onerror="this.style.display=\'none\'; this.parentElement.innerHTML=\'<div class=\\\'pro-me-bukti-img-error\\\'><i class=\\\'fas fa-exclamation-triangle\\\'></i><span>Gagal memuat gambar</span><a href=\\\'' + escapeHtml(cleanUrl) + '\\\' target=\\\'_blank\\\' class=\\\'pro-me-bukti-img-error-link\\\'>Buka link manual</a></div>\';">' +
+                'onclick="MyEventPro.zoomImage(this)" ' +
+                'loading="lazy">' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="pro-me-bukti-footer">' +
+          '<span class="pro-me-bukti-footer-info">' +
+            '<i class="fas fa-info-circle"></i> Klik gambar untuk zoom' +
+          '</span>' +
+          '<button class="pro-me-bukti-footer-btn" onclick="MyEventPro.closeBukti()">' +
+            '<i class="fas fa-check"></i> Tutup' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+
+    // Animate in
+    setTimeout(function() {
+      overlay.classList.add('active');
+    }, 10);
+
+    // ESC key to close
+    document.addEventListener('keydown', _buktiEscHandler);
+  }
+
+  function closeBukti() {
+    var overlay = document.getElementById('proMeBuktiOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    setTimeout(function() {
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      document.body.style.overflow = '';
+    }, 250);
+    document.removeEventListener('keydown', _buktiEscHandler);
+  }
+
+  function _buktiEscHandler(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+      closeBukti();
+    }
+  }
+
+  function copyLink() {
+    var input = document.getElementById('proMeBuktiLink');
+    if (!input) return;
+    copyTextPro(input.value, null);
+  }
+
+  function zoomImage(img) {
+    if (img.style.cursor === 'zoom-out') {
+      img.style.cursor = 'zoom-in';
+      img.classList.remove('zoomed');
+    } else {
+      img.style.cursor = 'zoom-out';
+      img.classList.add('zoomed');
+    }
+  }
+
   // Expose API
   window.MyEventPro = {
     renderStats: renderMyEventStatsPro,
@@ -304,6 +426,10 @@
     deleteSelected: deleteSelectedPro,
     deleteAll: deleteAllPro,
     updateHeader: updateHeaderPro,
+    showBukti: showBukti,
+    closeBukti: closeBukti,
+    copyLink: copyLink,
+    zoomImage: zoomImage,
     init: init
   };
 
