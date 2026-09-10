@@ -287,8 +287,8 @@
         actions = '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Akun Master - Terproteksi" tabindex="-1"><i class="fas fa-lock"></i></button>';
       } else if (canEditUser(u)) {
         actions =
-          '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Edit Access Control" onclick="window.__AUTH.openEdit(' + JSON.stringify(u.username) + ')"><i class="fas fa-key"></i></button>' +
-          '<button class="auth-btn auth-btn-danger-ghost auth-btn-icon" title="Hapus User" onclick="window.__AUTH.confirmDelete(' + JSON.stringify(u.username) + ')"><i class="fas fa-trash"></i></button>';
+          '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Edit Access Control" onclick="window.__AUTH.openEdit(\x27' + u.username.replace(/'/g, '\\' + String.fromCharCode(39)) + '\x27)"><i class="fas fa-key"></i></button>' +
+          '<button class="auth-btn auth-btn-danger-ghost auth-btn-icon" title="Hapus User" data-delete-user="' + escapeHtml(u.username) + '"><i class="fas fa-trash"></i></button>';
       } else {
         actions = '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Hanya Master yang dapat mengubah Admin lain" tabindex="-1"><i class="fas fa-lock"></i></button>';
       }
@@ -617,8 +617,8 @@
                 '<td><span class="auth-role-badge ' + (ROLE_CLASS[u.role] || 'role-member') + '">' + escapeHtml(u.role || 'MEMBER') + '</span></td>' +
                 '<td><span class="auth-status-pill pending"><i class="fas fa-hourglass-half"></i> PENDING</span></td>' +
                 '<td class="text-right"><div class="auth-action-group">' +
-                  '<button class="auth-btn auth-btn-success-ghost auth-btn-icon" title="Approve" onclick="window.__AUTH.actRegistration(' + JSON.stringify(u.username) + ',\'approve\')"><i class="fas fa-check"></i></button>' +
-                  '<button class="auth-btn auth-btn-danger-ghost auth-btn-icon" title="Reject" onclick="window.__AUTH.actRegistration(' + JSON.stringify(u.username) + ',\'reject\')"><i class="fas fa-times"></i></button>' +
+                  '<button class="auth-btn auth-btn-success-ghost auth-btn-icon" title="Approve" data-reg-action="approve" data-reg-user="' + escapeHtml(u.username) + '"><i class="fas fa-check"></i></button>' +
+                  '<button class="auth-btn auth-btn-danger-ghost auth-btn-icon" title="Reject" data-reg-action="reject" data-reg-user="' + escapeHtml(u.username) + '"><i class="fas fa-times"></i></button>' +
                 '</div></td>' +
               '</tr>';
           }).join('');
@@ -739,6 +739,26 @@
       searchInput.addEventListener('input', function () {
         clearTimeout(debounce);
         debounce = setTimeout(renderTable, 120);
+      });
+    }
+
+    // Event delegation for edit/delete buttons (avoids onclick quote issues)
+    var userTableBody = $('userTableBody') || document.querySelector('table tbody');
+    if (userTableBody) {
+      userTableBody.addEventListener('click', function(e) {
+        var editBtn = e.target.closest('[data-edit-user]');
+        var delBtn = e.target.closest('[data-delete-user]');
+        if (editBtn) { openEdit(editBtn.getAttribute('data-edit-user')); }
+        if (delBtn) { confirmDelete(delBtn.getAttribute('data-delete-user')); }
+      });
+    }
+
+    // Event delegation for approve/reject buttons
+    var pendingBody = $('pendingBody');
+    if (pendingBody) {
+      pendingBody.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-reg-action]');
+        if (btn) { actRegistration(btn.getAttribute('data-reg-user'), btn.getAttribute('data-reg-action')); }
       });
     }
 
