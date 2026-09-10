@@ -110,7 +110,7 @@
       // OPERATIONAL
       { cat: 'operational', color: 'orange', icon: 'fa-money-bill-trend-up', name: 'Saldo Pencairan', desc: 'Monitor rekening & pencairan saldo', badge: 'live',    badgeText: 'v1.0.0',   access: 'saldo_pencairan',   action: 'loadPencairan' },
       { cat: 'operational', color: 'pink',   icon: 'fa-magnifying-glass-chart', name: 'P2M Analyzer', desc: 'P2M vs Zonamain vs Report analysis',  badge: 'live',    badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'analyzer' },
-      { cat: 'operational', color: 'purple', icon: 'fa-radar',            name: 'XPAY Analyzer',      desc: 'XPAY transaction analyzer engine',     badge: 'live',       badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'xpayChecker' },
+      { cat: 'operational', color: 'purple', icon: 'fa-satellite-dish',  name: 'XPAY Analyzer',      desc: 'XPAY transaction analyzer engine',     badge: 'live',       badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'xpayChecker' },
       { cat: 'operational', color: 'orange', icon: 'fa-file-invoice-dollar', name: 'XPAY Settlement', desc: 'XPAY settlement reconciliation',     badge: 'live',    badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'xpayFull' },
       { cat: 'operational', color: 'teal',   icon: 'fa-clipboard-check', name: 'Settlement Checker', desc: 'Cek settlement per tanggal',          badge: 'live',       badgeText: 'v1.0.0',   access: 'qris_tools',        action: 'xpaySettlementChecker' },
       { cat: 'operational', color: 'purple', icon: 'fa-chart-bar',       name: 'MNPAY Analyzer',     desc: 'MNPAY payment flow analyzer',          badge: 'soon',       badgeText: 'Soon',     access: 'qris_tools',        action: 'comingSoon' },
@@ -123,10 +123,10 @@
       { cat: 'operational', color: 'pink',   icon: 'fa-image',           name: 'Edit Bukti',         desc: 'Edit & manage proof of payment',       badge: 'live',       badgeText: 'v1.0.0',   access: 'edit_bukti',        action: 'editBukti' },
       { cat: 'operational', color: 'orange', icon: 'fa-bookmark',        name: 'Keep Memo',          desc: 'Simpan & kelola catatan memo',         badge: 'live',       badgeText: 'v1.0.0',   access: 'keep_memo',         action: 'keepMemo' },
       // SYSTEM
-      { cat: 'system', color: 'blue',   icon: 'fa-key-skeleton',  name: 'API Key',         desc: 'Manage API credentials',          badge: 'live',       badgeText: 'v2.0.0',   access: 'api_key',           action: 'apiKey' },
+      { cat: 'system', color: 'blue',   icon: 'fa-key',            name: 'API Key',         desc: 'Manage API credentials',          badge: 'live',       badgeText: 'v2.0.0',   access: 'api_key',           action: 'apiKey' },
       { cat: 'system', color: 'red',    icon: 'fa-shield-halved', name: 'IP Whitelist',    desc: 'Kelola whitelist IP login',       badge: 'live',       badgeText: 'v1.0.0',   access: 'ip_whitelist',      action: 'ipWhitelist' },
       { cat: 'system', color: 'orange', icon: 'fa-sliders',       name: 'Setting',         desc: 'System configuration panel',      badge: 'info',       badgeText: 'v1.2.0',   access: 'setting',           action: 'setting' },
-      { cat: 'system', color: 'purple', icon: 'fa-users-gear',    name: 'Authority Panel', desc: 'Admin access & user management',  badge: 'restricted', badgeText: 'Restricted', access: 'authority_panel', href: '/Authority.html' }
+      { cat: 'system', color: 'purple', icon: 'fa-user-gear',     name: 'Authority Panel', desc: 'Admin access & user management',  badge: 'restricted', badgeText: 'Restricted', access: 'authority_panel', href: '/Authority.html' }
     ],
 
     // --- Access handling ---
@@ -197,7 +197,7 @@
       return '' +
         '<div class="pro-hero">' +
           '<div class="pro-hero-body">' +
-            '<div class="pro-hero-eyebrow"><span class="pulse-dot"></span> AURA.OS DASHBOARD</div>' +
+            '<div class="pro-hero-eyebrow"><span class="pulse-dot"></span> AURA.OS // DASHBOARD</div>' +
             '<h1 class="pro-hero-title">' + g.word + ', <span class="accent">' + escapeHtml(name) + '</span> <i class="fas ' + g.icon + '" style="font-size:0.7em; opacity:0.7; margin-left:6px;"></i></h1>' +
             '<p class="pro-hero-subtitle">Quantum interface loaded. All systems operational. Pilih modul di bawah untuk memulai sesi kerja Anda.</p>' +
             '<div class="pro-hero-meta">' +
