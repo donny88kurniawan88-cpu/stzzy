@@ -1,1029 +1,1475 @@
 /* ============================================================
    AURA.OS // DASHBOARD-PRO.JS
-   Professional, structured logic for:
-   - Dashboard main view (live stats + categorized modules + activity)
-   - Profile panel (identity + password change + audit)
-   - IP Whitelist panel (table + CRUD + search + toggle)
+   Professional rendering logic for Dashboard, Profil, and
+   IP Whitelist panels. Replaces inline HTML stubs with
+   polished pro layouts rendered from JS.
+
+   Public API (window):
+     - DASHBOARD   (render / refresh dashboard panel)
+     - PROFILE     (load + render profile panel)
+     - IPWL        (load + render + manage IP whitelist panel)
+   Patches:
+     - window.switchToDashboard / switchToProfil / switchToIpWhitelist
+       are wrapped on init to trigger Pro rendering.
    ============================================================ */
 
 (function () {
   'use strict';
 
   // ============================================================
-  // SHARED HELPERS
+  // HELPERS
   // ============================================================
-  const $ = (sel) => document.querySelector(sel);
-  const $$ = (sel) => document.querySelectorAll(sel);
-  const token = () => localStorage.getItem('aura_auth_token') || '';
+  function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
 
-  async function api(path, opts = {}) {
-    const headers = { 'x-auth-token': token(), ...(opts.headers || {}) };
-    if (opts.body && typeof opts.body === 'object') {
-      headers['Content-Type'] = 'application/json';
-      opts.body = JSON.stringify(opts.body);
+  function safeJson(str, fallback) {
+    try { return JSON.parse(str); } catch (e) { return fallback; }
+  }
+
+  function getLS(key, fallback) {
+    var v = localStorage.getItem(key);
+    if (v === null || v === undefined) return fallback;
+    return v;
+  }
+
+  function formatRelativeTime(ts) {
+    if (!ts) return '-';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return escapeHtml(ts);
+    var now = Date.now();
+    var diff = Math.floor((now - d.getTime()) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+  }
+
+  function formatDateTime(ts) {
+    if (!ts) return '-';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return escapeHtml(ts);
+    return d.toLocaleString('id-ID', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  function getToken() {
+    return getLS('aura_auth_token', '');
+  }
+
+  function genSessionId() {
+    var chars = 'abcdef0123456789';
+    var id = '';
+    for (var i = 0; i < 8; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
+    return id + '…';
+  }
+
+  function showToastSafe(msg, type) {
+    if (typeof showToast === 'function') showToast(msg, type);
+    else if (typeof window.toast === 'function') window.toast(msg, type);
+    else console.log('[toast:' + (type || 'info') + ']', msg);
+  }
+
+  function logSafe(msg) {
+    if (typeof addTerminalLog === 'function') {
+      try { addTerminalLog(msg); } catch (e) {}
     }
-    try {
-      const res = await fetch(path, { ...opts, headers });
-      const ct = res.headers.get('content-type') || '';
-      const data = ct.includes('json') ? await res.json() : await res.text();
-      return { ok: res.ok, status: res.status, data };
-    } catch (e) {
-      return { ok: false, status: 0, data: { error: e.message } };
-    }
-  }
-
-  function showToast(msg, type = 'info') {
-    if (window.showToast) return window.showToast(msg, type);
-    // Fallback toast
-    const t = document.createElement('div');
-    t.textContent = msg;
-    t.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 18px;background:#1a1a24;color:#fff;border-radius:8px;font-size:13px;z-index:99999;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
-  }
-
-  function fmtDate(iso) {
-    if (!iso) return '-';
-    try {
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return iso;
-      return d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    } catch (e) { return iso; }
-  }
-
-  function escapeHtml(str) {
-    if (str == null) return '';
-    return String(str).replace(/[&<>"']/g, (c) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[c]));
   }
 
   // ============================================================
-  // DASHBOARD MAIN VIEW — initialize
+  // DASHBOARD
   // ============================================================
-  const DASHBOARD = {
-    modules: [
-      // Core
-      { cat: 'core', color: 'blue', icon: '📊', name: 'Dashboard', desc: 'Halaman utama & ringkasan sistem', badge: 'live', badgeText: 'Active', access: 'dashboard', action: 'switchToDashboard' },
-      { cat: 'core', color: 'purple', icon: '👤', name: 'Profil', desc: 'Kelola data akun & keamanan', badge: 'live', badgeText: 'v2.0', access: 'profil', action: 'switchToProfil' },
-      // Workspace — Banking
-      { cat: 'workspace', color: 'teal', icon: '🏦', name: 'Rek Validator', desc: 'Cross-check 4 database rekening', badge: 'live', badgeText: 'v1.5', access: 'rek_validator', href: '/Validator.html' },
-      { cat: 'workspace', color: 'blue', icon: '💰', name: 'Bank Processor', desc: 'Formatter & validator rekening bank', badge: 'live', badgeText: 'v2.0', access: 'bank_processor', href: '/Bank.html' },
-      // Operational — Saldo Pencairan
-      { cat: 'operational', color: 'teal', icon: '💸', name: 'Saldo Pencairan', desc: 'Monitor rekening & pencairan realtime', badge: 'live', badgeText: 'v1.0', access: 'saldo_pencairan', action: 'loadPencairan' },
-      // Operational — QRIS Tools
-      { cat: 'operational', color: 'pink', icon: '📈', name: 'P2M Analyzer', desc: 'P2M vs Zonamain vs Report analysis', badge: 'live', badgeText: 'v2.0', access: 'qris_tools', action: 'analyzer' },
-      { cat: 'operational', color: 'purple', icon: '🔍', name: 'XPAY Analyzer', desc: 'XPAY transaction analyzer engine', badge: 'live', badgeText: 'v2.0', access: 'qris_tools', action: 'xpayChecker' },
-      { cat: 'operational', color: 'orange', icon: '📋', name: 'XPAY Settlement', desc: 'XPAY settlement reconciliation', badge: 'live', badgeText: 'v2.0', access: 'qris_tools', action: 'xpayFull' },
-      { cat: 'operational', color: 'teal', icon: '✅', name: 'Settlement Checker', desc: 'Cek settlement per tanggal (IndexedDB)', badge: 'live', badgeText: 'v1.0', access: 'qris_tools', action: 'xpaySettlementChecker' },
-      { cat: 'operational', color: 'purple', icon: '📊', name: 'MNPAY Analyzer', desc: 'MNPAY payment flow analyzer', badge: 'soon', badgeText: 'Soon', access: 'qris_tools', action: 'comingSoon' },
-      // Operational — Prediction Tools
-      { cat: 'operational', color: 'blue', icon: '📊', name: 'Syair Database', desc: 'Access shio prediction engine', badge: 'live', badgeText: 'v2.1', access: 'prediction_tools', href: '/Syair.html' },
-      { cat: 'operational', color: 'purple', icon: '🔮', name: 'AI Prediction', desc: 'Neural probability calculation', badge: 'live', badgeText: 'v3.0', access: 'prediction_tools', href: '/Prediksi.html' },
-      { cat: 'operational', color: 'red', icon: '🎰', name: 'Gas Slot Engine', desc: 'AI Slot Gacor Predictor System', badge: 'live', badgeText: 'v1.0', access: 'prediction_tools', action: 'appInfo' },
-      // Operational — Event Tools
-      { cat: 'operational', color: 'green', icon: '📅', name: 'My Event', desc: 'Manage active events realtime', badge: 'live', badgeText: 'v1.0', access: 'event_tools', action: 'switchToMyEvent' },
-      { cat: 'operational', color: 'orange', icon: '🕐', name: 'History Event', desc: 'Event history & logs archive', badge: 'soon', badgeText: 'Soon', access: 'event_tools', action: 'comingSoon' },
-      { cat: 'operational', color: 'green', icon: '🧾', name: 'PG Report', desc: 'PG Soft credit calculator engine', badge: 'live', badgeText: 'v5.0', access: 'event_tools', action: 'pgReport' },
-      // Operational — Bukti & Memo
-      { cat: 'operational', color: 'pink', icon: '✏️', name: 'Edit Bukti', desc: 'Edit & manage proof of payment', badge: 'live', badgeText: 'v1.0', access: 'edit_bukti', action: 'editBukti' },
-      { cat: 'operational', color: 'orange', icon: '📝', name: 'Keep Memo', desc: 'Simpan & kelola catatan memo', badge: 'live', badgeText: 'v1.0', access: 'keep_memo', action: 'keepMemo' },
-      // System
-      { cat: 'system', color: 'blue', icon: '🔑', name: 'API Key', desc: 'Manage API credentials & scopes', badge: 'live', badgeText: 'v2.0', access: 'api_key', action: 'apiKey' },
-      { cat: 'system', color: 'red', icon: '🛡️', name: 'IP Whitelist', desc: 'Kelola whitelist IP login', badge: 'live', badgeText: 'v1.0', access: 'ip_whitelist', action: 'ipWhitelist' },
-      { cat: 'system', color: 'orange', icon: '⚙️', name: 'Setting', desc: 'System configuration panel', badge: 'live', badgeText: 'v1.2', access: 'setting', action: 'setting' },
-      { cat: 'system', color: 'purple', icon: '🛡️', name: 'Authority Panel', desc: 'Admin access & user management', badge: 'restricted', badgeText: 'Restricted', access: 'authority_panel', href: '/Authority.html' },
-    ],
-
-    categories: {
-      core: { name: 'Core', icon: '⭐', color: 'blue' },
-      workspace: { name: 'Workspace', icon: '💼', color: 'green' },
-      operational: { name: 'Operational', icon: '⚙️', color: 'orange' },
-      system: { name: 'System', icon: '🔧', color: 'purple' },
-    },
-
+  var DASHBOARD = {
     accessMap: {},
     role: 'MEMBER',
     username: 'User',
-  };
+    stats: { activeModules: 0, systemHealth: 99, whitelistOn: false, dataVersion: 0 },
+    _liveLoaded: false,
 
-  // Initialize access map from localStorage (set by login)
-  DASHBOARD.initAccess = function () {
-    try {
-      const stored = localStorage.getItem('aura_user_access');
-      if (stored) DASHBOARD.accessMap = JSON.parse(stored);
-      DASHBOARD.role = localStorage.getItem('aura_user_role') || 'MEMBER';
-      // Username: prefer aura_username, fallback to aura_auth_token (which stores username)
-      DASHBOARD.username = localStorage.getItem('aura_username') || localStorage.getItem('aura_auth_token') || 'User';
-    } catch (e) {
-      DASHBOARD.accessMap = {};
-    }
-  };
+    // --- Module catalog (22 modules, 4 categories) ---
+    categories: {
+      core:        { name: 'Core',        icon: 'fa-gauge-high',   color: 'blue' },
+      workspace:   { name: 'Workspace',   icon: 'fa-briefcase',    color: 'teal' },
+      operational: { name: 'Operational', icon: 'fa-diagram-project', color: 'orange' },
+      system:      { name: 'System',      icon: 'fa-server',       color: 'purple' }
+    },
 
-  // Action handler mapping — maps module action names to actual global functions
-  // This fixes the bug where action names didn't match real function names
-  DASHBOARD.triggerAction = function (action) {
-    // Direct switchTo* functions (exist as globals in Dashboard.html)
-    const switchToMap = {
-      'switchToDashboard': 'switchToDashboard',
-      'switchToProfil': 'switchToProfil',
-      'switchToMyEvent': 'switchToMyEvent',
-      'loadPencairan': 'switchToPencairan',
-      'analyzer': 'switchToAnalyzer',
-      'xpayChecker': 'switchToXpayChecker',
-      'xpayFull': 'switchToXpayFull',
-      'xpaySettlementChecker': 'switchToXpaySettlement',
-      'editBukti': 'switchToEditBukti',
-      'apiKey': 'switchToApiKey',
-      'ipWhitelist': 'switchToIpWhitelist',
-      'pgReport': 'switchToPgReport',
-    };
-    if (switchToMap[action] && typeof window[switchToMap[action]] === 'function') {
-      window[switchToMap[action]]();
-      return;
-    }
-    // Actions handled by handleAction() in Dashboard.html
-    const handleActionMap = ['setting', 'comingSoon', 'appInfo', 'keepMemo'];
-    if (handleActionMap.indexOf(action) !== -1 && typeof window.handleAction === 'function') {
-      window.handleAction(action);
-      return;
-    }
-    // Fallback: try handleAction with the action name
-    if (typeof window.handleAction === 'function') {
-      window.handleAction(action);
-      return;
-    }
-    // Last resort: try to call as global function
-    if (typeof window[action] === 'function') {
-      window[action]();
-      return;
-    }
-    console.warn('Unknown action:', action);
-    if (typeof window.showToast === 'function') {
-      window.showToast('Action "' + action + '" tidak ditemukan', 'warning');
-    }
-  };
+    modules: [
+      // CORE
+      { cat: 'core', color: 'blue',   icon: 'fa-gauge-high',      name: 'Dashboard',       desc: 'Main control panel & system overview',   badge: 'live',       badgeText: 'Live',      access: null,                  action: 'switchToDashboard' },
+      { cat: 'core', color: 'purple', icon: 'fa-user-shield',     name: 'Profil',          desc: 'Identity, password & security audit',    badge: 'live',       badgeText: 'Live',      access: null,                  action: 'switchToProfil' },
+      // WORKSPACE
+      { cat: 'workspace', color: 'teal',   icon: 'fa-building-columns', name: 'Rek Validator',    desc: 'Cross-check 4 rekening databases',      badge: 'live',  badgeText: 'v1.5.0',   access: 'rek_validator',     href: '/Validator.html' },
+      { cat: 'workspace', color: 'blue',   icon: 'fa-money-bill-transfer', name: 'Bank Processor', desc: 'Formatter & validator rekening bank',  badge: 'live',  badgeText: 'v2.0.0',   access: 'bank_processor',    href: '/Bank.html' },
+      // OPERATIONAL
+      { cat: 'operational', color: 'orange', icon: 'fa-layer-group',     name: 'Saldo Pencairan',    desc: 'Monitor rekening & pencairan saldo',   badge: 'live',       badgeText: 'v1.0.0',   access: 'saldo_pencairan',   action: 'loadPencairan' },
+      { cat: 'operational', color: 'pink',   icon: 'fa-chart-line',      name: 'P2M Analyzer',       desc: 'P2M vs Zonamain vs Report analysis',   badge: 'live',       badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'analyzer' },
+      { cat: 'operational', color: 'purple', icon: 'fa-magnifying-glass', name: 'XPAY Analyzer',      desc: 'XPAY transaction analyzer engine',     badge: 'live',       badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'xpayChecker' },
+      { cat: 'operational', color: 'orange', icon: 'fa-clipboard-list',  name: 'XPAY Settlement',    desc: 'XPAY settlement reconciliation',       badge: 'live',       badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'xpayFull' },
+      { cat: 'operational', color: 'teal',   icon: 'fa-circle-check',    name: 'Settlement Checker', desc: 'Cek settlement per tanggal',           badge: 'live',       badgeText: 'v1.0.0',   access: 'qris_tools',        action: 'xpaySettlementChecker' },
+      { cat: 'operational', color: 'purple', icon: 'fa-chart-bar',       name: 'MNPAY Analyzer',     desc: 'MNPAY payment flow analyzer',          badge: 'soon',       badgeText: 'Soon',     access: 'qris_tools',        action: 'comingSoon' },
+      { cat: 'operational', color: 'blue',   icon: 'fa-database',        name: 'Syair Database',     desc: 'Access shio prediction engine',        badge: 'live',       badgeText: 'v2.1.0',   access: 'prediction_tools',  href: '/Syair.html' },
+      { cat: 'operational', color: 'purple', icon: 'fa-wand-magic-sparkles', name: 'AI Prediction',  desc: 'Neural probability calculation',       badge: 'live',       badgeText: 'v3.0.0',   access: 'prediction_tools',  href: '/Prediksi.html' },
+      { cat: 'operational', color: 'red',    icon: 'fa-dice',            name: 'Gas Slot Engine',    desc: 'AI Slot Gacor Predictor System',       badge: 'info',       badgeText: 'v1.0.0',   access: 'prediction_tools',  action: 'appInfo' },
+      { cat: 'operational', color: 'green',  icon: 'fa-calendar-check',  name: 'My Event',           desc: 'Manage active events',                 badge: 'live',       badgeText: 'v1.0.0',   access: 'event_tools',       action: 'switchToMyEvent' },
+      { cat: 'operational', color: 'orange', icon: 'fa-clock-rotate-left', name: 'History Event',    desc: 'Event history & logs',                 badge: 'soon',       badgeText: 'Soon',     access: 'event_tools',       action: 'comingSoon' },
+      { cat: 'operational', color: 'green',  icon: 'fa-receipt',         name: 'PG Report',          desc: 'PG Soft credit calculator engine',     badge: 'live',       badgeText: 'v5.0.0',   access: 'event_tools',       action: 'pgReport' },
+      { cat: 'operational', color: 'pink',   icon: 'fa-pen-to-square',   name: 'Edit Bukti',         desc: 'Edit & manage proof of payment',       badge: 'live',       badgeText: 'v1.0.0',   access: 'edit_bukti',        action: 'editBukti' },
+      { cat: 'operational', color: 'orange', icon: 'fa-note-sticky',     name: 'Keep Memo',          desc: 'Simpan & kelola catatan memo',         badge: 'live',       badgeText: 'v1.0.0',   access: 'keep_memo',         action: 'keepMemo' },
+      // SYSTEM
+      { cat: 'system', color: 'blue',   icon: 'fa-key',           name: 'API Key',         desc: 'Manage API credentials',          badge: 'live',       badgeText: 'v2.0.0',   access: 'api_key',           action: 'apiKey' },
+      { cat: 'system', color: 'red',    icon: 'fa-shield-halved', name: 'IP Whitelist',    desc: 'Kelola whitelist IP login',       badge: 'live',       badgeText: 'v1.0.0',   access: 'ip_whitelist',      action: 'ipWhitelist' },
+      { cat: 'system', color: 'orange', icon: 'fa-gear',          name: 'Setting',         desc: 'System configuration panel',      badge: 'info',       badgeText: 'v1.2.0',   access: 'setting',           action: 'setting' },
+      { cat: 'system', color: 'purple', icon: 'fa-shield',        name: 'Authority Panel', desc: 'Admin access & user management',  badge: 'restricted', badgeText: 'Restricted', access: 'authority_panel', href: '/Authority.html' }
+    ],
 
-  // Expose globally so onclick handlers can call it
-  window.triggerModuleAction = DASHBOARD.triggerAction;
+    // --- Access handling ---
+    initAccess: function () {
+      this.role = (getLS('aura_user_role', 'MEMBER') || 'MEMBER').toUpperCase();
+      this.username = getLS('aura_auth_token', 'User') || 'User';
+      var raw = getLS('aura_user_access', '');
+      this.accessMap = safeJson(raw, {}) || {};
+    },
 
-  DASHBOARD.hasAccess = function (key) {
-    if (DASHBOARD.role === 'MASTER' || DASHBOARD.role === 'ADMIN') return true;
-    return DASHBOARD.accessMap[key] === true;
-  };
+    hasAccess: function (key) {
+      if (!key) return true;
+      // MASTER = full bypass
+      if (this.role === 'MASTER') return true;
+      // ADMIN bypass per existing Dashboard.html policy? Only MASTER bypasses.
+      // Keep ADMIN subject to access map (mirrors applyAccess behavior).
+      var v = this.accessMap[key];
+      return v === true;
+    },
 
-  DASHBOARD.countAccessible = function () {
-    const unique = new Set();
-    DASHBOARD.modules.forEach(m => {
-      if (DASHBOARD.hasAccess(m.access)) unique.add(m.access);
-    });
-    return unique.size;
-  };
-
-  // Render dashboard view
-  DASHBOARD.renderDashboard = function () {
-    const view = $('#dashboardView');
-    if (!view) return;
-    DASHBOARD.initAccess();
-
-    const accessibleCount = DASHBOARD.countAccessible();
-    const totalModules = DASHBOARD.modules.length;
-
-    // Hero
-    const heroAvatarLetter = (DASHBOARD.username[0] || 'U').toUpperCase();
-    const now = new Date();
-    const hour = now.getHours();
-    const greeting = hour < 11 ? 'Selamat pagi' : hour < 15 ? 'Selamat siang' : hour < 18 ? 'Selamat sore' : 'Selamat malam';
-
-    view.innerHTML = `
-      <div class="pro-hero">
-        <div class="pro-hero-content">
-          <div class="pro-hero-greeting">
-            <div class="pro-hero-eyebrow"><span class="pulse-dot"></span> System Online</div>
-            <h1 class="pro-hero-title">${greeting}, <span class="accent">${escapeHtml(DASHBOARD.username)}</span></h1>
-            <p class="pro-hero-subtitle">AURA.OS interface loaded. Semua sistem operasional dan siap digunakan.</p>
-            <div class="pro-hero-meta">
-              <div class="pro-hero-meta-item"><i class="fas fa-clock"></i> <span>Session:</span> <strong>${new Date().toLocaleTimeString('id-ID')}</strong></div>
-              <div class="pro-hero-meta-item"><i class="fas fa-user-shield"></i> <span>Role:</span> <strong>${DASHBOARD.role}</strong></div>
-              <div class="pro-hero-meta-item"><i class="fas fa-cube"></i> <span>Modules:</span> <strong>${accessibleCount}/${totalModules}</strong></div>
-            </div>
-          </div>
-          <div class="pro-hero-avatar-block" onclick="switchToProfil()">
-            <div class="pro-hero-avatar">${heroAvatarLetter}</div>
-            <div class="pro-hero-avatar-info">
-              <div class="pro-hero-avatar-name">${escapeHtml(DASHBOARD.username)}</div>
-              <div class="pro-hero-avatar-role">${DASHBOARD.role}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="pro-stats-grid">
-        <div class="pro-stat-card" data-tone="blue">
-          <div class="pro-stat-header">
-            <div class="pro-stat-icon"><i class="fas fa-cube"></i></div>
-            <span class="pro-stat-trend">${DASHBOARD.role === 'MASTER' ? 'Full' : 'Custom'}</span>
-          </div>
-          <div class="pro-stat-label">Active Modules</div>
-          <div class="pro-stat-value" id="proStatModules">0</div>
-          <div class="pro-stat-foot">dari ${totalModules} modul tersedia</div>
-        </div>
-
-        <div class="pro-stat-card" data-tone="success">
-          <div class="pro-stat-header">
-            <div class="pro-stat-icon"><i class="fas fa-circle-check"></i></div>
-            <span class="pro-stat-trend">Optimal</span>
-          </div>
-          <div class="pro-stat-label">System Health</div>
-          <div class="pro-stat-value" id="proStatHealth">98%</div>
-          <div class="pro-stat-foot">All services operational</div>
-        </div>
-
-        <div class="pro-stat-card" data-tone="purple">
-          <div class="pro-stat-header">
-            <div class="pro-stat-icon"><i class="fas fa-shield-halved"></i></div>
-            <span class="pro-stat-trend neutral" id="proStatWlStatus">Checking</span>
-          </div>
-          <div class="pro-stat-label">Whitelist Protection</div>
-          <div class="pro-stat-value" id="proStatWl">-</div>
-          <div class="pro-stat-foot" id="proStatWlFoot">Memuat status...</div>
-        </div>
-
-        <div class="pro-stat-card" data-tone="warning">
-          <div class="pro-stat-header">
-            <div class="pro-stat-icon"><i class="fas fa-bolt"></i></div>
-            <span class="pro-stat-trend" id="proStatSyncTrend">Live</span>
-          </div>
-          <div class="pro-stat-label">Data Version</div>
-          <div class="pro-stat-value" id="proStatVersion">0</div>
-          <div class="pro-stat-foot">Sync interval: 5s</div>
-        </div>
-      </div>
-
-      <div class="pro-quick-actions">
-        <a class="pro-quick-action" onclick="switchToProfil()">
-          <div class="pro-quick-action-icon"><i class="fas fa-user"></i></div>
-          <div class="pro-quick-action-text">
-            <div class="pro-quick-action-title">Profil</div>
-            <div class="pro-quick-action-sub">Akun & Security</div>
-          </div>
-        </a>
-        <a class="pro-quick-action" onclick="triggerModuleAction('ipWhitelist')">
-          <div class="pro-quick-action-icon"><i class="fas fa-shield-halved"></i></div>
-          <div class="pro-quick-action-text">
-            <div class="pro-quick-action-title">IP Whitelist</div>
-            <div class="pro-quick-action-sub">Akses kontrol</div>
-          </div>
-        </a>
-        <a class="pro-quick-action" onclick="triggerModuleAction('apiKey')">
-          <div class="pro-quick-action-icon"><i class="fas fa-key"></i></div>
-          <div class="pro-quick-action-text">
-            <div class="pro-quick-action-title">API Key</div>
-            <div class="pro-quick-action-sub">Credentials</div>
-          </div>
-        </a>
-        <a class="pro-quick-action" onclick="switchToMyEvent()">
-          <div class="pro-quick-action-icon"><i class="fas fa-calendar-check"></i></div>
-          <div class="pro-quick-action-text">
-            <div class="pro-quick-action-title">My Event</div>
-            <div class="pro-quick-action-sub">Event realtime</div>
-          </div>
-        </a>
-        <a class="pro-quick-action" onclick="window.location.href='/Authority.html'">
-          <div class="pro-quick-action-icon"><i class="fas fa-users-cog"></i></div>
-          <div class="pro-quick-action-text">
-            <div class="pro-quick-action-title">Authority</div>
-            <div class="pro-quick-action-sub">User mgmt</div>
-          </div>
-        </a>
-        <a class="pro-quick-action" onclick="triggerModuleAction('setting')">
-          <div class="pro-quick-action-icon"><i class="fas fa-cog"></i></div>
-          <div class="pro-quick-action-text">
-            <div class="pro-quick-action-title">Setting</div>
-            <div class="pro-quick-action-sub">Konfigurasi</div>
-          </div>
-        </a>
-      </div>
-
-      <div class="pro-modules-section">
-        <div class="pro-section-header">
-          <div class="pro-section-title">Quick Access Modules</div>
-          <span class="pro-section-counter">${accessibleCount} Aktif</span>
-        </div>
-        <div id="proModulesContainer"></div>
-      </div>
-
-      <div class="pro-activity">
-        <div class="pro-section-header" style="margin-bottom: 16px;">
-          <div class="pro-section-title">Recent Activity</div>
-        </div>
-        <div class="pro-activity-list" id="proActivityList"></div>
-      </div>
-    `;
-
-    DASHBOARD.renderModules();
-    DASHBOARD.renderActivity();
-    DASHBOARD.animateStats();
-    DASHBOARD.loadLiveStats();
-  };
-
-  DASHBOARD.renderModules = function () {
-    const container = $('#proModulesContainer');
-    if (!container) return;
-
-    const html = Object.keys(DASHBOARD.categories).map(catKey => {
-      const cat = DASHBOARD.categories[catKey];
-      const modules = DASHBOARD.modules.filter(m => m.cat === catKey);
-      if (modules.length === 0) return '';
-
-      const visible = modules.filter(m => DASHBOARD.hasAccess(m.access));
-      if (visible.length === 0) return ''; // hide category if no access
-
-      const cardsHtml = modules.map(m => {
-        const hasAccess = DASHBOARD.hasAccess(m.access);
-        const badgeClass = m.badge === 'soon' ? 'soon' : (m.badge === 'restricted' ? 'restricted' : 'live');
-        const trigger = m.href
-          ? `onclick="window.location.href='${m.href}'"`
-          : (m.action ? `onclick="triggerModuleAction('${m.action}')"` : '');
-        return `
-          <div class="pro-module-card ${hasAccess ? '' : 'disabled'}" data-color="${m.color}" ${hasAccess ? trigger : ''}>
-            <div class="pro-module-head">
-              <div class="pro-module-icon">${m.icon}</div>
-              <span class="pro-module-badge ${badgeClass}">${m.badgeText}</span>
-            </div>
-            <div class="pro-module-body">
-              <div class="pro-module-name">${m.name}</div>
-              <div class="pro-module-desc">${m.desc}</div>
-            </div>
-            <div class="pro-module-foot">
-              <span>${cat.name}</span>
-              <span class="arrow"><i class="fas fa-arrow-right"></i></span>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      return `
-        <div class="pro-category-block">
-          <div class="pro-category-header">
-            <div class="pro-category-icon">${cat.icon}</div>
-            <div class="pro-category-name">${cat.name}</div>
-            <span class="pro-category-count">${visible.length} modul</span>
-          </div>
-          <div class="pro-modules-grid">
-            ${cardsHtml}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    container.innerHTML = html;
-  };
-
-  DASHBOARD.renderActivity = function () {
-    const list = $('#proActivityList');
-    if (!list) return;
-
-    // Generate activity based on localStorage history (or defaults)
-    const activities = [];
-    const loginTime = localStorage.getItem('aura_login_time');
-    if (loginTime) {
-      activities.push({
-        icon: 'fa-right-to-bracket', tone: 'success',
-        title: 'Login berhasil',
-        meta: `IP: ${localStorage.getItem('aura_client_ip') || 'Unknown'}`,
-        time: loginTime,
-      });
-    }
-    activities.push(
-      { icon: 'fa-shield-halved', tone: 'success', title: 'Session token valid', meta: 'Authentication active', time: 'Baru saja' },
-      { icon: 'fa-cube', tone: '', title: `${DASHBOARD.countAccessible()} modul dimuat`, meta: `Role: ${DASHBOARD.role}`, time: 'Baru saja' },
-      { icon: 'fa-database', tone: 'success', title: 'Data version sync', meta: 'Cross-device sync aktif', time: '1m lalu' },
-      { icon: 'fa-server', tone: '', title: 'System health check', meta: 'All services operational', time: '5m lalu' },
-    );
-
-    list.innerHTML = activities.slice(0, 6).map(a => `
-      <div class="pro-activity-item">
-        <div class="pro-activity-icon ${a.tone}"><i class="fas ${a.icon}"></i></div>
-        <div class="pro-activity-body">
-          <div class="pro-activity-title">${escapeHtml(a.title)}</div>
-          <div class="pro-activity-meta">${escapeHtml(a.meta)}</div>
-        </div>
-        <div class="pro-activity-time">${escapeHtml(a.time)}</div>
-      </div>
-    `).join('');
-  };
-
-  DASHBOARD.animateStats = function () {
-    const animate = (el, target, suffix = '') => {
-      if (!el) return;
-      const start = 0;
-      const duration = 800;
-      const startTime = performance.now();
-      const tick = (now) => {
-        const t = Math.min((now - startTime) / duration, 1);
-        const eased = 1 - Math.pow(1 - t, 3);
-        const val = Math.floor(start + (target - start) * eased);
-        el.textContent = val.toLocaleString('en-US') + suffix;
-        if (t < 1) requestAnimationFrame(tick);
+    // --- Action router ---
+    triggerAction: function (action) {
+      var map = {
+        loadPencairan:            'switchToPencairan',
+        analyzer:                 'switchToAnalyzer',
+        xpayChecker:              'switchToXpayChecker',
+        xpayFull:                 'switchToXpayFull',
+        xpaySettlementChecker:    'switchToXpaySettlement',
+        editBukti:                'switchToEditBukti',
+        apiKey:                   'switchToApiKey',
+        ipWhitelist:              'switchToIpWhitelist',
+        pgReport:                 'switchToPgReport',
+        switchToDashboard:        'switchToDashboard',
+        switchToProfil:           'switchToProfil',
+        switchToMyEvent:          'switchToMyEvent'
       };
-      requestAnimationFrame(tick);
-    };
-
-    animate($('#proStatModules'), DASHBOARD.countAccessible());
-  };
-
-  DASHBOARD.loadLiveStats = function () {
-    // Sync user data from /api/me (username, role, access) — fixes "User" greeting bug
-    (async () => {
-      const res = await api('/api/me', { method: 'GET' });
-      if (res.ok && res.data && res.data.success && res.data.user) {
-        const me = res.data.user;
-        // Sync to localStorage
-        if (me.username) localStorage.setItem('aura_username', me.username);
-        if (me.role) localStorage.setItem('aura_user_role', me.role);
-        if (me.access) localStorage.setItem('aura_user_access', JSON.stringify(me.access));
-        if (me.status) localStorage.setItem('aura_user_status', me.status);
-        // Update DASHBOARD state
-        DASHBOARD.username = me.username || DASHBOARD.username;
-        DASHBOARD.role = me.role || DASHBOARD.role;
-        DASHBOARD.accessMap = me.access || DASHBOARD.accessMap;
-        // Re-render hero greeting + avatar with real username
-        const nameEl = document.querySelector('.pro-hero-avatar-name');
-        const titleEl = document.querySelector('.pro-hero-title .accent');
-        const avatarEl = document.querySelector('.pro-hero-avatar');
-        if (nameEl) nameEl.textContent = me.username || DASHBOARD.username;
-        if (titleEl) titleEl.textContent = me.username || DASHBOARD.username;
-        if (avatarEl && me.username) avatarEl.textContent = (me.username[0] || 'U').toUpperCase();
-        // Update meta row
-        const metaRole = document.querySelectorAll('.pro-hero-meta-item strong');
-        if (metaRole[1]) metaRole[1].textContent = me.role || DASHBOARD.role;
-      }
-    })();
-
-    // Load whitelist status
-    (async () => {
-      const res = await api('/api/ip/whitelist', { method: 'GET' });
-      if (res.ok && res.data && res.data.success) {
-        const count = (res.data.whitelist || []).length;
-        const enabled = res.data.settings && (res.data.settings.enabled === true || res.data.settings.enabled === 'true');
-        const valEl = $('#proStatWl');
-        const statusEl = $('#proStatWlStatus');
-        const footEl = $('#proStatWlFoot');
-        if (valEl) valEl.textContent = count;
-        if (statusEl) {
-          statusEl.textContent = enabled ? 'ON' : 'OFF';
-          statusEl.classList.remove('neutral');
-          statusEl.classList.toggle('warning', !enabled);
-        }
-        if (footEl) footEl.textContent = enabled ? `${count} IP terdaftar, proteksi aktif` : 'Proteksi dimatikan';
-      }
-    })();
-
-    // Load data version
-    (async () => {
-      const res = await api('/api/data-version', { method: 'GET' });
-      if (res.ok && res.data && res.data.success) {
-        const v = res.data.version || 0;
-        const el = $('#proStatVersion');
-        if (el) el.textContent = v;
-      }
-    })();
-  };
-
-  // Expose
-  window.DASHBOARD = DASHBOARD;
-
-  // ============================================================
-  // PROFILE PANEL
-  // ============================================================
-  const PROFILE = {
-    async load() {
-      const view = $('#profilView');
-      // Show loading state
-      if (view) {
-        view.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;"><i class="fas fa-spinner" style="animation:spin 1s linear infinite;margin-right:8px;"></i> Loading profile...</div>';
-      }
-      const res = await api('/api/user/profile', { method: 'GET' });
-      if (!res.ok || !res.data || !res.data.success) {
-        const errMsg = (res.data && res.data.error) ? res.data.error : 'Gagal memuat profil';
-        showToast(errMsg, 'error');
-        // Render error state with retry button instead of stuck loading
-        if (view) {
-          view.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--accent-danger);font-family:var(--font-mono);font-size:13px;"><i class="fas fa-exclamation-triangle" style="font-size:24px;margin-bottom:12px;display:block;"></i>Gagal memuat profil: ' + escapeHtml(errMsg) + '<br><br><button onclick="PROFILE.load()" style="padding:10px 20px;background:var(--accent-primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:var(--font-mono);">Retry</button></div>';
-        }
+      var fn = map[action];
+      if (fn && typeof window[fn] === 'function') {
+        try { window[fn](); } catch (e) { console.error('[dashboard-pro] action error', e); }
         return;
       }
-      const data = res.data.data;
-      // Sync username to localStorage for dashboard greeting
-      if (data && data.username) {
-        localStorage.setItem('aura_username', data.username);
-        localStorage.setItem('aura_user_role', data.role || 'MEMBER');
-        localStorage.setItem('aura_user_status', data.status || 'ACTIVE');
+      // Fall back to handleAction for misc actions (setting/comingSoon/appInfo/keepMemo)
+      if (typeof window.handleAction === 'function') {
+        try { window.handleAction(action); } catch (e) { console.error('[dashboard-pro] handleAction error', e); }
+      } else {
+        showToastSafe('Aksi tidak tersedia: ' + action, 'warning');
       }
-      PROFILE.render(data);
     },
 
-    render(data) {
-      const view = $('#profilView');
-      if (!view) return;
+    // --- Greeting helper ---
+    _greeting: function () {
+      var h = new Date().getHours();
+      if (h < 11)  return { word: 'Selamat pagi',  icon: 'fa-sun' };
+      if (h < 15)  return { word: 'Selamat siang', icon: 'fa-cloud-sun' };
+      if (h < 19)  return { word: 'Selamat sore',  icon: 'fa-cloud-moon' };
+      return            { word: 'Selamat malam',  icon: 'fa-moon' };
+    },
 
-      const username = data.username || 'User';
-      const role = data.role || 'MEMBER';
-      const status = data.status || 'ACTIVE';
-      const access = data.access || {};
-      const avatarLetter = (username[0] || 'U').toUpperCase();
+    // --- Render: hero ---
+    _renderHero: function () {
+      var g = this._greeting();
+      var name = this.username || 'User';
+      var initial = (name.charAt(0) || 'U').toUpperCase();
+      var role = this.role;
+      var session = genSessionId();
+      var moduleCount = this.modules.filter(function (m) { return DASHBOARD.hasAccess(m.access); }).length;
 
-      // Count permissions
-      let permCount = 0;
-      let totalPerms = 0;
-      Object.keys(access).forEach(k => {
-        if (typeof access[k] === 'boolean') {
-          totalPerms++;
-          if (access[k]) permCount++;
-        }
+      return '' +
+        '<div class="pro-hero">' +
+          '<div class="pro-hero-body">' +
+            '<div class="pro-hero-eyebrow"><span class="pulse-dot"></span> AURA.OS // DASHBOARD</div>' +
+            '<h1 class="pro-hero-title">' + g.word + ', <span class="accent">' + escapeHtml(name) + '</span> <i class="fas ' + g.icon + '" style="font-size:0.7em; opacity:0.7; margin-left:6px;"></i></h1>' +
+            '<p class="pro-hero-subtitle">Quantum interface loaded. All systems operational. Pilih modul di bawah untuk memulai sesi kerja Anda.</p>' +
+            '<div class="pro-hero-meta">' +
+              '<span class="pro-hero-meta-item"><i class="fas fa-microchip"></i> Session <strong style="color:var(--text-secondary);">' + session + '</strong></span>' +
+              '<span class="pro-hero-meta-divider"></span>' +
+              '<span class="pro-hero-meta-item"><i class="fas fa-user-tag"></i> Role <strong style="color:var(--text-secondary);">' + escapeHtml(role) + '</strong></span>' +
+              '<span class="pro-hero-meta-divider"></span>' +
+              '<span class="pro-hero-meta-item"><i class="fas fa-cubes"></i> Modules <strong style="color:var(--text-secondary);">' + moduleCount + '</strong></span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="pro-hero-avatar">' +
+            '<div class="pro-hero-avatar-chip">' + escapeHtml(initial) + '</div>' +
+            '<div class="pro-hero-avatar-info">' +
+              '<span class="label">Signed in</span>' +
+              '<span class="value">' + escapeHtml(name) + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    },
+
+    // --- Render: stats ---
+    _renderStats: function () {
+      var active = this.stats.activeModules || this.modules.filter(function (m) { return DASHBOARD.hasAccess(m.access); }).length;
+      var health = this.stats.systemHealth;
+      var wl = this.stats.whitelistOn;
+      var ver = this.stats.dataVersion || 0;
+
+      return '' +
+        '<div class="pro-stats-grid">' +
+          this._statCard('blue',    'fa-cubes',           'Active Modules',     active, 'up',   '+' + Math.max(0, active - 16) + ' this week', 'Modules ready to use') +
+          this._statCard('success', 'fa-heart-pulse',     'System Health',      health + '%', health > 95 ? 'up' : 'flat', health > 95 ? 'Optimal' : 'Stable', 'Worker + D1 status') +
+          this._statCard(wl ? 'success' : 'warning', 'fa-shield-halved', 'Whitelist Protection', wl ? 'ON' : 'OFF', wl ? 'up' : 'flat', wl ? 'Enforced' : 'Disabled', wl ? 'IP filter active' : 'Open login mode') +
+          this._statCard('purple',  'fa-code-branch',     'Data Version',       'v' + ver, 'flat', 'Synced', 'Last DB sync state') +
+        '</div>';
+    },
+
+    _statCard: function (tone, icon, label, value, trend, trendText, foot) {
+      var trendIcon = trend === 'up' ? 'fa-arrow-trend-up' : trend === 'down' ? 'fa-arrow-trend-down' : 'fa-minus';
+      return '' +
+        '<div class="pro-stat-card ' + tone + '" style="animation-delay:0.05s">' +
+          '<div class="pro-stat-header">' +
+            '<div class="pro-stat-icon"><i class="fas ' + icon + '"></i></div>' +
+            '<span class="pro-stat-trend ' + trend + '"><i class="fas ' + trendIcon + '"></i> ' + escapeHtml(trendText) + '</span>' +
+          '</div>' +
+          '<div class="pro-stat-label">' + escapeHtml(label) + '</div>' +
+          '<div class="pro-stat-value" data-stat-target="' + escapeHtml(String(value)) + '">' + escapeHtml(String(value)) + '</div>' +
+          '<div class="pro-stat-foot"><i class="fas fa-circle-info"></i> ' + escapeHtml(foot) + '</div>' +
+        '</div>';
+    },
+
+    // --- Render: quick actions ---
+    _renderQuickActions: function () {
+      var qa = [
+        { icon: 'fa-circle-check',    title: 'Rek Validator',  sub: 'Cross-check 4 DB',   action: null, href: '/Validator.html', access: 'rek_validator' },
+        { icon: 'fa-calendar-check',  title: 'My Event',       sub: 'Manage events',      action: 'switchToMyEvent', access: 'event_tools' },
+        { icon: 'fa-chart-line',      title: 'P2M Analyzer',   sub: 'Transaction analyzer', action: 'analyzer',     access: 'qris_tools' },
+        { icon: 'fa-key',             title: 'API Key',        sub: 'Manage credentials', action: 'apiKey',        access: 'api_key' },
+        { icon: 'fa-shield-halved',   title: 'IP Whitelist',   sub: 'Login IP filter',    action: 'ipWhitelist',   access: 'ip_whitelist' },
+        { icon: 'fa-user-shield',     title: 'Profil',         sub: 'Account & security', action: 'switchToProfil', access: null }
+      ];
+
+      var self = this;
+      var html = '<div class="pro-quick-actions">';
+      qa.forEach(function (q, i) {
+        if (!self.hasAccess(q.access)) return;
+        var trigger = q.href
+          ? 'window.location.href=\'' + q.href + '\''
+          : 'window.triggerModuleAction(\'' + q.action + '\')';
+        html += '' +
+          '<button class="pro-quick-btn" style="animation-delay:' + (0.05 + i * 0.04) + 's" onclick="' + trigger + '">' +
+            '<div class="pro-quick-icon"><i class="fas ' + q.icon + '"></i></div>' +
+            '<div class="pro-quick-text">' +
+              '<span class="pro-quick-title">' + escapeHtml(q.title) + '</span>' +
+              '<span class="pro-quick-sub">' + escapeHtml(q.sub) + '</span>' +
+            '</div>' +
+          '</button>';
       });
-      if (role === 'MASTER' || role === 'ADMIN') {
-        permCount = totalPerms = 21; // full access
+      html += '</div>';
+      return html;
+    },
+
+    // --- Render: modules section ---
+    _renderModulesSection: function () {
+      var self = this;
+      var order = ['core', 'workspace', 'operational', 'system'];
+      var totalVisible = 0;
+
+      var blocksHtml = '';
+      order.forEach(function (catKey) {
+        var cat = self.categories[catKey];
+        if (!cat) return;
+        var list = self.modules.filter(function (m) {
+          return m.cat === catKey && self.hasAccess(m.access);
+        });
+        if (list.length === 0) return;
+        totalVisible += list.length;
+
+        blocksHtml += '' +
+          '<div class="pro-category-block ' + catKey + '">' +
+            '<div class="pro-category-header">' +
+              '<div class="pro-category-icon"><i class="fas ' + cat.icon + '"></i></div>' +
+              '<div class="pro-category-name">' + escapeHtml(cat.name) + '</div>' +
+              '<span class="pro-category-count">' + list.length + ' modules</span>' +
+            '</div>' +
+            '<div class="pro-modules-grid">' +
+              list.map(function (m, idx) { return self._renderModuleCard(m, idx); }).join('') +
+            '</div>' +
+          '</div>';
+      });
+
+      return '' +
+        '<div class="pro-modules-section">' +
+          '<div class="pro-section-header">' +
+            '<div class="pro-section-title">Modules</div>' +
+            '<span class="pro-section-counter">' + totalVisible + ' active</span>' +
+          '</div>' +
+          blocksHtml +
+        '</div>';
+    },
+
+    _renderModuleCard: function (m, idx) {
+      var cat = this.categories[m.cat] || {};
+      var trigger;
+      if (m.href) {
+        trigger = 'window.location.href=\'' + m.href + '\'';
+      } else if (m.action) {
+        trigger = 'window.triggerModuleAction(\'' + m.action + '\')';
+      } else {
+        trigger = '';
       }
 
-      const sessionToken = token();
-      const sessionDisplay = sessionToken ? sessionToken.slice(0, 8) + '••••••' + sessionToken.slice(-4) : '-';
-      const clientIp = localStorage.getItem('aura_client_ip') || 'Unknown';
+      var restrictedCls = m.badge === 'restricted' ? ' is-restricted' : '';
+      var liveDot = m.badge === 'live' ? '<span class="live-dot"></span>' : '';
 
-      view.innerHTML = `
-        <div class="pro-profil-wrap">
-          <div class="pro-profil-card">
-            <div class="pro-profil-banner">
-              <div class="pro-profil-banner-decoration">
-                <div class="pro-profil-banner-chip">${role}</div>
-                <div class="pro-profil-banner-chip">v2.0</div>
-              </div>
-            </div>
-            <div class="pro-profil-body">
-              <div class="pro-profil-avatar-wrap">
-                <div class="pro-profil-avatar">${avatarLetter}</div>
-                <div class="pro-profil-status-chip"><span class="dot"></span><span>${status === 'ACTIVE' ? 'Active' : status}</span></div>
-              </div>
-              <div class="pro-profil-name">${escapeHtml(username)}</div>
-              <div class="pro-profil-email">${escapeHtml(username.toLowerCase())}@aura.os</div>
-
-              <div class="pro-profil-mini-stats">
-                <div class="pro-profil-mini-stat">
-                  <div class="pro-profil-mini-stat-value">${permCount}</div>
-                  <div class="pro-profil-mini-stat-label">Permissions</div>
-                </div>
-                <div class="pro-profil-mini-stat">
-                  <div class="pro-profil-mini-stat-value">${role === 'MASTER' ? '∞' : '21'}</div>
-                  <div class="pro-profil-mini-stat-label">Total Modules</div>
-                </div>
-                <div class="pro-profil-mini-stat">
-                  <div class="pro-profil-mini-stat-value">${role === 'MASTER' ? '100' : Math.round((permCount / Math.max(totalPerms, 1)) * 100)}%</div>
-                  <div class="pro-profil-mini-stat-label">Coverage</div>
-                </div>
-              </div>
-
-              <div class="pro-profil-meta-list">
-                <div class="pro-profil-meta-item">
-                  <span class="pro-profil-meta-label"><i class="fas fa-id-badge" style="color:var(--accent-primary);"></i> Username</span>
-                  <span class="pro-profil-meta-value">${escapeHtml(username)}</span>
-                </div>
-                <div class="pro-profil-meta-item">
-                  <span class="pro-profil-meta-label"><i class="fas fa-user-tag" style="color:var(--neon-purple);"></i> Role</span>
-                  <span class="pro-profil-meta-value purple">${role}</span>
-                </div>
-                <div class="pro-profil-meta-item">
-                  <span class="pro-profil-meta-label"><i class="fas fa-key" style="color:var(--neon-cyan);"></i> Password</span>
-                  <span class="pro-profil-meta-value cyan">•••••••</span>
-                </div>
-                <div class="pro-profil-meta-item">
-                  <span class="pro-profil-meta-label"><i class="fas fa-shield-alt" style="color:var(--accent-success);"></i> Status</span>
-                  <span class="pro-profil-meta-value green">${status}</span>
-                </div>
-                <div class="pro-profil-meta-item">
-                  <span class="pro-profil-meta-label"><i class="fas fa-microchip" style="color:var(--accent-warning);"></i> Session</span>
-                  <span class="pro-profil-meta-value muted">${sessionDisplay}</span>
-                </div>
-                <div class="pro-profil-meta-item">
-                  <span class="pro-profil-meta-label"><i class="fas fa-globe" style="color:var(--neon-cyan);"></i> Client IP</span>
-                  <span class="pro-profil-meta-value cyan">${escapeHtml(clientIp)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="pro-profil-side">
-            <div class="pro-pwd-card">
-              <div class="pro-pwd-card-header">
-                <div class="pro-pwd-card-icon"><i class="fas fa-lock"></i></div>
-                <div class="pro-pwd-card-title-wrap">
-                  <div class="pro-pwd-card-title">Ubah Password</div>
-                  <div class="pro-pwd-card-desc">Pastikan password baru memenuhi kriteria keamanan minimal untuk melindungi akun.</div>
-                </div>
-              </div>
-
-              <div class="pro-pwd-form">
-                <div class="pro-pwd-field">
-                  <label>Password Lama</label>
-                  <input type="password" id="pwdOld" placeholder="Masukkan password lama Anda" autocomplete="off">
-                  <button type="button" onclick="togglePwdVis('pwdOld', this)"><i class="fas fa-eye"></i></button>
-                </div>
-
-                <div class="pro-pwd-field">
-                  <label>Password Baru</label>
-                  <input type="password" id="pwdNew" placeholder="Minimal 6 karakter" autocomplete="off" oninput="checkPwdMatch()">
-                  <button type="button" onclick="togglePwdVis('pwdNew', this)"><i class="fas fa-eye"></i></button>
-                </div>
-
-                <div class="pro-pwd-strength-section">
-                  <div class="pro-pwd-strength-labels">
-                    <span class="pro-pwd-strength-text" id="pwdStrengthText" style="color:var(--text-tertiary);">Strength</span>
-                    <span class="pro-pwd-strength-text" id="pwdStrengthPct" style="color:var(--text-tertiary);">0%</span>
-                  </div>
-                  <div class="pro-pwd-strength-bar">
-                    <div class="pro-pwd-strength-fill" id="pwdStrength"></div>
-                  </div>
-                </div>
-
-                <div class="pro-pwd-field">
-                  <label>Konfirmasi Password Baru</label>
-                  <input type="password" id="pwdConfirm" placeholder="Ulangi password baru" autocomplete="off" oninput="checkPwdMatch()">
-                  <button type="button" onclick="togglePwdVis('pwdConfirm', this)"><i class="fas fa-eye"></i></button>
-                </div>
-
-                <div class="pro-pwd-match-msg" id="pwdMatchMsg"></div>
-
-                <div class="pro-pwd-submit-row">
-                  <div class="pro-pwd-hint" id="pwdHints">
-                    <span id="hintLen" class="cross"><i class="fas fa-circle"></i>Minimal 6 karakter</span>
-                    <span id="hintUpper" class="cross"><i class="fas fa-circle"></i>Huruf kapital</span>
-                    <span id="hintNum" class="cross"><i class="fas fa-circle"></i>Angka</span>
-                    <span id="hintSpecial" class="cross"><i class="fas fa-circle"></i>Karakter spesial</span>
-                  </div>
-                  <button class="btn" id="pwdSubmitBtn" onclick="changePassword()"><i class="fas fa-shield-alt"></i> Simpan Password</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="pro-audit-card">
-              <div class="pro-audit-header">
-                <div class="pro-audit-icon"><i class="fas fa-shield-halved"></i></div>
-                <div>
-                  <div class="pro-audit-title">Security Audit</div>
-                  <div class="pro-audit-sub">Status keamanan akun Anda</div>
-                </div>
-              </div>
-              <div class="pro-audit-list" id="proAuditList">
-                <div class="pro-audit-item">
-                  <div class="pro-audit-item-icon ok"><i class="fas fa-check"></i></div>
-                  <div class="pro-audit-item-text"><strong>Session aktif</strong> — Token terverifikasi</div>
-                </div>
-                <div class="pro-audit-item">
-                  <div class="pro-audit-item-icon ok"><i class="fas fa-check"></i></div>
-                  <div class="pro-audit-item-text"><strong>Role valid</strong> — ${role} dengan ${permCount} permissions</div>
-                </div>
-                <div class="pro-audit-item">
-                  <div class="pro-audit-item-icon ${role === 'MASTER' ? 'warn' : 'ok'}"><i class="fas ${role === 'MASTER' ? 'fa-info' : 'fa-check'}"></i></div>
-                  <div class="pro-audit-item-text">${role === 'MASTER' ? '<strong>MASTER</strong> — Bypass IP whitelist aktif' : '<strong>IP Check</strong> — Subject to whitelist policy'}</div>
-                </div>
-                <div class="pro-audit-item">
-                  <div class="pro-audit-item-icon ok"><i class="fas fa-check"></i></div>
-                  <div class="pro-audit-item-text"><strong>Cross-device sync</strong> — Auto-refresh aktif</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
+      return '' +
+        '<div class="pro-module-card ' + m.color + restrictedCls + '" style="animation-delay:' + (idx * 0.04) + 's" ' +
+          (trigger ? 'onclick="' + trigger + '" role="button" tabindex="0"' : '') + '>' +
+          '<div class="pro-module-top">' +
+            '<div class="pro-module-icon"><i class="fas ' + m.icon + '"></i></div>' +
+            '<span class="pro-module-badge ' + m.badge + '">' + liveDot + escapeHtml(m.badgeText) + '</span>' +
+          '</div>' +
+          '<div class="pro-module-name">' + escapeHtml(m.name) + '</div>' +
+          '<div class="pro-module-desc">' + escapeHtml(m.desc) + '</div>' +
+          '<div class="pro-module-foot">' +
+            '<span class="pro-module-cat">' + escapeHtml(cat.name || m.cat) + '</span>' +
+            '<span class="pro-module-arrow"><i class="fas fa-arrow-right"></i></span>' +
+          '</div>' +
+        '</div>';
     },
+
+    // --- Render: activity feed ---
+    _renderActivity: function () {
+      var items = this._buildActivity();
+      var html = '' +
+        '<div class="pro-activity">' +
+          '<div class="pro-section-header" style="margin-bottom:12px;">' +
+            '<div class="pro-section-title" style="font-size:14px;">Recent Activity</div>' +
+            '<span class="pro-section-counter">' + items.length + ' logs</span>' +
+          '</div>' +
+          '<div class="pro-activity-list">';
+
+      items.forEach(function (it) {
+        html += '' +
+          '<div class="pro-activity-item ' + (it.tone || '') + '">' +
+            '<div class="pro-activity-icon"><i class="fas ' + it.icon + '"></i></div>' +
+            '<div class="pro-activity-body">' +
+              '<div class="pro-activity-title">' + escapeHtml(it.title) + '</div>' +
+              '<div class="pro-activity-meta">' + escapeHtml(it.meta) + '</div>' +
+            '</div>' +
+            '<div class="pro-activity-time">' + escapeHtml(it.time) + '</div>' +
+          '</div>';
+      });
+
+      html += '</div></div>';
+      return html;
+    },
+
+    _buildActivity: function () {
+      var items = [];
+      var now = new Date();
+      var role = this.role;
+      var name = this.username;
+
+      // From localStorage
+      var since = getLS('aura_user_since', '');
+      var status = getLS('aura_user_status', 'Active');
+      var memo = getLS('aura_memo', '');
+
+      items.push({
+        icon: 'fa-right-to-bracket', tone: 'success',
+        title: 'Session started',
+        meta: 'User ' + name + ' · role ' + role,
+        time: 'just now'
+      });
+
+      if (status && status.toLowerCase() === 'active') {
+        items.push({
+          icon: 'fa-shield-halved', tone: 'success',
+          title: 'Access control applied',
+          meta: role + ' role verified · ' + Object.keys(this.accessMap).length + ' scopes',
+          time: 'just now'
+        });
+      }
+
+      if (this.stats.whitelistOn) {
+        items.push({
+          icon: 'fa-network-wired', tone: 'purple',
+          title: 'IP Whitelist protection active',
+          meta: 'Login restricted to registered IPs',
+          time: formatRelativeTime(now.getTime() - 1000 * 60 * 5)
+        });
+      } else {
+        items.push({
+          icon: 'fa-triangle-exclamation', tone: 'warning',
+          title: 'Whitelist protection disabled',
+          meta: 'Open login mode — consider enabling IP filter',
+          time: formatRelativeTime(now.getTime() - 1000 * 60 * 5)
+        });
+      }
+
+      if (since) {
+        items.push({
+          icon: 'fa-user-plus', tone: '',
+          title: 'Account created',
+          meta: 'Member since ' + since,
+          time: formatRelativeTime(since)
+        });
+      }
+
+      if (memo) {
+        items.push({
+          icon: 'fa-note-sticky', tone: 'warning',
+          title: 'Memo stored locally',
+          meta: memo.length + ' chars saved in Keep Memo',
+          time: formatRelativeTime(now.getTime() - 1000 * 60 * 60 * 2)
+        });
+      }
+
+      items.push({
+        icon: 'fa-database', tone: 'purple',
+        title: 'Data version synced',
+        meta: 'DB version v' + (this.stats.dataVersion || 0),
+        time: formatRelativeTime(now.getTime() - 1000 * 60 * 60 * 6)
+      });
+
+      return items.slice(0, 6);
+    },
+
+    // --- Counter animation ---
+    animateStats: function (root) {
+      if (!root) return;
+      var nodes = root.querySelectorAll('.pro-stat-value[data-stat-target]');
+      nodes.forEach(function (el) {
+        var target = el.getAttribute('data-stat-target') || '';
+        // Try numeric prefix animation
+        var m = String(target).match(/^(\d+)(.*)$/);
+        if (!m) { el.textContent = target; return; }
+        var end = parseInt(m[1], 10);
+        var suffix = m[2] || '';
+        var start = 0;
+        var dur = 700;
+        var t0 = null;
+        function step(ts) {
+          if (!t0) t0 = ts;
+          var p = Math.min(1, (ts - t0) / dur);
+          var eased = 1 - Math.pow(1 - p, 3);
+          var cur = Math.round(start + (end - start) * eased);
+          el.textContent = cur + suffix;
+          if (p < 1) requestAnimationFrame(step);
+          else el.textContent = end + suffix;
+        }
+        requestAnimationFrame(step);
+      });
+    },
+
+    // --- Master render ---
+    renderDashboard: function () {
+      this.initAccess();
+      var root = document.getElementById('dashboardView');
+      if (!root) { console.warn('[dashboard-pro] #dashboardView not found'); return; }
+
+      var html = '' +
+        this._renderHero() +
+        this._renderStats() +
+        '<div class="pro-section-header" style="margin-top:6px; margin-bottom:12px;"><div class="pro-section-title" style="font-size:14px;">Quick Access</div></div>' +
+        this._renderQuickActions() +
+        this._renderModulesSection() +
+        this._renderActivity();
+
+      root.innerHTML = html;
+      this.animateStats(root);
+      logSafe('Pro dashboard rendered');
+    },
+
+    renderModules: function () {
+      // Re-render just the modules section (kept for API parity)
+      var root = document.getElementById('dashboardView');
+      if (!root) return;
+      var sec = root.querySelector('.pro-modules-section');
+      if (sec) sec.outerHTML = this._renderModulesSection();
+    },
+
+    renderActivity: function () {
+      var root = document.getElementById('dashboardView');
+      if (!root) return;
+      var act = root.querySelector('.pro-activity');
+      if (act) act.outerHTML = this._renderActivity();
+    },
+
+    // --- Live stats sync ---
+    loadLiveStats: function () {
+      var self = this;
+      var token = getToken();
+
+      // /api/me — username, role, access
+      fetch('/api/me', { headers: { 'x-auth-token': token } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data || !data.success) return;
+          var me = data.user || data.data;
+          if (!me) return;
+          if (me.role) {
+            self.role = me.role.toUpperCase();
+            localStorage.setItem('aura_user_role', self.role);
+          }
+          if (me.access) {
+            self.accessMap = me.access || {};
+            localStorage.setItem('aura_user_access', JSON.stringify(self.accessMap));
+          }
+          if (me.username) self.username = me.username;
+          if (data.version !== undefined) {
+            self.stats.dataVersion = data.version;
+            localStorage.setItem('aura_data_version', String(data.version));
+          }
+          self._refreshStatsBlock();
+        })
+        .catch(function () { /* silent */ });
+
+      // /api/ip/whitelist — protection status
+      fetch('/api/ip/whitelist', { headers: { 'x-auth-token': token } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data || !data.success) return;
+          if (data.settings && typeof data.settings.enabled === 'boolean') {
+            self.stats.whitelistOn = !!data.settings.enabled;
+          }
+          if (data.whitelist) {
+            // Active modules count = visible modules (computed) — keep simple
+          }
+          self._refreshStatsBlock();
+        })
+        .catch(function () { /* silent */ });
+
+      // /api/data-version — version number fallback
+      fetch('/api/data-version', { headers: { 'x-auth-token': token } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          var v = data.version !== undefined ? data.version : (data.data && data.data.version);
+          if (v !== undefined && v !== null) {
+            self.stats.dataVersion = v;
+            localStorage.setItem('aura_data_version', String(v));
+            self._refreshStatsBlock();
+          }
+        })
+        .catch(function () { /* silent */ });
+
+      this._liveLoaded = true;
+    },
+
+    _refreshStatsBlock: function () {
+      var root = document.getElementById('dashboardView');
+      if (!root) return;
+      // Only refresh if currently on dashboard view (visible)
+      if (root.style.display === 'none') return;
+      var existing = root.querySelector('.pro-stats-grid');
+      if (!existing) return;
+      var tmp = document.createElement('div');
+      tmp.innerHTML = this._renderStats();
+      var fresh = tmp.firstElementChild;
+      if (fresh) {
+        existing.replaceWith(fresh);
+        this.animateStats(root);
+      }
+    }
   };
 
-  window.PROFILE = PROFILE;
+  // ============================================================
+  // PROFILE
+  // ============================================================
+  var PROFILE = {
+    _containerId: 'profilView',
+    _lastData: null,
+
+    load: function () {
+      var self = this;
+      var root = document.getElementById(this._containerId);
+      if (!root) { console.warn('[dashboard-pro] #' + this._containerId + ' not found'); return; }
+
+      // Show loading skeleton immediately
+      root.innerHTML = this._renderLoading();
+
+      var token = getToken();
+      fetch('/api/user/profile', { headers: { 'x-auth-token': token } })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (data) {
+          if (!data.success) throw new Error(data.error || 'Profile load failed');
+          var d = data.data || data.user || {};
+          // Sync to localStorage (mirror existing switchToProfil behavior)
+          if (d.username) localStorage.setItem('aura_auth_token', d.username);
+          if (d.status)   localStorage.setItem('aura_user_status', d.status);
+          if (d.since)    localStorage.setItem('aura_user_since', d.since);
+          self._lastData = d;
+          self.render(d);
+          logSafe('Pro profile rendered');
+        })
+        .catch(function (err) {
+          console.error('[dashboard-pro] profile load error', err);
+          self._renderRetry(err && err.message ? err.message : 'Tidak dapat terhubung ke server');
+        });
+    },
+
+    render: function (data) {
+      var root = document.getElementById(this._containerId);
+      if (!root) return;
+
+      DASHBOARD.initAccess();
+      var d = data || {};
+      var username = d.username || getLS('aura_auth_token', 'User');
+      var email    = d.email || (username + '@aura.os');
+      var status   = (d.status || getLS('aura_user_status', 'Active'));
+      var since    = d.since || getLS('aura_user_since', '-');
+      var role     = DASHBOARD.role;
+      var initial  = (username.charAt(0) || 'U').toUpperCase();
+      var session  = genSessionId();
+
+      // Compute coverage from access map
+      var allKeys = ['rek_validator','bank_processor','qris_tools','prediction_tools','saldo_pencairan','authority_panel','ip_whitelist','edit_bukti','keep_memo','setting','api_key','event_tools'];
+      var granted = 0;
+      allKeys.forEach(function (k) { if (DASHBOARD.hasAccess(k)) granted++; });
+      var total = allKeys.length;
+      var coverage = total > 0 ? Math.round((granted / total) * 100) : 0;
+      var permissions = role === 'MASTER' ? 'ALL' : granted + '/' + total;
+
+      // Stored password (masked) — mirrors original switchToProfil logic
+      var storedPass = getLS('aura_user_pass', '');
+      var pwdMask = storedPass.length > 3
+        ? storedPass.substring(0, 2) + '•••••' + storedPass.substring(storedPass.length - 2)
+        : '•••••••';
+
+      // Client IP detection (read from topIpText if available)
+      var clientIp = (document.getElementById('topIpText') && document.getElementById('topIpText').textContent) || 'Detecting…';
+
+      root.innerHTML = '' +
+        '<div class="pro-profil-wrap">' +
+          // Identity card
+          '<div class="pro-profil-card">' +
+            '<div class="pro-profil-banner"></div>' +
+            '<div class="pro-profil-body">' +
+              '<div class="pro-profil-avatar-wrap">' +
+                '<div class="pro-profil-avatar">' + escapeHtml(initial) + '</div>' +
+                '<span class="pro-profil-status-chip"><span class="dot"></span>' + escapeHtml(status) + '</span>' +
+              '</div>' +
+              '<div class="pro-profil-name">' + escapeHtml(username) + '</div>' +
+              '<div class="pro-profil-email">' + escapeHtml(email) + '</div>' +
+              '<div class="pro-profil-mini-stats">' +
+                '<div class="pro-profil-mini-stat"><div class="pro-profil-mini-stat-value">' + escapeHtml(String(permissions)) + '</div><div class="pro-profil-mini-stat-label">Permissions</div></div>' +
+                '<div class="pro-profil-mini-stat"><div class="pro-profil-mini-stat-value">' + total + '</div><div class="pro-profil-mini-stat-label">Total Scopes</div></div>' +
+                '<div class="pro-profil-mini-stat"><div class="pro-profil-mini-stat-value">' + coverage + '%</div><div class="pro-profil-mini-stat-label">Coverage</div></div>' +
+              '</div>' +
+              '<div class="pro-profil-meta-list">' +
+                this._metaItem('fa-id-badge', 'Username', escapeHtml(username), '') +
+                this._metaItem('fa-user-tag', 'Role', escapeHtml(role), role === 'MASTER' ? 'warn' : 'purple') +
+                this._metaItem('fa-key', 'Password', escapeHtml(pwdMask), 'purple') +
+                this._metaItem('fa-shield-halved', 'Status', escapeHtml(status), status.toLowerCase() === 'active' ? 'green' : 'warn') +
+                this._metaItem('fa-microchip', 'Session', escapeHtml(session), 'cyan') +
+                this._metaItem('fa-globe', 'Client IP', escapeHtml(clientIp), 'cyan') +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          // Right column
+          '<div class="pro-profil-right">' +
+            this._renderPwdCard() +
+            this._renderAuditCard({ status: status, since: since, role: role, coverage: coverage, wlOn: DASHBOARD.stats.whitelistOn }) +
+          '</div>' +
+        '</div>';
+
+      // Wire password form behavior
+      this._wirePwdForm();
+    },
+
+    _metaItem: function (icon, label, value, tone) {
+      return '' +
+        '<div class="pro-profil-meta-item">' +
+          '<span class="pro-profil-meta-label"><i class="fas ' + icon + '"></i> ' + escapeHtml(label) + '</span>' +
+          '<span class="pro-profil-meta-value ' + (tone || '') + '">' + value + '</span>' +
+        '</div>';
+    },
+
+    _renderPwdCard: function () {
+      return '' +
+        '<div class="pro-pwd-card">' +
+          '<div class="pro-card-head">' +
+            '<div class="pro-card-head-icon"><i class="fas fa-lock"></i></div>' +
+            '<div class="pro-card-title">Ubah Password</div>' +
+          '</div>' +
+          '<div class="pro-card-desc">Pastikan password baru memenuhi kriteria keamanan minimal untuk melindungi akun.</div>' +
+          '<div class="pro-pwd-form">' +
+            '<div class="pro-pwd-field">' +
+              '<label class="pro-pwd-field-label">Password Lama</label>' +
+              '<div class="pro-pwd-input-wrap">' +
+                '<input type="password" id="proPwdOld" placeholder="•••••••" autocomplete="current-password">' +
+                '<button type="button" class="pro-pwd-toggle" data-target="proPwdOld"><i class="fas fa-eye"></i></button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="pro-pwd-field">' +
+              '<label class="pro-pwd-field-label">Password Baru</label>' +
+              '<div class="pro-pwd-input-wrap">' +
+                '<input type="password" id="proPwdNew" placeholder="Min. 8 karakter" autocomplete="new-password">' +
+                '<button type="button" class="pro-pwd-toggle" data-target="proPwdNew"><i class="fas fa-eye"></i></button>' +
+              '</div>' +
+              '<div class="pro-pwd-strength-row">' +
+                '<span class="pro-pwd-strength-text" id="proPwdStrengthText">Strength</span>' +
+                '<span class="pro-pwd-strength-pct" id="proPwdStrengthPct">0%</span>' +
+              '</div>' +
+              '<div class="pro-pwd-strength-bar"><div class="pro-pwd-strength-fill" id="proPwdStrengthFill"></div></div>' +
+            '</div>' +
+            '<div class="pro-pwd-field">' +
+              '<label class="pro-pwd-field-label">Konfirmasi Password</label>' +
+              '<div class="pro-pwd-input-wrap">' +
+                '<input type="password" id="proPwdConfirm" placeholder="Ulangi password baru" autocomplete="new-password">' +
+                '<button type="button" class="pro-pwd-toggle" data-target="proPwdConfirm"><i class="fas fa-eye"></i></button>' +
+              '</div>' +
+              '<div class="pro-pwd-match-msg" id="proPwdMatchMsg"></div>' +
+            '</div>' +
+            '<div class="pro-pwd-hints" id="proPwdHints">' +
+              '<div class="pro-pwd-hint cross" data-rule="len">Min. 8 karakter</div>' +
+              '<div class="pro-pwd-hint cross" data-rule="upper">Huruf besar (A-Z)</div>' +
+              '<div class="pro-pwd-hint cross" data-rule="num">Angka (0-9)</div>' +
+              '<div class="pro-pwd-hint cross" data-rule="special">Simbol (!@#$…)</div>' +
+            '</div>' +
+            '<button class="pro-pwd-submit" id="proPwdSubmit" type="button"><i class="fas fa-shield-halved"></i> Perbarui Password</button>' +
+          '</div>' +
+        '</div>';
+    },
+
+    _wirePwdForm: function () {
+      var self = this;
+      var newInput = document.getElementById('proPwdNew');
+      var confirmInput = document.getElementById('proPwdConfirm');
+      var fill = document.getElementById('proPwdStrengthFill');
+      var pctEl = document.getElementById('proPwdStrengthPct');
+      var textEl = document.getElementById('proPwdStrengthText');
+      var matchEl = document.getElementById('proPwdMatchMsg');
+      var hintsWrap = document.getElementById('proPwdHints');
+      var submit = document.getElementById('proPwdSubmit');
+
+      // Toggle show/hide
+      document.querySelectorAll('.pro-pwd-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var target = document.getElementById(btn.getAttribute('data-target'));
+          if (!target) return;
+          var isPw = target.type === 'password';
+          target.type = isPw ? 'text' : 'password';
+          btn.innerHTML = '<i class="fas ' + (isPw ? 'fa-eye-slash' : 'fa-eye') + '"></i>';
+        });
+      });
+
+      function evalStrength(v) {
+        var rules = {
+          len: v.length >= 8,
+          upper: /[A-Z]/.test(v),
+          num: /[0-9]/.test(v),
+          special: /[^A-Za-z0-9]/.test(v)
+        };
+        var score = Object.keys(rules).filter(function (k) { return rules[k]; }).length;
+        var pct = Math.round((score / 4) * 100);
+        return { rules: rules, pct: pct };
+      }
+
+      function updateHints(rules) {
+        if (!hintsWrap) return;
+        Object.keys(rules).forEach(function (k) {
+          var el = hintsWrap.querySelector('[data-rule="' + k + '"]');
+          if (!el) return;
+          el.classList.remove('cross', 'check');
+          el.classList.add(rules[k] ? 'check' : 'cross');
+        });
+      }
+
+      function update() {
+        var v = newInput.value || '';
+        var res = evalStrength(v);
+        if (fill) fill.style.width = res.pct + '%';
+        if (pctEl) pctEl.textContent = res.pct + '%';
+        if (textEl) {
+          var label = res.pct === 0 ? 'Strength' : res.pct < 50 ? 'Weak' : res.pct < 100 ? 'Good' : 'Strong';
+          textEl.textContent = label;
+          textEl.style.color = res.pct === 0 ? 'var(--text-tertiary)' : res.pct < 50 ? '#f87171' : res.pct < 100 ? '#fbbf24' : '#34d399';
+        }
+        if (pctEl) {
+          pctEl.style.color = res.pct === 0 ? 'var(--text-tertiary)' : res.pct < 50 ? '#f87171' : res.pct < 100 ? '#fbbf24' : '#34d399';
+        }
+        updateHints(res.rules);
+
+        // Match check
+        if (matchEl) {
+          var cv = confirmInput.value || '';
+          if (!cv) {
+            matchEl.textContent = '';
+            matchEl.style.color = '';
+          } else if (cv === v) {
+            matchEl.textContent = '✓ Password cocok';
+            matchEl.style.color = '#34d399';
+          } else {
+            matchEl.textContent = '✗ Password tidak cocok';
+            matchEl.style.color = '#f87171';
+          }
+        }
+      }
+
+      if (newInput) newInput.addEventListener('input', update);
+      if (confirmInput) confirmInput.addEventListener('input', update);
+
+      if (submit) {
+        submit.addEventListener('click', function () {
+          self._submitPassword();
+        });
+      }
+    },
+
+    _submitPassword: function () {
+      var oldEl = document.getElementById('proPwdOld');
+      var newEl = document.getElementById('proPwdNew');
+      var confEl = document.getElementById('proPwdConfirm');
+      var submit = document.getElementById('proPwdSubmit');
+      if (!oldEl || !newEl || !confEl) return;
+
+      var oldV = oldEl.value;
+      var newV = newEl.value;
+      var confV = confEl.value;
+
+      if (!oldV || !newV || !confV) { showToastSafe('Semua field wajib diisi', 'warning'); return; }
+      if (newV.length < 8) { showToastSafe('Password baru minimal 8 karakter', 'warning'); return; }
+      if (newV !== confV) { showToastSafe('Konfirmasi password tidak cocok', 'warning'); return; }
+
+      var btn = submit;
+      var original = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan…';
+
+      var token = getToken();
+      fetch('/api/user/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({ oldPassword: oldV, newPassword: newV })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          btn.disabled = false;
+          btn.innerHTML = original;
+          if (data.success) {
+            showToastSafe('Password berhasil diperbarui', 'success');
+            localStorage.setItem('aura_user_pass', newV);
+            oldEl.value = ''; newEl.value = ''; confEl.value = '';
+            // Reset strength UI
+            var fill = document.getElementById('proPwdStrengthFill');
+            if (fill) fill.style.width = '0%';
+            var pct = document.getElementById('proPwdStrengthPct');
+            if (pct) { pct.textContent = '0%'; pct.style.color = ''; }
+            var txt = document.getElementById('proPwdStrengthText');
+            if (txt) { txt.textContent = 'Strength'; txt.style.color = ''; }
+            var msg = document.getElementById('proPwdMatchMsg');
+            if (msg) msg.textContent = '';
+            logSafe('Password updated via Pro panel');
+          } else {
+            showToastSafe(data.error || 'Gagal memperbarui password', 'error');
+          }
+        })
+        .catch(function () {
+          btn.disabled = false;
+          btn.innerHTML = original;
+          showToastSafe('Tidak dapat terhubung ke server', 'error');
+        });
+    },
+
+    _renderAuditCard: function (info) {
+      var items = [
+        {
+          tone: info.status && info.status.toLowerCase() === 'active' ? 'ok' : 'warn',
+          icon: 'fa-user-shield',
+          title: 'Account Status',
+          desc: 'Status akun: ' + (info.status || 'Active'),
+          state: info.status || 'Active'
+        },
+        {
+          tone: info.role === 'MASTER' ? 'warn' : (info.role === 'ADMIN' ? 'info' : 'ok'),
+          icon: 'fa-user-tag',
+          title: 'Role & Permissions',
+          desc: 'Role ' + (info.role || 'MEMBER') + ' · coverage ' + (info.coverage || 0) + '%',
+          state: info.role || 'MEMBER'
+        },
+        {
+          tone: info.wlOn ? 'ok' : 'warn',
+          icon: 'fa-shield-halved',
+          title: 'IP Whitelist Protection',
+          desc: info.wlOn ? 'Login dibatasi ke IP terdaftar' : 'Proteksi IP nonaktif — disarankan diaktifkan',
+          state: info.wlOn ? 'Enforced' : 'Open'
+        },
+        {
+          tone: 'info',
+          icon: 'fa-calendar-day',
+          title: 'Member Since',
+          desc: 'Akun terdaftar sejak ' + (info.since || '-'),
+          state: info.since ? 'Verified' : 'N/A'
+        }
+      ];
+
+      var html = '' +
+        '<div class="pro-audit-card">' +
+          '<div class="pro-card-head">' +
+            '<div class="pro-card-head-icon"><i class="fas fa-shield-halved"></i></div>' +
+            '<div class="pro-card-title">Security Audit</div>' +
+          '</div>' +
+          '<div class="pro-card-desc">Ringkasan status keamanan akun Anda.</div>' +
+          '<div class="pro-audit-list">';
+
+      items.forEach(function (it) {
+        html += '' +
+          '<div class="pro-audit-item ' + it.tone + '">' +
+            '<div class="pro-audit-item-icon"><i class="fas ' + it.icon + '"></i></div>' +
+            '<div class="pro-audit-item-body">' +
+              '<div class="pro-audit-item-title">' + escapeHtml(it.title) + '</div>' +
+              '<div class="pro-audit-item-desc">' + escapeHtml(it.desc) + '</div>' +
+            '</div>' +
+            '<span class="pro-audit-item-state">' + escapeHtml(it.state) + '</span>' +
+          '</div>';
+      });
+
+      html += '</div></div>';
+      return html;
+    },
+
+    _renderLoading: function () {
+      return '' +
+        '<div class="pro-profil-wrap">' +
+          '<div class="pro-profil-card">' +
+            '<div class="pro-profil-banner"></div>' +
+            '<div class="pro-profil-body" style="padding-top:22px;">' +
+              '<div class="pro-ipwl-loading" style="padding:40px 16px;">' +
+                '<div class="pro-ipwl-loading-spinner"></div>' +
+                '<div class="pro-ipwl-loading-text">Memuat profil…</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="pro-profil-right">' +
+            '<div class="pro-pwd-card"><div class="pro-ipwl-skeleton-row" style="margin:8px 0;"></div><div class="pro-ipwl-skeleton-row"></div></div>' +
+          '</div>' +
+        '</div>';
+    },
+
+    _renderRetry: function (msg) {
+      var self = this;
+      var root = document.getElementById(this._containerId);
+      if (!root) return;
+      root.innerHTML = '' +
+        '<div class="pro-retry-block">' +
+          '<i class="fas fa-triangle-exclamation"></i>' +
+          '<div class="msg">Gagal memuat profil: ' + escapeHtml(msg || 'unknown error') + '</div>' +
+          '<button class="pro-retry-btn" id="proProfilRetry"><i class="fas fa-rotate-right"></i> Coba lagi</button>' +
+        '</div>';
+      var btn = document.getElementById('proProfilRetry');
+      if (btn) btn.addEventListener('click', function () { self.load(); });
+    }
+  };
 
   // ============================================================
-  // IP WHITELIST PANEL
+  // IPWL — IP Whitelist
   // ============================================================
-  const IPWL = {
+  var IPWL = {
     state: {
       whitelist: [],
       settings: { enabled: false, message: '' },
-      filter: '',
+      filter: ''
     },
 
-    async load() {
-      const view = $('#ipWhitelistView');
-      if (!view) return;
-      IPWL.renderShell();
-      const res = await api('/api/ip/whitelist', { method: 'GET' });
-      if (res.ok && res.data && res.data.success) {
-        IPWL.state.whitelist = res.data.whitelist || [];
-        IPWL.state.settings = res.data.settings || { enabled: false, message: '' };
+    load: function () {
+      var root = document.getElementById('ipWhitelistView');
+      if (!root) { console.warn('[dashboard-pro] #ipWhitelistView not found'); return; }
+      this.renderShell();
+      this._fetch();
+    },
+
+    _fetch: function () {
+      var self = this;
+      var token = getToken();
+      this._renderTableLoading();
+      fetch('/api/ip/whitelist', { headers: { 'x-auth-token': token } })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.success) {
+            self._renderTableError(data.error || 'Gagal memuat data');
+            return;
+          }
+          self.state.whitelist = Array.isArray(data.whitelist) ? data.whitelist : [];
+          if (data.settings) self.state.settings = data.settings;
+          self.render();
+          // Sync dashboard whitelist flag
+          DASHBOARD.stats.whitelistOn = !!(data.settings && data.settings.enabled);
+        })
+        .catch(function () {
+          self._renderTableError('Gagal terhubung ke server');
+        });
+    },
+
+    renderShell: function () {
+      var root = document.getElementById('ipWhitelistView');
+      if (!root) return;
+      root.innerHTML = '' +
+        '<div class="pro-ipwhitelist-wrap">' +
+          // Header
+          '<div class="pro-ipwl-header">' +
+            '<div class="pro-ipwl-eyebrow"><span class="pulse-dot"></span> AURA.OS // IP WHITELIST</div>' +
+            '<h2 class="pro-ipwl-title"><i class="fas fa-shield-halved"></i> IP Whitelist</h2>' +
+            '<p class="pro-ipwl-subtitle">Kelola akses IP untuk login. Hanya IP terdaftar yang dapat masuk saat proteksi aktif.</p>' +
+          '</div>' +
+          // Stats
+          '<div class="pro-ipwl-stats" id="proIpwlStats"></div>' +
+          // Settings (toggle + message)
+          '<div class="pro-ipwl-settings">' +
+            // Toggle card
+            '<div class="pro-ipwl-setting-card toggle">' +
+              '<div class="pro-ipwl-setting-head">' +
+                '<div class="pro-ipwl-setting-icon"><i class="fas fa-shield-halved"></i></div>' +
+                '<div class="pro-ipwl-setting-title">Whitelist Protection</div>' +
+              '</div>' +
+              '<div class="pro-ipwl-setting-desc">Aktifkan untuk membatasi login hanya dari IP yang terdaftar.</div>' +
+              '<div class="pro-ipwl-toggle-row">' +
+                '<span class="pro-ipwl-toggle-state off" id="proIpwlToggleState">Disabled</span>' +
+                '<label class="pro-ipwl-switch">' +
+                  '<input type="checkbox" id="proIpwlToggle">' +
+                  '<span class="pro-ipwl-switch-track"></span>' +
+                  '<span class="pro-ipwl-switch-thumb"></span>' +
+                '</label>' +
+              '</div>' +
+            '</div>' +
+            // Message card
+            '<div class="pro-ipwl-setting-card message">' +
+              '<div class="pro-ipwl-setting-head">' +
+                '<div class="pro-ipwl-setting-icon"><i class="fas fa-comment-dots"></i></div>' +
+                '<div class="pro-ipwl-setting-title">Pesan Penolakan</div>' +
+              '</div>' +
+              '<div class="pro-ipwl-setting-desc">Pesan yang ditampilkan saat IP ditolak.</div>' +
+              '<input type="text" id="proIpwlMessage" class="pro-ipwl-msg-input" placeholder="IP Anda tidak ada dalam whitelist. Hubungi admin.">' +
+              '<button class="pro-ipwl-save-btn" id="proIpwlSaveMsg"><i class="fas fa-save"></i> Simpan Pesan</button>' +
+            '</div>' +
+          '</div>' +
+          // Add IP form
+          '<div class="pro-ipwl-add-card">' +
+            '<div class="pro-ipwl-add-grid">' +
+              '<div>' +
+                '<label class="pro-ipwl-field-label">IP Address</label>' +
+                '<input type="text" id="proIpwlIpInput" class="pro-ipwl-input mono" placeholder="192.168.1.1">' +
+              '</div>' +
+              '<div>' +
+                '<label class="pro-ipwl-field-label">Label</label>' +
+                '<input type="text" id="proIpwlLabelInput" class="pro-ipwl-input" placeholder="Office / Home">' +
+              '</div>' +
+              '<button class="pro-ipwl-add-btn" id="proIpwlAddBtn"><i class="fas fa-plus"></i> Tambah</button>' +
+            '</div>' +
+          '</div>' +
+          // Table card
+          '<div class="pro-ipwl-table-card">' +
+            '<div class="pro-ipwl-toolbar">' +
+              '<div class="pro-ipwl-toolbar-left">' +
+                '<div class="pro-ipwl-toolbar-title"><i class="fas fa-list-check"></i> Daftar IP Terdaftar</div>' +
+                '<span class="pro-ipwl-toolbar-count" id="proIpwlCount">0</span>' +
+              '</div>' +
+              '<div class="pro-ipwl-search">' +
+                '<i class="fas fa-magnifying-glass"></i>' +
+                '<input type="text" id="proIpwlSearch" placeholder="Cari IP atau label…">' +
+              '</div>' +
+            '</div>' +
+            '<div class="pro-ipwl-table-wrap">' +
+              '<table class="pro-ipwl-table">' +
+                '<thead>' +
+                  '<tr>' +
+                    '<th><span class="th-inner"><i class="fas fa-network-wired"></i> IP Address</span></th>' +
+                    '<th><span class="th-inner"><i class="fas fa-tag"></i> Label</span></th>' +
+                    '<th><span class="th-inner"><i class="fas fa-user-gear"></i> Added By</span></th>' +
+                    '<th><span class="th-inner"><i class="fas fa-clock"></i> Added</span></th>' +
+                    '<th><span class="th-inner"><i class="fas fa-circle-check"></i> Status</span></th>' +
+                    '<th style="text-align:right;"><span class="th-inner">Aksi</span></th>' +
+                  '</tr>' +
+                '</thead>' +
+                '<tbody id="proIpwlBody"></tbody>' +
+              '</table>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+
+      // Wire events
+      var self = this;
+      var toggle = document.getElementById('proIpwlToggle');
+      if (toggle) toggle.addEventListener('change', function () { self.toggleProtection(); });
+      var saveMsg = document.getElementById('proIpwlSaveMsg');
+      if (saveMsg) saveMsg.addEventListener('click', function () { self.saveMessage(); });
+      var addBtn = document.getElementById('proIpwlAddBtn');
+      if (addBtn) addBtn.addEventListener('click', function () { self.add(); });
+      var search = document.getElementById('proIpwlSearch');
+      if (search) search.addEventListener('input', function () { self.filter(search.value); });
+
+      // Enter-to-submit on add form
+      var ipInput = document.getElementById('proIpwlIpInput');
+      var labelInput = document.getElementById('proIpwlLabelInput');
+      if (ipInput) ipInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') self.add(); });
+      if (labelInput) labelInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') self.add(); });
+    },
+
+    render: function () {
+      this._renderStats();
+      this._renderToggle();
+      this._renderMessage();
+      this._renderTable();
+    },
+
+    _renderStats: function () {
+      var el = document.getElementById('proIpwlStats');
+      if (!el) return;
+      var total = this.state.whitelist.length;
+      var protection = this.state.settings.enabled ? 'ON' : 'OFF';
+      var lastAdded = '-';
+      if (this.state.whitelist.length > 0) {
+        // Try to find most recent by created_at/added_at
+        var sorted = this.state.whitelist.slice().sort(function (a, b) {
+          var ta = new Date(a.created_at || a.added_at || 0).getTime();
+          var tb = new Date(b.created_at || b.added_at || 0).getTime();
+          return tb - ta;
+        });
+        lastAdded = (sorted[0].ip || '-');
       }
-      IPWL.render();
+      var masterRole = DASHBOARD.role === 'MASTER' ? 'Yes' : 'No';
+
+      el.innerHTML = '' +
+        DASHBOARD._statCard.call(DASHBOARD, 'blue',    'fa-network-wired',  'Total IP',           String(total),  total > 0 ? 'up' : 'flat', total + ' registered', 'Whitelist entries') +
+        DASHBOARD._statCard.call(DASHBOARD, this.state.settings.enabled ? 'success' : 'warning', 'fa-shield-halved', 'Protection', protection, this.state.settings.enabled ? 'up' : 'flat', this.state.settings.enabled ? 'Enforced' : 'Disabled', 'Login IP filter') +
+        DASHBOARD._statCard.call(DASHBOARD, 'purple',  'fa-clock-rotate-left', 'Last Added',       lastAdded === '-' ? '-' : '', 'flat', lastAdded === '-' ? 'No IPs yet' : 'Most recent', lastAdded || '—') +
+        DASHBOARD._statCard.call(DASHBOARD, 'warning', 'fa-crown',          'Master Role',       masterRole, 'flat', DASHBOARD.role, 'Current user privilege');
     },
 
-    renderShell() {
-      const view = $('#ipWhitelistView');
-      view.innerHTML = `
-        <div class="pro-ipwhitelist-wrap">
-          <div class="pro-ipwhitelist-header">
-            <div class="pro-ipwhitelist-title-block">
-              <div class="pro-ipwhitelist-eyebrow"><i class="fas fa-shield-halved"></i> Security Layer</div>
-              <h2 class="pro-ipwhitelist-title">IP Whitelist</h2>
-              <p class="pro-ipwhitelist-subtitle">Kelola akses IP yang diizinkan untuk login. Hanya IP terdaftar yang dapat mengakses sistem saat proteksi diaktifkan.</p>
-            </div>
-          </div>
-
-          <div class="pro-ipwl-stats">
-            <div class="pro-ipwl-stat">
-              <div class="pro-ipwl-stat-icon blue"><i class="fas fa-network-wired"></i></div>
-              <div class="pro-ipwl-stat-body">
-                <div class="pro-ipwl-stat-value" id="ipwlStatTotal">0</div>
-                <div class="pro-ipwl-stat-label">Total IP</div>
-              </div>
-            </div>
-            <div class="pro-ipwl-stat">
-              <div class="pro-ipwl-stat-icon green"><i class="fas fa-circle-check"></i></div>
-              <div class="pro-ipwl-stat-body">
-                <div class="pro-ipwl-stat-value" id="ipwlStatStatus">OFF</div>
-                <div class="pro-ipwl-stat-label">Protection</div>
-              </div>
-            </div>
-            <div class="pro-ipwl-stat">
-              <div class="pro-ipwl-stat-icon purple"><i class="fas fa-clock"></i></div>
-              <div class="pro-ipwl-stat-body">
-                <div class="pro-ipwl-stat-value" id="ipwlStatLast">-</div>
-                <div class="pro-ipwl-stat-label">Last Added</div>
-              </div>
-            </div>
-            <div class="pro-ipwl-stat">
-              <div class="pro-ipwl-stat-icon orange"><i class="fas fa-user-shield"></i></div>
-              <div class="pro-ipwl-stat-body">
-                <div class="pro-ipwl-stat-value" id="ipwlStatMaster">Bypass</div>
-                <div class="pro-ipwl-stat-label">Master Role</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="pro-ipwl-settings">
-            <div class="pro-ipwl-settings-row">
-              <div class="pro-ipwl-toggle-card">
-                <div class="pro-ipwl-toggle-info">
-                  <div class="pro-ipwl-toggle-title"><i class="fas fa-exclamation-triangle"></i> Whitelist Protection</div>
-                  <div class="pro-ipwl-toggle-desc">Aktifkan untuk membatasi login hanya dari IP terdaftar. MASTER tetap bypass.</div>
-                </div>
-                <label class="pro-ipwl-switch">
-                  <input type="checkbox" id="ipWlToggle" onchange="IPWL.toggleProtection()">
-                  <span class="pro-ipwl-switch-track"></span>
-                  <span class="pro-ipwl-switch-thumb"></span>
-                </label>
-              </div>
-              <div class="pro-ipwl-message-card">
-                <label class="pro-ipwl-message-label"><i class="fas fa-comment-dots"></i> Pesan Penolakan (Custom Message)</label>
-                <input type="text" class="pro-ipwl-message-input" id="ipWlMessage" placeholder="IP Anda tidak ada dalam whitelist. Hubungi admin.">
-                <button class="pro-ipwl-message-save" onclick="IPWL.saveMessage()"><i class="fas fa-save"></i> Simpan Pesan</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="pro-ipwl-add-card">
-            <div class="pro-ipwl-add-header">
-              <i class="fas fa-plus-circle"></i>
-              <div class="pro-ipwl-add-header-title">Tambah IP Baru</div>
-            </div>
-            <div class="pro-ipwl-add-form">
-              <div class="pro-ipwl-add-field">
-                <label>IP Address</label>
-                <input type="text" class="mono" id="ipWlIpInput" placeholder="192.168.1.1">
-              </div>
-              <div class="pro-ipwl-add-field">
-                <label>Label (opsional)</label>
-                <input type="text" id="ipWlLabelInput" placeholder="Office / Home / Server">
-              </div>
-              <button class="pro-ipwl-add-btn" onclick="IPWL.add()"><i class="fas fa-plus"></i> Tambah</button>
-            </div>
-          </div>
-
-          <div class="pro-ipwl-table-card">
-            <div class="pro-ipwl-table-toolbar">
-              <div class="pro-ipwl-table-title">
-                <i class="fas fa-list"></i>
-                Daftar IP Terdaftar
-                <span class="count" id="ipwlTableCount">0</span>
-              </div>
-              <div class="pro-ipwl-search">
-                <i class="fas fa-search"></i>
-                <input type="text" id="ipWlSearch" placeholder="Cari IP atau label..." oninput="IPWL.filter(this.value)">
-              </div>
-            </div>
-            <div class="pro-ipwl-table-scroll">
-              <table class="pro-ipwl-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>IP Address</th>
-                    <th>Label</th>
-                    <th>Added By</th>
-                    <th>Date</th>
-                    <th class="pro-ipwl-cell-action">Action</th>
-                  </tr>
-                </thead>
-                <tbody id="ipWlTableBody">
-                  <tr><td colspan="6"><div class="pro-ipwl-loading"><i class="fas fa-spinner"></i> Memuat data...</div></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      `;
-    },
-
-    render() {
-      // Stats
-      const total = IPWL.state.whitelist.length;
-      const enabled = IPWL.state.settings.enabled === true || IPWL.state.settings.enabled === 'true';
-      const totalEl = $('#ipwlStatTotal');
-      const statusEl = $('#ipwlStatStatus');
-      const lastEl = $('#ipwlStatLast');
-      if (totalEl) totalEl.textContent = total;
-      if (statusEl) {
-        statusEl.textContent = enabled ? 'ON' : 'OFF';
-        const statCard = statusEl.closest('.pro-ipwl-stat');
-        const iconEl = statCard ? statCard.querySelector('.pro-ipwl-stat-icon') : null;
-        if (iconEl) {
-          iconEl.classList.toggle('green', enabled);
-          iconEl.classList.toggle('orange', !enabled);
-        }
+    _renderToggle: function () {
+      var toggle = document.getElementById('proIpwlToggle');
+      var state = document.getElementById('proIpwlToggleState');
+      if (toggle) toggle.checked = !!this.state.settings.enabled;
+      if (state) {
+        state.textContent = this.state.settings.enabled ? 'Enabled' : 'Disabled';
+        state.className = 'pro-ipwl-toggle-state ' + (this.state.settings.enabled ? 'on' : 'off');
       }
-      if (lastEl) {
-        if (total > 0) {
-          const latest = IPWL.state.whitelist[0];
-          lastEl.textContent = latest.created_at ? new Date(latest.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : '-';
-        } else {
-          lastEl.textContent = '-';
-        }
-      }
-
-      // Toggle
-      const toggle = $('#ipWlToggle');
-      if (toggle) toggle.checked = enabled;
-
-      // Message
-      const msgInput = $('#ipWlMessage');
-      if (msgInput) msgInput.value = IPWL.state.settings.message || '';
-
-      // Table
-      IPWL.renderTable();
-
-      // Count badge
-      const countEl = $('#ipwlTableCount');
-      if (countEl) countEl.textContent = total;
     },
 
-    renderTable() {
-      const body = $('#ipWlTableBody');
+    _renderMessage: function () {
+      var input = document.getElementById('proIpwlMessage');
+      if (input && typeof this.state.settings.message === 'string') {
+        input.value = this.state.settings.message;
+      }
+    },
+
+    renderTable: function () { this._renderTable(); },
+
+    _renderTable: function () {
+      var body = document.getElementById('proIpwlBody');
+      var countEl = document.getElementById('proIpwlCount');
       if (!body) return;
 
-      const filter = IPWL.state.filter.toLowerCase();
-      const items = IPWL.state.whitelist.filter(w => {
-        if (!filter) return true;
-        const ip = (w.ip_address || '').toLowerCase();
-        const label = (w.label || '').toLowerCase();
-        return ip.includes(filter) || label.includes(filter);
+      var list = this.state.whitelist || [];
+      var q = (this.state.filter || '').toLowerCase().trim();
+      var filtered = list.filter(function (it) {
+        if (!q) return true;
+        return String(it.ip || '').toLowerCase().includes(q) ||
+               String(it.label || '').toLowerCase().includes(q) ||
+               String(it.added_by || '').toLowerCase().includes(q);
       });
 
-      if (items.length === 0) {
-        body.innerHTML = `
-          <tr><td colspan="6">
-            <div class="pro-ipwl-empty">
-              <div class="pro-ipwl-empty-icon"><i class="fas fa-network-wired"></i></div>
-              <div class="pro-ipwl-empty-title">${IPWL.state.whitelist.length === 0 ? 'Belum ada IP terdaftar' : 'Tidak ada hasil'}</div>
-              <div class="pro-ipwl-empty-desc">${IPWL.state.whitelist.length === 0 ? 'Tambahkan IP pertama menggunakan form di atas' : 'Coba kata kunci lain'}</div>
-            </div>
-          </td></tr>
-        `;
+      if (countEl) countEl.textContent = filtered.length;
+
+      if (list.length === 0) {
+        body.innerHTML = '' +
+          '<tr><td colspan="6">' +
+            '<div class="pro-ipwl-empty">' +
+              '<div class="pro-ipwl-empty-icon"><i class="fas fa-inbox"></i></div>' +
+              '<div class="pro-ipwl-empty-title">Belum ada IP terdaftar</div>' +
+              '<div class="pro-ipwl-empty-desc">Tambahkan IP pertama menggunakan form di atas</div>' +
+            '</div>' +
+          '</td></tr>';
         return;
       }
 
-      body.innerHTML = items.map((w, idx) => `
-        <tr class="pro-fade-in" style="animation-delay: ${idx * 30}ms;">
-          <td class="pro-ipwl-cell-num">${String(idx + 1).padStart(2, '0')}</td>
-          <td>
-            <div class="pro-ipwl-cell-ip">
-              <span class="ip-icon"><i class="fas fa-globe"></i></span>
-              ${escapeHtml(w.ip_address || '-')}
-            </div>
-          </td>
-          <td class="pro-ipwl-cell-label">${w.label ? escapeHtml(w.label) : '<span class="muted">— no label —</span>'}</td>
-          <td class="pro-ipwl-cell-by">${escapeHtml(w.added_by || '-')}</td>
-          <td class="pro-ipwl-cell-date">${fmtDate(w.created_at)}</td>
-          <td class="pro-ipwl-cell-action">
-            <button class="pro-ipwl-delete-btn" onclick="IPWL.remove(${w.id}, '${escapeHtml(w.ip_address || '')}')" title="Hapus IP">
-              <i class="fas fa-trash"></i>
-            </button>
-          </td>
-        </tr>
-      `).join('');
-    },
+      if (filtered.length === 0) {
+        body.innerHTML = '' +
+          '<tr><td colspan="6">' +
+            '<div class="pro-ipwl-empty">' +
+              '<div class="pro-ipwl-empty-icon"><i class="fas fa-magnifying-glass"></i></div>' +
+              '<div class="pro-ipwl-empty-title">Tidak ada hasil</div>' +
+              '<div class="pro-ipwl-empty-desc">Tidak ada IP yang cocok dengan "' + escapeHtml(q) + '"</div>' +
+            '</div>' +
+          '</td></tr>';
+        return;
+      }
 
-    filter(val) {
-      IPWL.state.filter = val || '';
-      IPWL.renderTable();
-    },
+      var self = this;
+      var html = '';
+      filtered.forEach(function (it) {
+        var ip = it.ip || '-';
+        var label = it.label || '';
+        var addedBy = it.added_by || '-';
+        var addedAt = it.created_at || it.added_at || '';
+        var status = (it.role || (addedBy === DASHBOARD.username ? 'active' : 'active'));
+        var statusCls = 'active';
+        var statusText = 'Active';
+        if (String(addedBy).toUpperCase() === 'MASTER' || String(it.role).toUpperCase() === 'MASTER') {
+          statusCls = 'master'; statusText = 'Master';
+        } else if (String(it.role).toUpperCase() === 'ADMIN') {
+          statusCls = 'admin'; statusText = 'Admin';
+        }
 
-    async toggleProtection() {
-      const toggle = $('#ipWlToggle');
-      const enabled = toggle.checked;
-      const res = await api('/api/ip/whitelist', {
-        method: 'PUT',
-        body: { enabled, message: IPWL.state.settings.message || 'IP Anda tidak ada dalam whitelist. Hubungi admin.' },
+        html += '' +
+          '<tr>' +
+            '<td><div class="pro-ipwl-ip-cell"><span class="ip-dot"></span>' + escapeHtml(ip) + '</div></td>' +
+            '<td><span class="pro-ipwl-label-cell' + (label ? '' : ' empty') + '">' + (label ? escapeHtml(label) : '— no label —') + '</span></td>' +
+            '<td><span class="pro-ipwl-by-cell">' + escapeHtml(addedBy) + '</span></td>' +
+            '<td><span class="pro-ipwl-date-cell">' + (addedAt ? escapeHtml(formatDateTime(addedAt)) : '-') + '</span></td>' +
+            '<td><span class="pro-ipwl-status-cell ' + statusCls + '">' + escapeHtml(statusText) + '</span></td>' +
+            '<td style="text-align:right;">' +
+              '<button class="pro-ipwl-action-btn" onclick="window.IPWL.remove(' + (it.id || 0) + ', \'' + escapeHtml(ip).replace(/'/g, "\\'") + '\')"><i class="fas fa-trash"></i> Hapus</button>' +
+            '</td>' +
+          '</tr>';
       });
-      if (res.ok && res.data && res.data.success) {
-        IPWL.state.settings.enabled = enabled;
-        showToast(`Proteksi whitelist ${enabled ? 'AKTIF' : 'DIMATIKAN'}`, 'success');
-        IPWL.render();
-      } else {
-        showToast('Gagal mengubah proteksi', 'error');
-        toggle.checked = !enabled;
-      }
+
+      body.innerHTML = html;
     },
 
-    async saveMessage() {
-      const msg = $('#ipWlMessage').value.trim() || 'IP Anda tidak ada dalam whitelist. Hubungi admin.';
-      const res = await api('/api/ip/whitelist', {
+    _renderTableLoading: function () {
+      var body = document.getElementById('proIpwlBody');
+      if (!body) return;
+      body.innerHTML = '' +
+        '<tr><td colspan="6">' +
+          '<div class="pro-ipwl-loading">' +
+            '<div class="pro-ipwl-loading-spinner"></div>' +
+            '<div class="pro-ipwl-loading-text">Memuat data whitelist…</div>' +
+          '</div>' +
+        '</td></tr>';
+    },
+
+    _renderTableError: function (msg) {
+      var body = document.getElementById('proIpwlBody');
+      if (!body) return;
+      body.innerHTML = '' +
+        '<tr><td colspan="6">' +
+          '<div class="pro-ipwl-empty">' +
+            '<div class="pro-ipwl-empty-icon" style="color:var(--accent-danger);"><i class="fas fa-triangle-exclamation"></i></div>' +
+            '<div class="pro-ipwl-empty-title" style="color:var(--accent-danger);">' + escapeHtml(msg || 'Gagal memuat data') + '</div>' +
+            '<div class="pro-ipwl-empty-desc">Periksa koneksi atau coba lagi nanti</div>' +
+          '</div>' +
+        '</td></tr>';
+    },
+
+    filter: function (val) {
+      this.state.filter = val || '';
+      this._renderTable();
+    },
+
+    toggleProtection: function () {
+      var self = this;
+      var toggle = document.getElementById('proIpwlToggle');
+      if (!toggle) return;
+      var enabled = toggle.checked;
+      var msgInput = document.getElementById('proIpwlMessage');
+      var message = msgInput ? msgInput.value : (this.state.settings.message || '');
+      var token = getToken();
+
+      fetch('/api/ip/whitelist', {
         method: 'PUT',
-        body: { enabled: IPWL.state.settings.enabled === true || IPWL.state.settings.enabled === 'true', message: msg },
-      });
-      if (res.ok && res.data && res.data.success) {
-        IPWL.state.settings.message = msg;
-        showToast('Pesan penolakan tersimpan', 'success');
-      } else {
-        showToast('Gagal menyimpan pesan', 'error');
-      }
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({ enabled: enabled, message: message })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success) {
+            self.state.settings.enabled = enabled;
+            self.state.settings.message = message;
+            self._renderToggle();
+            self._renderStats();
+            DASHBOARD.stats.whitelistOn = enabled;
+            showToastSafe('Whitelist protection ' + (enabled ? 'diaktifkan' : 'dinonaktifkan'), 'success');
+            logSafe('IP Whitelist ' + (enabled ? 'enabled' : 'disabled'));
+          } else {
+            showToastSafe(data.error || 'Gagal mengubah setting', 'error');
+            // Revert toggle
+            toggle.checked = !enabled;
+            self._renderToggle();
+          }
+        })
+        .catch(function () {
+          showToastSafe('Gagal terhubung ke server', 'error');
+          toggle.checked = !enabled;
+          self._renderToggle();
+        });
     },
 
-    async add() {
-      const ip = $('#ipWlIpInput').value.trim();
-      const label = $('#ipWlLabelInput').value.trim();
-      if (!ip) { showToast('IP address wajib diisi', 'error'); return; }
-      // Basic IP format check (IPv4 or IPv6)
-      if (!/^[\d.:a-fA-F]+$/.test(ip)) { showToast('Format IP tidak valid', 'error'); return; }
+    saveMessage: function () {
+      var self = this;
+      var msgInput = document.getElementById('proIpwlMessage');
+      if (!msgInput) return;
+      var message = msgInput.value;
+      var enabled = !!(this.state.settings.enabled);
+      var token = getToken();
 
-      const res = await api('/api/ip/whitelist', { method: 'POST', body: { ip, label } });
-      if (res.ok && res.data && res.data.success) {
-        showToast('IP berhasil ditambahkan', 'success');
-        $('#ipWlIpInput').value = '';
-        $('#ipWlLabelInput').value = '';
-        await IPWL.load();
-      } else {
-        showToast(res.data?.error || 'Gagal menambah IP (mungkin sudah ada)', 'error');
-      }
+      fetch('/api/ip/whitelist', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({ enabled: enabled, message: message })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success) {
+            self.state.settings.message = message;
+            showToastSafe('Pesan penolakan disimpan', 'success');
+            logSafe('IP Whitelist message updated');
+          } else {
+            showToastSafe(data.error || 'Gagal menyimpan pesan', 'error');
+          }
+        })
+        .catch(function () {
+          showToastSafe('Gagal terhubung ke server', 'error');
+        });
     },
 
-    async remove(id, ip) {
-      if (!confirm(`Hapus IP ${ip} dari whitelist?`)) return;
-      const res = await api(`/api/ip/whitelist/${id}`, { method: 'DELETE' });
-      if (res.ok && res.data && res.data.success) {
-        showToast('IP dihapus dari whitelist', 'success');
-        await IPWL.load();
-      } else {
-        showToast('Gagal menghapus IP', 'error');
-      }
+    add: function () {
+      var self = this;
+      var ipInput = document.getElementById('proIpwlIpInput');
+      var labelInput = document.getElementById('proIpwlLabelInput');
+      if (!ipInput) return;
+      var ip = (ipInput.value || '').trim();
+      var label = (labelInput ? labelInput.value : '').trim();
+      if (!ip) { showToastSafe('IP wajib diisi', 'warning'); ipInput.focus(); return; }
+
+      var token = getToken();
+      fetch('/api/ip/whitelist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({ ip: ip, label: label })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success) {
+            showToastSafe('IP berhasil ditambahkan', 'success');
+            logSafe('IP added to whitelist: ' + ip);
+            ipInput.value = '';
+            if (labelInput) labelInput.value = '';
+            self._fetch();
+          } else {
+            showToastSafe(data.error || 'Gagal menambahkan IP', 'error');
+          }
+        })
+        .catch(function () {
+          showToastSafe('Gagal terhubung ke server', 'error');
+        });
     },
+
+    remove: function (id, ip) {
+      var self = this;
+      if (!confirm('Hapus IP ' + (ip || '') + ' dari whitelist?')) return;
+      var token = getToken();
+      fetch('/api/ip/whitelist/' + encodeURIComponent(id), {
+        method: 'DELETE',
+        headers: { 'x-auth-token': token }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success) {
+            showToastSafe('IP berhasil dihapus', 'success');
+            logSafe('IP removed from whitelist: id=' + id);
+            self._fetch();
+          } else {
+            showToastSafe(data.error || 'Gagal menghapus IP', 'error');
+          }
+        })
+        .catch(function () {
+          showToastSafe('Gagal terhubung ke server', 'error');
+        });
+    }
   };
 
-  window.IPWL = IPWL;
+  // ============================================================
+  // INIT + PATCH GLOBAL SWITCHERS
+  // ============================================================
+  function _patchSwitchers() {
+    // Save references to original switchers (defined in Dashboard.html)
+    var origProfil = window.switchToProfil;
+    var origDash = window.switchToDashboard;
+    var origIp = window.switchToIpWhitelist;
 
-  // ============================================================
-  // AUTO-INIT
-  // ============================================================
-  document.addEventListener('DOMContentLoaded', () => {
-    // Patch switchToProfil/switchToDashboard/ipWhitelist if not defined or override to use new pro UI
-    if (!window.switchToProfilPro) {
-      window.switchToProfilPro = async function () {
-        if (typeof hideAllViews === 'function') hideAllViews();
-        const v = $('#profilView');
+    window.switchToProfil = function () {
+      if (typeof origProfil === 'function') {
+        try { origProfil(); } catch (e) {}
+      } else {
+        // Fallback: hide all views, show profil
+        if (typeof window.hideAllViews === 'function') window.hideAllViews();
+        var v = document.getElementById('profilView');
         if (v) v.style.display = 'block';
-        const bc = $('#breadcrumbPage');
-        if (bc) bc.textContent = 'profil';
-        await PROFILE.load();
-      };
-    }
-    if (!window.ipWhitelistPro) {
-      window.ipWhitelistPro = async function () {
-        if (typeof hideAllViews === 'function') hideAllViews();
-        const v = $('#ipWhitelistView');
+      }
+      PROFILE.load();
+    };
+
+    window.switchToDashboard = function () {
+      if (typeof origDash === 'function') {
+        try { origDash(); } catch (e) {}
+      } else {
+        if (typeof window.hideAllViews === 'function') window.hideAllViews();
+        var v = document.getElementById('dashboardView');
         if (v) v.style.display = 'block';
-        const bc = $('#breadcrumbPage');
-        if (bc) bc.textContent = 'ip whitelist';
-        await IPWL.load();
-      };
+      }
+      DASHBOARD.renderDashboard();
+    };
+
+    window.switchToIpWhitelist = function () {
+      if (typeof origIp === 'function') {
+        try { origIp(); } catch (e) {}
+      } else {
+        if (typeof window.hideAllViews === 'function') window.hideAllViews();
+        var v = document.getElementById('ipWhitelistView');
+        if (v) v.style.display = 'block';
+      }
+      IPWL.load();
+    };
+  }
+
+  function init() {
+    // Expose public API
+    window.DASHBOARD = DASHBOARD;
+    window.PROFILE = PROFILE;
+    window.IPWL = IPWL;
+    window.triggerModuleAction = function (action) { DASHBOARD.triggerAction(action); };
+
+    // Patch switchers (defensive — only patch once)
+    if (!window.__dashboardProPatched) {
+      _patchSwitchers();
+      window.__dashboardProPatched = true;
     }
-    if (!window.renderDashboardPro) {
-      window.renderDashboardPro = function () {
+
+    // Auto-render dashboard if it is currently visible (initial load)
+    DASHBOARD.initAccess();
+    var dashView = document.getElementById('dashboardView');
+    if (dashView && dashView.style.display !== 'none') {
+      // Defer to allow Dashboard.html's own init to settle
+      setTimeout(function () {
         DASHBOARD.renderDashboard();
-      };
+        DASHBOARD.loadLiveStats();
+      }, 60);
+    } else {
+      // Still preload live stats in background
+      DASHBOARD.loadLiveStats();
     }
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
 })();
