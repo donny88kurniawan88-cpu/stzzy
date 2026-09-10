@@ -505,9 +505,10 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" onclick="window.location.href='/Analyzer.html'">P2M Analyzer</div>
-            <div class="submenu-item" data-action="comingSoon">XPAY Analyzer</div>
-            <div class="submenu-item" data-action="comingSoon">XPAY Settlement</div>
+            <div class="submenu-item" data-action="analyzer">P2M Analyzer</div>
+            <div class="submenu-item" data-action="xpayChecker">XPAY Analyzer</div>
+            <div class="submenu-item" data-action="xpayFull">XPAY Settlement</div>
+            <div class="submenu-item" data-action="xpaySettlementChecker">Settlement Checker</div>
             <div class="submenu-item" data-action="comingSoon">MNPAY Analyzer</div>
           </div>
         </div>
@@ -534,11 +535,11 @@
           <div class="submenu">
             <div class="submenu-item" onclick="switchToMyEvent()">My Event</div>
             <div class="submenu-item" data-action="comingSoon">History Event</div>
-            <div class="submenu-item" onclick="window.location.href='/PgReport.html'">PG Report</div>
+            <div class="submenu-item" onclick="switchToPgReport()">PG Report</div>
           </div>
         </div>
 
-        <div class="nav-item" data-action="comingSoon" data-access-item="edit_bukti">
+        <div class="nav-item" data-action="editBukti" data-access-item="edit_bukti">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Bukti
         </div>
@@ -607,17 +608,18 @@
         <div class="modules-grid">
           <div class="module-card" data-color="teal" onclick="window.location.href='/Validator.html'"><div class="module-icon">🏦</div><div class="module-name" data-access-item-card="rek_validator">Rek Validator</div><div class="module-desc">Cross-check 4 databases</div><div class="module-badge">v1.5.0</div></div>
           <div class="module-card" data-color="blue" onclick="window.location.href='/Bank.html'"><div class="module-icon">💰</div><div class="module-name" data-access-item-card="bank_processor">Bank Processor</div><div class="module-desc">Formatter &amp; validator rekening bank</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="pink" onclick="window.location.href='/Analyzer.html'"><div class="module-icon">📈</div><div class="module-name" data-access-item-card="qris_tools">P2M Analyzer</div><div class="module-desc">P2M vs Zonamain vs Report analysis</div><div class="module-badge">v2.0.0</div></div>
-          <div class="module-card" data-color="purple" data-action="comingSoon"><div class="module-icon">🔍</div><div class="module-name" data-access-item-card="qris_tools">XPAY Analyzer</div><div class="module-desc">XPAY transaction analyzer engine</div><div class="module-badge">Soon</div></div>
-          <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">📋</div><div class="module-name" data-access-item-card="qris_tools">XPAY Settlement</div><div class="module-desc">XPAY settlement reconciliation</div><div class="module-badge">Soon</div></div>
-          <div class="module-card" data-color="teal" data-action="comingSoon"><div class="module-icon">📊</div><div class="module-name" data-access-item-card="qris_tools">MNPAY Analyzer</div><div class="module-desc">MNPAY payment flow analyzer</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="pink" data-action="analyzer"><div class="module-icon">📈</div><div class="module-name" data-access-item-card="qris_tools">P2M Analyzer</div><div class="module-desc">P2M vs Zonamain vs Report analysis</div><div class="module-badge">v2.0.0</div></div>
+          <div class="module-card" data-color="purple" data-action="xpayChecker"><div class="module-icon">🔍</div><div class="module-name" data-access-item-card="qris_tools">XPAY Analyzer</div><div class="module-desc">XPAY transaction analyzer engine</div><div class="module-badge">v2.0.0</div></div>
+          <div class="module-card" data-color="orange" data-action="xpayFull"><div class="module-icon">📋</div><div class="module-name" data-access-item-card="qris_tools">XPAY Settlement</div><div class="module-desc">XPAY settlement reconciliation</div><div class="module-badge">v2.0.0</div></div>
+          <div class="module-card" data-color="teal" data-action="xpaySettlementChecker"><div class="module-icon">✅</div><div class="module-name" data-access-item-card="qris_tools">Settlement Checker</div><div class="module-desc">Cek settlement per tanggal</div><div class="module-badge">v1.0.0</div></div>
+          <div class="module-card" data-color="purple" data-action="comingSoon"><div class="module-icon">📊</div><div class="module-name" data-access-item-card="qris_tools">MNPAY Analyzer</div><div class="module-desc">MNPAY payment flow analyzer</div><div class="module-badge">Soon</div></div>
           <div class="module-card" data-color="blue" onclick="window.location.href='/Syair.html'"><div class="module-icon">📊</div><div class="module-name" data-access-item-card="prediction_tools">Syair Database</div><div class="module-desc">Access shio prediction engine</div><div class="module-badge">v2.1.0</div></div>
           <div class="module-card" data-color="purple" onclick="window.location.href='/Prediksi.html'"><div class="module-icon">🔮</div><div class="module-name" data-access-item-card="prediction_tools">AI Prediction</div><div class="module-desc">Neural probability calculation</div><div class="module-badge">v3.0.0</div></div>
           <div class="module-card" data-color="red" data-action="appInfo"><div class="module-icon">🎰</div><div class="module-name" data-access-item-card="prediction_tools">Gas Slot Engine</div><div class="module-desc">AI Slot Gacor Predictor System</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="green" onclick="switchToMyEvent()"><div class="module-icon">📅</div><div class="module-name" data-access-item-card="event_tools">My Event</div><div class="module-desc">Manage active events</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="orange" data-action="comingSoon"><div class="module-icon">🕐</div><div class="module-name" data-access-item-card="event_tools">History Event</div><div class="module-desc">Event history &amp; logs</div><div class="module-badge">Soon</div></div>
-          <div class="module-card" data-color="green" onclick="window.location.href='/PgReport.html'"><div class="module-icon">🧾</div><div class="module-name" data-access-item-card="event_tools">PG Report</div><div class="module-desc">PG Soft credit calculator engine</div><div class="module-badge">v5.0.0</div></div>
-          <div class="module-card" data-color="pink" data-action="comingSoon"><div class="module-icon">✏️</div><div class="module-name" data-access-item-card="edit_bukti">Edit Bukti</div><div class="module-desc">Edit &amp; manage proof of payment</div><div class="module-badge">Soon</div></div>
+          <div class="module-card" data-color="green" data-action="pgReport"><div class="module-icon">🧾</div><div class="module-name" data-access-item-card="event_tools">PG Report</div><div class="module-desc">PG Soft credit calculator engine</div><div class="module-badge">v5.0.0</div></div>
+          <div class="module-card" data-color="pink" data-action="editBukti"><div class="module-icon">✏️</div><div class="module-name" data-access-item-card="edit_bukti">Edit Bukti</div><div class="module-desc">Edit &amp; manage proof of payment</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="orange" data-action="keepMemo"><div class="module-icon">📝</div><div class="module-name" data-access-item-card="keep_memo">Keep Memo</div><div class="module-desc">Simpan &amp; kelola catatan memo</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="teal" data-action="loadPencairan"><div class="module-icon">💸</div><div class="module-name" data-access-item-card="saldo_pencairan">Saldo Pencairan</div><div class="module-desc">Monitor rekening &amp; pencairan</div><div class="module-badge">v1.0.0</div></div>
           <div class="module-card" data-color="blue" data-action="apiKey"><div class="module-icon">🔑</div><div class="module-name" data-access-item-card="api_key">API Key</div><div class="module-desc">Manage API credentials</div><div class="module-badge">v2.0.0</div></div>
@@ -980,6 +982,48 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ===== P2M ANALYZER VIEW (inline iframe) ===== -->
+      <div id="analyzerView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/analyzer-tools/analyzer.html?v=1.0.1" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="P2M Data Analyzer"></iframe>
+        </div>
+      </div>
+
+      <!-- ===== XPAY CHECKER VIEW (inline iframe) ===== -->
+      <div id="xpayCheckerView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/xpay-tools/xpay-checker.html?v=3.0.0" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="XPAY Checker - Cari Selisih"></iframe>
+        </div>
+      </div>
+
+      <!-- ===== XPAY SETTLEMENT VIEW (inline iframe) ===== -->
+      <div id="xpayFullView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/xpay-tools/xpay-full-cloudflare.html?v=3.0.0" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="XPAY Settlement Monitoring"></iframe>
+        </div>
+      </div>
+
+      <!-- ===== XPAY SETTLEMENT CHECKER VIEW (inline iframe) ===== -->
+      <div id="xpaySettlementView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/xpay-tools/xpay-settlement-checker.html?v=3.0.1" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="XPAY Settlement Checker"></iframe>
+        </div>
+      </div>
+
+      <!-- ===== EDIT BUKTI VIEW (inline iframe) ===== -->
+      <div id="editBuktiView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/bukti-generator/generate-bukti.html?v=57.0.0" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="Edit Bukti Generator"></iframe>
+        </div>
+      </div>
+
+      <!-- ===== PG REPORT VIEW (inline iframe) ===== -->
+      <div id="pgReportView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/PgReport.html?v=2.3" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="PG Report Engine"></iframe>
         </div>
       </div>
 
@@ -1433,6 +1477,24 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
         case 'profil':
           switchToProfil();
           break;
+        case 'analyzer':
+          switchToAnalyzer();
+          break;
+        case 'xpayChecker':
+          switchToXpayChecker();
+          break;
+        case 'xpayFull':
+          switchToXpayFull();
+          break;
+        case 'xpaySettlementChecker':
+          switchToXpaySettlement();
+          break;
+        case 'editBukti':
+          switchToEditBukti();
+          break;
+        case 'pgReport':
+          switchToPgReport();
+          break;
         case 'comingSoon':
           showToast('Modul ini sedang dalam pengembangan', 'warning');
           addTerminalLog('Access denied: module in development');
@@ -1537,6 +1599,74 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var ipV = document.getElementById('ipWhitelistView'); if (ipV) ipV.style.display = 'none';
       var mev = document.getElementById('myEventView'); if (mev) { mev.style.display = 'none'; if (window.__myEventInterval) { clearInterval(window.__myEventInterval); window.__myEventInterval = null; } }
       var akv = document.getElementById('apiKeyView'); if (akv) akv.style.display = 'none';
+      var anv = document.getElementById('analyzerView'); if (anv) anv.style.display = 'none';
+      var xcv = document.getElementById('xpayCheckerView'); if (xcv) xcv.style.display = 'none';
+      var xfv = document.getElementById('xpayFullView'); if (xfv) xfv.style.display = 'none';
+      var xsv = document.getElementById('xpaySettlementView'); if (xsv) xsv.style.display = 'none';
+      var ebv = document.getElementById('editBuktiView'); if (ebv) ebv.style.display = 'none';
+      var pgV = document.getElementById('pgReportView'); if (pgV) pgV.style.display = 'none';
+    }
+
+    /* === P2M ANALYZER === */
+    function switchToAnalyzer() {
+      hideAllViews();
+      var anv = document.getElementById('analyzerView'); if (anv) anv.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'P2M Analyzer';
+      currentView = 'analyzer';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to P2M Analyzer view');
+    }
+
+    /* === XPAY CHECKER === */
+    function switchToXpayChecker() {
+      hideAllViews();
+      var xcv = document.getElementById('xpayCheckerView'); if (xcv) xcv.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'XPAY Analyzer';
+      currentView = 'xpayChecker';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to XPAY Analyzer view');
+    }
+
+    /* === XPAY SETTLEMENT (Full) === */
+    function switchToXpayFull() {
+      hideAllViews();
+      var xfv = document.getElementById('xpayFullView'); if (xfv) xfv.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'XPAY Settlement';
+      currentView = 'xpayFull';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to XPAY Settlement view');
+    }
+
+    /* === XPAY SETTLEMENT CHECKER === */
+    function switchToXpaySettlement() {
+      hideAllViews();
+      var xsv = document.getElementById('xpaySettlementView'); if (xsv) xsv.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'Settlement Checker';
+      currentView = 'xpaySettlement';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to Settlement Checker view');
+    }
+
+    /* === EDIT BUKTI === */
+    function switchToEditBukti() {
+      hideAllViews();
+      var ebv = document.getElementById('editBuktiView'); if (ebv) ebv.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'Edit Bukti';
+      currentView = 'editBukti';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      var ebNav = document.querySelector('.nav-item[data-action="editBukti"]');
+      if (ebNav) ebNav.classList.add('active');
+      addTerminalLog('Switched to Edit Bukti view');
+    }
+
+    /* === PG REPORT === */
+    function switchToPgReport() {
+      hideAllViews();
+      var pgV = document.getElementById('pgReportView'); if (pgV) pgV.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'PG Report';
+      currentView = 'pgReport';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to PG Report view');
     }
 
     function switchToDashboard() {
