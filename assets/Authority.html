@@ -42,6 +42,18 @@
   <!-- ============ MAIN SHELL ============ -->
   <main class="auth-shell">
 
+    <!-- ============ NAV TABS ============ -->
+    <div class="auth-nav-tabs">
+      <button class="auth-nav-tab active" data-view="users" onclick="window.__AUTH.switchView('users')">
+        <i class="fas fa-users"></i>
+        <span>User Management</span>
+      </button>
+      <button class="auth-nav-tab" data-view="registration" onclick="window.__AUTH.switchView('registration')">
+        <i class="fas fa-clipboard-check"></i>
+        <span>Data Registrasi</span>
+      </button>
+    </div>
+
     <!-- ============================================================ -->
     <!-- ============ VIEW 1: USER MANAGEMENT ======================= -->
     <!-- ============================================================ -->
