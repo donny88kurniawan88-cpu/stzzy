@@ -2192,3 +2192,94 @@
 .pro-quick-btn:hover {
   transform: translateY(-2px);
 }
+
+/* ============================================================
+   SKELETON SHIMMER — elegant loading state for Profil
+   ============================================================ */
+
+.pro-skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: proSkeletonShimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes proSkeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.pro-skeleton-line {
+  border-radius: 6px;
+}
+
+.pro-skeleton-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pro-skeleton-pill {
+  border-radius: 100px;
+}
+
+.pro-skeleton-box {
+  flex: 1;
+}
+
+/* === Module icon upgrade — gradient bg for realistic feel === */
+.pro-module-icon {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(139, 92, 246, 0.05)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  font-size: 17px !important;
+}
+
+.pro-module-card[data-color="blue"]   .pro-module-icon { background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05)) !important; color: #60a5fa !important; }
+.pro-module-card[data-color="green"]  .pro-module-icon { background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05)) !important; color: #34d399 !important; }
+.pro-module-card[data-color="purple"] .pro-module-icon { background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.05)) !important; color: #a78bfa !important; }
+.pro-module-card[data-color="orange"] .pro-module-icon { background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)) !important; color: #fbbf24 !important; }
+.pro-module-card[data-color="teal"]   .pro-module-icon { background: linear-gradient(135deg, rgba(20, 184, 166, 0.15), rgba(20, 184, 166, 0.05)) !important; color: #2dd4bf !important; }
+.pro-module-card[data-color="pink"]   .pro-module-icon { background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(236, 72, 153, 0.05)) !important; color: #f472b6 !important; }
+.pro-module-card[data-color="red"]    .pro-module-icon { background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05)) !important; color: #f87171 !important; }
+
+/* === Stat icon — gradient bg === */
+.pro-stat-card.blue    .pro-stat-icon { background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05)) !important; }
+.pro-stat-card.success .pro-stat-icon { background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05)) !important; }
+.pro-stat-card.warning .pro-stat-icon { background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)) !important; }
+.pro-stat-card.danger  .pro-stat-icon { background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05)) !important; }
+.pro-stat-card.purple  .pro-stat-icon { background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.05)) !important; }
+
+/* === Button structure — more solid/kokoh === */
+.pro-quick-btn {
+  padding: 14px 16px !important;
+  border-radius: 12px !important;
+  font-weight: 600;
+}
+
+.pro-quick-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  font-size: 15px !important;
+}
+
+.pro-me-btn {
+  padding: 11px 18px !important;
+  border-radius: 10px !important;
+  font-weight: 600;
+}
+
+.pro-stat-card {
+  padding: 20px 22px !important;
+}
+
+.pro-module-card {
+  padding: 20px !important;
+  min-height: 160px !important;
+}
