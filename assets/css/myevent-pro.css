@@ -1125,3 +1125,17 @@
   .pro-me-bukti-footer { padding: 12px 18px; flex-direction: column; align-items: stretch; }
   .pro-me-bukti-footer-btn { width: 100%; justify-content: center; }
 }
+
+/* Duplicate periode badge */
+.pro-me-badge.duplicate {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  animation: proPulse 2s infinite;
+}
+.pro-me-badge.duplicate::before { display: none; }
