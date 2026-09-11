@@ -506,7 +506,8 @@
           '<div class="auth-perm-group-head">' +
             '<label class="auth-perm-master" data-key="' + g.key + '">' +
               '<input type="checkbox" data-role="group">' +
-              '<span class="perm-box"><i class="fas fa-check"></i></span>' +
+              /* Checkmark digambar murni via CSS (.perm-box::before) — TIDAK bergantung font/CDN apa pun, pasti selalu tampil */
+              '<span class="perm-box" aria-hidden="true"></span>' +
               '<span class="perm-gicon ' + (g.color || 'blue') + '"><i class="fas ' + g.icon + '"></i></span>' +
               '<span class="perm-gtext">' +
                 '<span class="perm-glabel">' + escapeHtml(g.label) + '</span>' +
@@ -549,7 +550,7 @@
       '<div class="auth-perm-node" data-node="' + it.key + '">' +
         '<label class="auth-perm-item" data-key="' + it.key + '">' +
           '<input type="checkbox">' +
-          '<span class="perm-box"><i class="fas fa-check"></i></span>' +
+          '<span class="perm-box" aria-hidden="true"></span>' +
           '<i class="fas ' + it.icon + ' perm-icon"></i>' +
           '<span class="perm-label">' + escapeHtml(it.label) + '</span>' +
           tag +
