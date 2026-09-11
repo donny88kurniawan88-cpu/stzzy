@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/authority-pro.css?v=2.2.0">
+  <link rel="stylesheet" href="/css/authority-pro.css?v=2.2.1">
 </head>
 <body>
 
@@ -185,8 +185,11 @@
         <!-- Users table -->
         <div class="auth-table-wrap">
           <div class="auth-card-head">
-            <div class="auth-card-head-title"><i class="fas fa-table-list"></i> Daftar User</div>
-            <div class="auth-card-head-sub" id="tableCount">0 user</div>
+            <div class="auth-card-head-left">
+              <div class="auth-card-head-title"><i class="fas fa-table-list"></i> Daftar User</div>
+              <span class="auth-count-chip" id="tableCount" title="Jumlah user sesuai filter aktif"><i class="fas fa-user"></i> 0 user</span>
+            </div>
+            <div class="auth-card-head-sub" id="tableCountHint">&nbsp;</div>
           </div>
           <div class="auth-table-scroll">
             <table class="auth-table">
@@ -314,8 +317,11 @@
         <!-- Pending registrations table -->
         <div class="auth-table-wrap" id="pendingWrap" style="display:none;">
           <div class="auth-card-head">
-            <div class="auth-card-head-title"><i class="fas fa-hourglass-half"></i> Pending Registrations</div>
-            <div class="auth-card-head-sub" id="pendingCount">0 awaiting</div>
+            <div class="auth-card-head-left">
+              <div class="auth-card-head-title"><i class="fas fa-hourglass-half"></i> Pending Registrations</div>
+              <span class="auth-count-chip pending" id="pendingCount"><i class="fas fa-hourglass-half"></i> 0 awaiting</span>
+            </div>
+            <div class="auth-card-head-sub">menunggu persetujuan master</div>
           </div>
           <div class="auth-table-scroll" style="max-height:420px;">
             <table class="auth-table">
@@ -470,6 +476,6 @@
   <div class="auth-toast" id="toastEl"></div>
 
   <!-- ============ EXTERNAL SCRIPT ============ -->
-  <script src="/js/authority-pro.js?v=2.2.0"></script>
+  <script src="/js/authority-pro.js?v=2.2.1"></script>
 </body>
 </html>
