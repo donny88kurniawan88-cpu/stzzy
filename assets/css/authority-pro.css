@@ -140,30 +140,41 @@ body::before {
   border-bottom: 1px solid var(--pro-border-soft);
 }
 
-.auth-breadcrumb {
+/* === Brand identity (topbar kiri) === */
+.auth-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-family: var(--aura-font-mono);
-  font-size: 12px;
-  color: var(--aura-text-secondary);
-  letter-spacing: 0.3px;
-  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.auth-breadcrumb .crumb-user {
-  color: var(--aura-accent-primary);
-  font-weight: 600;
+.auth-brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  color: #60a5fa;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.14));
+  border: 1px solid rgba(59, 130, 246, 0.32);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.16);
 }
 
-.auth-breadcrumb .crumb-sep {
-  color: var(--aura-text-tertiary);
-  opacity: 0.6;
-}
-
-.auth-breadcrumb .crumb-active {
+.auth-brand-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
   color: var(--aura-text-primary);
-  font-weight: 500;
+}
+
+.auth-brand-sub {
+  font-family: var(--aura-font-mono);
+  font-size: 10.5px;
+  color: var(--aura-text-tertiary);
+  letter-spacing: 0.6px;
+  margin-top: 2px;
+  text-transform: uppercase;
 }
 
 .auth-status {
@@ -190,12 +201,13 @@ body::before {
   animation: authorityPulse 2s infinite;
 }
 
-/* === Main content area — sidebar + content === */
+/* === Main content area — sidebar + content (full-width untuk tabel lebar) === */
 .auth-shell {
   position: relative;
   z-index: 1;
-  padding: 24px 28px 48px;
-  max-width: 1480px;
+  padding: 24px 36px 48px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
   display: flex;
   align-items: flex-start;
@@ -2121,6 +2133,11 @@ body::before {
 @media (max-width: 900px) {
   .auth-shell {
     flex-direction: column;
+    align-items: stretch; /* clamp konten ke lebar container — cegah overflow tabel */
+  }
+  .auth-content {
+    width: 100%;
+    min-width: 0;
   }
   .auth-sidebar {
     position: static;
@@ -2189,20 +2206,6 @@ body::before {
     max-width: none;
   }
 }
-
-/* When the page is rendered inside a Dashboard iframe,
-   remove the sticky topbar padding to fit better */
-body.in-iframe .auth-topbar {
-  position: relative;
-  padding: 14px 22px 12px;
-  background: transparent;
-  border-bottom: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-body.in-iframe .auth-shell { padding-top: 6px; }
-body.in-iframe .auth-sidebar { top: 12px; }
 
 @media (max-width: 480px) {
   .auth-stats-grid { grid-template-columns: 1fr; }
