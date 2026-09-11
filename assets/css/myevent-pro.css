@@ -1139,3 +1139,130 @@
   animation: proPulse 2s infinite;
 }
 .pro-me-badge.duplicate::before { display: none; }
+
+/* ============================================================
+   PAGINATION / SHOW-DATA TOGGLE (di bawah tabel)
+   "Showing 1 - 10 out of 436" + Show [10] + « ‹ 1 2 … 44 › »
+   ============================================================ */
+.pro-me-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.pro-me-pagination:empty { display: none; }
+
+.pro-me-page-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.pro-me-page-info {
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pro-me-page-show {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pro-me-perpage {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pro-me-perpage:hover { border-color: rgba(59, 130, 246, 0.35); }
+.pro-me-perpage:focus { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+.pro-me-perpage option { background: #0b0e1a; color: #e2e8f0; }
+
+.pro-me-page-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pro-me-page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.pro-me-page-btn:hover:not(:disabled):not(.active) {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.pro-me-page-btn.active {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.pro-me-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pro-me-page-ellipsis {
+  color: #64748b;
+  font-size: 12px;
+  padding: 0 2px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+@media (max-width: 680px) {
+  .pro-me-pagination { justify-content: center; padding: 12px 14px; }
+  .pro-me-page-left { justify-content: center; }
+}
+
+/* Auto-refresh tag: kondisi pause saat search User ID aktif */
+.pro-me-sub .auto-refresh-tag { transition: all 0.2s; }
+.pro-me-sub .auto-refresh-tag.paused {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
