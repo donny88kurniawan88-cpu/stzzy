@@ -12,6 +12,7 @@
      ============================================================ */
   var NOTES_KEY = 'aura_notes';
   var REMINDERS_KEY = 'aura_reminders';
+  var LOGINS_KEY = 'aura_logins';
   var ACTIVE_TAB_KEY = 'aura_keepmemo_tab';
 
   var NOTE_COLORS = [
@@ -28,11 +29,14 @@
   var state = {
     notes: [],
     reminders: [],
+    logins: [],
     activeTab: 'notes',
     calendarDate: new Date(),
     selectedDay: null,
     editingNoteId: null,
     editingReminderId: null,
+    editingLoginId: null,
+    loginRevealed: {},
     selectedNoteColor: 'blue',
     reminderCheckTimer: null,
     lastReminderToastKeys: {}
@@ -103,6 +107,20 @@
     } catch (e) { console.error('Save reminders error:', e); }
   }
 
+  function loadLogins() {
+    try {
+      var raw = localStorage.getItem(LOGINS_KEY);
+      state.logins = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(state.logins)) state.logins = [];
+    } catch (e) { state.logins = []; }
+  }
+
+  function saveLogins() {
+    try {
+      localStorage.setItem(LOGINS_KEY, JSON.stringify(state.logins));
+    } catch (e) { console.error('Save logins error:', e); }
+  }
+
   function getColorValue(key) {
     for (var i = 0; i < NOTE_COLORS.length; i++) {
       if (NOTE_COLORS[i].key === key) return NOTE_COLORS[i].value;
@@ -155,6 +173,7 @@
     if (tab === 'calendar') renderCalendar();
     if (tab === 'reminders') renderReminders();
     if (tab === 'notes') renderNotes();
+    if (tab === 'logins') renderLogins();
   }
 
   /* ============================================================
@@ -668,6 +687,298 @@
   }
 
   /* ============================================================
+     LOGIN DATA (DATA LOGIN) — Link, Username/Email, Password,
+     PIN, Noted. Popup card 5 field terstruktur.
+     ============================================================ */
+  function hostOf(url) {
+    var s = (url || '').trim();
+    if (!s) return 'Login';
+    try {
+      var u = new URL(s);
+      return u.hostname || s;
+    } catch (e) {
+      return s.replace(/^https?:\/\//i, '').split('/')[0] || s;
+    }
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e2) {}
+    document.body.removeChild(ta);
+  }
+
+  function copyLoginText(text, label) {
+    if (!text) {
+      showToast((label || 'Data') + ' kosong', 'warning');
+      return;
+    }
+    var done = function () { showToast((label || 'Data') + ' tersalin ke clipboard', 'success'); };
+    try {
+      navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text); done(); });
+    } catch (e) {
+      fallbackCopy(text);
+      done();
+    }
+  }
+
+  function renderLogins() {
+    var container = $('#kmLoginsList');
+    if (!container) return;
+    var search = ($('#kmLoginsSearch') && $('#kmLoginsSearch').value || '').toLowerCase().trim();
+    var filtered = state.logins.slice().sort(function (a, b) {
+      return (b.updated_at || b.created_at || 0) - (a.updated_at || a.created_at || 0);
+    }).filter(function (l) {
+      if (!search) return true;
+      return (l.link || '').toLowerCase().indexOf(search) >= 0 ||
+             (l.username || '').toLowerCase().indexOf(search) >= 0 ||
+             (l.noted || '').toLowerCase().indexOf(search) >= 0;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = '' +
+        '<div class="km-empty">' +
+          '<div class="km-empty-icon"><i class="fas fa-user-lock"></i></div>' +
+          '<div class="km-empty-title">' + (search ? 'No matching login data' : 'Belum ada data login') + '</div>' +
+          '<div class="km-empty-desc">' + (search ? 'Coba kata kunci lain.' : 'Klik "+ Add Login" untuk menyimpan data login pertama.') + '</div>' +
+        '</div>';
+      return;
+    }
+
+    var html = '<div class="km-logins-grid">';
+    filtered.forEach(function (l) {
+      var id = l.id;
+      var revealed = state.loginRevealed[id] || {};
+      var host = hostOf(l.link);
+      var passMask = revealed.pass ? escapeHtml(l.password || '') : '••••••••';
+      var pinMask = revealed.pin ? escapeHtml(l.pin || '') : '••••••';
+      var timeLabel = formatRelativeTime(l.updated_at || l.created_at);
+      html += '' +
+        '<div class="km-login-card" data-login-id="' + escapeAttr(id) + '">' +
+          '<div class="km-login-head">' +
+            '<div class="km-login-avatar"><i class="fas fa-user-lock"></i></div>' +
+            '<div class="km-login-idwrap">' +
+              '<div class="km-login-title">' + escapeHtml(host) + '</div>' +
+              (l.link ? '<a class="km-login-link" href="' + escapeAttr(l.link) + '" target="_blank" rel="noopener noreferrer" title="' + escapeAttr(l.link) + '"><i class="fas fa-link"></i> ' + escapeHtml(l.link.length > 42 ? l.link.substring(0, 40) + '…' : l.link) + '</a>' : '<span class="km-login-link" style="color:var(--text-tertiary);">-</span>') +
+            '</div>' +
+            '<div class="km-login-topactions">' +
+              '<span class="km-login-time" title="Terakhir diubah"><i class="fas fa-clock"></i> ' + escapeHtml(timeLabel) + '</span>' +
+              '<button class="km-btn icon edit" data-login-edit="' + escapeAttr(id) + '" title="Edit"><i class="fas fa-pen"></i></button>' +
+              '<button class="km-btn icon danger" data-login-delete="' + escapeAttr(id) + '" title="Delete"><i class="fas fa-trash"></i></button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="km-login-grid">' +
+            '<div class="km-login-field">' +
+              '<label class="km-login-label"><i class="fas fa-envelope"></i> Username / Email</label>' +
+              '<div class="km-login-val">' +
+                '<span class="km-login-mono">' + escapeHtml(l.username || '-') + '</span>' +
+                '<button class="km-mini-btn" data-login-copy="' + escapeAttr(id) + '" data-field="username" title="Copy username"><i class="fas fa-copy"></i></button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="km-login-field">' +
+              '<label class="km-login-label"><i class="fas fa-key"></i> Password</label>' +
+              '<div class="km-login-val">' +
+                '<span class="km-login-mono">' + passMask + '</span>' +
+                '<button class="km-mini-btn' + (revealed.pass ? ' on' : '') + '" data-login-reveal="pass" title="' + (revealed.pass ? 'Sembunyikan' : 'Tampilkan') + ' password"><i class="fas fa-' + (revealed.pass ? 'eye-slash' : 'eye') + '"></i></button>' +
+                '<button class="km-mini-btn" data-login-copy="' + escapeAttr(id) + '" data-field="password" title="Copy password"><i class="fas fa-copy"></i></button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="km-login-field pin">' +
+              '<label class="km-login-label"><i class="fas fa-shield-halved"></i> PIN</label>' +
+              '<div class="km-login-val">' +
+                '<span class="km-login-mono">' + pinMask + '</span>' +
+                '<button class="km-mini-btn' + (revealed.pin ? ' on' : '') + '" data-login-reveal="pin" title="' + (revealed.pin ? 'Sembunyikan' : 'Tampilkan') + ' PIN"><i class="fas fa-' + (revealed.pin ? 'eye-slash' : 'eye') + '"></i></button>' +
+                '<button class="km-mini-btn" data-login-copy="' + escapeAttr(id) + '" data-field="pin" title="Copy PIN"><i class="fas fa-copy"></i></button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="km-login-field noted">' +
+              '<label class="km-login-label"><i class="fas fa-note-sticky"></i> Noted</label>' +
+              '<div class="km-login-val noted">' + escapeHtml(l.noted || '-') + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Wire events (delegation per element, pola sama dgn notes)
+    $$('[data-login-edit]', container).forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openLoginModal(btn.getAttribute('data-login-edit'));
+      });
+    });
+    $$('[data-login-delete]', container).forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        deleteLogin(btn.getAttribute('data-login-delete'));
+      });
+    });
+    $$('[data-login-reveal]', container).forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var card = btn.closest('.km-login-card');
+        if (!card) return;
+        toggleLoginReveal(card.getAttribute('data-login-id'), btn.getAttribute('data-login-reveal'));
+      });
+    });
+    $$('[data-login-copy]', container).forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var card = btn.closest('.km-login-card');
+        if (!card) return;
+        var id = card.getAttribute('data-login-id');
+        var field = btn.getAttribute('data-field');
+        var item = state.logins.filter(function (x) { return x.id === id; })[0];
+        if (!item) return;
+        var labels = { username: 'Username', password: 'Password', pin: 'PIN' };
+        copyLoginText(item[field] || '', labels[field] || field);
+      });
+    });
+  }
+
+  function openLoginModal(loginId) {
+    state.editingLoginId = loginId || null;
+    var item = loginId ? state.logins.filter(function (l) { return l.id === loginId; })[0] : null;
+
+    var overlay = $('#kmLoginModal');
+    if (!overlay) return;
+
+    $('#kmLoginModalTitle').innerHTML = item ? '<i class="fas fa-pen"></i> Edit Data Login' : '<i class="fas fa-user-plus"></i> Simpan Data Login';
+    $('#kmLoginLink').value = item ? (item.link || '') : '';
+    $('#kmLoginUser').value = item ? (item.username || '') : '';
+    $('#kmLoginPass').value = item ? (item.password || '') : '';
+    $('#kmLoginPin').value = item ? (item.pin || '') : '';
+    $('#kmLoginNoted').value = item ? (item.noted || '') : '';
+    // Reset eye ke mode tersembunyi
+    resetLoginModalEyes();
+
+    overlay.classList.add('active');
+    setTimeout(function () { $('#kmLoginLink').focus(); }, 200);
+  }
+
+  function closeLoginModal() {
+    var overlay = $('#kmLoginModal');
+    if (overlay) overlay.classList.remove('active');
+    state.editingLoginId = null;
+  }
+
+  function resetLoginModalEyes() {
+    [['kmLoginPass', 'kmLoginPassEye'], ['kmLoginPin', 'kmLoginPinEye']].forEach(function (pair) {
+      var input = document.getElementById(pair[0]);
+      var btn = document.getElementById(pair[1]);
+      if (input) input.type = 'password';
+      if (btn) {
+        btn.classList.remove('on');
+        var icon = btn.querySelector('i');
+        if (icon) icon.className = 'fas fa-eye';
+      }
+    });
+  }
+
+  function toggleLoginModalEye(inputId, btnId) {
+    var input = document.getElementById(inputId);
+    var btn = document.getElementById(btnId);
+    if (!input || !btn) return;
+    var icon = btn.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      if (icon) icon.className = 'fas fa-eye-slash';
+      btn.classList.add('on');
+    } else {
+      input.type = 'password';
+      if (icon) icon.className = 'fas fa-eye';
+      btn.classList.remove('on');
+    }
+  }
+
+  function saveLogin() {
+    var link = $('#kmLoginLink').value.trim();
+    var username = $('#kmLoginUser').value.trim();
+    var password = $('#kmLoginPass').value;
+    var pin = $('#kmLoginPin').value.trim();
+    var noted = $('#kmLoginNoted').value.trim();
+
+    if (!link) {
+      showToast('Link wajib diisi', 'warning');
+      return;
+    }
+    if (!username) {
+      showToast('Username / Email wajib diisi', 'warning');
+      return;
+    }
+
+    var now = Date.now();
+    if (state.editingLoginId) {
+      state.logins.forEach(function (l) {
+        if (l.id === state.editingLoginId) {
+          l.link = link;
+          l.username = username;
+          l.password = password;
+          l.pin = pin;
+          l.noted = noted;
+          l.updated_at = now;
+        }
+      });
+      showToast('Data login diperbarui', 'success');
+      addTerminalLog('KeepMemo: login data updated (' + state.editingLoginId + ')');
+    } else {
+      var item = {
+        id: uuid(),
+        link: link,
+        username: username,
+        password: password,
+        pin: pin,
+        noted: noted,
+        created_at: now,
+        updated_at: now
+      };
+      state.logins.push(item);
+      showToast('Data login tersimpan', 'success');
+      addTerminalLog('KeepMemo: login data created (' + item.id + ')');
+    }
+    saveLogins();
+    closeLoginModal();
+    renderLogins();
+    updateTabBadges();
+  }
+
+  function deleteLogin(id) {
+    var item = state.logins.filter(function (l) { return l.id === id; })[0];
+    if (!item) return;
+    if (typeof window.showPopup === 'function') {
+      window.showPopup(
+        'Delete Login Data',
+        '<div style="padding:18px; color:var(--text-secondary); text-align:center;"><p>Hapus data login <strong style="color:var(--text-primary);">' + escapeHtml(hostOf(item.link)) + '</strong>?</p><p style="font-size:12px; color:var(--text-tertiary); margin-top:6px;">This action cannot be undone.</p></div>',
+        true,
+        function () { confirmDeleteLogin(id); }
+      );
+    } else {
+      if (confirm('Hapus data login ini?')) confirmDeleteLogin(id);
+    }
+  }
+
+  function confirmDeleteLogin(id) {
+    state.logins = state.logins.filter(function (l) { return l.id !== id; });
+    delete state.loginRevealed[id];
+    saveLogins();
+    renderLogins();
+    updateTabBadges();
+    showToast('Data login dihapus', 'success');
+    addTerminalLog('KeepMemo: login data deleted (' + id + ')');
+  }
+
+  function toggleLoginReveal(id, field) {
+    if (!state.loginRevealed[id]) state.loginRevealed[id] = {};
+    state.loginRevealed[id][field] = !state.loginRevealed[id][field];
+    renderLogins();
+  }
+
+  /* ============================================================
      EXPORT
      ============================================================ */
   function exportData() {
@@ -675,10 +986,11 @@
       _meta: {
         exported_at: new Date().toISOString(),
         app: 'AURA.OS Keep Memo',
-        version: '1.0.0'
+        version: '1.1.0'
       },
       notes: state.notes,
-      reminders: state.reminders
+      reminders: state.reminders,
+      logins: state.logins
     };
     var json = JSON.stringify(exportObj, null, 2);
     var blob = new Blob([json], { type: 'application/json' });
@@ -691,8 +1003,8 @@
     a.click();
     document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-    showToast('Notes & reminders exported (' + state.notes.length + ' notes, ' + state.reminders.length + ' reminders)', 'success');
-    addTerminalLog('KeepMemo: export (' + state.notes.length + ' notes, ' + state.reminders.length + ' reminders)');
+    showToast('Data exported (' + state.notes.length + ' notes, ' + state.reminders.length + ' reminders, ' + state.logins.length + ' logins)', 'success');
+    addTerminalLog('KeepMemo: export (' + state.notes.length + ' notes, ' + state.reminders.length + ' reminders, ' + state.logins.length + ' logins)');
   }
 
   /* ============================================================
@@ -701,8 +1013,10 @@
   function updateTabBadges() {
     var notesBadge = $('#kmTabNotesBadge');
     var remBadge = $('#kmTabRemindersBadge');
+    var loginBadge = $('#kmTabLoginsBadge');
     if (notesBadge) notesBadge.textContent = String(state.notes.length);
     if (remBadge) remBadge.textContent = String(state.reminders.length);
+    if (loginBadge) loginBadge.textContent = String(state.logins.length);
   }
 
   /* ============================================================
@@ -715,7 +1029,7 @@
           '<div class="km-title-block">' +
             '<div class="km-eyebrow"><span class="pulse-dot"></span> Productivity Suite</div>' +
             '<div class="km-title"><i class="fas fa-bookmark"></i> Keep Memo</div>' +
-            '<div class="sp-sub" style="font-size:12.5px; color:#64748b;">Notes, calendar, dan reminders <span class="km-stat-tag"><i class="fas fa-cloud"></i> Local Storage</span></div>' +
+            '<div class="sp-sub" style="font-size:12.5px; color:#64748b;">Notes, calendar, reminders & data login <span class="km-stat-tag"><i class="fas fa-cloud"></i> Local Storage</span></div>' +
           '</div>' +
           '<div style="display:flex; gap:8px;">' +
             '<button class="km-btn secondary" id="kmExportBtn"><i class="fas fa-file-export"></i> Export</button>' +
@@ -726,6 +1040,7 @@
           '<button class="km-tab active" data-tab="notes"><i class="fas fa-bookmark"></i> Notes <span class="km-tab-badge" id="kmTabNotesBadge">0</span></button>' +
           '<button class="km-tab" data-tab="calendar"><i class="fas fa-calendar"></i> Calendar</button>' +
           '<button class="km-tab" data-tab="reminders"><i class="fas fa-bell"></i> Reminders <span class="km-tab-badge" id="kmTabRemindersBadge">0</span></button>' +
+          '<button class="km-tab" data-tab="logins"><i class="fas fa-user-lock"></i> Data Login <span class="km-tab-badge" id="kmTabLoginsBadge">0</span></button>' +
         '</div>' +
 
         // NOTES PANEL
@@ -761,6 +1076,15 @@
             '<button class="km-btn" id="kmNewReminderBtn" style="margin-left:auto;"><i class="fas fa-plus"></i> New Reminder</button>' +
           '</div>' +
           '<div id="kmRemindersList"></div>' +
+        '</div>' +
+
+        // LOGIN DATA PANEL
+        '<div class="km-panel" data-panel="logins">' +
+          '<div class="km-toolbar">' +
+            '<div class="km-search"><i class="fas fa-search"></i><input type="text" id="kmLoginsSearch" placeholder="Search link, username, noted..."></div>' +
+            '<button class="km-btn" id="kmNewLoginBtn"><i class="fas fa-plus"></i> Add Login</button>' +
+          '</div>' +
+          '<div id="kmLoginsList"></div>' +
         '</div>' +
       '</div>' +
 
@@ -822,6 +1146,59 @@
           '<div class="km-modal-footer">' +
             '<button class="km-btn secondary" id="kmReminderModalCancel">Cancel</button>' +
             '<button class="km-btn" id="kmReminderModalSave"><i class="fas fa-save"></i> Save Reminder</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+
+      // LOGIN DATA MODAL — 5 kolom terpisah dalam satu card popup
+      '<div class="km-modal-overlay" id="kmLoginModal">' +
+        '<div class="km-modal km-login-modal">' +
+          '<div class="km-modal-header login">' +
+            '<div class="km-modal-title" id="kmLoginModalTitle"><i class="fas fa-user-plus"></i> Simpan Data Login</div>' +
+            '<button class="km-modal-close" id="kmLoginModalClose"><i class="fas fa-times"></i></button>' +
+          '</div>' +
+          '<div class="km-modal-body">' +
+            '<div class="km-login-form-note"><i class="fas fa-shield-halved"></i> Data login tersimpan lokal di perangkat ini — password & PIN termasking otomatis</div>' +
+            '<div class="km-field">' +
+              '<label class="km-field-label"><i class="fas fa-link"></i> Link</label>' +
+              '<div class="km-input-iconwrap">' +
+                '<i class="fas fa-globe"></i>' +
+                '<input type="text" class="km-input has-icon" id="kmLoginLink" placeholder="https://situs.com/login" maxlength="300">' +
+              '</div>' +
+            '</div>' +
+            '<div class="km-field">' +
+              '<label class="km-field-label"><i class="fas fa-envelope"></i> Username / Email</label>' +
+              '<div class="km-input-iconwrap">' +
+                '<i class="fas fa-user"></i>' +
+                '<input type="text" class="km-input has-icon" id="kmLoginUser" placeholder="username atau email" maxlength="120">' +
+              '</div>' +
+            '</div>' +
+            '<div class="km-field-row">' +
+              '<div class="km-field">' +
+                '<label class="km-field-label"><i class="fas fa-key"></i> Password</label>' +
+                '<div class="km-input-iconwrap">' +
+                  '<i class="fas fa-asterisk"></i>' +
+                  '<input type="password" class="km-input has-icon has-eye" id="kmLoginPass" placeholder="password" maxlength="64" autocomplete="off">' +
+                  '<button type="button" class="km-eye-btn" id="kmLoginPassEye" title="Show/Hide password"><i class="fas fa-eye"></i></button>' +
+                '</div>' +
+              '</div>' +
+              '<div class="km-field km-field-pin">' +
+                '<label class="km-field-label"><i class="fas fa-shield-halved"></i> PIN</label>' +
+                '<div class="km-input-iconwrap">' +
+                  '<i class="fas fa-hashtag"></i>' +
+                  '<input type="password" class="km-input has-icon has-eye" id="kmLoginPin" placeholder="pin" maxlength="8" inputmode="numeric" autocomplete="off">' +
+                  '<button type="button" class="km-eye-btn" id="kmLoginPinEye" title="Show/Hide PIN"><i class="fas fa-eye"></i></button>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="km-field">' +
+              '<label class="km-field-label"><i class="fas fa-note-sticky"></i> Noted</label>' +
+              '<textarea class="km-textarea" id="kmLoginNoted" placeholder="Catatan tambahan..." maxlength="500" style="min-height:64px;"></textarea>' +
+            '</div>' +
+          '</div>' +
+          '<div class="km-modal-footer">' +
+            '<button class="km-btn secondary" id="kmLoginModalCancel">Cancel</button>' +
+            '<button class="km-btn" id="kmLoginModalSave"><i class="fas fa-user-lock"></i> Save Login</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -887,6 +1264,33 @@
       if (e.target === remModal) closeReminderModal();
     });
 
+    // Login Data
+    var newLoginBtn = $('#kmNewLoginBtn');
+    if (newLoginBtn) newLoginBtn.addEventListener('click', function () { openLoginModal(null); });
+
+    var loginsSearch = $('#kmLoginsSearch');
+    if (loginsSearch) loginsSearch.addEventListener('input', renderLogins);
+
+    var loginSave = $('#kmLoginModalSave');
+    if (loginSave) loginSave.addEventListener('click', saveLogin);
+
+    var loginCancel = $('#kmLoginModalCancel');
+    if (loginCancel) loginCancel.addEventListener('click', closeLoginModal);
+
+    var loginClose = $('#kmLoginModalClose');
+    if (loginClose) loginClose.addEventListener('click', closeLoginModal);
+
+    var loginModal = $('#kmLoginModal');
+    if (loginModal) loginModal.addEventListener('click', function (e) {
+      if (e.target === loginModal) closeLoginModal();
+    });
+
+    var passEye = $('#kmLoginPassEye');
+    if (passEye) passEye.addEventListener('click', function () { toggleLoginModalEye('kmLoginPass', 'kmLoginPassEye'); });
+
+    var pinEye = $('#kmLoginPinEye');
+    if (pinEye) pinEye.addEventListener('click', function () { toggleLoginModalEye('kmLoginPin', 'kmLoginPinEye'); });
+
     // Export
     var exportBtn = $('#kmExportBtn');
     if (exportBtn) exportBtn.addEventListener('click', exportData);
@@ -896,11 +1300,13 @@
       if (e.key === 'Escape') {
         if ($('#kmNoteModal') && $('#kmNoteModal').classList.contains('active')) closeNoteModal();
         if ($('#kmReminderModal') && $('#kmReminderModal').classList.contains('active')) closeReminderModal();
+        if ($('#kmLoginModal') && $('#kmLoginModal').classList.contains('active')) closeLoginModal();
       }
       // Ctrl/Cmd+Enter to save in modals
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         if ($('#kmNoteModal') && $('#kmNoteModal').classList.contains('active')) saveNote();
         if ($('#kmReminderModal') && $('#kmReminderModal').classList.contains('active')) saveReminder();
+        if ($('#kmLoginModal') && $('#kmLoginModal').classList.contains('active')) saveLogin();
       }
     });
   }
@@ -916,6 +1322,7 @@
     }
     loadNotes();
     loadReminders();
+    loadLogins();
     renderShell(container);
     wireEvents();
 
@@ -933,12 +1340,13 @@
     state.reminderCheckTimer = setInterval(checkUpcomingReminders, 30000); // every 30s
     checkUpcomingReminders(); // initial check
 
-    addTerminalLog('KeepMemoPro panel loaded (' + state.notes.length + ' notes, ' + state.reminders.length + ' reminders)');
+    addTerminalLog('KeepMemoPro panel loaded (' + state.notes.length + ' notes, ' + state.reminders.length + ' reminders, ' + state.logins.length + ' logins)');
   }
 
   function init() {
     loadNotes();
     loadReminders();
+    loadLogins();
     // Start reminder checker on init so toasts fire even if user hasn't opened the panel
     if (state.reminderCheckTimer) clearInterval(state.reminderCheckTimer);
     state.reminderCheckTimer = setInterval(checkUpcomingReminders, 30000);
@@ -954,12 +1362,15 @@
     load: load,
     getNotes: function () { return state.notes.slice(); },
     getReminders: function () { return state.reminders.slice(); },
+    getLogins: function () { return state.logins.slice(); },
     refresh: function () {
       loadNotes();
       loadReminders();
+      loadLogins();
       renderNotes();
       renderReminders();
       renderCalendar();
+      renderLogins();
       updateTabBadges();
     },
     exportData: exportData
