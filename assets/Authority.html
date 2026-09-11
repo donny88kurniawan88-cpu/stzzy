@@ -6,7 +6,7 @@
   <title>Authority Panel - AURA.OS</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/authority-pro.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/authority-pro.css?v=2.0.0">
 </head>
 <body>
 
@@ -19,253 +19,328 @@
       <span class="crumb-sep">/</span>
       <span class="crumb-active" id="crumbView">user-management</span>
     </div>
-    <div class="auth-status">
-      <span class="dot"></span>
-      <span>System Online</span>
+    <div class="auth-topbar-right">
+      <span class="auth-role-chip" id="topRoleChip"><i class="fas fa-shield-halved"></i> --</span>
+      <div class="auth-status">
+        <span class="dot"></span>
+        <span>System Online</span>
+      </div>
     </div>
   </header>
 
-  <!-- ============ ACCESS DENIED OVERLAY (shown if MEMBER tries to access) ============ -->
+  <!-- ============ ACCESS DENIED OVERLAY ============ -->
   <div id="accessDenied" style="display:none; position:fixed; inset:0; align-items:center; justify-content:center; flex-direction:column; gap:18px; padding:40px; text-align:center; z-index:50; background:radial-gradient(ellipse at center, rgba(239,68,68,0.06), transparent 70%), var(--aura-bg-primary, #0a0a0f);">
     <div style="width:80px; height:80px; border-radius:50%; background:rgba(239,68,68,0.10); border:2px solid rgba(239,68,68,0.25); display:flex; align-items:center; justify-content:center; font-size:34px; color:#f87171;">
       <i class="fas fa-shield-halved"></i>
     </div>
     <div>
       <div style="font-size:20px; font-weight:800; color:#f1f5f9; margin-bottom:8px;">Akses Ditolak</div>
-      <div style="font-size:13px; color:#94a3b8; max-width:420px; line-height:1.55;">Halaman ini khusus untuk <b style="color:#fbbf24;">Master</b> atau <b style="color:#60a5fa;">Admin</b>. Member tidak memiliki akses ke Authority Panel.</div>
+      <div style="font-size:13px; color:#94a3b8; max-width:440px; line-height:1.55;">Anda tidak memiliki izin <b style="color:#fbbf24;">authority_panel</b> pada Access Control. Silakan hubungi Master/Admin untuk memberikan akses modul ini.</div>
     </div>
-    <button class="auth-btn auth-btn-primary" onclick="window.location.href='/Dashboard.html'">
+    <button class="auth-btn auth-btn-primary" data-action="goDashboard">
       <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
     </button>
   </div>
 
-  <!-- ============ MAIN SHELL ============ -->
-  <main class="auth-shell">
+  <!-- ============ MAIN SHELL : SIDEBAR + CONTENT ============ -->
+  <main class="auth-shell" id="authShell">
 
-    <!-- ============ NAV TABS ============ -->
-    <div class="auth-nav-tabs">
-      <button class="auth-nav-tab active" data-view="users" onclick="window.__AUTH.switchView('users')">
-        <i class="fas fa-users"></i>
-        <span>User Management</span>
-      </button>
-      <button class="auth-nav-tab" data-view="registration" onclick="window.__AUTH.switchView('registration')">
-        <i class="fas fa-clipboard-check"></i>
-        <span>Data Registrasi</span>
-      </button>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- ============ VIEW 1: USER MANAGEMENT ======================= -->
-    <!-- ============================================================ -->
-    <section class="auth-view active" id="viewUsers">
-
-      <!-- Section header -->
-      <div class="auth-section-head">
-        <div class="auth-section-head-left">
-          <div class="auth-section-icon"><i class="fas fa-users-cog"></i></div>
-          <div>
-            <div class="auth-section-title">User Management</div>
-            <div class="auth-section-subtitle">Authority &middot; Access Control &middot; Manage all system users</div>
-          </div>
-        </div>
-        <div class="auth-section-head-right">
-          <button class="auth-btn auth-btn-ghost" data-action="goDashboard">
-            <i class="fas fa-arrow-left"></i> Dashboard
-          </button>
-          <button class="auth-btn auth-btn-primary" data-action="openAddUser">
-            <i class="fas fa-user-plus"></i> Add User
-          </button>
+    <!-- ============ SIDEBAR (SUB-MENU NAV) ============ -->
+    <aside class="auth-sidebar">
+      <div class="auth-side-head">
+        <div class="auth-side-badge"><i class="fas fa-user-shield"></i></div>
+        <div class="auth-side-head-text">
+          <div class="auth-side-label">Authority</div>
+          <div class="auth-side-sub">Access Control Center</div>
         </div>
       </div>
 
-      <!-- Stats grid: Total / Masters / Admins / Members / Pending -->
-      <div class="auth-stats-grid">
-        <div class="auth-stat blue">
-          <div class="auth-stat-header">
-            <div class="auth-stat-icon"><i class="fas fa-users"></i></div>
-          </div>
-          <div class="auth-stat-label">Total Users</div>
-          <div class="auth-stat-value" id="statTotal">0</div>
-          <div class="auth-stat-trend" id="statTotalTrend"><i class="fas fa-circle-check"></i> 0 active</div>
-        </div>
-        <div class="auth-stat warning">
-          <div class="auth-stat-header">
-            <div class="auth-stat-icon"><i class="fas fa-crown"></i></div>
-          </div>
-          <div class="auth-stat-label">Masters</div>
-          <div class="auth-stat-value" id="statMasters">0</div>
-          <div class="auth-stat-trend">super admin</div>
-        </div>
-        <div class="auth-stat purple">
-          <div class="auth-stat-header">
-            <div class="auth-stat-icon"><i class="fas fa-user-shield"></i></div>
-          </div>
-          <div class="auth-stat-label">Admins</div>
-          <div class="auth-stat-value" id="statAdmins">0</div>
-          <div class="auth-stat-trend">elevated</div>
-        </div>
-        <div class="auth-stat teal">
-          <div class="auth-stat-header">
-            <div class="auth-stat-icon"><i class="fas fa-user"></i></div>
-          </div>
-          <div class="auth-stat-label">Members</div>
-          <div class="auth-stat-value" id="statMembers">0</div>
-          <div class="auth-stat-trend">standard</div>
-        </div>
-        <div class="auth-stat danger">
-          <div class="auth-stat-header">
-            <div class="auth-stat-icon"><i class="fas fa-hourglass-half"></i></div>
-          </div>
-          <div class="auth-stat-label">Pending</div>
-          <div class="auth-stat-value" id="statPending">0</div>
-          <div class="auth-stat-trend">awaiting approval</div>
-        </div>
+      <div class="auth-side-sep">Sub Menu</div>
+
+      <nav class="auth-side-nav">
+        <button class="auth-side-item active" data-view="users" id="sideUsers">
+          <span class="asi-icon"><i class="fas fa-users-cog"></i></span>
+          <span class="asi-text">
+            <span class="asi-title">User Management</span>
+            <span class="asi-desc">Kelola akun &amp; akses user</span>
+          </span>
+          <span class="asi-arrow"><i class="fas fa-chevron-right"></i></span>
+        </button>
+
+        <button class="auth-side-item" data-view="registration" id="sideRegis">
+          <span class="asi-icon purple"><i class="fas fa-clipboard-check"></i></span>
+          <span class="asi-text">
+            <span class="asi-title">Data Registrasi</span>
+            <span class="asi-desc">Kontrol registrasi mandiri</span>
+          </span>
+          <span class="asi-arrow"><i class="fas fa-chevron-right"></i></span>
+        </button>
+      </nav>
+
+      <div class="auth-side-note" id="sideNote">
+        <i class="fas fa-circle-info"></i>
+        <span>Perubahan access control langsung tersinkron ke semua perangkat (maks. 5 detik).</span>
       </div>
 
-      <!-- Toolbar (search) -->
-      <div class="auth-toolbar">
-        <div class="auth-search">
-          <i class="fas fa-search"></i>
-          <input type="text" id="searchInput" placeholder="Cari username atau role..." aria-label="Cari user">
-        </div>
+      <div class="auth-side-foot">
+        <button class="auth-btn auth-btn-ghost auth-btn-block" data-action="goDashboard">
+          <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+        </button>
       </div>
+    </aside>
 
-      <!-- Users table -->
-      <div class="auth-table-wrap">
-        <div class="auth-table-scroll">
-          <table class="auth-table">
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Access Control</th>
-                <th class="text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody id="userTableBody">
-              <tr class="loading-row"><td colspan="4"><i class="fas fa-spinner"></i> Memuat data user...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <!-- ============ CONTENT AREA ============ -->
+    <section class="auth-content">
 
-    </section>
+      <!-- ============================================================ -->
+      <!-- ============ VIEW 1: USER MANAGEMENT ======================= -->
+      <!-- ============================================================ -->
+      <div class="auth-view active" id="viewUsers">
 
-    <!-- ============================================================ -->
-    <!-- ============ VIEW 2: DATA REGISTRASI ======================= -->
-    <!-- ============================================================ -->
-    <section class="auth-view" id="viewRegistration">
-
-      <!-- Section header -->
-      <div class="auth-section-head">
-        <div class="auth-section-head-left">
-          <div class="auth-section-icon purple"><i class="fas fa-clipboard-check"></i></div>
-          <div>
-            <div class="auth-section-title">Data Registrasi</div>
-            <div class="auth-section-subtitle">Authority &middot; Kontrol menu "Register Akun Baru" pada halaman Login</div>
+        <!-- Section header -->
+        <div class="auth-section-head">
+          <div class="auth-section-head-left">
+            <div class="auth-section-icon"><i class="fas fa-users-cog"></i></div>
+            <div>
+              <div class="auth-section-title">User Management</div>
+              <div class="auth-section-subtitle">Authority &middot; Access Control &middot; Kelola seluruh user sistem</div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Stats grid -->
-      <div class="auth-stats-grid">
-        <div class="auth-stat success">
-          <div class="auth-stat-header">
-            <div class="auth-stat-icon"><i class="fas fa-door-open"></i></div>
-          </div>
-          <div class="auth-stat-label">Status Registrasi</div>
-          <div class="auth-stat-value text-md" id="statRegisStatus">-</div>
-        </div>
-        <div class="auth-stat blue">
-          <div class="auth-stat-header">
-            <div class="auth-stat-icon"><i class="fas fa-user-tag"></i></div>
-          </div>
-          <div class="auth-stat-label">Default Role Baru</div>
-          <div class="auth-stat-value text-sm" id="statDefaultRole" style="color:#60a5fa;">MEMBER</div>
-        </div>
-        <div class="auth-stat warning">
-          <div class="auth-stat-header">
-            <div class="auth-stat-icon"><i class="fas fa-hourglass-half"></i></div>
-          </div>
-          <div class="auth-stat-label">Pending Approval</div>
-          <div class="auth-stat-value" id="statPending2">0</div>
-          <div class="auth-stat-trend">needs review</div>
-        </div>
-      </div>
-
-      <!-- Settings card -->
-      <div class="auth-settings-card">
-        <div class="auth-setting-row">
-          <div class="auth-setting-info">
-            <div class="auth-setting-title">Buka Pendaftaran <span style="color:var(--aura-text-tertiary); font-weight:500;">(Registration Open)</span></div>
-            <div class="auth-setting-desc">Jika <b>ON</b>, tombol <b>"+ Register Akun Baru"</b> aktif di halaman Login. Jika <b>OFF</b>, tombol register akan disembunyikan dan endpoint register ditolak server.</div>
-          </div>
-          <div class="auth-setting-control">
-            <label class="auth-switch">
-              <input type="checkbox" id="regisOpen">
-              <span class="auth-slider"></span>
-            </label>
-          </div>
-        </div>
-        <div class="auth-setting-row">
-          <div class="auth-setting-info">
-            <div class="auth-setting-title">Default Role Pendaftar</div>
-            <div class="auth-setting-desc">Role otomatis yang diberikan ke akun hasil register mandiri dari halaman Login.</div>
-          </div>
-          <div class="auth-setting-control">
-            <select id="regisDefaultRole" class="auth-select auth-input-width-sm">
-              <option value="MEMBER">Member</option>
-              <option value="ADMIN">Admin</option>
-            </select>
-          </div>
-        </div>
-        <div class="auth-setting-row">
-          <div class="auth-setting-info">
-            <div class="auth-setting-title">Approval Manual</div>
-            <div class="auth-setting-desc">Jika <b>ON</b>, akun baru hasil register berstatus <b>PENDING</b> dan harus disetujui Master/Admin di tabel bawah sebelum bisa login.</div>
-          </div>
-          <div class="auth-setting-control">
-            <label class="auth-switch">
-              <input type="checkbox" id="regisApproval">
-              <span class="auth-slider"></span>
-            </label>
-          </div>
-        </div>
-        <div class="auth-setting-row">
-          <div class="auth-setting-info">
-            <div class="auth-setting-desc">Perubahan langsung berlaku pada halaman <b>Login.html</b>.</div>
-          </div>
-          <div class="auth-setting-control">
-            <button class="auth-btn auth-btn-primary" data-action="saveRegis">
-              <i class="fas fa-save"></i> Simpan Konfigurasi
+          <div class="auth-section-head-right">
+            <button class="auth-btn auth-btn-ghost" id="refreshUsersBtn" title="Refresh data">
+              <i class="fas fa-rotate"></i> Refresh
+            </button>
+            <button class="auth-btn auth-btn-primary" data-action="openAddUser" id="addUserBtn">
+              <i class="fas fa-user-plus"></i> Add User
             </button>
           </div>
         </div>
+
+        <!-- Stats grid -->
+        <div class="auth-stats-grid">
+          <div class="auth-stat blue">
+            <div class="auth-stat-header">
+              <div class="auth-stat-icon"><i class="fas fa-users"></i></div>
+            </div>
+            <div class="auth-stat-label">Total Users</div>
+            <div class="auth-stat-value" id="statTotal">0</div>
+            <div class="auth-stat-trend" id="statTotalTrend"><i class="fas fa-circle-check"></i> 0 active</div>
+          </div>
+          <div class="auth-stat warning">
+            <div class="auth-stat-header">
+              <div class="auth-stat-icon"><i class="fas fa-crown"></i></div>
+            </div>
+            <div class="auth-stat-label">Masters</div>
+            <div class="auth-stat-value" id="statMasters">0</div>
+            <div class="auth-stat-trend">super admin</div>
+          </div>
+          <div class="auth-stat purple">
+            <div class="auth-stat-header">
+              <div class="auth-stat-icon"><i class="fas fa-user-shield"></i></div>
+            </div>
+            <div class="auth-stat-label">Admins</div>
+            <div class="auth-stat-value" id="statAdmins">0</div>
+            <div class="auth-stat-trend">elevated</div>
+          </div>
+          <div class="auth-stat teal">
+            <div class="auth-stat-header">
+              <div class="auth-stat-icon"><i class="fas fa-user"></i></div>
+            </div>
+            <div class="auth-stat-label">Members</div>
+            <div class="auth-stat-value" id="statMembers">0</div>
+            <div class="auth-stat-trend">standard</div>
+          </div>
+          <div class="auth-stat danger">
+            <div class="auth-stat-header">
+              <div class="auth-stat-icon"><i class="fas fa-hourglass-half"></i></div>
+            </div>
+            <div class="auth-stat-label">Pending</div>
+            <div class="auth-stat-value" id="statPending">0</div>
+            <div class="auth-stat-trend">awaiting approval</div>
+          </div>
+        </div>
+
+        <!-- Toolbar: search + filters -->
+        <div class="auth-toolbar">
+          <div class="auth-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Cari username, role, atau pemberi akses..." aria-label="Cari user">
+          </div>
+          <div class="auth-toolbar-filters">
+            <select id="filterRole" class="auth-select auth-select-compact" aria-label="Filter role">
+              <option value="ALL">Semua Role</option>
+              <option value="MASTER">Master</option>
+              <option value="ADMIN">Admin</option>
+              <option value="MEMBER">Member</option>
+            </select>
+            <select id="filterStatus" class="auth-select auth-select-compact" aria-label="Filter status">
+              <option value="ALL">Semua Status</option>
+              <option value="ACTIVE">Active</option>
+              <option value="PENDING">Pending</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Users table -->
+        <div class="auth-table-wrap">
+          <div class="auth-card-head">
+            <div class="auth-card-head-title"><i class="fas fa-table-list"></i> Daftar User</div>
+            <div class="auth-card-head-sub" id="tableCount">0 user</div>
+          </div>
+          <div class="auth-table-scroll">
+            <table class="auth-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Access Control</th>
+                  <th class="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody">
+                <tr class="loading-row"><td colspan="5"><i class="fas fa-spinner"></i> Memuat data user...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="auth-pagination" id="paginationBar">
+            <button class="auth-btn auth-btn-ghost auth-btn-sm" id="pagePrev" disabled><i class="fas fa-chevron-left"></i> Prev</button>
+            <span class="auth-page-info" id="pageInfo">Page 1 / 1</span>
+            <button class="auth-btn auth-btn-ghost auth-btn-sm" id="pageNext" disabled>Next <i class="fas fa-chevron-right"></i></button>
+          </div>
+        </div>
+
       </div>
 
-      <!-- Pending registrations table -->
-      <div class="auth-table-wrap" id="pendingWrap" style="display:none;">
-        <div class="auth-card-head" style="padding:16px 22px; margin-bottom:0; border-bottom:1px solid var(--pro-border-soft);">
-          <div class="auth-card-head-title"><i class="fas fa-hourglass-half"></i> Pending Registrations</div>
-          <div class="auth-card-head-sub" id="pendingCount">0 awaiting</div>
+      <!-- ============================================================ -->
+      <!-- ============ VIEW 2: DATA REGISTRASI ======================= -->
+      <!-- ============================================================ -->
+      <div class="auth-view" id="viewRegistration">
+
+        <!-- Section header -->
+        <div class="auth-section-head">
+          <div class="auth-section-head-left">
+            <div class="auth-section-icon purple"><i class="fas fa-clipboard-check"></i></div>
+            <div>
+              <div class="auth-section-title">Data Registrasi</div>
+              <div class="auth-section-subtitle">Authority &middot; Kontrol menu &ldquo;Register Akun Baru&rdquo; pada halaman Login</div>
+            </div>
+          </div>
+          <div class="auth-section-head-right">
+            <button class="auth-btn auth-btn-ghost" id="refreshRegisBtn" title="Refresh data">
+              <i class="fas fa-rotate"></i> Refresh
+            </button>
+          </div>
         </div>
-        <div class="auth-table-scroll" style="max-height:420px;">
-          <table class="auth-table">
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th class="text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody id="pendingBody"></tbody>
-          </table>
+
+        <!-- Stats grid -->
+        <div class="auth-stats-grid regis">
+          <div class="auth-stat success">
+            <div class="auth-stat-header">
+              <div class="auth-stat-icon"><i class="fas fa-door-open"></i></div>
+            </div>
+            <div class="auth-stat-label">Status Registrasi</div>
+            <div class="auth-stat-value text-md" id="statRegisStatus">-</div>
+          </div>
+          <div class="auth-stat blue">
+            <div class="auth-stat-header">
+              <div class="auth-stat-icon"><i class="fas fa-user-tag"></i></div>
+            </div>
+            <div class="auth-stat-label">Default Role Baru</div>
+            <div class="auth-stat-value text-sm" id="statDefaultRole" style="color:#60a5fa;">MEMBER</div>
+          </div>
+          <div class="auth-stat warning">
+            <div class="auth-stat-header">
+              <div class="auth-stat-icon"><i class="fas fa-hourglass-half"></i></div>
+            </div>
+            <div class="auth-stat-label">Pending Approval</div>
+            <div class="auth-stat-value" id="statPending2">0</div>
+            <div class="auth-stat-trend">needs review</div>
+          </div>
         </div>
+
+        <!-- Settings card -->
+        <div class="auth-settings-card">
+          <div class="auth-settings-card-title"><i class="fas fa-sliders"></i> Konfigurasi Registrasi</div>
+          <div class="auth-setting-row">
+            <div class="auth-setting-info">
+              <div class="auth-setting-title">Buka Pendaftaran <span style="color:var(--aura-text-tertiary); font-weight:500;">(Registration Open)</span></div>
+              <div class="auth-setting-desc">Jika <b>ON</b>, tombol <b>&ldquo;+ Register Akun Baru&rdquo;</b> aktif di halaman Login. Jika <b>OFF</b>, tombol register disembunyikan dan endpoint register ditolak server.</div>
+            </div>
+            <div class="auth-setting-control">
+              <label class="auth-switch">
+                <input type="checkbox" id="regisOpen">
+                <span class="auth-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="auth-setting-row">
+            <div class="auth-setting-info">
+              <div class="auth-setting-title">Default Role Pendaftar</div>
+              <div class="auth-setting-desc">Role otomatis yang diberikan ke akun hasil register mandiri dari halaman Login.</div>
+            </div>
+            <div class="auth-setting-control">
+              <select id="regisDefaultRole" class="auth-select">
+                <option value="MEMBER">Member</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+            </div>
+          </div>
+          <div class="auth-setting-row">
+            <div class="auth-setting-info">
+              <div class="auth-setting-title">Approval Manual</div>
+              <div class="auth-setting-desc">Jika <b>ON</b>, akun baru berstatus <b>PENDING</b> dan harus disetujui Master/Admin pada tabel di bawah sebelum bisa login.</div>
+            </div>
+            <div class="auth-setting-control">
+              <label class="auth-switch">
+                <input type="checkbox" id="regisApproval">
+                <span class="auth-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="auth-setting-row footer">
+            <div class="auth-setting-info">
+              <div class="auth-setting-desc">Perubahan langsung berlaku pada halaman <b>Login.html</b>.</div>
+            </div>
+            <div class="auth-setting-control">
+              <button class="auth-btn auth-btn-primary" data-action="saveRegis">
+                <i class="fas fa-save"></i> Simpan Konfigurasi
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending registrations table -->
+        <div class="auth-table-wrap" id="pendingWrap" style="display:none;">
+          <div class="auth-card-head">
+            <div class="auth-card-head-title"><i class="fas fa-hourglass-half"></i> Pending Registrations</div>
+            <div class="auth-card-head-sub" id="pendingCount">0 awaiting</div>
+          </div>
+          <div class="auth-table-scroll" style="max-height:420px;">
+            <table class="auth-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th class="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="pendingBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- No-module empty state (jika semua tab di-revoke) -->
+      <div class="auth-nomodule" id="noModuleState" style="display:none;">
+        <div class="auth-nomodule-icon"><i class="fas fa-shield-halved"></i></div>
+        <div class="auth-nomodule-title">Tidak Ada Modul Authority</div>
+        <div class="auth-nomodule-desc">Access control Anda tidak mencakup sub-menu User Management maupun Data Registrasi. Hubungi Master/Admin untuk mengatur akses.</div>
       </div>
 
     </section>
-
   </main>
 
   <!-- ================================================================ -->
@@ -286,7 +361,7 @@
           <label class="auth-form-label" for="addPassword">Password</label>
           <input type="password" id="addPassword" class="auth-input" placeholder="Masukkan password" autocomplete="new-password">
         </div>
-        <div class="auth-form-group">
+        <div class="auth-form-group" style="margin-bottom:0;">
           <label class="auth-form-label" for="addRole">Role</label>
           <select id="addRole" class="auth-select">
             <option value="" disabled selected>Pilih Role --</option>
@@ -294,6 +369,7 @@
             <option value="ADMIN">Admin</option>
             <option value="MEMBER">Member</option>
           </select>
+          <div class="auth-form-hint">Role menentukan default access control awal. Access dapat diatur ulang setelah user dibuat.</div>
         </div>
       </div>
       <div class="auth-modal-foot">
@@ -306,42 +382,57 @@
   </div>
 
   <!-- ================================================================ -->
-  <!-- ============ MODAL: EDIT ACCESS CONTROL ======================== -->
+  <!-- ============ MODAL: EDIT ACCESS CONTROL (FULL MATRIX) ========== -->
   <!-- ================================================================ -->
   <div class="auth-modal-overlay" id="editModal">
-    <div class="auth-modal">
+    <div class="auth-modal auth-modal-wide">
       <div class="auth-modal-head">
         <div class="auth-modal-title"><i class="fas fa-key"></i> Edit Access Control</div>
         <button class="auth-modal-close" data-action="closeEdit" aria-label="Close">&times;</button>
       </div>
       <div class="auth-modal-body">
 
+        <!-- User head -->
         <div class="auth-edit-user-head">
           <div class="auth-avatar warning-pink" id="editAvatar">--</div>
           <div class="auth-edit-user-info">
             <div class="name" id="editUserLabel">@username</div>
             <div class="granted" id="editGrantedBy">access granted by master / admin</div>
           </div>
+          <div class="auth-edit-summary" id="editSummary">0 / 17 modul aktif</div>
         </div>
 
-        <div class="auth-form-group">
-          <label class="auth-form-label" for="editRole">Role</label>
-          <select id="editRole" class="auth-select">
-            <option value="MEMBER">Member</option>
-            <option value="ADMIN">Admin</option>
-            <option value="MASTER">Master</option>
-          </select>
+        <!-- Role + presets -->
+        <div class="auth-edit-toprow">
+          <div class="auth-form-group" style="margin-bottom:0; flex:1;">
+            <label class="auth-form-label" for="editRole">Role</label>
+            <select id="editRole" class="auth-select">
+              <option value="MEMBER">Member</option>
+              <option value="ADMIN">Admin</option>
+              <option value="MASTER">Master</option>
+            </select>
+          </div>
+          <div class="auth-form-group" style="margin-bottom:0; flex:1.4;">
+            <label class="auth-form-label">Quick Preset</label>
+            <div class="auth-preset-row">
+              <button type="button" class="auth-btn auth-btn-ghost auth-btn-sm" data-action="presetFull"><i class="fas fa-check-double"></i> Full Access</button>
+              <button type="button" class="auth-btn auth-btn-ghost auth-btn-sm" data-action="presetCore"><i class="fas fa-house"></i> Core Only</button>
+              <button type="button" class="auth-btn auth-btn-ghost auth-btn-sm" data-action="presetNone"><i class="fas fa-ban"></i> Clear All</button>
+            </div>
+          </div>
         </div>
 
+        <!-- Access matrix (dibangun oleh JS mengikuti struktur menu Dashboard) -->
         <div class="auth-form-group" style="margin-bottom:0;">
           <div class="auth-perm-head">
-            <label class="auth-form-label" style="margin:0;">Akses Modul</label>
+            <label class="auth-form-label" style="margin:0;">Akses Modul &mdash; mengikuti struktur menu Dashboard</label>
             <div class="auth-perm-head-actions">
               <button type="button" class="auth-btn auth-btn-ghost auth-btn-sm" data-action="permAll"><i class="fas fa-check-double"></i> All</button>
               <button type="button" class="auth-btn auth-btn-ghost auth-btn-sm" data-action="permNone">None</button>
             </div>
           </div>
-          <div class="auth-perm-grid" id="permGrid"></div>
+          <div class="auth-perm-matrix" id="permMatrix"></div>
+          <div class="auth-form-hint"><i class="fas fa-circle-info"></i> Centang grup untuk mengaktifkan seluruh sub-modul di dalamnya. Mencentang sub-modul akan mengaktifkan grup induknya secara otomatis.</div>
         </div>
 
       </div>
@@ -378,6 +469,6 @@
   <div class="auth-toast" id="toastEl"></div>
 
   <!-- ============ EXTERNAL SCRIPT ============ -->
-  <script src="/js/authority-pro.js?v=1.0.0"></script>
+  <script src="/js/authority-pro.js?v=2.0.0"></script>
 </body>
 </html>
