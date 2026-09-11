@@ -9,6 +9,60 @@
 (function () {
   'use strict';
 
+  // ============================================================
+  // PAGINATION / SHOW-DATA STATE
+  // - mePage: halaman aktif, mePerPage: baris per halaman (toggle "Show")
+  // - meDataset: hasil filter terakhir (sumber pagination)
+  // - mePage STABIL saat auto-refresh — user tidak lompat ke halaman 1
+  // ============================================================
+  var mePage = 1;
+  var mePerPage = 10;
+  var meDataset = [];
+  var PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
+  // Baca query search User ID yang sedang aktif ('' jika kosong)
+  function getSearchQuery() {
+    var el = document.getElementById('myEventSearch');
+    return el ? (el.value || '').toLowerCase().trim() : '';
+  }
+
+  // ============================================================
+  // AUTOREFRESH GUARD — pause selama search by User ID aktif
+  // (interval auto-refresh 10s dihentikan supaya hasil search
+  //  tidak tertimpa render ulang; resume saat search dikosongkan)
+  // ============================================================
+  function setRefreshTag(state) {
+    var tag = document.querySelector('.pro-me-sub .auto-refresh-tag');
+    if (!tag) return;
+    if (state === 'paused') {
+      tag.classList.add('paused');
+      tag.innerHTML = '<i class="fas fa-pause"></i> Auto-refresh pause · search aktif';
+    } else {
+      tag.classList.remove('paused');
+      tag.innerHTML = '<i class="fas fa-sync-alt"></i> Auto-refresh 10s';
+    }
+  }
+
+  function pauseMyEventAutorefresh() {
+    if (window.__myEventInterval) {
+      clearInterval(window.__myEventInterval);
+      window.__myEventInterval = null;
+    }
+    setRefreshTag('paused');
+  }
+
+  function resumeMyEventAutorefresh() {
+    // hanya resume bila view My Event sedang terlihat
+    var mev = document.getElementById('myEventView');
+    if (!mev || mev.style.display === 'none') return;
+    if (window.__myEventInterval) return;
+    if (getSearchQuery()) return; // masih ada query — jangan nyalakan
+    window.__myEventInterval = setInterval(function () {
+      if (typeof window.loadMyEventData === 'function') window.loadMyEventData();
+    }, 10000);
+    setRefreshTag('active');
+  }
+
   // SVG icon for bukti/lampiran column (lucide-image)
   var BUKTI_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg>';
 
@@ -68,33 +122,59 @@
     if (statsEl) statsEl.innerHTML = html;
   }
 
-  // Render table rows
+  // Render table rows (dengan pagination — render per halaman)
   function renderMyEventTablePro(events) {
     var tbody = document.getElementById('myEventBody');
     if (!tbody) return;
 
+    // SAFETY NET: bila search by User ID sedang aktif, pertahankan hasil
+    // filter (mis. render ulang slipped through) — view tidak lompat ke
+    // daftar penuh. Logika filter sama persis dgn filterMyEventPro.
+    var activeQuery = getSearchQuery();
+    if (activeQuery && events && events.length) {
+      events = events.filter(function (e) {
+        return String(e.user_id || '').toLowerCase().includes(activeQuery);
+      });
+    }
+
+    // Simpan dataset utk pagination + clamp halaman (posisi halaman dipertahankan)
+    meDataset = events || [];
+    var totalRows = meDataset.length;
+    var totalPages = Math.max(1, Math.ceil(totalRows / mePerPage));
+    if (mePage > totalPages) mePage = totalPages;
+
     if (!events || events.length === 0) {
+      var emptyTitle = activeQuery ? ('Tidak ada hasil untuk "' + escapeHtml(activeQuery) + '"') : 'Belum ada data event';
+      var emptyDesc = activeQuery ? 'Coba kata kunci User ID lain' : 'Data dari extension akan muncul di sini secara otomatis';
       tbody.innerHTML = '' +
         '<tr><td colspan="11">' +
         '<div class="pro-me-empty">' +
         '<div class="pro-me-empty-icon"><i class="fas fa-inbox"></i></div>' +
-        '<div class="pro-me-empty-title">Belum ada data event</div>' +
-        '<div class="pro-me-empty-desc">Data dari extension akan muncul di sini secara otomatis</div>' +
+        '<div class="pro-me-empty-title">' + emptyTitle + '</div>' +
+        '<div class="pro-me-empty-desc">' + emptyDesc + '</div>' +
         '</div>' +
         '</td></tr>';
+      var countElEmpty = document.getElementById('myEventCount');
+      if (countElEmpty) countElEmpty.textContent = 0;
+      renderMyEventPagination();
       return;
     }
 
     var html = '';
 
     // Detect duplicate kode_tiket (periode) — if same kode_tiket appears 2+ times, mark it
+    // (dihitung atas SELURUH hasil filter, bukan hanya halaman aktif — perilaku asli dipertahankan)
     var tiketCount = {};
     events.forEach(function (e) {
       var kt = (e.kode_tiket || '').trim();
       if (kt) tiketCount[kt] = (tiketCount[kt] || 0) + 1;
     });
 
-    events.forEach(function (e, idx) {
+    // Slice halaman aktif untuk render baris
+    var startIdx = (mePage - 1) * mePerPage;
+    var pageEvents = events.slice(startIdx, startIdx + mePerPage);
+
+    pageEvents.forEach(function (e, idx) {
       var statusUp = (e.status || 'PENDING').toUpperCase();
       var rowClass = 'row-' + statusUp.toLowerCase();
 
@@ -153,9 +233,87 @@
 
     tbody.innerHTML = html;
 
-    // Update count badge
+    // Update count badge — total hasil filter (semantik asli dipertahankan)
     var countEl = document.getElementById('myEventCount');
-    if (countEl) countEl.textContent = events.length;
+    if (countEl) countEl.textContent = totalRows;
+
+    // Render footer pagination (Showing X - Y out of Z + tombol halaman)
+    renderMyEventPagination();
+  }
+
+  // ============================================================
+  // PAGINATION FOOTER — "Showing 1 - 10 out of 436" + « ‹ 1 2 … 44 › »
+  // + toggle "Show" (jumlah baris per halaman)
+  // ============================================================
+  function renderMyEventPagination() {
+    var el = document.getElementById('myEventPagination');
+    if (!el) return;
+
+    var total = meDataset.length;
+    var totalPages = Math.max(1, Math.ceil(total / mePerPage));
+    var page = Math.min(Math.max(1, mePage), totalPages);
+    var from = total === 0 ? 0 : (page - 1) * mePerPage + 1;
+    var to = Math.min(page * mePerPage, total);
+
+    var html = '';
+    html += '<div class="pro-me-page-left">';
+    html += '<span class="pro-me-page-info">Showing ' + from + ' - ' + to + ' out of ' + total + '</span>';
+    html += '<label class="pro-me-page-show">Show';
+    html += '<select class="pro-me-perpage" title="Jumlah baris per halaman" onchange="MyEventPro.setPerPage(this.value)">';
+    PER_PAGE_OPTIONS.forEach(function (n) {
+      html += '<option value="' + n + '"' + (n === mePerPage ? ' selected' : '') + '>' + n + '</option>';
+    });
+    html += '</select>';
+    html += '</label>';
+    html += '</div>';
+
+    html += '<div class="pro-me-page-right">';
+    if (totalPages > 1) {
+      html += pageBtnHtml(1, '«', 'first', page, totalPages);
+      html += pageBtnHtml(page - 1, '‹', 'prev', page, totalPages);
+      // window halaman: {1, last, page-1, page, page+1} + ellipsis di celah
+      var pages = {};
+      [1, totalPages, page - 1, page, page + 1].forEach(function (p) {
+        if (p >= 1 && p <= totalPages) pages[p] = true;
+      });
+      var sorted = Object.keys(pages).map(Number).sort(function (a, b) { return a - b; });
+      var prevP = 0;
+      sorted.forEach(function (p) {
+        if (prevP && p - prevP > 1) html += '<span class="pro-me-page-ellipsis">…</span>';
+        html += pageBtnHtml(p, String(p), '', page, totalPages);
+        prevP = p;
+      });
+      html += pageBtnHtml(page + 1, '›', 'next', page, totalPages);
+      html += pageBtnHtml(totalPages, '»', 'last', page, totalPages);
+    }
+    html += '</div>';
+
+    el.innerHTML = html;
+  }
+
+  function pageBtnHtml(target, label, mode, page, totalPages) {
+    var disabled = (mode === 'first' || mode === 'prev') ? page <= 1 : (mode === 'next' || mode === 'last') ? page >= totalPages : false;
+    var active = (!mode && target === page) ? ' active' : '';
+    return '<button type="button" class="pro-me-page-btn' + active + '"' + (disabled ? ' disabled' : '') +
+      ' onclick="MyEventPro.goToPage(' + target + ')" title="Halaman ' + target + '">' + label + '</button>';
+  }
+
+  function goToPage(p) {
+    var totalPages = Math.max(1, Math.ceil(meDataset.length / mePerPage));
+    var np = Math.min(Math.max(1, parseInt(p, 10) || 1), totalPages);
+    if (np === mePage && document.getElementById('myEventPagination')) return;
+    mePage = np;
+    renderMyEventTablePro(meDataset);
+    var wrap = document.querySelector('#myEventView .pro-me-table-wrap');
+    if (wrap) wrap.scrollTop = 0;
+  }
+
+  function setPerPage(v) {
+    var n = parseInt(v, 10);
+    if (isNaN(n) || PER_PAGE_OPTIONS.indexOf(n) === -1) return;
+    mePerPage = n;
+    mePage = 1; // ganti ukuran halaman -> mulai dari halaman 1
+    renderMyEventTablePro(meDataset);
   }
 
   // Copy to clipboard with feedback
@@ -223,6 +381,7 @@
   function filterMyEventPro() {
     var query = (document.getElementById('myEventSearch').value || '').toLowerCase().trim();
     if (typeof myEventData === 'undefined') return;
+    mePage = 1; // query baru -> mulai dari halaman 1
     var filtered = myEventData.filter(function (e) {
       return !query || String(e.user_id || '').toLowerCase().includes(query);
     });
@@ -298,10 +457,24 @@
     window.deleteMyEventAll = deleteAllPro;
     window.copyText = function (text) { copyTextPro(text, null); };
 
-    // Add count + last-update elements if missing
-    var statsEl = document.getElementById('myEventStats');
-    if (statsEl && !document.getElementById('myEventCount')) {
-      // Already in HTML if pro header is rendered
+    // ---- AUTOREFRESH GUARD: pause saat search User ID aktif ----
+    var searchEl = document.getElementById('myEventSearch');
+    if (searchEl) {
+      searchEl.addEventListener('input', function () {
+        if (getSearchQuery()) pauseMyEventAutorefresh();
+        else resumeMyEventAutorefresh();
+      });
+    }
+
+    // Wrap switchToMyEvent: masuk view dengan search masih terisi ->
+    // jangan jalankan auto-refresh (interval dari fungsi asli langsung dipause)
+    if (typeof window.switchToMyEvent === 'function' && !window.__meSwitchWrapped) {
+      window.__meSwitchWrapped = true;
+      var _origSwitchToMyEvent = window.switchToMyEvent;
+      window.switchToMyEvent = function () {
+        _origSwitchToMyEvent.apply(this, arguments);
+        if (getSearchQuery()) pauseMyEventAutorefresh();
+      };
     }
   }
 
@@ -497,6 +670,8 @@
     closeBukti: closeBukti,
     copyLink: copyLink,
     zoomImage: zoomImage,
+    goToPage: goToPage,
+    setPerPage: setPerPage,
     init: init
   };
 
