@@ -1,8 +1,11 @@
 /* ============================================================
-   AURA.OS // DASHBOARD-PRO.JS
+   AURA.OS // DASHBOARD-PRO.JS  v3.1
    Professional rendering logic for Dashboard, Profil, and
    IP Whitelist panels. Replaces inline HTML stubs with
    polished pro layouts rendered from JS.
+   v3.1: akses per SUB-MENU (32 key) — kartu modul, quick access
+   & hero count mengikuti akses granular; refreshAccessUI() untuk
+   sinkronisasi live saat access user diubah dari Authority Panel.
 
    Public API (window):
      - DASHBOARD   (render / refresh dashboard panel)
@@ -109,17 +112,17 @@
       { cat: 'workspace', color: 'blue',   icon: 'fa-building-columns',  name: 'Bank Processor', desc: 'Formatter & validator rekening bank',  badge: 'live',  badgeText: 'v2.0.0',   access: 'bank_processor',    href: '/Bank.html' },
       // OPERATIONAL
       { cat: 'operational', color: 'orange', icon: 'fa-money-bill-trend-up', name: 'Saldo Pencairan', desc: 'Monitor rekening & pencairan saldo', badge: 'live',    badgeText: 'v1.0.0',   access: 'saldo_pencairan',   action: 'loadPencairan' },
-      { cat: 'operational', color: 'pink',   icon: 'fa-magnifying-glass-chart', name: 'P2M Analyzer', desc: 'P2M vs Zonamain vs Report analysis',  badge: 'live',    badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'analyzer' },
-      { cat: 'operational', color: 'purple', icon: 'fa-satellite-dish',  name: 'XPAY Analyzer',      desc: 'XPAY transaction analyzer engine',     badge: 'live',       badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'xpayChecker' },
-      { cat: 'operational', color: 'orange', icon: 'fa-file-invoice-dollar', name: 'XPAY Settlement', desc: 'XPAY settlement reconciliation',     badge: 'live',    badgeText: 'v2.0.0',   access: 'qris_tools',        action: 'xpayFull' },
-      { cat: 'operational', color: 'teal',   icon: 'fa-clipboard-check', name: 'Settlement Checker', desc: 'Cek settlement per tanggal',          badge: 'live',       badgeText: 'v1.0.0',   access: 'qris_tools',        action: 'xpaySettlementChecker' },
-      { cat: 'operational', color: 'purple', icon: 'fa-chart-bar',       name: 'MNPAY Analyzer',     desc: 'MNPAY payment flow analyzer',          badge: 'soon',       badgeText: 'Soon',     access: 'qris_tools',        action: 'comingSoon' },
-      { cat: 'operational', color: 'blue',   icon: 'fa-book-open',       name: 'Syair Database',     desc: 'Access shio prediction engine',        badge: 'live',       badgeText: 'v2.1.0',   access: 'prediction_tools',  href: '/Syair.html' },
-      { cat: 'operational', color: 'purple', icon: 'fa-brain',           name: 'AI Prediction',      desc: 'Neural probability calculation',       badge: 'live',       badgeText: 'v3.0.0',   access: 'prediction_tools',  href: '/Prediksi.html' },
-      { cat: 'operational', color: 'red',    icon: 'fa-fire-flame-curved', name: 'Gas Slot Engine',  desc: 'AI Slot Gacor Predictor System',       badge: 'info',       badgeText: 'v1.0.0',   access: 'prediction_tools',  action: 'appInfo' },
-      { cat: 'operational', color: 'green',  icon: 'fa-calendar-day',    name: 'My Event',           desc: 'Manage active events',                 badge: 'live',       badgeText: 'v1.0.0',   access: 'event_tools',       action: 'switchToMyEvent' },
-      { cat: 'operational', color: 'orange', icon: 'fa-clock-rotate-left', name: 'History Event',    desc: 'Event history & logs',                 badge: 'soon',       badgeText: 'Soon',     access: 'event_tools',       action: 'comingSoon' },
-      { cat: 'operational', color: 'green',  icon: 'fa-calculator',      name: 'PG Report',          desc: 'PG Soft credit calculator engine',     badge: 'live',       badgeText: 'v5.0.0',   access: 'event_tools',       action: 'pgReport' },
+      { cat: 'operational', color: 'pink',   icon: 'fa-magnifying-glass-chart', name: 'P2M Analyzer', desc: 'P2M vs Zonamain vs Report analysis',  badge: 'live',    badgeText: 'v2.0.0',   access: 'p2m_analyzer',      action: 'analyzer' },
+      { cat: 'operational', color: 'purple', icon: 'fa-satellite-dish',  name: 'XPAY Analyzer',      desc: 'XPAY transaction analyzer engine',     badge: 'live',       badgeText: 'v2.0.0',   access: 'xpay_analyzer',     action: 'xpayChecker' },
+      { cat: 'operational', color: 'orange', icon: 'fa-file-invoice-dollar', name: 'XPAY Settlement', desc: 'XPAY settlement reconciliation',     badge: 'live',    badgeText: 'v2.0.0',   access: 'xpay_settlement',   action: 'xpayFull' },
+      { cat: 'operational', color: 'teal',   icon: 'fa-clipboard-check', name: 'Settlement Checker', desc: 'Cek settlement per tanggal',          badge: 'live',       badgeText: 'v1.0.0',   access: 'settlement_checker', action: 'xpaySettlementChecker' },
+      { cat: 'operational', color: 'purple', icon: 'fa-chart-bar',       name: 'MNPAY Analyzer',     desc: 'MNPAY payment flow analyzer',          badge: 'soon',       badgeText: 'Soon',     access: 'mnpay_analyzer',    action: 'comingSoon' },
+      { cat: 'operational', color: 'blue',   icon: 'fa-book-open',       name: 'Syair Database',     desc: 'Access shio prediction engine',        badge: 'live',       badgeText: 'v2.1.0',   access: 'syair_database',    href: '/Syair.html' },
+      { cat: 'operational', color: 'purple', icon: 'fa-brain',           name: 'AI Prediction',      desc: 'Neural probability calculation',       badge: 'live',       badgeText: 'v3.0.0',   access: 'ai_prediction',     href: '/Prediksi.html' },
+      { cat: 'operational', color: 'red',    icon: 'fa-fire-flame-curved', name: 'Gas Slot Engine',  desc: 'AI Slot Gacor Predictor System',       badge: 'info',       badgeText: 'v1.0.0',   access: 'gas_slot_engine',   action: 'appInfo' },
+      { cat: 'operational', color: 'green',  icon: 'fa-calendar-day',    name: 'My Event',           desc: 'Manage active events',                 badge: 'live',       badgeText: 'v1.0.0',   access: 'my_event',          action: 'switchToMyEvent' },
+      { cat: 'operational', color: 'orange', icon: 'fa-clock-rotate-left', name: 'History Event',    desc: 'Event history & logs',                 badge: 'soon',       badgeText: 'Soon',     access: 'history_event',     action: 'comingSoon' },
+      { cat: 'operational', color: 'green',  icon: 'fa-calculator',      name: 'PG Report',          desc: 'PG Soft credit calculator engine',     badge: 'live',       badgeText: 'v5.0.0',   access: 'pg_report',         action: 'pgReport' },
       { cat: 'operational', color: 'pink',   icon: 'fa-image',           name: 'Edit Bukti',         desc: 'Edit & manage proof of payment',       badge: 'live',       badgeText: 'v1.0.0',   access: 'edit_bukti',        action: 'editBukti' },
       { cat: 'operational', color: 'orange', icon: 'fa-bookmark',        name: 'Keep Memo',          desc: 'Simpan & kelola catatan memo',         badge: 'live',       badgeText: 'v1.0.0',   access: 'keep_memo',         action: 'keepMemo' },
       // SYSTEM
@@ -130,6 +133,18 @@
     ],
 
     // --- Access handling ---
+    /* Peta sub-menu -> menu induk (migrasi data legacy level-menu).
+       Harus sinkron dengan CHILD_PARENT authority-pro.js & CHILD_TO_PARENT src/index.js */
+    SUBMENU_PARENT: {
+      p2m_analyzer: 'qris_tools', xpay_analyzer: 'qris_tools',
+      xpay_settlement: 'qris_tools', settlement_checker: 'qris_tools',
+      mnpay_analyzer: 'qris_tools',
+      syair_database: 'prediction_tools', ai_prediction: 'prediction_tools',
+      gas_slot_engine: 'prediction_tools',
+      my_event: 'event_tools', history_event: 'event_tools',
+      pg_report: 'event_tools'
+    },
+
     initAccess: function () {
       this.role = (getLS('aura_user_role', 'MEMBER') || 'MEMBER').toUpperCase();
       this.username = getLS('aura_auth_token', 'User') || 'User';
@@ -143,8 +158,14 @@
       if (this.role === 'MASTER') return true;
       // ADMIN bypass per existing Dashboard.html policy? Only MASTER bypasses.
       // Keep ADMIN subject to access map (mirrors applyAccess behavior).
-      var v = this.accessMap[key];
-      return v === true;
+      if (this.accessMap[key] === true) return true;
+      // Migrasi legacy: data lama hanya punya akses level menu —
+      // key sub-menu yang belum pernah disimpan mewarisi induknya.
+      if (!(key in this.accessMap)) {
+        var parent = this.SUBMENU_PARENT[key];
+        if (parent && this.accessMap[parent] === true) return true;
+      }
+      return false;
     },
 
     // --- Action router ---
@@ -252,9 +273,9 @@
     // --- Render: quick actions ---
     _renderQuickActions: function () {
       var qa = [
-        { icon: 'fa-gear',            title: 'Setting',        sub: 'System config',      action: 'setting',        access: null },
-        { icon: 'fa-calendar-check',  title: 'My Event',       sub: 'Manage events',      action: 'switchToMyEvent', access: 'event_tools' },
-        { icon: 'fa-chart-line',      title: 'P2M Analyzer',   sub: 'Transaction analyzer', action: 'analyzer',     access: 'qris_tools' },
+        { icon: 'fa-gear',            title: 'Setting',        sub: 'System config',      action: 'setting',        access: 'setting' },
+        { icon: 'fa-calendar-check',  title: 'My Event',       sub: 'Manage events',      action: 'switchToMyEvent', access: 'my_event' },
+        { icon: 'fa-chart-line',      title: 'P2M Analyzer',   sub: 'Transaction analyzer', action: 'analyzer',     access: 'p2m_analyzer' },
         { icon: 'fa-key',             title: 'API Key',        sub: 'Manage credentials', action: 'apiKey',        access: 'api_key' },
         { icon: 'fa-shield-halved',   title: 'IP Whitelist',   sub: 'Login IP filter',    action: 'ipWhitelist',   access: 'ip_whitelist' },
         { icon: 'fa-user-shield',     title: 'Profil',         sub: 'Account & security', action: 'switchToProfil', access: null }
@@ -536,6 +557,8 @@
             localStorage.setItem('aura_data_version', String(data.version));
           }
           self._refreshStatsBlock();
+          // Re-render kartu modul + quick access agar akses terbaru langsung terpakai
+          self.refreshAccessUI();
         })
         .catch(function () { /* silent */ });
 
@@ -585,6 +608,20 @@
         existing.replaceWith(fresh);
         this.animateStats(root);
       }
+    },
+
+    /* Re-render seluruh dashboard view (hero, stats, quick access,
+       module cards, activity) bila view sedang terlihat — dipanggil
+       dari applyAccess() Dashboard.html saat access user berubah
+       (mis. kartu Setting dicabut dari Authority Panel). */
+    refreshAccessUI: function () {
+      var root = document.getElementById('dashboardView');
+      if (!root) return;
+      if (root.style.display === 'none') return;
+      // Hanya jika dashboard pernah dirender (bukan placeholder loading)
+      if (!root.querySelector('.pro-modules-section')) return;
+      this.renderDashboard();
+      logSafe('Dashboard re-rendered — access updated');
     }
   };
 
