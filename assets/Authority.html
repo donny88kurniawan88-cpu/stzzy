@@ -308,51 +308,59 @@
   <!-- ================================================================ -->
   <!-- ============ MODAL: EDIT ACCESS CONTROL ======================== -->
   <!-- ================================================================ -->
-  <div class="auth-modal-overlay" id="editModal">
-    <div class="auth-modal">
-      <div class="auth-modal-head">
-        <div class="auth-modal-title"><i class="fas fa-key"></i> Edit Access Control</div>
-        <button class="auth-modal-close" data-action="closeEdit" aria-label="Close">&times;</button>
-      </div>
-      <div class="auth-modal-body">
+<div class="modal-overlay" id="editAccessModal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-labelledby="editAccessTitle">
+    <div class="modal-header">
+      <div class="modal-icon"><i class="fas fa-user-shield"></i></div>
+      <h3 id="editAccessTitle">Edit Access Control</h3>
+      <button class="modal-close" onclick="closeEditAccess()" aria-label="Tutup">&times;</button>
+    </div>
 
-        <div class="auth-edit-user-head">
-          <div class="auth-avatar warning-pink" id="editAvatar">--</div>
-          <div class="auth-edit-user-info">
-            <div class="name" id="editUserLabel">@username</div>
-            <div class="granted" id="editGrantedBy">access granted by master / admin</div>
+    <div class="modal-body">
+      <!-- User Info -->
+      <div class="user-summary">
+        <div class="user-avatar" id="editUserAvatar">NI</div>
+        <div class="user-meta">
+          <strong id="editUserName">@username</strong>
+          <span class="user-subtitle" id="editUserGrantedBy">access granted by master</span>
+        </div>
+      </div>
+
+      <!-- Role Selection -->
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <select class="form-select" id="editUserRole">
+          <option value="MEMBER">Member</option>
+          <option value="ADMIN">Admin</option>
+          <option value="MASTER" id="optMaster" hidden>Master</option>
+        </select>
+        <p class="form-hint" id="roleHint">Hanya Master yang dapat mengubah role.</p>
+      </div>
+
+      <!-- Access Modules -->
+      <div class="form-group">
+        <div class="access-header">
+          <label class="form-label">Akses Modul</label>
+          <div class="access-actions">
+            <button type="button" class="btn-text" onclick="toggleAllAccess(true)">All</button>
+            <span class="divider">|</span>
+            <button type="button" class="btn-text" onclick="toggleAllAccess(false)">None</button>
           </div>
         </div>
-
-        <div class="auth-form-group">
-          <label class="auth-form-label" for="editRole">Role</label>
-          <select id="editRole" class="auth-select">
-            <option value="MEMBER">Member</option>
-            <option value="ADMIN">Admin</option>
-            <option value="MASTER">Master</option>
-          </select>
+        <div class="access-grid" id="accessGrid">
+          <!-- Diisi oleh JS secara dinamis -->
         </div>
-
-        <div class="auth-form-group" style="margin-bottom:0;">
-          <div class="auth-perm-head">
-            <label class="auth-form-label" style="margin:0;">Akses Modul</label>
-            <div class="auth-perm-head-actions">
-              <button type="button" class="auth-btn auth-btn-ghost auth-btn-sm" data-action="permAll"><i class="fas fa-check-double"></i> All</button>
-              <button type="button" class="auth-btn auth-btn-ghost auth-btn-sm" data-action="permNone">None</button>
-            </div>
-          </div>
-          <div class="auth-perm-grid" id="permGrid"></div>
-        </div>
-
-      </div>
-      <div class="auth-modal-foot">
-        <button class="auth-btn auth-btn-ghost" data-action="closeEdit">Cancel</button>
-        <button class="auth-btn auth-btn-primary" id="submitEditAccess">
-          <i class="fas fa-save"></i> Save Access
-        </button>
       </div>
     </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" onclick="closeEditAccess()">Cancel</button>
+      <button type="button" class="btn btn-primary" id="btnSaveAccess" onclick="saveUserAccess()">
+        <i class="fas fa-save"></i> Save Access
+      </button>
+    </div>
   </div>
+</div>
 
   <!-- ================================================================ -->
   <!-- ============ MODAL: CONFIRM DIALOG ============================= -->
