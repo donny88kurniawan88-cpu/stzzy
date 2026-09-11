@@ -670,20 +670,36 @@ export default {
     const VALID_MODULES = [
       // Group keys (4)
       'core', 'workspace', 'operational', 'system',
-      // Sub-menu keys (2)
+      // Sub-menu keys (2) — Authority Panel
       'user_management', 'registration_control',
       // Module item keys (15) — match Dashboard data-access-item attributes
       'dashboard', 'profil', 'banking_tools', 'rek_validator', 'bank_processor',
       'saldo_pencairan', 'qris_tools', 'prediction_tools', 'event_tools',
-      'edit_bukti', 'keep_memo', 'api_key', 'setting', 'ip_whitelist', 'authority_panel'
+      'edit_bukti', 'keep_memo', 'api_key', 'setting', 'ip_whitelist', 'authority_panel',
+      // Sub-menu item keys (11) — level menu > sub-menu (v2.3)
+      'p2m_analyzer', 'xpay_analyzer', 'xpay_settlement', 'settlement_checker', 'mnpay_analyzer',
+      'syair_database', 'ai_prediction', 'gas_slot_engine',
+      'my_event', 'history_event', 'pg_report'
     ];
+
+    // Peta sub-menu -> menu induk (migrasi data legacy level-menu).
+    // Harus sinkron dengan CHILD_PARENT authority-pro.js & CHILD_PARENT_MAP Dashboard.html
+    const CHILD_TO_PARENT = {
+      p2m_analyzer: 'qris_tools', xpay_analyzer: 'qris_tools',
+      xpay_settlement: 'qris_tools', settlement_checker: 'qris_tools',
+      mnpay_analyzer: 'qris_tools',
+      syair_database: 'prediction_tools', ai_prediction: 'prediction_tools',
+      gas_slot_engine: 'prediction_tools',
+      my_event: 'event_tools', history_event: 'event_tools',
+      pg_report: 'event_tools'
+    };
 
     // ===== DEFAULT ACCESS PER ROLE =====
     // MASTER: full access tak terbatas (semua modul true)
     // ADMIN:  Core, Workspace, Operational, System, User Management, Registrasi
     // MEMBER: hanya Core (selebihnya ditentukan oleh Admin/Master)
     function defaultAccessFor(role) {
-      // MASTER: full access tak terbatas (semua 21 modul true)
+      // MASTER: full access tak terbatas (semua 32 modul true)
       if (role === 'MASTER') {
         return {
           // Groups
@@ -694,11 +710,15 @@ export default {
           dashboard: true, profil: true,
           // Workspace items
           banking_tools: true, rek_validator: true, bank_processor: true,
-          saldo_pencairan: true, qris_tools: true, prediction_tools: true,
-          event_tools: true, edit_bukti: true, keep_memo: true,
-          // Operational items
-          api_key: true, setting: true,
+          saldo_pencairan: true, qris_tools: true,
+          p2m_analyzer: true, xpay_analyzer: true, xpay_settlement: true,
+          settlement_checker: true, mnpay_analyzer: true,
+          prediction_tools: true, syair_database: true, ai_prediction: true,
+          gas_slot_engine: true,
+          event_tools: true, my_event: true, history_event: true, pg_report: true,
+          edit_bukti: true, keep_memo: true,
           // System items
+          api_key: true, setting: true,
           ip_whitelist: true, authority_panel: true
         };
       }
@@ -709,8 +729,13 @@ export default {
           user_management: true, registration_control: true,
           dashboard: true, profil: true,
           banking_tools: true, rek_validator: true, bank_processor: true,
-          saldo_pencairan: true, qris_tools: true, prediction_tools: true,
-          event_tools: true, edit_bukti: true, keep_memo: true,
+          saldo_pencairan: true, qris_tools: true,
+          p2m_analyzer: true, xpay_analyzer: true, xpay_settlement: true,
+          settlement_checker: true, mnpay_analyzer: true,
+          prediction_tools: true, syair_database: true, ai_prediction: true,
+          gas_slot_engine: true,
+          event_tools: true, my_event: true, history_event: true, pg_report: true,
+          edit_bukti: true, keep_memo: true,
           api_key: true, setting: true,
           ip_whitelist: true, authority_panel: true
         };
@@ -721,8 +746,13 @@ export default {
         user_management: false, registration_control: false,
         dashboard: true, profil: true,
         banking_tools: false, rek_validator: false, bank_processor: false,
-        saldo_pencairan: false, qris_tools: false, prediction_tools: false,
-        event_tools: false, edit_bukti: false, keep_memo: false,
+        saldo_pencairan: false, qris_tools: false,
+        p2m_analyzer: false, xpay_analyzer: false, xpay_settlement: false,
+        settlement_checker: false, mnpay_analyzer: false,
+        prediction_tools: false, syair_database: false, ai_prediction: false,
+        gas_slot_engine: false,
+        event_tools: false, my_event: false, history_event: false, pg_report: false,
+        edit_bukti: false, keep_memo: false,
         api_key: false, setting: false,
         ip_whitelist: false, authority_panel: false
       };
@@ -774,10 +804,15 @@ export default {
       try {
         const parsed = JSON.parse(accessStr);
         if (parsed && typeof parsed === 'object') {
-          // Merge: ensure all 20 keys exist (fill missing from defaults)
+          // Merge: ensure all 32 keys exist (fill missing from defaults)
           const merged = {};
           VALID_MODULES.forEach(m => {
             merged[m] = (typeof parsed[m] === 'boolean') ? parsed[m] : defaults[m];
+          });
+          // Migrasi legacy: key sub-menu yang belum pernah disimpan di data
+          // lama mewarisi akses menu induknya (agar akses berjalan tidak hilang)
+          Object.keys(CHILD_TO_PARENT).forEach(child => {
+            if (typeof parsed[child] !== 'boolean') merged[child] = merged[CHILD_TO_PARENT[child]];
           });
           return merged;
         }
