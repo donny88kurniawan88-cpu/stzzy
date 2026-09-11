@@ -1,25 +1,43 @@
 /* ============================================================
-   AURA.OS // AUTHORITY-PRO.JS  v2.0
+   AURA.OS // AUTHORITY-PRO.JS  v2.3
    Authority Panel logic — User management, FULL access-control
-   matrix (21 keys, mengikuti struktur menu Dashboard),
-   registration settings, pending approvals, filters, toasts.
-   Pairs with authority-pro.css (AUTHORITY) v2.0
+   matrix (32 keys: grup > menu > sub-menu, mengikuti struktur
+   menu Dashboard), registration settings, pending approvals,
+   filters, toasts.
+   Pairs with authority-pro.css (AUTHORITY) v2.3
    ============================================================ */
 
 (function () {
   'use strict';
 
   /* ============================================================
-     ACCESS TREE — LENGKAP 21 KEY, mengikuti struktur sidebar
-     Dashboard + sub-menu Authority Panel.
+     ACCESS TREE — LENGKAP 32 KEY (3 tingkat), mengikuti struktur
+     sidebar Dashboard: GRUP > MENU > SUB-MENU.
      Harus sinkron dengan VALID_MODULES di src/index.js:
        core, workspace, operational, system,
        user_management, registration_control,
        dashboard, profil, banking_tools, rek_validator,
        bank_processor, saldo_pencairan, qris_tools,
-       prediction_tools, event_tools, edit_bukti, keep_memo,
+       p2m_analyzer, xpay_analyzer, xpay_settlement,
+       settlement_checker, mnpay_analyzer,
+       prediction_tools, syair_database, ai_prediction,
+       gas_slot_engine, event_tools, my_event, history_event,
+       pg_report, edit_bukti, keep_memo,
        api_key, setting, ip_whitelist, authority_panel
      ============================================================ */
+
+  /* Peta anak -> induk (untuk migrasi data legacy yang hanya
+     memiliki akses level menu — sub-menu mewarisi induknya).
+     Harus sinkron dengan CHILD_TO_PARENT di src/index.js. */
+  var CHILD_PARENT = {
+    p2m_analyzer: 'qris_tools', xpay_analyzer: 'qris_tools',
+    xpay_settlement: 'qris_tools', settlement_checker: 'qris_tools',
+    mnpay_analyzer: 'qris_tools',
+    syair_database: 'prediction_tools', ai_prediction: 'prediction_tools',
+    gas_slot_engine: 'prediction_tools',
+    my_event: 'event_tools', history_event: 'event_tools',
+    pg_report: 'event_tools'
+  };
   var ACCESS_TREE = [
     {
       key: 'core', label: 'Core', icon: 'fa-gauge-high', color: 'blue',
@@ -44,9 +62,23 @@
       desc: 'Operasional harian, QRIS, prediksi & event',
       items: [
         { key: 'saldo_pencairan',  label: 'Saldo Pencairan',  icon: 'fa-layer-group' },
-        { key: 'qris_tools',       label: 'QRIS Tools',       icon: 'fa-qrcode' },
-        { key: 'prediction_tools', label: 'Prediction Tools', icon: 'fa-clock' },
-        { key: 'event_tools',      label: 'Event Tools',      icon: 'fa-calendar-days' },
+        { key: 'qris_tools',       label: 'QRIS Tools',       icon: 'fa-qrcode', children: [
+          { key: 'p2m_analyzer',       label: 'P2M Analyzer',       icon: 'fa-magnifying-glass-chart' },
+          { key: 'xpay_analyzer',      label: 'XPAY Analyzer',      icon: 'fa-satellite-dish' },
+          { key: 'xpay_settlement',    label: 'XPAY Settlement',    icon: 'fa-file-invoice-dollar' },
+          { key: 'settlement_checker', label: 'Settlement Checker', icon: 'fa-clipboard-check' },
+          { key: 'mnpay_analyzer',     label: 'MNPAY Analyzer',     icon: 'fa-chart-bar' }
+        ] },
+        { key: 'prediction_tools', label: 'Prediction Tools', icon: 'fa-clock', children: [
+          { key: 'syair_database',  label: 'Syair Database',  icon: 'fa-book-open' },
+          { key: 'ai_prediction',   label: 'AI Prediction',   icon: 'fa-brain' },
+          { key: 'gas_slot_engine', label: 'Gas Slot Engine', icon: 'fa-fire-flame-curved' }
+        ] },
+        { key: 'event_tools',      label: 'Event Tools',      icon: 'fa-calendar-days', children: [
+          { key: 'my_event',      label: 'My Event',      icon: 'fa-calendar-day' },
+          { key: 'history_event', label: 'History Event', icon: 'fa-clock-rotate-left' },
+          { key: 'pg_report',     label: 'PG Report',     icon: 'fa-calculator' }
+        ] },
         { key: 'edit_bukti',       label: 'Edit Bukti',       icon: 'fa-pen-to-square' },
         { key: 'keep_memo',        label: 'Keep Memo',        icon: 'fa-clipboard' }
       ]
@@ -66,7 +98,7 @@
     }
   ];
 
-  /* Flat list 21 key (urutan sama dengan VALID_MODULES backend) */
+  /* Flat list 32 key (urutan sama dengan VALID_MODULES backend) */
   var ALL_KEYS = (function () {
     var keys = ['core', 'workspace', 'operational', 'system'];
     ACCESS_TREE.forEach(function (g) {
@@ -145,12 +177,18 @@
     return acc;
   }
 
-  /* Ambil access user target — merged dengan default role-nya */
+  /* Ambil access user target — merged dengan default role-nya.
+     MIGRASI LEGACY: key sub-menu yang BELUM ADA di data lama
+     (data hanya level menu) mewarisi nilai menu induknya, agar
+     akses user yang sudah berjalan tidak tiba-tiba hilang di modal. */
   function accessFor(u) {
     var base = defaultAccessFor(u ? u.role : 'MEMBER');
     if (u && u.access && typeof u.access === 'object') {
       ALL_KEYS.forEach(function (k) {
         if (typeof u.access[k] === 'boolean') base[k] = u.access[k];
+      });
+      Object.keys(CHILD_PARENT).forEach(function (c) {
+        if (typeof u.access[c] !== 'boolean') base[c] = base[CHILD_PARENT[c]];
       });
     }
     return base;
