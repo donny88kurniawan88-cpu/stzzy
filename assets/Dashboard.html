@@ -509,11 +509,11 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" data-action="analyzer">P2M Analyzer</div>
-            <div class="submenu-item" data-action="xpayChecker">XPAY Analyzer</div>
-            <div class="submenu-item" data-action="xpayFull">XPAY Settlement</div>
-            <div class="submenu-item" data-action="xpaySettlementChecker">Settlement Checker</div>
-            <div class="submenu-item" data-action="comingSoon">MNPAY Analyzer</div>
+            <div class="submenu-item" data-access-item="p2m_analyzer" data-action="analyzer">P2M Analyzer</div>
+            <div class="submenu-item" data-access-item="xpay_analyzer" data-action="xpayChecker">XPAY Analyzer</div>
+            <div class="submenu-item" data-access-item="xpay_settlement" data-action="xpayFull">XPAY Settlement</div>
+            <div class="submenu-item" data-access-item="settlement_checker" data-action="xpaySettlementChecker">Settlement Checker</div>
+            <div class="submenu-item" data-access-item="mnpay_analyzer" data-action="comingSoon">MNPAY Analyzer</div>
           </div>
         </div>
 
@@ -524,9 +524,9 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" onclick="window.location.href='/Syair.html'">Syair Database</div>
-            <div class="submenu-item" onclick="window.location.href='/Prediksi.html'">AI Prediction</div>
-            <div class="submenu-item" data-action="appInfo">Gas Slot Engine</div>
+            <div class="submenu-item" data-access-item="syair_database" onclick="window.location.href='/Syair.html'">Syair Database</div>
+            <div class="submenu-item" data-access-item="ai_prediction" onclick="window.location.href='/Prediksi.html'">AI Prediction</div>
+            <div class="submenu-item" data-access-item="gas_slot_engine" data-action="appInfo">Gas Slot Engine</div>
           </div>
         </div>
 
@@ -537,9 +537,9 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" onclick="switchToMyEvent()">My Event</div>
-            <div class="submenu-item" data-action="comingSoon">History Event</div>
-            <div class="submenu-item" onclick="switchToPgReport()">PG Report</div>
+            <div class="submenu-item" data-access-item="my_event" onclick="switchToMyEvent()">My Event</div>
+            <div class="submenu-item" data-access-item="history_event" data-action="comingSoon">History Event</div>
+            <div class="submenu-item" data-access-item="pg_report" onclick="switchToPgReport()">PG Report</div>
           </div>
         </div>
 
@@ -866,7 +866,7 @@
       <!-- ===== AUTHORITY PANEL VIEW (inline iframe) ===== -->
       <div id="authorityView" style="display:none;">
         <div style="width:100%; margin-top:14px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
-          <iframe src="/Authority.html?v=2.2.1" style="width:100%; height:calc(100vh - 130px); border:none; display:block;" title="Authority Panel - Access Control"></iframe>
+          <iframe src="/Authority.html?v=2.3.0" style="width:100%; height:calc(100vh - 130px); border:none; display:block;" title="Authority Panel - Access Control"></iframe>
         </div>
       </div>
 
@@ -2079,10 +2079,12 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
        =================================================================== -->
   <script>
     function getDefaultAccess(role) {
-      // Must match backend VALID_MODULES (21 keys) exactly
+      // Must match backend VALID_MODULES (32 keys) exactly
       var keys = ['core','workspace','operational','system','user_management','registration_control',
         'dashboard','profil','banking_tools','rek_validator','bank_processor',
-        'saldo_pencairan','qris_tools','prediction_tools','event_tools',
+        'saldo_pencairan','qris_tools','p2m_analyzer','xpay_analyzer','xpay_settlement','settlement_checker','mnpay_analyzer',
+        'prediction_tools','syair_database','ai_prediction','gas_slot_engine',
+        'event_tools','my_event','history_event','pg_report',
         'edit_bukti','keep_memo','api_key','setting','ip_whitelist','authority_panel'];
       var access = {};
       if (role === 'MASTER' || role === 'ADMIN') {
@@ -2097,12 +2099,29 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
       return access;
     }
 
+    /* Peta sub-menu -> menu induk (migrasi data legacy: key submenu
+       yang belum ada di access lama mewarisi menu induknya).
+       Harus sinkron dengan CHILD_TO_PARENT src/index.js & CHILD_PARENT authority-pro.js */
+    var CHILD_PARENT_MAP = {
+      p2m_analyzer: 'qris_tools', xpay_analyzer: 'qris_tools',
+      xpay_settlement: 'qris_tools', settlement_checker: 'qris_tools',
+      mnpay_analyzer: 'qris_tools',
+      syair_database: 'prediction_tools', ai_prediction: 'prediction_tools',
+      gas_slot_engine: 'prediction_tools',
+      my_event: 'event_tools', history_event: 'event_tools',
+      pg_report: 'event_tools'
+    };
+
     function mergeAccess(rawAccess, role) {
       var defaults = getDefaultAccess(role);
       if (!rawAccess || typeof rawAccess !== 'object') return defaults;
       var merged = {};
       Object.keys(defaults).forEach(function(k) {
         merged[k] = (typeof rawAccess[k] === 'boolean') ? rawAccess[k] : defaults[k];
+      });
+      // Migrasi legacy: key submenu yang belum pernah disimpan -> ikut induknya
+      Object.keys(CHILD_PARENT_MAP).forEach(function(c) {
+        if (typeof rawAccess[c] !== 'boolean') merged[c] = merged[CHILD_PARENT_MAP[c]];
       });
       return merged;
     }
@@ -2133,25 +2152,52 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
         }
       });
 
-      /* Filter nav groups: hide if data-access not granted OR if all data-access-item children hidden */
+      /* Menu dropdown (submenu-wrap): sembunyikan bila SELURUH sub-menu
+         di dalamnya tidak berhak, tampilkan kembali bila minimal satu berhak.
+         Menu tanpa sub-menu ber-key tidak disentuh di sini. */
+      if (!isFullAccess) {
+        document.querySelectorAll('.nav-submenu-wrap[data-access-item]').forEach(function(wrap) {
+          var kids = wrap.querySelectorAll('.submenu-item[data-access-item]');
+          if (!kids.length) return;
+          var anyVisible = false;
+          kids.forEach(function(k) {
+            if (acc[k.getAttribute('data-access-item')]) anyVisible = true;
+          });
+          if (anyVisible) { wrap.style.display = ''; }
+          else { wrap.style.display = 'none'; }
+        });
+      }
+
+      /* Filter nav groups: sembunyikan HANYA bila tidak ada akses sama sekali
+         (key grup false DAN seluruh item di dalamnya tersembunyi).
+         Jika minimal satu item diizinkan, grup tetap tampil meski key grup
+         false — agar item yang diizinkan tidak ikut hilang. */
       document.querySelectorAll('.nav-group').forEach(function(group) {
         var accessAttr = group.getAttribute('data-access');
-        if (accessAttr && !isFullAccess && !acc[accessAttr]) {
-          group.style.display = 'none';
-          return;
-        }
         var visibleItems = group.querySelectorAll('[data-access-item]');
         var anyVisible = false;
         visibleItems.forEach(function(it) {
           var k = it.getAttribute('data-access-item');
           if (isFullAccess || acc[k]) { anyVisible = true; }
         });
-        if (visibleItems.length > 0 && !anyVisible && !isFullAccess) {
+        var groupOk = isFullAccess || !accessAttr || !!acc[accessAttr];
+        if (!groupOk && !anyVisible) {
           group.style.display = 'none';
         } else {
           group.style.display = '';
         }
       });
+
+      /* SYNC MODULE CARD DASHBOARD: render kartu modul mengikuti akses
+         terbaru (bug fix: kartu Setting & modul lain tidak hilang padahal
+         access-nya sudah dicabut karena grid hanya dirender sekali saat load). */
+      try {
+        if (window.DASHBOARD) {
+          window.DASHBOARD.role = (typeof role === 'string' && role) ? role.toUpperCase() : window.DASHBOARD.role;
+          window.DASHBOARD.accessMap = acc;
+          if (typeof window.DASHBOARD.refreshAccessUI === 'function') window.DASHBOARD.refreshAccessUI();
+        }
+      } catch (e) { console.error('Dashboard cards sync error:', e); }
     }
 
     /* Step 1: Apply access from localStorage immediately */
@@ -2251,7 +2297,7 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
     // Also check immediately on page load
     setTimeout(_checkUserExistsInDatabase, 2000);
   </script>
-  <script src="/js/dashboard-pro.js?v=3.0.0"></script>
+  <script src="/js/dashboard-pro.js?v=3.1.0"></script>
   <script src="/js/myevent-pro.js?v=1.2.0"></script>
   <script src="/js/setting-pro.js?v=1.0.0"></script>
   <script src="/js/keepmemo-pro.js?v=1.1.0"></script>
