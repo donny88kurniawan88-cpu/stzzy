@@ -1083,3 +1083,276 @@
 .kmWrap.pro-keepmemo ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 10px; }
 .kmWrap.pro-keepmemo ::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.4); border-radius: 10px; }
 .kmWrap.pro-keepmemo ::-webkit-scrollbar-thumb:hover { background: rgba(245, 158, 11, 0.6); }
+
+/* ============================================================
+   DATA LOGIN — cards, 5-field popup modal (structured)
+   ============================================================ */
+
+/* === Modal login: lebih lebar utk 2 kolom password+pin === */
+.km-login-modal { max-width: 560px; }
+
+.km-modal-header.login {
+  background:
+    linear-gradient(135deg, rgba(59, 130, 246, 0.10), rgba(139, 92, 246, 0.06) 60%, transparent),
+    rgba(0, 0, 0, 0.15);
+}
+
+.km-login-form-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.07);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.km-login-form-note i { color: #60a5fa; font-size: 12px; flex-shrink: 0; }
+
+.km-field-label i {
+  color: #64748b;
+  font-size: 10px;
+  margin-right: 2px;
+}
+
+/* Input dengan ikon di kiri */
+.km-input-iconwrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.km-input-iconwrap > i {
+  position: absolute;
+  left: 12px;
+  font-size: 11px;
+  color: #64748b;
+  pointer-events: none;
+  transition: color 0.2s ease;
+  z-index: 1;
+}
+
+.km-input-iconwrap:focus-within > i { color: #60a5fa; }
+
+.km-input.has-icon { padding-left: 34px; }
+.km-input.has-icon.has-eye { padding-right: 40px; }
+
+/* Tombol mata (show/hide) di kanan input */
+.km-eye-btn {
+  position: absolute;
+  right: 6px;
+  width: 28px; height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: #64748b;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.km-eye-btn:hover { color: #60a5fa; background: rgba(59, 130, 246, 0.1); }
+.km-eye-btn.on { color: #60a5fa; }
+.km-eye-btn.on i { color: #60a5fa; }
+
+/* Field PIN sedikit lebih sempit */
+.km-field-pin { max-width: 220px; }
+
+/* === Grid kartu login === */
+.km-logins-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
+}
+
+.km-login-card {
+  background: linear-gradient(150deg, rgba(20, 20, 32, 0.75), rgba(13, 13, 22, 0.85));
+  border: 1px solid rgba(59, 130, 246, 0.14);
+  border-radius: 14px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: kmFadeInUp 0.4s ease;
+}
+
+.km-login-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  opacity: 0.55;
+  transition: opacity 0.25s ease;
+}
+
+.km-login-card:hover {
+  border-color: rgba(59, 130, 246, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 24px rgba(59, 130, 246, 0.08);
+}
+
+.km-login-card:hover::before { opacity: 1; }
+
+.km-login-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+
+.km-login-avatar {
+  width: 38px; height: 38px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.18));
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: #93c5fd;
+  font-size: 14px;
+}
+
+.km-login-idwrap { flex: 1; min-width: 0; }
+
+.km-login-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.km-login-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #60a5fa;
+  text-decoration: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.km-login-link:hover { color: #93c5fd; text-decoration: underline; }
+
+.km-login-topactions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.km-login-time {
+  font-size: 10px;
+  color: #64748b;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+}
+
+/* Grid 4 field dalam kartu: username / password / pin / noted */
+.km-login-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.km-login-field {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 0;
+}
+
+.km-login-field.noted { grid-column: 1 / -1; }
+
+.km-login-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.km-login-label i { font-size: 9px; opacity: 0.7; }
+
+.km-login-val {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.km-login-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.km-login-val.noted {
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.km-mini-btn {
+  width: 24px; height: 24px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.km-mini-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #93c5fd;
+}
+
+.km-mini-btn.on { color: #60a5fa; border-color: rgba(59, 130, 246, 0.4); background: rgba(59, 130, 246, 0.12); }
+
+/* === Responsive login === */
+@media (max-width: 980px) {
+  .km-logins-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .km-logins-grid { grid-template-columns: 1fr; }
+  .km-login-grid { grid-template-columns: 1fr; }
+  .km-field-pin { max-width: none; }
+  .km-login-modal { max-width: 100%; }
+  .km-login-time { display: none; }
+}
