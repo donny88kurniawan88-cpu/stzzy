@@ -106,14 +106,15 @@
     t.innerHTML =
       '<div class="auth-toast-icon"><i class="fas ' + (iconMap[type] || iconMap.info) + '"></i></div>' +
       '<div class="auth-toast-content">' + escapeHtml(msg) + '</div>';
-    void t.offsetWidth; // Force reflow
+    // Force reflow then add show
+    void t.offsetWidth;
     t.classList.add('show');
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { t.classList.remove('show'); }, 3200);
   }
 
   /* ============================================================
-     CUSTOM CONFIRM DIALOG
+     CUSTOM CONFIRM DIALOG (replaces native confirm())
      ============================================================ */
   function showConfirm(opts) {
     opts = opts || {};
@@ -146,7 +147,7 @@
     var confirmBtn = overlay.querySelector('[data-confirm-btn]');
     var cancelBtn  = overlay.querySelector('[data-cancel-btn]');
     confirmBtn.innerHTML = '<i class="fas ' + (icon === 'danger' ? 'fa-trash' : 'fa-check') + '"></i> ' + escapeHtml(confirmText);
-    confirmBtn.className = 'btn ' + (icon === 'danger' ? 'btn-danger-ghost' : 'btn-primary');
+    confirmBtn.className = 'auth-btn ' + (icon === 'danger' ? 'auth-btn-danger-ghost' : 'auth-btn-primary');
     cancelBtn.innerHTML = escapeHtml(cancelText);
 
     confirmCallback = typeof opts.onConfirm === 'function' ? opts.onConfirm : null;
@@ -161,14 +162,19 @@
   }
 
   /* ============================================================
-     VIEW SWITCHER
+     VIEW SWITCHER (User Management ↔ Data Registrasi)
      ============================================================ */
   function switchView(view) {
     var users = $('viewUsers');
     var regis = $('viewRegistration');
     if (users) users.classList.toggle('active', view === 'users');
     if (regis) regis.classList.toggle('active', view === 'registration');
+    // Update nav tabs
     $$('.auth-nav-tab').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-view') === view);
+    });
+    // Legacy nav sub-items
+    $$('.nav-sub-item').forEach(function (el) {
       el.classList.toggle('active', el.getAttribute('data-view') === view);
     });
     var crumb = $('crumbView');
@@ -216,7 +222,7 @@
   }
 
   /* ============================================================
-     RENDER STATS
+     RENDER STATS (Total / Masters / Admins / Members / Pending)
      ============================================================ */
   function renderStats() {
     var total   = usersData.length;
@@ -244,7 +250,7 @@
   }
 
   /* ============================================================
-     RENDER TABLE
+     RENDER TABLE (with search/filter)
      ============================================================ */
   function renderTable() {
     var searchInput = $('searchInput');
@@ -281,7 +287,7 @@
         actions = '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Akun Master - Terproteksi" tabindex="-1"><i class="fas fa-lock"></i></button>';
       } else if (canEditUser(u)) {
         actions =
-          '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Edit Access Control" onclick="window.__AUTH.openEdit(\'' + escapeAttr(u.username) + '\')"><i class="fas fa-key"></i></button>' +
+          '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Edit Access Control" onclick="window.__AUTH.openEdit(\x27' + u.username.replace(/'/g, '\\' + String.fromCharCode(39)) + '\x27)"><i class="fas fa-key"></i></button>' +
           '<button class="auth-btn auth-btn-danger-ghost auth-btn-icon" title="Hapus User" data-delete-user="' + escapeHtml(u.username) + '"><i class="fas fa-trash"></i></button>';
       } else {
         actions = '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Hanya Master yang dapat mengubah Admin lain" tabindex="-1"><i class="fas fa-lock"></i></button>';
@@ -304,34 +310,36 @@
   }
 
   /* ============================================================
-     EDIT ACCESS CONTROL (NEW LOGIC)
+     EDIT ACCESS CONTROL
      ============================================================ */
-  function renderAccessGrid(user) {
+  function buildPermGrid() {
     var grid = $('permGrid');
     if (!grid) return;
-
-    var acc = accessFor(user);
-    var isLocked = (user.role === 'MASTER' || user.role === 'ADMIN');
-
-    var html = '';
-    ACCESS_MODULES.forEach(function (mod) {
-      var checked = acc[mod.key] ? 'checked' : '';
-      var disabled = isLocked ? 'disabled' : '';
-      var lockedClass = isLocked ? 'access-item--locked' : '';
-
-      html +=
-        '<label class="access-item ' + lockedClass + '">' +
-          '<div class="access-item__left">' +
-            '<i class="fas ' + mod.icon + '"></i>' +
-            '<span>' + escapeHtml(mod.label) + '</span>' +
-          '</div>' +
-          '<div class="access-item__right">' +
-            '<input type="checkbox" class="access-checkbox" ' +
-                   'data-module="' + mod.key + '" ' + checked + ' ' + disabled + '>' +
-          '</div>' +
+    grid.innerHTML = ACCESS_MODULES.map(function (m) {
+      return '' +
+        '<label class="auth-perm-item" data-key="' + m.key + '">' +
+          '<input type="checkbox">' +
+          '<i class="fas ' + m.icon + ' perm-icon"></i>' +
+          '<span class="perm-label">' + escapeHtml(m.label) + '</span>' +
+          '<span class="perm-check"><i class="fas fa-check"></i></span>' +
         '</label>';
+    }).join('');
+
+    // Toggle .checked class on checkbox change
+    $$('#permGrid .auth-perm-item').forEach(function (item) {
+      var cb = item.querySelector('input[type="checkbox"]');
+      cb.addEventListener('change', function () {
+        item.classList.toggle('checked', cb.checked);
+      });
     });
-    grid.innerHTML = html;
+  }
+
+  function setAllPerm(v) {
+    $$('#permGrid .auth-perm-item').forEach(function (item) {
+      var cb = item.querySelector('input[type="checkbox"]');
+      cb.checked = !!v;
+      item.classList.toggle('checked', !!v);
+    });
   }
 
   function openEdit(username) {
@@ -343,37 +351,40 @@
     }
 
     editUsername = username;
-
-    // Set User Info
     var avatarEl = $('editAvatar');
     if (avatarEl) {
       avatarEl.textContent = initials(u.username);
-      avatarEl.className = 'user-avatar ' + avatarGradient(u.username);
+      avatarEl.className = 'auth-avatar ' + avatarGradient(u.username);
     }
     setText('editUserLabel', '@' + u.username);
-    setText('editGrantedBy', 'access granted by ' + (userRole === 'MASTER' ? 'master' : 'admin'));
 
-    // Set Role
-    var roleSelect = $('editRole');
-    var optMaster = $('optMaster');
-    var roleHint = $('roleHint');
-    if (roleSelect) {
-      roleSelect.value = u.role || 'MEMBER';
+    var editRoleSelect = $('editRole');
+    if (editRoleSelect) {
+      editRoleSelect.value = u.role || 'MEMBER';
       if (userRole === 'ADMIN') {
-        roleSelect.value = 'MEMBER';
-        roleSelect.disabled = true;
-        if (roleHint) roleHint.textContent = 'Admin hanya dapat mengubah user Member.';
+        editRoleSelect.value = 'MEMBER';
+        editRoleSelect.disabled = true;
+        editRoleSelect.title = 'Admin hanya dapat mengubah user Member. Master dapat mengubah role.';
       } else {
-        roleSelect.disabled = false;
-        if (roleHint) roleHint.textContent = 'Anda dapat mengubah role user ini.';
+        editRoleSelect.disabled = false;
+        editRoleSelect.title = '';
       }
-      if (optMaster) optMaster.hidden = (userRole !== 'MASTER');
     }
 
-    // Render Access Checkboxes
-    renderAccessGrid(u);
+    var acc = accessFor(u);
+    $$('#permGrid .auth-perm-item').forEach(function (item) {
+      var key = item.getAttribute('data-key');
+      var checked = !!acc[key];
+      var cb = item.querySelector('input[type="checkbox"]');
+      cb.checked = checked;
+      item.classList.toggle('checked', checked);
+    });
 
-    // Show Modal
+    var grantEl = $('editGrantedBy');
+    if (grantEl) {
+      grantEl.textContent = 'access granted by ' + (userRole === 'MASTER' ? 'master' : 'admin');
+    }
+
     var modal = $('editModal');
     if (modal) modal.classList.add('active');
   }
@@ -382,19 +393,6 @@
     var modal = $('editModal');
     if (modal) modal.classList.remove('active');
     editUsername = null;
-  }
-
-  function setAllPerm(v) {
-    if (!editUsername) return;
-    var u = usersData.find(function (x) { return x.username === editUsername; });
-    if (u && (u.role === 'MASTER' || u.role === 'ADMIN')) {
-      showToast('Akses Master/Admin sudah penuh dan tidak dapat diubah.', 'warning');
-      return;
-    }
-    var checkboxes = $$('#permGrid .access-checkbox:not(:disabled)');
-    checkboxes.forEach(function (cb) {
-      cb.checked = !!v;
-    });
   }
 
   function submitEditAccess() {
@@ -408,14 +406,11 @@
     }
 
     var access = {};
-    $$('#permGrid .access-checkbox').forEach(function (cb) {
-      access[cb.getAttribute('data-module')] = cb.checked;
+    $$('#permGrid .auth-perm-item').forEach(function (item) {
+      var key = item.getAttribute('data-key');
+      var cb = item.querySelector('input[type="checkbox"]');
+      access[key] = !!cb.checked;
     });
-
-    // Lock full access for Master/Admin
-    if (role === 'MASTER' || role === 'ADMIN') {
-      ACCESS_MODULES.forEach(function (mod) { access[mod.key] = true; });
-    }
 
     fetch('/api/users/' + encodeURIComponent(editUsername) + '/access', {
       method: 'PUT',
@@ -517,7 +512,7 @@
   }
 
   /* ============================================================
-     REGISTRATION SETTINGS
+     REGISTRATION SETTINGS — LOAD / RENDER / SAVE
      ============================================================ */
   function loadRegisSettings() {
     fetch('/api/settings/registration', { headers: { 'x-auth-token': authToken } })
@@ -583,7 +578,7 @@
   }
 
   /* ============================================================
-     PENDING REGISTRATIONS
+     PENDING REGISTRATIONS — LOAD / APPROVE / REJECT
      ============================================================ */
   function loadPending() {
     var wrap = $('pendingWrap');
@@ -672,13 +667,16 @@
   }
 
   /* ============================================================
-     LOGOUT & AUTH GUARD
+     LOGOUT
      ============================================================ */
   function logout() {
     localStorage.clear();
     window.location.href = '/Login.html';
   }
 
+  /* ============================================================
+     AUTH GUARD
+     ============================================================ */
   function authGuard() {
     authToken = localStorage.getItem('aura_auth_token') || '';
     userRole  = (localStorage.getItem('aura_user_role')  || '').toUpperCase();
@@ -688,6 +686,7 @@
       return false;
     }
     if (userRole !== 'ADMIN' && userRole !== 'MASTER') {
+      // Show inline denied state instead of alert (better UX in iframe)
       var denied = $('accessDenied');
       if (denied) {
         denied.style.display = 'flex';
@@ -704,18 +703,19 @@
   }
 
   /* ============================================================
-     INIT
+     INIT — wire events after DOM ready
      ============================================================ */
   function init() {
     if (!authGuard()) return;
 
+    // Detect iframe embedding (Dashboard integration)
     try {
       if (window.self !== window.top) {
         document.body.classList.add('in-iframe');
       }
-    } catch (e) { /* cross-origin */ }
+    } catch (e) { /* cross-origin — assume standalone */ }
 
-    // Nav sub-menu toggle
+    // Nav sub-menu toggle (kept for standalone view)
     var authParent = $('authParent');
     if (authParent) {
       authParent.addEventListener('click', function () {
@@ -725,7 +725,14 @@
       });
     }
 
-    // Search input debounce
+    // Nav sub-items
+    $$('.nav-sub-item').forEach(function (el) {
+      el.addEventListener('click', function () {
+        switchView(el.getAttribute('data-view'));
+      });
+    });
+
+    // Search input
     var searchInput = $('searchInput');
     if (searchInput) {
       var debounce;
@@ -735,17 +742,18 @@
       });
     }
 
-    // Event delegation for dynamic tables
-    var userTableBody = $('userTableBody');
+    // Event delegation for edit/delete buttons (avoids onclick quote issues)
+    var userTableBody = $('userTableBody') || document.querySelector('table tbody');
     if (userTableBody) {
       userTableBody.addEventListener('click', function(e) {
-        var editBtn = e.target.closest('[onclick*="openEdit"]');
+        var editBtn = e.target.closest('[data-edit-user]');
         var delBtn = e.target.closest('[data-delete-user]');
-        // Note: openEdit is called directly via onclick attribute now for simplicity
+        if (editBtn) { openEdit(editBtn.getAttribute('data-edit-user')); }
         if (delBtn) { confirmDelete(delBtn.getAttribute('data-delete-user')); }
       });
     }
 
+    // Event delegation for approve/reject buttons
     var pendingBody = $('pendingBody');
     if (pendingBody) {
       pendingBody.addEventListener('click', function(e) {
@@ -755,10 +763,20 @@
     }
 
     // Add-user modal buttons
+    var addBtns = $$('[data-action="openAddUser"]');
+    addBtns.forEach(function (b) { b.addEventListener('click', openModal); });
+    var closeAdd = $$('[data-action="closeAddUser"]');
+    closeAdd.forEach(function (b) { b.addEventListener('click', closeModal); });
     var submitAdd = $('submitAddUser');
     if (submitAdd) submitAdd.addEventListener('click', submitAddUser);
 
     // Edit-access modal buttons
+    var closeEdit = $$('[data-action="closeEdit"]');
+    closeEdit.forEach(function (b) { b.addEventListener('click', closeEditModal); });
+    var permAll = $$('[data-action="permAll"]');
+    permAll.forEach(function (b) { b.addEventListener('click', function () { setAllPerm(true); }); });
+    var permNone = $$('[data-action="permNone"]');
+    permNone.forEach(function (b) { b.addEventListener('click', function () { setAllPerm(false); }); });
     var submitEdit = $('submitEditAccess');
     if (submitEdit) submitEdit.addEventListener('click', submitEditAccess);
 
@@ -770,10 +788,11 @@
     var logoutBtns = $$('[data-action="logout"]');
     logoutBtns.forEach(function (b) { b.addEventListener('click', logout); });
 
-    // Dashboard link
+    // Dashboard link (nav back)
     var dashBtns = $$('[data-action="goDashboard"]');
     dashBtns.forEach(function (b) {
       b.addEventListener('click', function () {
+        // If we're in an iframe, ask parent to switch back; else navigate
         try {
           if (window.self !== window.top && window.parent && typeof window.parent.switchToDashboard === 'function') {
             window.parent.switchToDashboard();
@@ -798,8 +817,8 @@
     var cancelBtn = $('confirmCancelBtn');
     if (cancelBtn) cancelBtn.addEventListener('click', closeConfirm);
 
-    // Close modals on overlay click
-    $$('.modal-overlay').forEach(function (overlay) {
+    // Close modals on overlay click (but not when clicking the modal itself)
+    $$('.auth-modal-overlay').forEach(function (overlay) {
       overlay.addEventListener('click', function (e) {
         if (e.target === overlay) {
           overlay.classList.remove('active');
@@ -810,17 +829,18 @@
     // Esc to close any modal
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
-        $$('.modal-overlay.active').forEach(function (m) { m.classList.remove('active'); });
+        $$('.auth-modal-overlay.active').forEach(function (m) { m.classList.remove('active'); });
       }
     });
 
-    // Initial Load
+    // Build perm grid + initial load
+    buildPermGrid();
     loadUsers();
-    loadPending();
+    loadPending(); // populate Pending stat card immediately
   }
 
   /* ============================================================
-     PUBLIC API (Global Access)
+     PUBLIC API (called from inline onclick handlers)
      ============================================================ */
   window.__AUTH = {
     openModal:        openModal,
@@ -837,7 +857,13 @@
     logout:           logout
   };
 
-  window.switchView = switchView;
+  // Expose switchView globally for inline onclick on nav items (legacy support)
+  window.switchView       = switchView;
+  window.toggleAuthMenu   = function () {
+    var sub = $('authSub'); var par = $('authParent');
+    if (sub)  sub.classList.toggle('open');
+    if (par)  par.classList.toggle('open');
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
