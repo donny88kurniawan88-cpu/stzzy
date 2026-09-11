@@ -861,12 +861,7 @@
         </div>
       </div>
 
-      <!-- ===== AUTHORITY PANEL VIEW (inline iframe) ===== -->
-      <div id="authorityView" style="display:none;">
-        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
-          <iframe src="/Authority.html?v=1.0.0" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="Authority Panel - User Management"></iframe>
-        </div>
-      </div>
+      <!-- ===== AUTHORITY PANEL (dibuka sebagai layer terpisah di tab baru — lihat switchToAuthority) ===== -->
 
       <!-- ===== KEEP MEMO VIEW (Pro - rendered by keepmemo-pro.js) ===== -->
       <div id="keepMemoView" style="display:none;"></div>
@@ -1385,7 +1380,6 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var xsv = document.getElementById('xpaySettlementView'); if (xsv) xsv.style.display = 'none';
       var ebv = document.getElementById('editBuktiView'); if (ebv) ebv.style.display = 'none';
       var pgV = document.getElementById('pgReportView'); if (pgV) pgV.style.display = 'none';
-      var autV = document.getElementById('authorityView'); if (autV) autV.style.display = 'none';
       var kmV = document.getElementById('keepMemoView'); if (kmV) kmV.style.display = 'none';
       var stV = document.getElementById('settingView'); if (stV) stV.style.display = 'none';
     }
@@ -1452,16 +1446,14 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       addTerminalLog('Switched to PG Report view');
     }
 
-    /* === AUTHORITY PANEL === */
+    /* === AUTHORITY PANEL — layer terpisah (buka di tab baru, tidak menyatu dengan dashboard) === */
     function switchToAuthority() {
-      hideAllViews();
-      var autV = document.getElementById('authorityView'); if (autV) autV.style.display = 'block';
-      document.getElementById('breadcrumbPage').textContent = 'authority';
-      currentView = 'authority';
+      document.getElementById('breadcrumbPage').textContent = 'Authority Panel';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
       var autNav = document.querySelector('.nav-item[data-access-item="authority_panel"]');
       if (autNav) autNav.classList.add('active');
-      addTerminalLog('Switched to Authority Panel view');
+      addTerminalLog('Opening Authority Panel in new tab...');
+      window.open('/Authority.html?v=2.1.0', '_blank');
     }
 
     /* === KEEP MEMO (Pro) === */
