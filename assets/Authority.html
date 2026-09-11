@@ -6,18 +6,18 @@
   <title>Authority Panel - AURA.OS</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/authority-pro.css?v=2.0.0">
+  <link rel="stylesheet" href="/css/authority-pro.css?v=2.1.0">
 </head>
 <body>
 
   <!-- ============ TOP BAR ============ -->
   <header class="auth-topbar">
-    <div class="auth-breadcrumb">
-      <span class="crumb-user" id="userEmail">system@aura.os</span>
-      <span class="crumb-sep">/</span>
-      <span>authority</span>
-      <span class="crumb-sep">/</span>
-      <span class="crumb-active" id="crumbView">user-management</span>
+    <div class="auth-brand">
+      <div class="auth-brand-icon"><i class="fas fa-user-shield"></i></div>
+      <div class="auth-brand-text">
+        <div class="auth-brand-title">Authority Panel</div>
+        <div class="auth-brand-sub">Access Control Center</div>
+      </div>
     </div>
     <div class="auth-topbar-right">
       <span class="auth-role-chip" id="topRoleChip"><i class="fas fa-shield-halved"></i> --</span>
@@ -469,6 +469,6 @@
   <div class="auth-toast" id="toastEl"></div>
 
   <!-- ============ EXTERNAL SCRIPT ============ -->
-  <script src="/js/authority-pro.js?v=2.0.0"></script>
+  <script src="/js/authority-pro.js?v=2.1.0"></script>
 </body>
 </html>
