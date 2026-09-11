@@ -1,38 +1,100 @@
 /* ============================================================
-   AURA.OS // AUTHORITY-PRO.JS
-   Authority Panel logic — User management, access control,
-   registration settings, pending approvals, search, toasts.
-   Pairs with authority-pro.css (AUTHORITY).
+   AURA.OS // AUTHORITY-PRO.JS  v2.0
+   Authority Panel logic — User management, FULL access-control
+   matrix (21 keys, mengikuti struktur menu Dashboard),
+   registration settings, pending approvals, filters, toasts.
+   Pairs with authority-pro.css (AUTHORITY) v2.0
    ============================================================ */
 
 (function () {
   'use strict';
 
   /* ============================================================
-     CONFIG — Access modules (kept in sync with Dashboard groups)
+     ACCESS TREE — LENGKAP 21 KEY, mengikuti struktur sidebar
+     Dashboard + sub-menu Authority Panel.
+     Harus sinkron dengan VALID_MODULES di src/index.js:
+       core, workspace, operational, system,
+       user_management, registration_control,
+       dashboard, profil, banking_tools, rek_validator,
+       bank_processor, saldo_pencairan, qris_tools,
+       prediction_tools, event_tools, edit_bukti, keep_memo,
+       api_key, setting, ip_whitelist, authority_panel
      ============================================================ */
-  var ACCESS_MODULES = [
-    { key: 'core',                 label: 'Core',             icon: 'fa-gauge-high' },
-    { key: 'workspace',            label: 'Workspace',        icon: 'fa-briefcase' },
-    { key: 'operational',          label: 'Operational',      icon: 'fa-cogs' },
-    { key: 'system',               label: 'System',           icon: 'fa-server' },
-    { key: 'user_management',      label: 'User Management',  icon: 'fa-users-cog' },
-    { key: 'registration_control', label: 'Data Registrasi',  icon: 'fa-clipboard-check' }
+  var ACCESS_TREE = [
+    {
+      key: 'core', label: 'Core', icon: 'fa-gauge-high', color: 'blue',
+      desc: 'Modul inti sistem',
+      items: [
+        { key: 'dashboard', label: 'Dashboard', icon: 'fa-house' },
+        { key: 'profil',    label: 'Profil',    icon: 'fa-user' }
+      ]
+    },
+    {
+      key: 'workspace', label: 'Workspace', icon: 'fa-briefcase', color: 'purple',
+      desc: 'Tools perbankan & pemrosesan data rekening',
+      items: [
+        { key: 'banking_tools', label: 'Banking Tools', icon: 'fa-credit-card', children: [
+          { key: 'rek_validator',  label: 'Rek Validator',  icon: 'fa-magnifying-glass-dollar' },
+          { key: 'bank_processor', label: 'Bank Processor', icon: 'fa-money-bill-transfer' }
+        ] }
+      ]
+    },
+    {
+      key: 'operational', label: 'Operational', icon: 'fa-gears', color: 'teal',
+      desc: 'Operasional harian, QRIS, prediksi & event',
+      items: [
+        { key: 'saldo_pencairan',  label: 'Saldo Pencairan',  icon: 'fa-layer-group' },
+        { key: 'qris_tools',       label: 'QRIS Tools',       icon: 'fa-qrcode' },
+        { key: 'prediction_tools', label: 'Prediction Tools', icon: 'fa-clock' },
+        { key: 'event_tools',      label: 'Event Tools',      icon: 'fa-calendar-days' },
+        { key: 'edit_bukti',       label: 'Edit Bukti',       icon: 'fa-pen-to-square' },
+        { key: 'keep_memo',        label: 'Keep Memo',        icon: 'fa-clipboard' }
+      ]
+    },
+    {
+      key: 'system', label: 'System', icon: 'fa-server', color: 'danger',
+      desc: 'Konfigurasi sistem, keamanan & authority',
+      items: [
+        { key: 'api_key',       label: 'API Key',       icon: 'fa-key' },
+        { key: 'ip_whitelist',  label: 'IP Whitelist',  icon: 'fa-globe' },
+        { key: 'setting',       label: 'Setting',       icon: 'fa-gear' },
+        { key: 'authority_panel', label: 'Authority Panel', icon: 'fa-user-shield', children: [
+          { key: 'user_management',      label: 'User Management', icon: 'fa-users-cog' },
+          { key: 'registration_control', label: 'Data Registrasi', icon: 'fa-clipboard-check' }
+        ] }
+      ]
+    }
   ];
 
-  var ROLE_CLASS = {
-    MASTER: 'role-master',
-    ADMIN:  'role-admin',
-    MEMBER: 'role-member'
-  };
+  /* Flat list 21 key (urutan sama dengan VALID_MODULES backend) */
+  var ALL_KEYS = (function () {
+    var keys = ['core', 'workspace', 'operational', 'system'];
+    ACCESS_TREE.forEach(function (g) {
+      keys.push(g.key);
+      g.items.forEach(function (it) {
+        keys.push(it.key);
+        if (it.children) it.children.forEach(function (c) { keys.push(c.key); });
+      });
+    });
+    /* dedupe (group keys sudah masuk di awal) */
+    var seen = {}, out = [];
+    keys.forEach(function (k) { if (!seen[k]) { seen[k] = 1; out.push(k); } });
+    return out;
+  })();
+
+  var ROLE_CLASS = { MASTER: 'role-master', ADMIN: 'role-admin', MEMBER: 'role-member' };
+  var PAGE_SIZE = 8;
 
   /* ============================================================
      STATE
      ============================================================ */
   var authToken = '';
-  var userRole  = '';
+  var userRole = '';
+  var userAccess = {};      /* access milisendiri (dari /api/me) */
+  var isViewOnly = false;   /* MEMBER dengan authority_panel=true */
   var usersData = [];
   var editUsername = null;
+  var currentPage = 1;
   var regisSettings = { open: true, defaultRole: 'MEMBER', requireApproval: false };
   var confirmCallback = null;
 
@@ -49,10 +111,6 @@
     });
   }
 
-  function escapeAttr(text) {
-    return escapeHtml(text).replace(/`/g, '&#96;');
-  }
-
   function initials(name) {
     return (name || '??').substring(0, 2).toUpperCase();
   }
@@ -67,25 +125,55 @@
     return 'success-blue';
   }
 
+  function setText(id, val) {
+    var el = $(id);
+    if (el) el.textContent = val;
+  }
+
   /* ============================================================
      ACCESS HELPERS
      ============================================================ */
-  function accessFor(u) {
-    if (u && u.access && typeof u.access === 'object') return u.access;
-    if (u && u.role === 'MASTER') {
-      return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
+  /* Default access per role — sinkron dengan defaultAccessFor() backend */
+  function defaultAccessFor(role) {
+    var acc = {};
+    ALL_KEYS.forEach(function (k) { acc[k] = false; });
+    if (role === 'MASTER' || role === 'ADMIN') {
+      ALL_KEYS.forEach(function (k) { acc[k] = true; });
+    } else {
+      acc.core = true; acc.dashboard = true; acc.profil = true;
     }
-    if (u && u.role === 'ADMIN') {
-      return { core: true, workspace: true, operational: true, system: true, user_management: true, registration_control: true };
-    }
-    // MEMBER default — only Core
-    return { core: true, workspace: false, operational: false, system: false, user_management: false, registration_control: false };
+    return acc;
   }
 
+  /* Ambil access user target — merged dengan default role-nya */
+  function accessFor(u) {
+    var base = defaultAccessFor(u ? u.role : 'MEMBER');
+    if (u && u.access && typeof u.access === 'object') {
+      ALL_KEYS.forEach(function (k) {
+        if (typeof u.access[k] === 'boolean') base[k] = u.access[k];
+      });
+    }
+    return base;
+  }
+
+  function countEnabledModules(acc) {
+    var n = 0;
+    ALL_KEYS.forEach(function (k) { if (acc[k]) n++; });
+    return n;
+  }
+
+  /* Apakah role user saat ini boleh memodifikasi user lain? */
   function canEditUser(targetUser) {
+    if (isViewOnly) return false;
     if (userRole === 'MASTER') return true;
     if (userRole === 'ADMIN')  return targetUser.role === 'MEMBER';
     return false;
+  }
+
+  /* Tab Authority yang boleh dilihat user saat ini */
+  function tabAllowed(key) {
+    if (userRole === 'MASTER') return true;
+    return !!userAccess[key];
   }
 
   /* ============================================================
@@ -106,7 +194,6 @@
     t.innerHTML =
       '<div class="auth-toast-icon"><i class="fas ' + (iconMap[type] || iconMap.info) + '"></i></div>' +
       '<div class="auth-toast-content">' + escapeHtml(msg) + '</div>';
-    // Force reflow then add show
     void t.offsetWidth;
     t.classList.add('show');
     if (toastTimer) clearTimeout(toastTimer);
@@ -114,7 +201,7 @@
   }
 
   /* ============================================================
-     CUSTOM CONFIRM DIALOG (replaces native confirm())
+     CUSTOM CONFIRM DIALOG
      ============================================================ */
   function showConfirm(opts) {
     opts = opts || {};
@@ -151,7 +238,6 @@
     cancelBtn.innerHTML = escapeHtml(cancelText);
 
     confirmCallback = typeof opts.onConfirm === 'function' ? opts.onConfirm : null;
-
     overlay.classList.add('active');
   }
 
@@ -162,23 +248,22 @@
   }
 
   /* ============================================================
-     VIEW SWITCHER (User Management ↔ Data Registrasi)
+     VIEW SWITCHER (User Management <-> Data Registrasi)
      ============================================================ */
   function switchView(view) {
     var users = $('viewUsers');
     var regis = $('viewRegistration');
+    var noMod = $('noModuleState');
     if (users) users.classList.toggle('active', view === 'users');
     if (regis) regis.classList.toggle('active', view === 'registration');
-    // Update nav tabs
-    $$('.auth-nav-tab').forEach(function (el) {
-      el.classList.toggle('active', el.getAttribute('data-view') === view);
-    });
-    // Legacy nav sub-items
-    $$('.nav-sub-item').forEach(function (el) {
+    if (noMod) noMod.style.display = 'none';
+
+    $$('.auth-side-item').forEach(function (el) {
       el.classList.toggle('active', el.getAttribute('data-view') === view);
     });
     var crumb = $('crumbView');
     if (crumb) crumb.textContent = view === 'users' ? 'user-management' : 'data-registrasi';
+
     if (view === 'registration') {
       loadRegisSettings();
       loadPending();
@@ -192,12 +277,12 @@
     var tbody = $('userTableBody');
     if (tbody) {
       tbody.innerHTML =
-        '<tr class="loading-row"><td colspan="4"><i class="fas fa-spinner"></i> Memuat data user...</td></tr>';
+        '<tr class="loading-row"><td colspan="5"><i class="fas fa-spinner"></i> Memuat data user...</td></tr>';
     }
     fetch('/api/users', { headers: { 'x-auth-token': authToken } })
       .then(function (res) {
-        if (res.status === 403) {
-          showToast('Sesi admin berakhir. Silakan login ulang.', 'warning');
+        if (res.status === 401 || res.status === 403) {
+          showToast('Sesi berakhir atau akses ditolak. Silakan login ulang.', 'warning');
           setTimeout(function () { window.location.href = '/Login.html'; }, 1200);
           return [];
         }
@@ -205,13 +290,14 @@
       })
       .then(function (data) {
         usersData = Array.isArray(data) ? data : [];
+        currentPage = 1;
         renderStats();
         renderTable();
       })
       .catch(function () {
         if (tbody) {
           tbody.innerHTML =
-            '<tr class="empty-row"><td colspan="4"><div class="auth-empty-state">' +
+            '<tr class="empty-row"><td colspan="5"><div class="auth-empty-state">' +
             '<i class="fas fa-circle-exclamation"></i>' +
             '<div class="empty-title">Gagal memuat data user</div>' +
             '<div class="empty-sub">Periksa koneksi atau coba lagi nanti</div>' +
@@ -222,75 +308,116 @@
   }
 
   /* ============================================================
-     RENDER STATS (Total / Masters / Admins / Members / Pending)
+     RENDER STATS
      ============================================================ */
   function renderStats() {
     var total   = usersData.length;
     var masters = usersData.filter(function (u) { return u.role === 'MASTER'; }).length;
     var admins  = usersData.filter(function (u) { return u.role === 'ADMIN';  }).length;
     var members = usersData.filter(function (u) { return u.role === 'MEMBER'; }).length;
+    var pendings = usersData.filter(function (u) { return (u.status || '').toUpperCase() === 'PENDING'; }).length;
 
     setText('statTotal',   total);
     setText('statMasters', masters);
     setText('statAdmins',  admins);
     setText('statMembers', members);
+    setText('statPending', pendings);
 
     var trendEl = $('statTotalTrend');
     if (trendEl) {
-      var online = usersData.filter(function (u) {
-        return (u.status || 'active').toLowerCase() === 'active';
+      var active = usersData.filter(function (u) {
+        return (u.status || 'ACTIVE').toUpperCase() === 'ACTIVE';
       }).length;
-      trendEl.innerHTML = '<i class="fas fa-circle-check"></i> ' + online + ' active';
+      trendEl.innerHTML = '<i class="fas fa-circle-check"></i> ' + active + ' active';
     }
   }
 
-  function setText(id, val) {
-    var el = $(id);
-    if (el) el.textContent = val;
-  }
-
   /* ============================================================
-     RENDER TABLE (with search/filter)
+     RENDER TABLE (search + role/status filter + pagination)
      ============================================================ */
-  function renderTable() {
+  function getFilteredUsers() {
     var searchInput = $('searchInput');
     var search = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    var filtered = usersData.filter(function (u) {
-      if (!search) return true;
-      return (u.username || '').toLowerCase().indexOf(search) >= 0 ||
-             (u.role || '').toLowerCase().indexOf(search) >= 0;
-    });
+    var roleF = ($('filterRole')   && $('filterRole').value)   || 'ALL';
+    var stF   = ($('filterStatus') && $('filterStatus').value) || 'ALL';
 
+    return usersData.filter(function (u) {
+      if (roleF !== 'ALL' && (u.role || '').toUpperCase() !== roleF) return false;
+      if (stF !== 'ALL' && (u.status || 'ACTIVE').toUpperCase() !== stF) return false;
+      if (!search) return true;
+      var hay = ((u.username || '') + ' ' + (u.role || '') + ' ' + (u.granted_by || '')).toLowerCase();
+      return hay.indexOf(search) >= 0;
+    });
+  }
+
+  /* Access summary chips: 4 grup + jumlah modul */
+  function renderAccessChips(acc) {
+    var groupDefs = [
+      { key: 'core',        label: 'Core',        cls: 'g-blue' },
+      { key: 'workspace',   label: 'Workspace',   cls: 'g-purple' },
+      { key: 'operational', label: 'Operational', cls: 'g-teal' },
+      { key: 'system',      label: 'System',      cls: 'g-red' }
+    ];
+    var chips = groupDefs.map(function (g) {
+      return '<span class="auth-gchip ' + (acc[g.key] ? g.cls : 'g-off') + '" title="' + g.label + '">' +
+             g.label.charAt(0) + '</span>';
+    }).join('');
+    var n = countEnabledModules(acc);
+    var cnt = '<span class="auth-modcount">' + n + ' modul</span>';
+    return '<div class="auth-access-summary">' + chips + cnt + '</div>';
+  }
+
+  function renderTable() {
     var tbody = $('userTableBody');
     if (!tbody) return;
 
-    if (filtered.length === 0) {
+    var filtered = getFilteredUsers();
+    var totalFiltered = filtered.length;
+    var totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+    var start = (currentPage - 1) * PAGE_SIZE;
+    var pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+    var countEl = $('tableCount');
+    if (countEl) countEl.textContent = totalFiltered + ' user';
+
+    /* pagination bar */
+    var pgBar = $('paginationBar');
+    if (pgBar) pgBar.style.display = totalFiltered > PAGE_SIZE ? 'flex' : 'none';
+    setText('pageInfo', 'Page ' + currentPage + ' / ' + totalPages);
+    var prevB = $('pagePrev'), nextB = $('pageNext');
+    if (prevB) prevB.disabled = currentPage <= 1;
+    if (nextB) nextB.disabled = currentPage >= totalPages;
+
+    if (totalFiltered === 0) {
+      var searchVal = $('searchInput') ? $('searchInput').value : '';
       tbody.innerHTML =
-        '<tr class="empty-row"><td colspan="4"><div class="auth-empty-state">' +
+        '<tr class="empty-row"><td colspan="5"><div class="auth-empty-state">' +
         '<i class="fas fa-users-slash"></i>' +
         '<div class="empty-title">Tidak ada user ditemukan</div>' +
-        '<div class="empty-sub">' + (search ? 'Coba kata kunci lain' : 'Belum ada user terdaftar') + '</div>' +
+        '<div class="empty-sub">' + (searchVal ? 'Coba kata kunci atau filter lain' : 'Belum ada user terdaftar') + '</div>' +
         '</div></td></tr>';
       return;
     }
 
     var html = '';
-    filtered.forEach(function (u) {
+    pageItems.forEach(function (u) {
       var acc = accessFor(u);
-      var chips = ACCESS_MODULES.filter(function (m) { return acc[m.key]; })
-        .map(function (m) { return '<span class="auth-chip">' + escapeHtml(m.label) + '</span>'; })
-        .join('');
-      if (!chips) chips = '<span class="auth-no-access">No access</span>';
+      var status = (u.status || 'ACTIVE').toUpperCase();
+      var granted = u.granted_by ? 'granted by @' + u.granted_by : '';
 
       var actions;
       if (u.role === 'MASTER') {
         actions = '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Akun Master - Terproteksi" tabindex="-1"><i class="fas fa-lock"></i></button>';
       } else if (canEditUser(u)) {
         actions =
-          '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Edit Access Control" onclick="window.__AUTH.openEdit(\x27' + u.username.replace(/'/g, '\\' + String.fromCharCode(39)) + '\x27)"><i class="fas fa-key"></i></button>' +
+          '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Edit Access Control" data-edit-user="' + escapeHtml(u.username) + '"><i class="fas fa-key"></i></button>' +
           '<button class="auth-btn auth-btn-danger-ghost auth-btn-icon" title="Hapus User" data-delete-user="' + escapeHtml(u.username) + '"><i class="fas fa-trash"></i></button>';
       } else {
-        actions = '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="Hanya Master yang dapat mengubah Admin lain" tabindex="-1"><i class="fas fa-lock"></i></button>';
+        var lockTitle = isViewOnly
+          ? 'Mode lihat-saja: tidak memiliki hak modifikasi'
+          : 'Hanya Master yang dapat mengubah Admin lain';
+        actions = '<button class="auth-btn auth-btn-ghost auth-btn-icon" title="' + lockTitle + '" tabindex="-1"><i class="fas fa-lock"></i></button>';
       }
 
       html +=
@@ -298,11 +425,19 @@
           '<td>' +
             '<div class="auth-user-cell">' +
               '<div class="auth-avatar ' + avatarGradient(u.username) + '">' + escapeHtml(initials(u.username)) + '</div>' +
-              '<div class="auth-user-name">@' + escapeHtml(u.username) + '</div>' +
+              '<div class="auth-user-meta">' +
+                '<div class="auth-user-name">@' + escapeHtml(u.username) + '</div>' +
+                (granted ? '<div class="auth-user-sub">' + escapeHtml(granted) + '</div>' : '') +
+              '</div>' +
             '</div>' +
           '</td>' +
           '<td><span class="auth-role-badge ' + (ROLE_CLASS[u.role] || '') + '">' + escapeHtml(u.role || 'MEMBER') + '</span></td>' +
-          '<td><div class="auth-access-chips">' + chips + '</div></td>' +
+          '<td>' +
+            (status === 'PENDING'
+              ? '<span class="auth-status-pill pending"><i class="fas fa-hourglass-half"></i> PENDING</span>'
+              : '<span class="auth-status-pill active"><i class="fas fa-circle-check"></i> ACTIVE</span>') +
+          '</td>' +
+          '<td>' + renderAccessChips(acc) + '</td>' +
           '<td class="text-right"><div class="auth-action-group">' + actions + '</div></td>' +
         '</tr>';
     });
@@ -310,43 +445,248 @@
   }
 
   /* ============================================================
-     EDIT ACCESS CONTROL
+     ACCESS MATRIX (Edit modal) — dibangun dari ACCESS_TREE
      ============================================================ */
-  function buildPermGrid() {
-    var grid = $('permGrid');
-    if (!grid) return;
-    grid.innerHTML = ACCESS_MODULES.map(function (m) {
-      return '' +
-        '<label class="auth-perm-item" data-key="' + m.key + '">' +
-          '<input type="checkbox">' +
-          '<i class="fas ' + m.icon + ' perm-icon"></i>' +
-          '<span class="perm-label">' + escapeHtml(m.label) + '</span>' +
-          '<span class="perm-check"><i class="fas fa-check"></i></span>' +
-        '</label>';
-    }).join('');
+  function buildPermMatrix() {
+    var matrix = $('permMatrix');
+    if (!matrix) return;
+    var html = '';
 
-    // Toggle .checked class on checkbox change
-    $$('#permGrid .auth-perm-item').forEach(function (item) {
-      var cb = item.querySelector('input[type="checkbox"]');
+    ACCESS_TREE.forEach(function (g) {
+      html +=
+        '<div class="auth-perm-group" data-group="' + g.key + '">' +
+          '<div class="auth-perm-group-head">' +
+            '<label class="auth-perm-master" data-key="' + g.key + '">' +
+              '<input type="checkbox" data-role="group">' +
+              '<span class="perm-box"><i class="fas fa-check"></i></span>' +
+              '<span class="perm-gicon ' + (g.color || 'blue') + '"><i class="fas ' + g.icon + '"></i></span>' +
+              '<span class="perm-gtext">' +
+                '<span class="perm-glabel">' + escapeHtml(g.label) + '</span>' +
+                '<span class="perm-gdesc">' + escapeHtml(g.desc) + '</span>' +
+              '</span>' +
+            '</label>' +
+          '</div>' +
+          '<div class="auth-perm-children">';
+
+      g.items.forEach(function (it) {
+        html += renderPermItem(it, 0);
+      });
+
+      html += '</div></div>';
+    });
+
+    matrix.innerHTML = html;
+
+    /* wire events: parent/grup toggle -> cascade ke anak; leaf toggle -> propagate ke atas */
+    $$('#permMatrix input[type="checkbox"]').forEach(function (cb) {
       cb.addEventListener('change', function () {
-        item.classList.toggle('checked', cb.checked);
+        var label = cb.closest('.auth-perm-master') || cb.closest('.auth-perm-item');
+        var key = label.getAttribute('data-key');
+        var f = findNode(key);
+        var hasKids = f && ((f.isGroup && f.node.items && f.node.items.length) ||
+                            (!f.isGroup && f.node.children && f.node.children.length));
+        if (hasKids) setSubtree(key, cb.checked);
+        refreshAllParents();
+        updateSummary();
       });
     });
   }
 
-  function setAllPerm(v) {
-    $$('#permGrid .auth-perm-item').forEach(function (item) {
-      var cb = item.querySelector('input[type="checkbox"]');
-      cb.checked = !!v;
-      item.classList.toggle('checked', !!v);
+  function renderPermItem(it, depth) {
+    var hasKids = it.children && it.children.length;
+    var html =
+      '<div class="auth-perm-node" data-node="' + it.key + '">' +
+        '<label class="auth-perm-item" data-key="' + it.key + '">' +
+          '<input type="checkbox">' +
+          '<span class="perm-box"><i class="fas fa-check"></i></span>' +
+          '<i class="fas ' + it.icon + ' perm-icon"></i>' +
+          '<span class="perm-label">' + escapeHtml(it.label) + '</span>' +
+          (hasKids ? '<span class="perm-tag">grup</span>' : '') +
+        '</label>';
+
+    if (hasKids) {
+      html += '<div class="auth-perm-subtree">';
+      it.children.forEach(function (c) {
+        html += renderPermItem(c, depth + 1);
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function findNode(key) {
+    var found = null;
+    ACCESS_TREE.forEach(function (g) {
+      if (g.key === key) { found = { isGroup: true, node: g, parent: null }; return; }
+      g.items.forEach(function (it) {
+        if (it.key === key) { found = { isGroup: false, node: it, parent: g.key }; return; }
+        if (it.children) {
+          it.children.forEach(function (c) {
+            if (c.key === key) { found = { isGroup: false, node: c, parent: it.key }; return; }
+          });
+        }
+      });
+    });
+    return found;
+  }
+
+  function getChecked(key) {
+    var item = document.querySelector('#permMatrix [data-key="' + key + '"] input');
+    return item ? item.checked : false;
+  }
+
+  function setChecked(key, val) {
+    var item = document.querySelector('#permMatrix [data-key="' + key + '"] input');
+    if (item) {
+      item.checked = !!val;
+      var wrap = item.closest('.auth-perm-master') || item.closest('.auth-perm-item');
+      if (wrap) wrap.classList.toggle('checked', !!val);
+    }
+  }
+
+  /* Set checkbox untuk node + seluruh subtree-nya (jika grup) */
+  function setSubtree(key, val) {
+    var found = findNode(key);
+    if (!found) return;
+    setChecked(key, val);
+    var items = found.isGroup ? found.node.items : (found.node.children || null);
+    if (items) {
+      items.forEach(function (it) {
+        setChecked(it.key, val);
+        if (it.children) it.children.forEach(function (c) { setChecked(c.key, val); });
+      });
+    }
+  }
+
+  /* Kumpulkan key node + seluruh keturunannya */
+  function collectKeys(it, fn) {
+    fn(it.key);
+    if (it.children) it.children.forEach(function (c) { collectKeys(c, fn); });
+  }
+
+  /* Hitung ulang state SEMUA induk (item beranak + 4 grup):
+     - item beranak : checked jika ada anak aktif, indeterminate jika parsial
+     - grup         : checked jika semua aktif, indeterminate jika parsial  */
+  function refreshAllParents() {
+    /* 1) Item beranak (banking_tools, authority_panel) */
+    ACCESS_TREE.forEach(function (g) {
+      g.items.forEach(function (it) {
+        if (!it.children) return;
+        syncParentItem(it.key);
+        it.children.forEach(function (c) { if (c.children) syncParentItem(c.key); });
+      });
+    });
+
+    /* 2) Grup tingkat atas */
+    ACCESS_TREE.forEach(function (g) {
+      var any = false, all = true, total = 0;
+      g.items.forEach(function (it) {
+        collectKeys(it, function (k) {
+          total++;
+          if (getChecked(k)) any = true; else all = false;
+        });
+      });
+      var gcb = document.querySelector('#permMatrix .auth-perm-master[data-key="' + g.key + '"] input');
+      if (gcb) {
+        if (any && all)      { gcb.indeterminate = false; gcb.checked = true; }
+        else if (any)        { gcb.indeterminate = true;  gcb.checked = false; }
+        else                 { gcb.indeterminate = false; gcb.checked = false; }
+        var w2 = gcb.closest('.auth-perm-master');
+        if (w2) w2.classList.toggle('checked', any);
+      }
     });
   }
 
+  function syncParentItem(ikey) {
+    var wrap = document.querySelector('#permMatrix .auth-perm-node[data-node="' + ikey + '"]');
+    if (!wrap) return;
+    var cb  = wrap.querySelector(':scope > label input');
+    var sub = wrap.querySelector(':scope > .auth-perm-subtree');
+    if (!cb || !sub) return;
+    var kids = Array.prototype.slice.call(sub.querySelectorAll('input'));
+    var anyK = kids.some(function (k) { return k.checked; });
+    var allK = kids.length > 0 && kids.every(function (k) { return k.checked; });
+    cb.indeterminate = anyK && !allK;
+    cb.checked = anyK;
+    var w = cb.closest('.auth-perm-item');
+    if (w) w.classList.toggle('checked', anyK);
+  }
+
+  function collectAccessFromMatrix() {
+    var access = {};
+    /* 1) Kumpulkan state mentah semua checkbox */
+    $$('#permMatrix [data-key]').forEach(function (el) {
+      var key = el.getAttribute('data-key');
+      var cb = el.querySelector('input[type="checkbox"]');
+      if (cb) access[key] = !!cb.checked;
+    });
+    /* 2) Konsistensi hierarki: grup/item-induk wajib true jika ada
+          keturunan aktif — agar menu induk tidak tersembunyi di Dashboard
+          padahal sub-modulnya diizinkan (indeterminate != false). */
+    ACCESS_TREE.forEach(function (g) {
+      var anyGroup = false;
+      g.items.forEach(function (it) {
+        var anyItem = false;
+        collectKeys(it, function (k) { if (access[k]) anyItem = true; });
+        if (it.children) access[it.key] = access[it.key] || anyItem;
+        if (access[it.key]) anyGroup = true;
+      });
+      access[g.key] = access[g.key] || anyGroup;
+    });
+    return access;
+  }
+
+  function applyAccessToMatrix(acc) {
+    $$('#permMatrix [data-key]').forEach(function (el) {
+      var key = el.getAttribute('data-key');
+      var cb = el.querySelector('input[type="checkbox"]');
+      if (!cb) return;
+      var wrap = cb.closest('.auth-perm-master') || cb.closest('.auth-perm-item');
+      var val = !!(acc && acc[key]);
+      cb.checked = val;
+      cb.indeterminate = false;
+      if (wrap) wrap.classList.toggle('checked', val);
+    });
+    /* recompute indeterminate/checked utk semua induk */
+    refreshAllParents();
+    updateSummary();
+  }
+
+  function updateSummary() {
+    var acc = collectAccessFromMatrix();
+    var n = 0;
+    ALL_KEYS.forEach(function (k) { if (acc[k]) n++; });
+    var el = $('editSummary');
+    if (el) el.textContent = n + ' / ' + (ALL_KEYS.length) + ' modul aktif';
+  }
+
+  function setAllPerm(v) {
+    $$('#permMatrix input[type="checkbox"]').forEach(function (cb) {
+      cb.indeterminate = false;
+      cb.checked = !!v;
+      var wrap = cb.closest('.auth-perm-master') || cb.closest('.auth-perm-item');
+      if (wrap) wrap.classList.toggle('checked', !!v);
+    });
+    updateSummary();
+  }
+
+  function presetFull() { setAllPerm(true); }
+  function presetCore() {
+    setAllPerm(false);
+    ['core', 'dashboard', 'profil'].forEach(function (k) { setChecked(k, true); });
+    updateSummary();
+  }
+  function presetNone() { setAllPerm(false); }
+
+  /* ============================================================
+     EDIT ACCESS CONTROL
+     ============================================================ */
   function openEdit(username) {
     var u = usersData.find(function (x) { return x.username === username; });
     if (!u) return;
     if (!canEditUser(u)) {
-      showToast('Akses ditolak! ' + (userRole === 'ADMIN' ? 'Admin hanya dapat mengubah user Member.' : 'Tidak memiliki hak akses.'), 'warning');
+      showToast('Akses ditolak! ' + (isViewOnly ? 'Anda dalam mode lihat-saja.' : (userRole === 'ADMIN' ? 'Admin hanya dapat mengubah user Member.' : 'Tidak memiliki hak akses.')), 'warning');
       return;
     }
 
@@ -371,19 +711,15 @@
       }
     }
 
-    var acc = accessFor(u);
-    $$('#permGrid .auth-perm-item').forEach(function (item) {
-      var key = item.getAttribute('data-key');
-      var checked = !!acc[key];
-      var cb = item.querySelector('input[type="checkbox"]');
-      cb.checked = checked;
-      item.classList.toggle('checked', checked);
-    });
-
     var grantEl = $('editGrantedBy');
     if (grantEl) {
-      grantEl.textContent = 'access granted by ' + (userRole === 'MASTER' ? 'master' : 'admin');
+      grantEl.textContent = u.granted_by
+        ? 'access granted by @' + u.granted_by
+        : 'access granted by ' + (userRole === 'MASTER' ? 'master' : 'admin');
     }
+
+    applyAccessToMatrix(accessFor(u));
+    updateSummary();
 
     var modal = $('editModal');
     if (modal) modal.classList.add('active');
@@ -405,12 +741,7 @@
       return;
     }
 
-    var access = {};
-    $$('#permGrid .auth-perm-item').forEach(function (item) {
-      var key = item.getAttribute('data-key');
-      var cb = item.querySelector('input[type="checkbox"]');
-      access[key] = !!cb.checked;
-    });
+    var access = collectAccessFromMatrix();
 
     fetch('/api/users/' + encodeURIComponent(editUsername) + '/access', {
       method: 'PUT',
@@ -421,7 +752,7 @@
       .then(function (result) {
         if (result && result.success) {
           closeEditModal();
-          showToast('Akses control @' + editUsername + ' berhasil diperbarui!', 'success');
+          showToast('Access control @' + editUsername + ' berhasil diperbarui!', 'success');
           loadUsers();
         } else {
           showToast((result && result.error) || 'Gagal menyimpan akses', 'error');
@@ -552,9 +883,9 @@
 
   function saveRegisSettings() {
     var payload = {
-      open:           $('regisOpen')      ? $('regisOpen').checked      : false,
-      defaultRole:    $('regisDefaultRole') ? $('regisDefaultRole').value : 'MEMBER',
-      requireApproval:$('regisApproval')  ? $('regisApproval').checked  : false
+      open:            $('regisOpen')       ? $('regisOpen').checked       : false,
+      defaultRole:     $('regisDefaultRole') ? $('regisDefaultRole').value : 'MEMBER',
+      requireApproval: $('regisApproval')   ? $('regisApproval').checked   : false
     };
     fetch('/api/settings/registration', {
       method: 'PUT',
@@ -595,7 +926,6 @@
       .then(function (list) {
         if (!list) return;
         list = Array.isArray(list) ? list : [];
-        setText('statPending',  list.length);
         setText('statPending2', list.length);
         var pcEl = $('pendingCount');
         if (pcEl) pcEl.textContent = list.length + ' awaiting';
@@ -611,7 +941,7 @@
                 '<td>' +
                   '<div class="auth-user-cell">' +
                     '<div class="auth-avatar ' + avatarGradient(u.username) + '">' + escapeHtml(initials(u.username)) + '</div>' +
-                    '<div class="auth-user-name">@' + escapeHtml(u.username) + '</div>' +
+                    '<div class="auth-user-meta"><div class="auth-user-name">@' + escapeHtml(u.username) + '</div></div>' +
                   '</div>' +
                 '</td>' +
                 '<td><span class="auth-role-badge ' + (ROLE_CLASS[u.role] || 'role-member') + '">' + escapeHtml(u.role || 'MEMBER') + '</span></td>' +
@@ -626,7 +956,6 @@
       })
       .catch(function () {
         if (wrap) wrap.style.display = 'none';
-        setText('statPending',  '0');
         setText('statPending2', '0');
       });
   }
@@ -676,6 +1005,9 @@
 
   /* ============================================================
      AUTH GUARD
+     - ADMIN / MASTER           -> full mode
+     - MEMBER + authority_panel -> view-only mode
+     - selainnya                -> access denied overlay
      ============================================================ */
   function authGuard() {
     authToken = localStorage.getItem('aura_auth_token') || '';
@@ -683,191 +1015,250 @@
 
     if (!authToken) {
       window.location.href = '/Login.html';
-      return false;
+      return Promise.resolve(false);
     }
-    if (userRole !== 'ADMIN' && userRole !== 'MASTER') {
-      // Show inline denied state instead of alert (better UX in iframe)
-      var denied = $('accessDenied');
-      if (denied) {
-        denied.style.display = 'flex';
-        var main = document.querySelector('.auth-shell');
-        if (main) main.style.display = 'none';
-      } else {
-        window.location.href = '/Dashboard.html';
-      }
-      return false;
+
+    return fetch('/api/me', { headers: { 'x-auth-token': authToken } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (data && data.success && data.user) {
+          userRole = (data.user.role || userRole).toUpperCase();
+          userAccess = data.user.access || {};
+        } else {
+          try { userAccess = JSON.parse(localStorage.getItem('aura_user_access') || '{}'); } catch (e) { userAccess = {}; }
+        }
+
+        var allowed = (userRole === 'ADMIN' || userRole === 'MASTER') || !!userAccess.authority_panel;
+        if (!allowed) {
+          var denied = $('accessDenied');
+          if (denied) {
+            denied.style.display = 'flex';
+            var main = $('authShell');
+            if (main) main.style.display = 'none';
+            var tb = document.querySelector('.auth-topbar');
+            if (tb) tb.style.display = 'none';
+          } else {
+            window.location.href = '/Dashboard.html';
+          }
+          return false;
+        }
+
+        isViewOnly = !(userRole === 'ADMIN' || userRole === 'MASTER');
+        applyPermissionUI();
+
+        var emailEl = $('userEmail');
+        if (emailEl) emailEl.textContent = authToken + '@aura.os';
+        var chip = $('topRoleChip');
+        if (chip) {
+          if (isViewOnly) {
+            chip.innerHTML = '<i class="fas fa-eye"></i> VIEW-ONLY';
+            chip.classList.add('view-only');
+          } else {
+            chip.innerHTML = '<i class="fas fa-' + (userRole === 'MASTER' ? 'crown' : 'shield-halved') + '"></i> ' + userRole;
+            chip.classList.add(userRole === 'MASTER' ? 'chip-master' : 'chip-admin');
+          }
+        }
+        return true;
+      })
+      .catch(function () {
+        /* jaringan gagal: fallback ke role lokal */
+        var allowed = (userRole === 'ADMIN' || userRole === 'MASTER');
+        if (!allowed) {
+          window.location.href = '/Dashboard.html';
+          return false;
+        }
+        applyPermissionUI();
+        return true;
+      });
+  }
+
+  /* Sembunyikan tab & tombol sesuai permission user aktif */
+  function applyPermissionUI() {
+    var canUsers = tabAllowed('user_management');
+    var canRegis = tabAllowed('registration_control');
+
+    var sideUsers = $('sideUsers');
+    var sideRegis = $('sideRegis');
+    if (sideUsers) sideUsers.style.display = canUsers ? '' : 'none';
+    if (sideRegis) sideRegis.style.display = canRegis ? '' : 'none';
+
+    var noMod = $('noModuleState');
+    if (!canUsers && !canRegis) {
+      var shell = $('authShell');
+      if (shell) shell.classList.add('all-hidden');
+      if (noMod) noMod.style.display = 'flex';
+      var content = document.querySelector('.auth-content');
+      if (content) content.style.display = 'none';
+      return;
     }
-    var emailEl = $('userEmail');
-    if (emailEl) emailEl.textContent = authToken + '@aura.os';
-    return true;
+
+    /* Add User hanya untuk role yang boleh memutasi */
+    var addBtn = $('addUserBtn');
+    if (addBtn && isViewOnly) addBtn.style.display = 'none';
+
+    /* Aktifkan tab pertama yang tersedia */
+    if (canUsers) {
+      switchView('users');
+    } else if (canRegis) {
+      switchView('registration');
+    }
   }
 
   /* ============================================================
      INIT — wire events after DOM ready
      ============================================================ */
   function init() {
-    if (!authGuard()) return;
+    authGuard().then(function (ok) {
+      if (!ok) return;
 
-    // Detect iframe embedding (Dashboard integration)
-    try {
-      if (window.self !== window.top) {
-        document.body.classList.add('in-iframe');
+      try {
+        if (window.self !== window.top) {
+          document.body.classList.add('in-iframe');
+        }
+      } catch (e) { /* cross-origin — assume standalone */ }
+
+      /* Sidebar sub-menu */
+      $$('.auth-side-item').forEach(function (el) {
+        el.addEventListener('click', function () {
+          switchView(el.getAttribute('data-view'));
+        });
+      });
+
+      /* Search + filters */
+      var searchInput = $('searchInput');
+      if (searchInput) {
+        var debounce;
+        searchInput.addEventListener('input', function () {
+          clearTimeout(debounce);
+          debounce = setTimeout(function () { currentPage = 1; renderTable(); }, 120);
+        });
       }
-    } catch (e) { /* cross-origin — assume standalone */ }
+      var fr = $('filterRole'), fs = $('filterStatus');
+      if (fr) fr.addEventListener('change', function () { currentPage = 1; renderTable(); });
+      if (fs) fs.addEventListener('change', function () { currentPage = 1; renderTable(); });
 
-    // Nav sub-menu toggle (kept for standalone view)
-    var authParent = $('authParent');
-    if (authParent) {
-      authParent.addEventListener('click', function () {
-        var sub = $('authSub');
-        if (sub) sub.classList.toggle('open');
-        authParent.classList.toggle('open');
+      /* Pagination */
+      var pPrev = $('pagePrev'), pNext = $('pageNext');
+      if (pPrev) pPrev.addEventListener('click', function () { if (currentPage > 1) { currentPage--; renderTable(); } });
+      if (pNext) pNext.addEventListener('click', function () { currentPage++; renderTable(); });
+
+      /* Refresh buttons */
+      var rU = $('refreshUsersBtn');
+      if (rU) rU.addEventListener('click', function () { loadUsers(); showToast('Data user di-refresh', 'info'); });
+      var rR = $('refreshRegisBtn');
+      if (rR) rR.addEventListener('click', function () { loadRegisSettings(); loadPending(); showToast('Data registrasi di-refresh', 'info'); });
+
+      /* Event delegation: edit/delete buttons */
+      var userTableBody = $('userTableBody');
+      if (userTableBody) {
+        userTableBody.addEventListener('click', function (e) {
+          var editBtn = e.target.closest('[data-edit-user]');
+          var delBtn = e.target.closest('[data-delete-user]');
+          if (editBtn) { openEdit(editBtn.getAttribute('data-edit-user')); }
+          if (delBtn) { confirmDelete(delBtn.getAttribute('data-delete-user')); }
+        });
+      }
+
+      /* Event delegation: approve/reject buttons */
+      var pendingBody = $('pendingBody');
+      if (pendingBody) {
+        pendingBody.addEventListener('click', function (e) {
+          var btn = e.target.closest('[data-reg-action]');
+          if (btn) { actRegistration(btn.getAttribute('data-reg-user'), btn.getAttribute('data-reg-action')); }
+        });
+      }
+
+      /* Add-user modal */
+      $$('[data-action="openAddUser"]').forEach(function (b) { b.addEventListener('click', openModal); });
+      $$('[data-action="closeAddUser"]').forEach(function (b) { b.addEventListener('click', closeModal); });
+      var submitAdd = $('submitAddUser');
+      if (submitAdd) submitAdd.addEventListener('click', submitAddUser);
+
+      /* Edit-access modal */
+      $$('[data-action="closeEdit"]').forEach(function (b) { b.addEventListener('click', closeEditModal); });
+      $$('[data-action="permAll"]').forEach(function (b) { b.addEventListener('click', function () { setAllPerm(true); }); });
+      $$('[data-action="permNone"]').forEach(function (b) { b.addEventListener('click', function () { setAllPerm(false); }); });
+      $$('[data-action="presetFull"]').forEach(function (b) { b.addEventListener('click', presetFull); });
+      $$('[data-action="presetCore"]').forEach(function (b) { b.addEventListener('click', presetCore); });
+      $$('[data-action="presetNone"]').forEach(function (b) { b.addEventListener('click', presetNone); });
+      var submitEdit = $('submitEditAccess');
+      if (submitEdit) submitEdit.addEventListener('click', submitEditAccess);
+
+      /* Registration settings */
+      $$('[data-action="saveRegis"]').forEach(function (b) { b.addEventListener('click', saveRegisSettings); });
+
+      /* Logout */
+      $$('[data-action="logout"]').forEach(function (b) { b.addEventListener('click', logout); });
+
+      /* Dashboard link */
+      $$('[data-action="goDashboard"]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          try {
+            if (window.self !== window.top && window.parent && typeof window.parent.switchToDashboard === 'function') {
+              window.parent.switchToDashboard();
+              return;
+            }
+          } catch (e) {}
+          window.location.href = '/Dashboard.html';
+        });
       });
-    }
 
-    // Nav sub-items
-    $$('.nav-sub-item').forEach(function (el) {
-      el.addEventListener('click', function () {
-        switchView(el.getAttribute('data-view'));
-      });
-    });
-
-    // Search input
-    var searchInput = $('searchInput');
-    if (searchInput) {
-      var debounce;
-      searchInput.addEventListener('input', function () {
-        clearTimeout(debounce);
-        debounce = setTimeout(renderTable, 120);
-      });
-    }
-
-    // Event delegation for edit/delete buttons (avoids onclick quote issues)
-    var userTableBody = $('userTableBody') || document.querySelector('table tbody');
-    if (userTableBody) {
-      userTableBody.addEventListener('click', function(e) {
-        var editBtn = e.target.closest('[data-edit-user]');
-        var delBtn = e.target.closest('[data-delete-user]');
-        if (editBtn) { openEdit(editBtn.getAttribute('data-edit-user')); }
-        if (delBtn) { confirmDelete(delBtn.getAttribute('data-delete-user')); }
-      });
-    }
-
-    // Event delegation for approve/reject buttons
-    var pendingBody = $('pendingBody');
-    if (pendingBody) {
-      pendingBody.addEventListener('click', function(e) {
-        var btn = e.target.closest('[data-reg-action]');
-        if (btn) { actRegistration(btn.getAttribute('data-reg-user'), btn.getAttribute('data-reg-action')); }
-      });
-    }
-
-    // Add-user modal buttons
-    var addBtns = $$('[data-action="openAddUser"]');
-    addBtns.forEach(function (b) { b.addEventListener('click', openModal); });
-    var closeAdd = $$('[data-action="closeAddUser"]');
-    closeAdd.forEach(function (b) { b.addEventListener('click', closeModal); });
-    var submitAdd = $('submitAddUser');
-    if (submitAdd) submitAdd.addEventListener('click', submitAddUser);
-
-    // Edit-access modal buttons
-    var closeEdit = $$('[data-action="closeEdit"]');
-    closeEdit.forEach(function (b) { b.addEventListener('click', closeEditModal); });
-    var permAll = $$('[data-action="permAll"]');
-    permAll.forEach(function (b) { b.addEventListener('click', function () { setAllPerm(true); }); });
-    var permNone = $$('[data-action="permNone"]');
-    permNone.forEach(function (b) { b.addEventListener('click', function () { setAllPerm(false); }); });
-    var submitEdit = $('submitEditAccess');
-    if (submitEdit) submitEdit.addEventListener('click', submitEditAccess);
-
-    // Registration settings
-    var saveRegis = $$('[data-action="saveRegis"]');
-    saveRegis.forEach(function (b) { b.addEventListener('click', saveRegisSettings); });
-
-    // Logout
-    var logoutBtns = $$('[data-action="logout"]');
-    logoutBtns.forEach(function (b) { b.addEventListener('click', logout); });
-
-    // Dashboard link (nav back)
-    var dashBtns = $$('[data-action="goDashboard"]');
-    dashBtns.forEach(function (b) {
-      b.addEventListener('click', function () {
-        // If we're in an iframe, ask parent to switch back; else navigate
-        try {
-          if (window.self !== window.top && window.parent && typeof window.parent.switchToDashboard === 'function') {
-            window.parent.switchToDashboard();
-            return;
+      /* Confirm dialog */
+      var confirmBtn = $('confirmConfirmBtn');
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', function () {
+          var cb = confirmCallback;
+          closeConfirm();
+          if (typeof cb === 'function') {
+            try { cb(); } catch (e) { console.error('[authority-pro] confirm callback error', e); }
           }
-        } catch (e) {}
-        window.location.href = '/Dashboard.html';
-      });
-    });
-
-    // Confirm dialog buttons
-    var confirmBtn = $('confirmConfirmBtn');
-    if (confirmBtn) {
-      confirmBtn.addEventListener('click', function () {
-        var cb = confirmCallback;
-        closeConfirm();
-        if (typeof cb === 'function') {
-          try { cb(); } catch (e) { console.error('[authority-pro] confirm callback error', e); }
-        }
-      });
-    }
-    var cancelBtn = $('confirmCancelBtn');
-    if (cancelBtn) cancelBtn.addEventListener('click', closeConfirm);
-
-    // Close modals on overlay click (but not when clicking the modal itself)
-    $$('.auth-modal-overlay').forEach(function (overlay) {
-      overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) {
-          overlay.classList.remove('active');
-        }
-      });
-    });
-
-    // Esc to close any modal
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') {
-        $$('.auth-modal-overlay.active').forEach(function (m) { m.classList.remove('active'); });
+        });
       }
-    });
+      var cancelBtn = $('confirmCancelBtn');
+      if (cancelBtn) cancelBtn.addEventListener('click', closeConfirm);
 
-    // Build perm grid + initial load
-    buildPermGrid();
-    loadUsers();
-    loadPending(); // populate Pending stat card immediately
+      /* Overlay click close + Esc */
+      $$('.auth-modal-overlay').forEach(function (overlay) {
+        overlay.addEventListener('click', function (e) {
+          if (e.target === overlay) overlay.classList.remove('active');
+        });
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          $$('.auth-modal-overlay.active').forEach(function (m) { m.classList.remove('active'); });
+        }
+      });
+
+      /* Build matrix + initial load */
+      buildPermMatrix();
+      loadUsers();
+      loadPending();
+    });
   }
 
   /* ============================================================
-     PUBLIC API (called from inline onclick handlers)
+     PUBLIC API
      ============================================================ */
   window.__AUTH = {
-    openModal:        openModal,
-    closeModal:       closeModal,
-    submitAddUser:    submitAddUser,
-    openEdit:         openEdit,
-    closeEditModal:   closeEditModal,
-    submitEditAccess: submitEditAccess,
-    setAllPerm:       setAllPerm,
-    confirmDelete:    confirmDelete,
-    saveRegisSettings:saveRegisSettings,
-    actRegistration:  actRegistration,
-    switchView:       switchView,
-    logout:           logout
+    openModal:         openModal,
+    closeModal:        closeModal,
+    submitAddUser:     submitAddUser,
+    openEdit:          openEdit,
+    closeEditModal:    closeEditModal,
+    submitEditAccess:  submitEditAccess,
+    setAllPerm:        setAllPerm,
+    confirmDelete:     confirmDelete,
+    saveRegisSettings: saveRegisSettings,
+    actRegistration:   actRegistration,
+    switchView:        switchView,
+    logout:            logout
   };
 
-  // Expose switchView globally for inline onclick on nav items (legacy support)
-  window.switchView       = switchView;
-  window.toggleAuthMenu   = function () {
-    var sub = $('authSub'); var par = $('authParent');
-    if (sub)  sub.classList.toggle('open');
-    if (par)  par.classList.toggle('open');
-  };
+  window.switchView = switchView;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
-})();
+})()
