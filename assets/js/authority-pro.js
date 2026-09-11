@@ -376,8 +376,20 @@
     var start = (currentPage - 1) * PAGE_SIZE;
     var pageItems = filtered.slice(start, start + PAGE_SIZE);
 
+    /* counter chip + hint — selalu sinkron dengan baris tabel */
     var countEl = $('tableCount');
-    if (countEl) countEl.textContent = totalFiltered + ' user';
+    if (countEl) countEl.innerHTML = '<i class="fas fa-user"></i> ' + totalFiltered + ' user';
+    var hintEl = $('tableCountHint');
+    if (hintEl) {
+      var totalAll = usersData.length;
+      if (totalFiltered !== totalAll) {
+        hintEl.textContent = 'filter aktif \u00b7 ' + totalFiltered + ' dari ' + totalAll + ' total';
+      } else if (totalPages > 1) {
+        hintEl.textContent = totalAll + ' user \u00b7 halaman ' + currentPage + '/' + totalPages;
+      } else {
+        hintEl.textContent = totalAll + ' total user terdaftar';
+      }
+    }
 
     /* pagination bar */
     var pgBar = $('paginationBar');
@@ -941,7 +953,7 @@
         list = Array.isArray(list) ? list : [];
         setText('statPending2', list.length);
         var pcEl = $('pendingCount');
-        if (pcEl) pcEl.textContent = list.length + ' awaiting';
+        if (pcEl) pcEl.innerHTML = '<i class="fas fa-hourglass-half"></i> ' + list.length + ' awaiting';
         if (!list.length) {
           if (wrap) wrap.style.display = 'none';
           return;
