@@ -1,3 +1,11 @@
+/* ============================================================
+   AURA.OS // AUTHORITY-PRO.JS  v2.0
+   Authority Panel logic — User management, FULL access-control
+   matrix (21 keys, mengikuti struktur menu Dashboard),
+   registration settings, pending approvals, filters, toasts.
+   Pairs with authority-pro.css (AUTHORITY) v2.0
+   ============================================================ */
+
 (function () {
   'use strict';
 
@@ -484,6 +492,9 @@
 
   function renderPermItem(it, depth) {
     var hasKids = it.children && it.children.length;
+    var tag = hasKids
+      ? '<span class="perm-tag" title="Centang untuk mengaktifkan ' + it.children.length + ' sub-menu di dalamnya">grup &middot; ' + it.children.length + ' sub</span>'
+      : '';
     var html =
       '<div class="auth-perm-node" data-node="' + it.key + '">' +
         '<label class="auth-perm-item" data-key="' + it.key + '">' +
@@ -491,7 +502,7 @@
           '<span class="perm-box"><i class="fas fa-check"></i></span>' +
           '<i class="fas ' + it.icon + ' perm-icon"></i>' +
           '<span class="perm-label">' + escapeHtml(it.label) + '</span>' +
-          (hasKids ? '<span class="perm-tag">grup</span>' : '') +
+          tag +
         '</label>';
 
     if (hasKids) {
@@ -535,7 +546,8 @@
     }
   }
 
-  /* Set checkbox untuk node + seluruh subtree-nya (jika grup) */
+  /* Set checkbox untuk node + seluruh subtree-nya (jika grup).
+     Anak yang berubah state diberi highlight flash agar jelas tercentang. */
   function setSubtree(key, val) {
     var found = findNode(key);
     if (!found) return;
@@ -543,10 +555,21 @@
     var items = found.isGroup ? found.node.items : (found.node.children || null);
     if (items) {
       items.forEach(function (it) {
+        flashPerm(it.key, val);
         setChecked(it.key, val);
-        if (it.children) it.children.forEach(function (c) { setChecked(c.key, val); });
+        if (it.children) it.children.forEach(function (c) { flashPerm(c.key, val); setChecked(c.key, val); });
       });
     }
+  }
+
+  /* Efek visual singkat pada baris sub-menu ketika ikut tercentang oleh induknya */
+  function flashPerm(key, val) {
+    var el = document.querySelector('#permMatrix [data-key="' + key + '"]');
+    if (!el) return;
+    el.classList.remove('perm-flash-on', 'perm-flash-off');
+    void el.offsetWidth;
+    el.classList.add(val ? 'perm-flash-on' : 'perm-flash-off');
+    setTimeout(function () { el.classList.remove('perm-flash-on', 'perm-flash-off'); }, 900);
   }
 
   /* Kumpulkan key node + seluruh keturunannya */
@@ -1099,6 +1122,13 @@
     authGuard().then(function (ok) {
       if (!ok) return;
 
+      /* Mode embed: jika dirender di dalam dashboard (iframe) -> layout compact */
+      try {
+        if (window.self !== window.top) {
+          document.body.classList.add('in-iframe');
+        }
+      } catch (e) { /* cross-origin — anggap standalone */ }
+
       /* Sidebar sub-menu */
       $$('.auth-side-item').forEach(function (el) {
         el.addEventListener('click', function () {
@@ -1175,6 +1205,13 @@
       /* Dashboard link */
       $$('[data-action="goDashboard"]').forEach(function (b) {
         b.addEventListener('click', function () {
+          /* Jika inline di dashboard: kembalikan tampilan dashboard pada parent */
+          try {
+            if (window.self !== window.top && window.parent && typeof window.parent.switchToDashboard === 'function') {
+              window.parent.switchToDashboard();
+              return;
+            }
+          } catch (e) {}
           window.location.href = '/Dashboard.html';
         });
       });
