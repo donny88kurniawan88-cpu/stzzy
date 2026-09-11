@@ -740,6 +740,32 @@ export default {
       return await getRequesterRole(req) === 'MASTER';
     }
 
+    // ===== ACCESS-AWARE PERMISSION HELPERS =====
+    // Selain role (ADMIN/MASTER), API authority juga menghormati flag
+    // access control per-user yang disimpan di kolom users.access (JSON).
+    // - canViewUsers           : boleh melihat daftar user (User Management)
+    // - canManageRegistration  : boleh melihat/mengatur registrasi mandiri
+    // Mutasi (add/delete/edit access) TETAP role-gated (ADMIN/MASTER saja).
+    async function getUserAccess(req) {
+      const username = req.headers.get('x-auth-token');
+      if (!username) return null;
+      const user = await env.DB.prepare("SELECT role, access FROM users WHERE username = ?").bind(username).first();
+      if (!user) return null;
+      return safeParseAccess(user.access, user.role);
+    }
+
+    async function canViewUsers(req) {
+      if (await isAdmin(req)) return true;
+      const acc = await getUserAccess(req);
+      return !!(acc && acc.user_management === true);
+    }
+
+    async function canManageRegistration(req) {
+      if (await isAdmin(req)) return true;
+      const acc = await getUserAccess(req);
+      return !!(acc && acc.registration_control === true);
+    }
+
     // ===== SAFE JSON PARSE =====
     // Parse access JSON dengan aman — fallback ke defaultAccessFor jika rusak/null
     function safeParseAccess(accessStr, role) {
@@ -854,17 +880,19 @@ export default {
     }
 
     // ============================================
-    // 3. API GET USERS (Hanya Admin)
+    // 3. API GET USERS (Admin, atau user dengan flag user_management)
     // ============================================
     if (path === '/api/users' && request.method === 'GET') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      if (!await canViewUsers(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
-        const { results } = await env.DB.prepare("SELECT username, role, status, access FROM users").all();
+        const { results } = await env.DB.prepare("SELECT username, role, status, access, granted_by, created_at FROM users").all();
         const users = results.map(u => ({
           username: u.username,
           role: u.role,
           status: u.status,
-          access: safeParseAccess(u.access, u.role)
+          access: safeParseAccess(u.access, u.role),
+          granted_by: u.granted_by || null,
+          created_at: u.created_at || null
         }));
         return Response.json(users);
       } catch (err) {
@@ -938,7 +966,7 @@ export default {
     // 7. API GET KONFIGURASI REGISTRASI
     // ============================================
     if (path === '/api/settings/registration' && request.method === 'GET') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      if (!await canManageRegistration(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       return Response.json(await getRegisSetting());
     }
 
@@ -946,12 +974,16 @@ export default {
     // 8. API SIMPAN KONFIGURASI REGISTRASI
     // ============================================
     if (path === '/api/settings/registration' && request.method === 'PUT') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      if (!await canManageRegistration(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
         const body = await request.json();
         const setting = {
           open: !!body.open,
-          defaultRole: body.defaultRole === 'MEMBER' ? 'MEMBER' : 'MEMBER',
+          // FIX: sebelumnya selalu MEMBER (bug ternary). Master/Admin boleh
+          // memilih MEMBER atau ADMIN sebagai default role pendaftar.
+          defaultRole: (body.defaultRole && VALID_ROLES.includes(body.defaultRole) && body.defaultRole !== 'MASTER')
+            ? body.defaultRole
+            : 'MEMBER',
           requireApproval: !!body.requireApproval
         };
         await env.DB.prepare("UPDATE settings SET value = ? WHERE key = 'registration'").bind(JSON.stringify(setting)).run();
@@ -1026,7 +1058,7 @@ export default {
     // 10. API DAFTAR REGISTRASI PENDING
     // ============================================
     if (path === '/api/registrations/pending' && request.method === 'GET') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      if (!await canManageRegistration(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
         const { results } = await env.DB.prepare("SELECT username, role, status FROM users WHERE status = 'PENDING'").all();
         return Response.json(results);
@@ -1040,7 +1072,7 @@ export default {
     // ============================================
     const regisMatch = path.match(/^\/api\/registrations\/([^/]+)$/);
     if (regisMatch && request.method === 'PUT') {
-      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      if (!await canManageRegistration(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
       try {
         const username = decodeURIComponent(regisMatch[1]);
         const body = await request.json();
