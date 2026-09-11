@@ -312,7 +312,202 @@
   /* ============================================================
      EDIT ACCESS CONTROL
      ============================================================ */
-  function buildPermGrid() {
+  var currentEditUser = null;
+
+/**
+ * Membuka modal edit access
+ * @param {string} username - Username user yang akan diedit
+ */
+function openEditAccess(username) {
+    var user = usersData.find(function(u) { return u.username === username; });
+    if (!user) return;
+
+    // Cek permission: ADMIN hanya bisa edit MEMBER
+    if (userRole === 'ADMIN' && user.role !== 'MEMBER') {
+        showToast('Admin hanya dapat mengedit user dengan role Member.', 'error');
+        return;
+    }
+    if (userRole !== 'MASTER' && userRole !== 'ADMIN') {
+        showToast('Anda tidak memiliki akses untuk mengedit user.', 'error');
+        return;
+    }
+
+    currentEditUser = user;
+
+    // Isi data user
+    var nameEl = document.getElementById('editUserName');
+    var avatarEl = document.getElementById('editUserAvatar');
+    var grantedEl = document.getElementById('editUserGrantedBy');
+    
+    if (nameEl) nameEl.textContent = '@' + user.username;
+    if (avatarEl) {
+        avatarEl.textContent = initials(user.username);
+        avatarEl.className = 'user-avatar ' + avatarGradient(user.username);
+    }
+    if (grantedEl) {
+        grantedEl.textContent = 'access granted by ' + (user.granted_by || 'master');
+    }
+
+    // Set role
+    var roleSelect = document.getElementById('editUserRole');
+    if (roleSelect) {
+        roleSelect.value = user.role;
+        // Master bisa ubah role, Admin tidak bisa
+        roleSelect.disabled = (userRole !== 'MASTER');
+        // Sembunyikan opsi Master jika pengedit bukan MASTER
+        var optMaster = document.getElementById('optMaster');
+        if (optMaster) optMaster.hidden = (userRole !== 'MASTER');
+    }
+
+    // Render checkbox akses modul
+    renderAccessGrid(user);
+
+    // Tampilkan modal
+    var modal = document.getElementById('editAccessModal');
+    if (modal) {
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+}
+
+/**
+ * Menutup modal edit access
+ */
+function closeEditAccess() {
+    var modal = document.getElementById('editAccessModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+    currentEditUser = null;
+}
+
+/**
+ * Merender checkbox modul akses berdasarkan data user
+ * @param {Object} user - Data user
+ */
+function renderAccessGrid(user) {
+    var grid = document.getElementById('accessGrid');
+    if (!grid) return;
+
+    var access = accessFor(user);
+    var html = '';
+
+    ACCESS_MODULES.forEach(function(mod) {
+        var checked = access[mod.key] === true ? 'checked' : '';
+        var disabled = (user.role === 'MASTER' || user.role === 'ADMIN') ? 'disabled' : '';
+        
+        html += 
+            '<label class="access-item ' + (disabled ? 'access-item--locked' : '') + '">' +
+                '<div class="access-item__left">' +
+                    '<i class="fas ' + mod.icon + '"></i>' +
+                    '<span>' + escapeHtml(mod.label) + '</span>' +
+                '</div>' +
+                '<div class="access-item__right">' +
+                    '<input type="checkbox" class="access-checkbox" ' +
+                           'data-module="' + mod.key + '" ' + checked + ' ' + disabled + '>' +
+                '</div>' +
+            '</label>';
+    });
+
+    grid.innerHTML = html;
+}
+
+/**
+ * Toggle semua checkbox akses
+ * @param {boolean} state - True untuk centang semua, false untuk hapus semua
+ */
+function toggleAllAccess(state) {
+    if (!currentEditUser) return;
+    // Jangan toggle jika user adalah MASTER/ADMIN (mereka selalu punya akses penuh)
+    if (currentEditUser.role === 'MASTER' || currentEditUser.role === 'ADMIN') {
+        showToast('Akses Master/Admin sudah penuh dan tidak dapat diubah.', 'warning');
+        return;
+    }
+    var checkboxes = document.querySelectorAll('#accessGrid .access-checkbox:not(:disabled)');
+    checkboxes.forEach(function(cb) {
+        cb.checked = state;
+    });
+}
+
+/**
+ * Menyimpan perubahan akses user
+ */
+function saveUserAccess() {
+    if (!currentEditUser) return;
+
+    var roleSelect = document.getElementById('editUserRole');
+    var newRole = roleSelect ? roleSelect.value : currentEditUser.role;
+
+    // Validasi: ADMIN tidak bisa mengubah role
+    if (userRole === 'ADMIN' && newRole !== currentEditUser.role) {
+        showToast('Admin tidak diizinkan mengubah role user.', 'error');
+        return;
+    }
+
+    // Kumpulkan nilai checkbox
+    var accessData = {};
+    var checkboxes = document.querySelectorAll('#accessGrid .access-checkbox');
+    checkboxes.forEach(function(cb) {
+        accessData[cb.getAttribute('data-module')] = cb.checked;
+    });
+
+    // Untuk MASTER/ADMIN, pastikan semua true
+    if (newRole === 'MASTER' || newRole === 'ADMIN') {
+        ACCESS_MODULES.forEach(function(mod) {
+            accessData[mod.key] = true;
+        });
+    }
+
+    // Bangun payload
+    var payload = {
+        username: currentEditUser.username,
+        role: newRole,
+        access: accessData
+    };
+
+    // Kirim ke backend
+    var btn = document.getElementById('btnSaveAccess');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    }
+
+    fetch('/api/authority/update-access', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + authToken
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(function(res) {
+        if (!res.ok) throw new Error('Gagal menyimpan akses');
+        return res.json();
+    })
+    .then(function(data) {
+        showToast('Akses berhasil diperbarui.', 'success');
+        // Update local data
+        var idx = usersData.findIndex(function(u) { return u.username === currentEditUser.username; });
+        if (idx !== -1) {
+            usersData[idx].role = newRole;
+            usersData[idx].access = accessData;
+        }
+        closeEditAccess();
+        renderUserTable(); // Refresh tabel
+    })
+    .catch(function(err) {
+        console.error(err);
+        showToast('Terjadi kesalahan saat menyimpan.', 'error');
+    })
+    .finally(function() {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Save Access';
+        }
+    });
+} 
+     function buildPermGrid() {
     var grid = $('permGrid');
     if (!grid) return;
     grid.innerHTML = ACCESS_MODULES.map(function (m) {
