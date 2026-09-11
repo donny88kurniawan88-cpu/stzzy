@@ -1,11 +1,3 @@
-/* ============================================================
-   AURA.OS // AUTHORITY-PRO.JS  v2.0
-   Authority Panel logic — User management, FULL access-control
-   matrix (21 keys, mengikuti struktur menu Dashboard),
-   registration settings, pending approvals, filters, toasts.
-   Pairs with authority-pro.css (AUTHORITY) v2.0
-   ============================================================ */
-
 (function () {
   'use strict';
 
@@ -261,8 +253,6 @@
     $$('.auth-side-item').forEach(function (el) {
       el.classList.toggle('active', el.getAttribute('data-view') === view);
     });
-    var crumb = $('crumbView');
-    if (crumb) crumb.textContent = view === 'users' ? 'user-management' : 'data-registrasi';
 
     if (view === 'registration') {
       loadRegisSettings();
@@ -1046,8 +1036,6 @@
         isViewOnly = !(userRole === 'ADMIN' || userRole === 'MASTER');
         applyPermissionUI();
 
-        var emailEl = $('userEmail');
-        if (emailEl) emailEl.textContent = authToken + '@aura.os';
         var chip = $('topRoleChip');
         if (chip) {
           if (isViewOnly) {
@@ -1110,12 +1098,6 @@
   function init() {
     authGuard().then(function (ok) {
       if (!ok) return;
-
-      try {
-        if (window.self !== window.top) {
-          document.body.classList.add('in-iframe');
-        }
-      } catch (e) { /* cross-origin — assume standalone */ }
 
       /* Sidebar sub-menu */
       $$('.auth-side-item').forEach(function (el) {
@@ -1193,12 +1175,6 @@
       /* Dashboard link */
       $$('[data-action="goDashboard"]').forEach(function (b) {
         b.addEventListener('click', function () {
-          try {
-            if (window.self !== window.top && window.parent && typeof window.parent.switchToDashboard === 'function') {
-              window.parent.switchToDashboard();
-              return;
-            }
-          } catch (e) {}
           window.location.href = '/Dashboard.html';
         });
       });
@@ -1261,4 +1237,4 @@
   } else {
     init();
   }
-})()
+})();
