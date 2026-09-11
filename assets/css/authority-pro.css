@@ -84,6 +84,29 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Cascade highlight: sub-menu yang ikut tercentang oleh induknya */
+@keyframes permFlashOn {
+  0%   { background: rgba(16, 185, 129, 0.30); border-color: rgba(16, 185, 129, 0.75); transform: translateX(0); }
+  35%  { background: rgba(16, 185, 129, 0.18); border-color: rgba(16, 185, 129, 0.55); transform: translateX(3px); }
+  100% { background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.36); transform: translateX(0); }
+}
+
+@keyframes permFlashOff {
+  0%   { background: rgba(239, 68, 68, 0.22); border-color: rgba(239, 68, 68, 0.55); transform: translateX(0); }
+  35%  { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.38); transform: translateX(-3px); }
+  100% { background: rgba(255, 255, 255, 0.015); border-color: var(--pro-border-soft); transform: translateX(0); }
+}
+
+.auth-perm-item.perm-flash-on,
+.auth-perm-master.perm-flash-on {
+  animation: permFlashOn 0.9s var(--pro-ease-smooth);
+}
+
+.auth-perm-item.perm-flash-off,
+.auth-perm-master.perm-flash-off {
+  animation: permFlashOff 0.9s var(--pro-ease-smooth);
+}
+
 /* ============================================================
    PAGE LAYOUT — works both standalone and inside iframe
    ============================================================ */
@@ -1877,6 +1900,13 @@ body::before {
   color: var(--aura-text-primary);
 }
 
+/* Tanda berapa jumlah sub-menu di dalam grup beranak (mis. Authority Panel · 2 sub) */
+.perm-tag.sub-count {
+  color: #a78bfa;
+  background: rgba(139, 92, 246, 0.10);
+  border-color: rgba(139, 92, 246, 0.26);
+}
+
 /* Edit modal — baris role + preset */
 .auth-edit-toprow {
   display: flex;
@@ -2206,6 +2236,23 @@ body::before {
     max-width: none;
   }
 }
+
+/* When embedded inside the Dashboard (inline iframe), compact the layout so
+   the users table is immediately visible without extra scrolling */
+body.in-iframe .auth-topbar {
+  position: relative;
+  padding: 12px 22px 10px;
+  background: transparent;
+  border-bottom: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body.in-iframe .auth-shell { padding: 10px 22px 26px; }
+body.in-iframe .auth-sidebar { top: 10px; min-height: 0; }
+body.in-iframe .auth-side-note { display: none; }
+body.in-iframe .auth-stats-grid { margin-bottom: 14px; }
+body.in-iframe .auth-section-head { margin-bottom: 14px; }
 
 @media (max-width: 480px) {
   .auth-stats-grid { grid-template-columns: 1fr; }
