@@ -25,7 +25,7 @@
     </div>
   </header>
 
-  <!-- ============ ACCESS DENIED OVERLAY ============ -->
+  <!-- ============ ACCESS DENIED OVERLAY (shown if MEMBER tries to access) ============ -->
   <div id="accessDenied" style="display:none; position:fixed; inset:0; align-items:center; justify-content:center; flex-direction:column; gap:18px; padding:40px; text-align:center; z-index:50; background:radial-gradient(ellipse at center, rgba(239,68,68,0.06), transparent 70%), var(--aura-bg-primary, #0a0a0f);">
     <div style="width:80px; height:80px; border-radius:50%; background:rgba(239,68,68,0.10); border:2px solid rgba(239,68,68,0.25); display:flex; align-items:center; justify-content:center; font-size:34px; color:#f87171;">
       <i class="fas fa-shield-halved"></i>
@@ -54,8 +54,12 @@
       </button>
     </div>
 
-    <!-- ============ VIEW 1: USER MANAGEMENT ============ -->
+    <!-- ============================================================ -->
+    <!-- ============ VIEW 1: USER MANAGEMENT ======================= -->
+    <!-- ============================================================ -->
     <section class="auth-view active" id="viewUsers">
+
+      <!-- Section header -->
       <div class="auth-section-head">
         <div class="auth-section-head-left">
           <div class="auth-section-icon"><i class="fas fa-users-cog"></i></div>
@@ -68,47 +72,57 @@
           <button class="auth-btn auth-btn-ghost" data-action="goDashboard">
             <i class="fas fa-arrow-left"></i> Dashboard
           </button>
-          <button class="auth-btn auth-btn-primary" onclick="window.__AUTH.openModal()">
+          <button class="auth-btn auth-btn-primary" data-action="openAddUser">
             <i class="fas fa-user-plus"></i> Add User
           </button>
         </div>
       </div>
 
-      <!-- Stats grid -->
+      <!-- Stats grid: Total / Masters / Admins / Members / Pending -->
       <div class="auth-stats-grid">
         <div class="auth-stat blue">
-          <div class="auth-stat-header"><div class="auth-stat-icon"><i class="fas fa-users"></i></div></div>
+          <div class="auth-stat-header">
+            <div class="auth-stat-icon"><i class="fas fa-users"></i></div>
+          </div>
           <div class="auth-stat-label">Total Users</div>
           <div class="auth-stat-value" id="statTotal">0</div>
           <div class="auth-stat-trend" id="statTotalTrend"><i class="fas fa-circle-check"></i> 0 active</div>
         </div>
         <div class="auth-stat warning">
-          <div class="auth-stat-header"><div class="auth-stat-icon"><i class="fas fa-crown"></i></div></div>
+          <div class="auth-stat-header">
+            <div class="auth-stat-icon"><i class="fas fa-crown"></i></div>
+          </div>
           <div class="auth-stat-label">Masters</div>
           <div class="auth-stat-value" id="statMasters">0</div>
           <div class="auth-stat-trend">super admin</div>
         </div>
         <div class="auth-stat purple">
-          <div class="auth-stat-header"><div class="auth-stat-icon"><i class="fas fa-user-shield"></i></div></div>
+          <div class="auth-stat-header">
+            <div class="auth-stat-icon"><i class="fas fa-user-shield"></i></div>
+          </div>
           <div class="auth-stat-label">Admins</div>
           <div class="auth-stat-value" id="statAdmins">0</div>
           <div class="auth-stat-trend">elevated</div>
         </div>
         <div class="auth-stat teal">
-          <div class="auth-stat-header"><div class="auth-stat-icon"><i class="fas fa-user"></i></div></div>
+          <div class="auth-stat-header">
+            <div class="auth-stat-icon"><i class="fas fa-user"></i></div>
+          </div>
           <div class="auth-stat-label">Members</div>
           <div class="auth-stat-value" id="statMembers">0</div>
           <div class="auth-stat-trend">standard</div>
         </div>
         <div class="auth-stat danger">
-          <div class="auth-stat-header"><div class="auth-stat-icon"><i class="fas fa-hourglass-half"></i></div></div>
+          <div class="auth-stat-header">
+            <div class="auth-stat-icon"><i class="fas fa-hourglass-half"></i></div>
+          </div>
           <div class="auth-stat-label">Pending</div>
           <div class="auth-stat-value" id="statPending">0</div>
           <div class="auth-stat-trend">awaiting approval</div>
         </div>
       </div>
 
-      <!-- Toolbar -->
+      <!-- Toolbar (search) -->
       <div class="auth-toolbar">
         <div class="auth-search">
           <i class="fas fa-search"></i>
@@ -134,10 +148,15 @@
           </table>
         </div>
       </div>
+
     </section>
 
-    <!-- ============ VIEW 2: DATA REGISTRASI ============ -->
+    <!-- ============================================================ -->
+    <!-- ============ VIEW 2: DATA REGISTRASI ======================= -->
+    <!-- ============================================================ -->
     <section class="auth-view" id="viewRegistration">
+
+      <!-- Section header -->
       <div class="auth-section-head">
         <div class="auth-section-head-left">
           <div class="auth-section-icon purple"><i class="fas fa-clipboard-check"></i></div>
@@ -148,39 +167,50 @@
         </div>
       </div>
 
+      <!-- Stats grid -->
       <div class="auth-stats-grid">
         <div class="auth-stat success">
-          <div class="auth-stat-header"><div class="auth-stat-icon"><i class="fas fa-door-open"></i></div></div>
+          <div class="auth-stat-header">
+            <div class="auth-stat-icon"><i class="fas fa-door-open"></i></div>
+          </div>
           <div class="auth-stat-label">Status Registrasi</div>
           <div class="auth-stat-value text-md" id="statRegisStatus">-</div>
         </div>
         <div class="auth-stat blue">
-          <div class="auth-stat-header"><div class="auth-stat-icon"><i class="fas fa-user-tag"></i></div></div>
+          <div class="auth-stat-header">
+            <div class="auth-stat-icon"><i class="fas fa-user-tag"></i></div>
+          </div>
           <div class="auth-stat-label">Default Role Baru</div>
           <div class="auth-stat-value text-sm" id="statDefaultRole" style="color:#60a5fa;">MEMBER</div>
         </div>
         <div class="auth-stat warning">
-          <div class="auth-stat-header"><div class="auth-stat-icon"><i class="fas fa-hourglass-half"></i></div></div>
+          <div class="auth-stat-header">
+            <div class="auth-stat-icon"><i class="fas fa-hourglass-half"></i></div>
+          </div>
           <div class="auth-stat-label">Pending Approval</div>
           <div class="auth-stat-value" id="statPending2">0</div>
           <div class="auth-stat-trend">needs review</div>
         </div>
       </div>
 
+      <!-- Settings card -->
       <div class="auth-settings-card">
         <div class="auth-setting-row">
           <div class="auth-setting-info">
             <div class="auth-setting-title">Buka Pendaftaran <span style="color:var(--aura-text-tertiary); font-weight:500;">(Registration Open)</span></div>
-            <div class="auth-setting-desc">Jika <b>ON</b>, tombol <b>"+ Register Akun Baru"</b> aktif di halaman Login.</div>
+            <div class="auth-setting-desc">Jika <b>ON</b>, tombol <b>"+ Register Akun Baru"</b> aktif di halaman Login. Jika <b>OFF</b>, tombol register akan disembunyikan dan endpoint register ditolak server.</div>
           </div>
           <div class="auth-setting-control">
-            <label class="auth-switch"><input type="checkbox" id="regisOpen"><span class="auth-slider"></span></label>
+            <label class="auth-switch">
+              <input type="checkbox" id="regisOpen">
+              <span class="auth-slider"></span>
+            </label>
           </div>
         </div>
         <div class="auth-setting-row">
           <div class="auth-setting-info">
             <div class="auth-setting-title">Default Role Pendaftar</div>
-            <div class="auth-setting-desc">Role otomatis yang diberikan ke akun hasil register mandiri.</div>
+            <div class="auth-setting-desc">Role otomatis yang diberikan ke akun hasil register mandiri dari halaman Login.</div>
           </div>
           <div class="auth-setting-control">
             <select id="regisDefaultRole" class="auth-select auth-input-width-sm">
@@ -192,10 +222,13 @@
         <div class="auth-setting-row">
           <div class="auth-setting-info">
             <div class="auth-setting-title">Approval Manual</div>
-            <div class="auth-setting-desc">Jika <b>ON</b>, akun baru berstatus <b>PENDING</b> dan harus disetujui.</div>
+            <div class="auth-setting-desc">Jika <b>ON</b>, akun baru hasil register berstatus <b>PENDING</b> dan harus disetujui Master/Admin di tabel bawah sebelum bisa login.</div>
           </div>
           <div class="auth-setting-control">
-            <label class="auth-switch"><input type="checkbox" id="regisApproval"><span class="auth-slider"></span></label>
+            <label class="auth-switch">
+              <input type="checkbox" id="regisApproval">
+              <span class="auth-slider"></span>
+            </label>
           </div>
         </div>
         <div class="auth-setting-row">
@@ -203,11 +236,14 @@
             <div class="auth-setting-desc">Perubahan langsung berlaku pada halaman <b>Login.html</b>.</div>
           </div>
           <div class="auth-setting-control">
-            <button class="auth-btn auth-btn-primary" data-action="saveRegis"><i class="fas fa-save"></i> Simpan Konfigurasi</button>
+            <button class="auth-btn auth-btn-primary" data-action="saveRegis">
+              <i class="fas fa-save"></i> Simpan Konfigurasi
+            </button>
           </div>
         </div>
       </div>
 
+      <!-- Pending registrations table -->
       <div class="auth-table-wrap" id="pendingWrap" style="display:none;">
         <div class="auth-card-head" style="padding:16px 22px; margin-bottom:0; border-bottom:1px solid var(--pro-border-soft);">
           <div class="auth-card-head-title"><i class="fas fa-hourglass-half"></i> Pending Registrations</div>
@@ -227,30 +263,31 @@
           </table>
         </div>
       </div>
+
     </section>
+
   </main>
 
   <!-- ================================================================ -->
-  <!-- ============ MODAL: ADD USER (New Structure) =================== -->
+  <!-- ============ MODAL: ADD USER =================================== -->
   <!-- ================================================================ -->
-  <div class="modal-overlay" id="addModal" aria-hidden="true">
-    <div class="modal-card" role="dialog" aria-labelledby="addUserTitle">
-      <div class="modal-header">
-        <div class="modal-icon"><i class="fas fa-user-plus"></i></div>
-        <h3 id="addUserTitle">Add New User</h3>
-        <button class="modal-close" onclick="window.__AUTH.closeModal()" aria-label="Tutup">&times;</button>
+  <div class="auth-modal-overlay" id="addModal">
+    <div class="auth-modal">
+      <div class="auth-modal-head">
+        <div class="auth-modal-title"><i class="fas fa-user-plus" style="color:var(--aura-accent-primary);"></i> Add New User</div>
+        <button class="auth-modal-close" data-action="closeAddUser" aria-label="Close">&times;</button>
       </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label" for="addUsername">Username</label>
+      <div class="auth-modal-body">
+        <div class="auth-form-group">
+          <label class="auth-form-label" for="addUsername">Username</label>
           <input type="text" id="addUsername" class="auth-input" placeholder="Masukkan username login" autocomplete="off">
         </div>
-        <div class="form-group">
-          <label class="form-label" for="addPassword">Password</label>
+        <div class="auth-form-group">
+          <label class="auth-form-label" for="addPassword">Password</label>
           <input type="password" id="addPassword" class="auth-input" placeholder="Masukkan password" autocomplete="new-password">
         </div>
-        <div class="form-group">
-          <label class="form-label" for="addRole">Role</label>
+        <div class="auth-form-group">
+          <label class="auth-form-label" for="addRole">Role</label>
           <select id="addRole" class="auth-select">
             <option value="" disabled selected>Pilih Role --</option>
             <option value="MASTER">Master</option>
@@ -259,62 +296,58 @@
           </select>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" onclick="window.__AUTH.closeModal()">Cancel</button>
-        <button class="btn btn-primary" id="submitAddUser"><i class="fas fa-save"></i> Save User</button>
+      <div class="auth-modal-foot">
+        <button class="auth-btn auth-btn-ghost" data-action="closeAddUser">Cancel</button>
+        <button class="auth-btn auth-btn-primary" id="submitAddUser">
+          <i class="fas fa-save"></i> Save User
+        </button>
       </div>
     </div>
   </div>
 
   <!-- ================================================================ -->
-  <!-- ============ MODAL: EDIT ACCESS CONTROL (New Structure) ======== -->
+  <!-- ============ MODAL: EDIT ACCESS CONTROL ======================== -->
   <!-- ================================================================ -->
-  <div class="modal-overlay" id="editModal" aria-hidden="true">
-    <div class="modal-card" role="dialog" aria-labelledby="editAccessTitle">
-      <div class="modal-header">
-        <div class="modal-icon"><i class="fas fa-user-shield"></i></div>
-        <h3 id="editAccessTitle">Edit Access Control</h3>
-        <button class="modal-close" onclick="window.__AUTH.closeEditModal()" aria-label="Tutup">&times;</button>
+  <div class="auth-modal-overlay" id="editModal">
+    <div class="auth-modal">
+      <div class="auth-modal-head">
+        <div class="auth-modal-title"><i class="fas fa-key"></i> Edit Access Control</div>
+        <button class="auth-modal-close" data-action="closeEdit" aria-label="Close">&times;</button>
       </div>
-      <div class="modal-body">
-        <!-- User Info -->
-        <div class="user-summary">
-          <div class="user-avatar" id="editAvatar">NI</div>
-          <div class="user-meta">
-            <strong id="editUserLabel">@username</strong>
-            <span class="user-subtitle" id="editGrantedBy">access granted by master</span>
+      <div class="auth-modal-body">
+
+        <div class="auth-edit-user-head">
+          <div class="auth-avatar warning-pink" id="editAvatar">--</div>
+          <div class="auth-edit-user-info">
+            <div class="name" id="editUserLabel">@username</div>
+            <div class="granted" id="editGrantedBy">access granted by master / admin</div>
           </div>
         </div>
 
-        <!-- Role Selection -->
-        <div class="form-group">
-          <label class="form-label">Role</label>
-          <select class="form-select" id="editRole">
+        <div class="auth-form-group">
+          <label class="auth-form-label" for="editRole">Role</label>
+          <select id="editRole" class="auth-select">
             <option value="MEMBER">Member</option>
             <option value="ADMIN">Admin</option>
-            <option value="MASTER" id="optMaster" hidden>Master</option>
+            <option value="MASTER">Master</option>
           </select>
-          <p class="form-hint" id="roleHint">Hanya Master yang dapat mengubah role.</p>
         </div>
 
-        <!-- Access Modules -->
-        <div class="form-group">
-          <div class="access-header">
-            <label class="form-label">Akses Modul</label>
-            <div class="access-actions">
-              <button type="button" class="btn-text" onclick="window.__AUTH.setAllPerm(true)">All</button>
-              <span class="divider">|</span>
-              <button type="button" class="btn-text" onclick="window.__AUTH.setAllPerm(false)">None</button>
+        <div class="auth-form-group" style="margin-bottom:0;">
+          <div class="auth-perm-head">
+            <label class="auth-form-label" style="margin:0;">Akses Modul</label>
+            <div class="auth-perm-head-actions">
+              <button type="button" class="auth-btn auth-btn-ghost auth-btn-sm" data-action="permAll"><i class="fas fa-check-double"></i> All</button>
+              <button type="button" class="auth-btn auth-btn-ghost auth-btn-sm" data-action="permNone">None</button>
             </div>
           </div>
-          <div class="access-grid" id="permGrid">
-            <!-- Diisi oleh JS secara dinamis -->
-          </div>
+          <div class="auth-perm-grid" id="permGrid"></div>
         </div>
+
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-ghost" onclick="window.__AUTH.closeEditModal()">Cancel</button>
-        <button type="button" class="btn btn-primary" id="submitEditAccess">
+      <div class="auth-modal-foot">
+        <button class="auth-btn auth-btn-ghost" data-action="closeEdit">Cancel</button>
+        <button class="auth-btn auth-btn-primary" id="submitEditAccess">
           <i class="fas fa-save"></i> Save Access
         </button>
       </div>
@@ -324,9 +357,9 @@
   <!-- ================================================================ -->
   <!-- ============ MODAL: CONFIRM DIALOG ============================= -->
   <!-- ================================================================ -->
-  <div class="modal-overlay" id="confirmOverlay" aria-hidden="true">
-    <div class="modal-card" style="max-width:420px;">
-      <div class="modal-body">
+  <div class="auth-modal-overlay" id="confirmOverlay">
+    <div class="auth-modal" style="max-width:420px;">
+      <div class="auth-modal-body">
         <div class="auth-confirm-box">
           <div class="auth-confirm-icon danger"><i class="fas fa-triangle-exclamation"></i></div>
           <div class="auth-confirm-title">Konfirmasi</div>
@@ -334,9 +367,9 @@
           <div class="auth-confirm-target">@target</div>
         </div>
       </div>
-      <div class="modal-footer" style="justify-content:center;">
-        <button class="btn btn-ghost" id="confirmCancelBtn" data-cancel-btn>Batal</button>
-        <button class="btn btn-primary" id="confirmConfirmBtn" data-confirm-btn>Hapus</button>
+      <div class="auth-modal-foot">
+        <button class="auth-btn auth-btn-ghost" id="confirmCancelBtn" data-cancel-btn>Batal</button>
+        <button class="auth-btn auth-btn-danger-ghost" id="confirmConfirmBtn" data-confirm-btn>Hapus</button>
       </div>
     </div>
   </div>
