@@ -679,7 +679,10 @@ export default {
       // Sub-menu item keys (11) — level menu > sub-menu (v2.3)
       'p2m_analyzer', 'xpay_analyzer', 'xpay_settlement', 'settlement_checker', 'mnpay_analyzer',
       'syair_database', 'ai_prediction', 'gas_slot_engine',
-      'my_event', 'history_event', 'pg_report'
+      'my_event', 'history_event', 'pg_report',
+      // Livechat Essentials (8) — v2.5 (termasuk sub-menu bertingkat pk_*)
+      'livechat_essentials', 'prediksi_all_pasaran', 'jadwal_all_pasaran', 'pk_jadwal_pasaran',
+      'link_alternatif', 'perhitungan_parlay', 'hadiah_togel', 'pk_perhitungan'
     ];
 
     // Peta sub-menu -> menu induk (migrasi data legacy level-menu).
@@ -691,7 +694,15 @@ export default {
       syair_database: 'prediction_tools', ai_prediction: 'prediction_tools',
       gas_slot_engine: 'prediction_tools',
       my_event: 'event_tools', history_event: 'event_tools',
-      pg_report: 'event_tools'
+      pg_report: 'event_tools',
+      // Livechat Essentials (v2.5)
+      prediksi_all_pasaran: 'livechat_essentials',
+      jadwal_all_pasaran: 'livechat_essentials',
+      pk_jadwal_pasaran: 'jadwal_all_pasaran',
+      link_alternatif: 'livechat_essentials',
+      perhitungan_parlay: 'livechat_essentials',
+      hadiah_togel: 'livechat_essentials',
+      pk_perhitungan: 'hadiah_togel'
     };
 
     // ===== DEFAULT ACCESS PER ROLE =====
@@ -716,6 +727,10 @@ export default {
           prediction_tools: true, syair_database: true, ai_prediction: true,
           gas_slot_engine: true,
           event_tools: true, my_event: true, history_event: true, pg_report: true,
+          livechat_essentials: true, prediksi_all_pasaran: true,
+          jadwal_all_pasaran: true, pk_jadwal_pasaran: true,
+          link_alternatif: true, perhitungan_parlay: true,
+          hadiah_togel: true, pk_perhitungan: true,
           edit_bukti: true, keep_memo: true,
           // System items
           api_key: true, setting: true,
@@ -735,6 +750,10 @@ export default {
           prediction_tools: true, syair_database: true, ai_prediction: true,
           gas_slot_engine: true,
           event_tools: true, my_event: true, history_event: true, pg_report: true,
+          livechat_essentials: true, prediksi_all_pasaran: true,
+          jadwal_all_pasaran: true, pk_jadwal_pasaran: true,
+          link_alternatif: true, perhitungan_parlay: true,
+          hadiah_togel: true, pk_perhitungan: true,
           edit_bukti: true, keep_memo: true,
           api_key: true, setting: true,
           ip_whitelist: true, authority_panel: true
@@ -752,6 +771,10 @@ export default {
         prediction_tools: false, syair_database: false, ai_prediction: false,
         gas_slot_engine: false,
         event_tools: false, my_event: false, history_event: false, pg_report: false,
+        livechat_essentials: false, prediksi_all_pasaran: false,
+        jadwal_all_pasaran: false, pk_jadwal_pasaran: false,
+        link_alternatif: false, perhitungan_parlay: false,
+        hadiah_togel: false, pk_perhitungan: false,
         edit_bukti: false, keep_memo: false,
         api_key: false, setting: false,
         ip_whitelist: false, authority_panel: false
