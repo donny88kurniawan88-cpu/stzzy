@@ -502,6 +502,7 @@
   <link rel="stylesheet" href="/css/myevent-pro.css?v=1.2.0">
   <link rel="stylesheet" href="/css/setting-pro.css?v=1.0.0">
   <link rel="stylesheet" href="/css/keepmemo-pro.css?v=1.1.0">
+  <link rel="stylesheet" href="/css/linkalt-pro.css?v=1.0.0">
 </head>
 <body>
 
@@ -986,9 +987,9 @@
               <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:13px; font-weight:600; color:#cbd5e1;">↳ Pk Jadwal Pasaran</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#60a5fa; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SUB</span></div>
               <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Pengecualian jadwal pasaran tertentu.</p>
             </div>
-            <div class="lc-card" onclick="lcSelect('Link Alternatif', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Link Alternatif</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#fbbf24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SEGERA</span></div>
-              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Daftar link alternatif resmi untuk dibagikan.</p>
+            <div class="lc-card" onclick="switchToLivechatEssentials('Link Alternatif')" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Link Alternatif</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#22d3ee; background:rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); padding:2px 8px; border-radius:20px; white-space:nowrap;">AKTIF</span></div>
+              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Daftar link terklasifikasi — tambah / hapus mudah.</p>
             </div>
             <div class="lc-card" onclick="lcSelect('Perhitungan Parlay', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Perhitungan Parlay</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#fbbf24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SEGERA</span></div>
@@ -1006,6 +1007,9 @@
           <div id="lcDetail" style="display:none; margin-top:18px; padding:14px 16px; border-radius:14px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); color:#93c5fd; font-size:13px; line-height:1.6;"></div>
         </div>
       </div>
+
+      <!-- ===== LINK ALTERNATIF VIEW (Pro - rendered by linkalt-pro.js) ===== -->
+      <div id="linkAltView" style="display:none;"></div>
 
       <!-- ===== KEEP MEMO VIEW (Pro - rendered by keepmemo-pro.js) ===== -->
       <div id="keepMemoView" style="display:none;"></div>
@@ -1585,10 +1589,12 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var kmV = document.getElementById('keepMemoView'); if (kmV) kmV.style.display = 'none';
       var stV = document.getElementById('settingView'); if (stV) stV.style.display = 'none';
       var lcV = document.getElementById('livechatView'); if (lcV) lcV.style.display = 'none';
+      var lav = document.getElementById('linkAltView'); if (lav) lav.style.display = 'none';
     }
 
     /* === LIVECHAT ESSENTIALS (v2.5) === */
     function switchToLivechatEssentials(name) {
+      if (name === 'Link Alternatif') { switchToLinkAlt(); return; }
       hideAllViews();
       var lcV = document.getElementById('livechatView'); if (lcV) lcV.style.display = 'block';
       var t = document.getElementById('lcTitle'); if (t) t.textContent = name || 'Livechat Essentials';
@@ -1604,6 +1610,17 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       if (card) { card.dataset.sel = '1'; card.style.borderColor = 'rgba(59,130,246,0.65)'; card.style.boxShadow = '0 8px 24px rgba(59,130,246,0.15)'; }
       var d = document.getElementById('lcDetail');
       if (d) { d.style.display = 'block'; d.textContent = 'Modul "' + name + '" dipilih — halaman fungsional akan segera dilengkapi. Gunakan Authority Panel untuk mengatur akses sub-menu ini per user.'; }
+    }
+
+    /* === LINK ALTERNATIF (Pro - rendered by linkalt-pro.js) === */
+    function switchToLinkAlt() {
+      hideAllViews();
+      var v = document.getElementById('linkAltView'); if (v) v.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'Link Alternatif';
+      currentView = 'linkAlt';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      if (window.LinkAltPro && typeof window.LinkAltPro.render === 'function') window.LinkAltPro.render();
+      addTerminalLog('Switched to Link Alternatif');
     }
 
     /* === P2M ANALYZER === */
@@ -2528,5 +2545,6 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
   <script src="/js/myevent-pro.js?v=1.2.0"></script>
   <script src="/js/setting-pro.js?v=1.0.0"></script>
   <script src="/js/keepmemo-pro.js?v=1.1.0"></script>
+  <script src="/js/linkalt-pro.js?v=1.0.0"></script>
 </body>
 </html>
