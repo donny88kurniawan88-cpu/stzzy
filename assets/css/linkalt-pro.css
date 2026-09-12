@@ -1,0 +1,254 @@
+/* ============================================================
+   AURA.OS // LINKALT-PRO.CSS v1.0.0
+   Modul Link Alternatif — minimalis & profesional.
+   Terasa satu keluarga dengan tema dashboard (dark glass,
+   aksen biru/indigo, label mono uppercase, radius konsisten).
+   ============================================================ */
+
+/* ---------- Kerangka utama ---------- */
+#linkAltView { --la-radius: 16px; }
+
+.la-card {
+  width: 100%;
+  margin-top: 22px;
+  background: linear-gradient(160deg, #101018 0%, #0e0e15 100%);
+  border: 1px solid var(--border, rgba(255,255,255,0.07));
+  border-radius: 20px;
+  padding: 24px 26px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+  position: relative;
+  overflow: hidden;
+}
+.la-topline {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent-primary, #3b82f6), #8b5cf6);
+  opacity: 0.9;
+}
+
+/* ---------- Header ---------- */
+.la-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.la-head-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.la-icon {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-primary-light, rgba(59,130,246,0.12));
+  border: 1px solid rgba(59,130,246,0.28);
+  color: #93c5fd;
+}
+.la-icon svg { width: 21px; height: 21px; }
+.la-title {
+  margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em;
+  background: linear-gradient(90deg, #e2e8f0, #93c5fd);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.la-sub { margin: 3px 0 0; font-size: 12px; color: var(--text-tertiary, #64748b); }
+
+/* ---------- Tombol ---------- */
+.la-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 16px; border-radius: 10px; cursor: pointer;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 12.5px; font-weight: 700; line-height: 1;
+  border: 1px solid var(--border-focus, rgba(255,255,255,0.14));
+  background: transparent; color: var(--text-secondary, #94a3b8);
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+}
+.la-btn:hover { color: var(--text-primary, #f1f5f9); border-color: rgba(59,130,246,0.45); background: rgba(59,130,246,0.06); }
+.la-btn:active { transform: scale(0.97); }
+.la-btn-primary {
+  background: linear-gradient(135deg, var(--accent-primary, #3b82f6), #6366f1);
+  border-color: transparent; color: #fff;
+  box-shadow: 0 4px 14px rgba(59,130,246,0.28);
+}
+.la-btn-primary:hover { background: linear-gradient(135deg, #2f74ea, #5b5ce0); color: #fff; box-shadow: 0 6px 18px rgba(59,130,246,0.38); }
+.la-btn svg { width: 13px; height: 13px; }
+
+/* ---------- Statistik ---------- */
+.la-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px; margin-top: 20px;
+}
+.la-stat {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border, rgba(255,255,255,0.07));
+  border-radius: var(--la-radius);
+  padding: 14px 16px;
+  transition: border-color 0.2s ease;
+}
+.la-stat:hover { border-color: rgba(59,130,246,0.30); }
+.la-stat-k {
+  font-family: var(--font-mono, monospace); font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-tertiary, #64748b);
+}
+.la-stat-v { margin-top: 7px; font-size: 24px; font-weight: 800; color: var(--text-primary, #f1f5f9); line-height: 1.1; }
+.la-stat-v .la-unit { font-size: 13px; font-weight: 600; color: var(--text-tertiary, #64748b); }
+.la-stat-s { margin-top: 3px; font-size: 11px; color: var(--text-tertiary, #64748b); }
+.la-stat-v.la-v-sm { font-size: 14px; font-weight: 700; line-height: 1.5; }
+
+/* ---------- Chips kategori ---------- */
+.la-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+.la-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: 999px; cursor: pointer; user-select: none;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border, rgba(255,255,255,0.07));
+  color: var(--text-secondary, #94a3b8);
+  font-size: 11.5px; font-weight: 600;
+  transition: all 0.18s ease;
+}
+.la-chip:hover { border-color: rgba(59,130,246,0.45); color: var(--text-primary, #f1f5f9); transform: translateY(-1px); }
+.la-chip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.la-chip-n {
+  font-family: var(--font-mono, monospace); font-size: 9.5px;
+  background: rgba(255,255,255,0.06); color: var(--text-tertiary, #64748b);
+  border-radius: 999px; padding: 1px 6px; min-width: 14px; text-align: center;
+}
+.la-chip.active {
+  background: linear-gradient(135deg, var(--accent-primary, #3b82f6), #6366f1);
+  border-color: transparent; color: #fff;
+  box-shadow: 0 3px 12px rgba(59,130,246,0.30);
+}
+.la-chip.active .la-chip-n { background: rgba(255,255,255,0.2); color: #fff; }
+.la-chip.active .la-chip-dot { background: #fff !important; box-shadow: none; }
+
+/* ---------- Toolbar ---------- */
+.la-toolbar { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+.la-search {
+  flex: 1; min-width: 200px; display: flex; align-items: center; gap: 9px;
+  height: 38px; padding: 0 13px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border, rgba(255,255,255,0.07));
+  border-radius: 10px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.la-search:focus-within { border-color: rgba(59,130,246,0.5); box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+.la-search svg { width: 14px; height: 14px; color: var(--text-tertiary, #64748b); flex-shrink: 0; }
+.la-search input {
+  flex: 1; height: 100%; background: none; border: none; outline: none;
+  color: var(--text-primary, #f1f5f9); font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+}
+.la-search input::placeholder { color: var(--text-tertiary, #64748b); }
+
+/* ---------- Tabel ---------- */
+.la-twrap {
+  margin-top: 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border, rgba(255,255,255,0.07));
+  border-radius: var(--la-radius);
+  overflow: hidden;
+}
+.la-scroll { overflow-x: auto; }
+.la-table { width: 100%; border-collapse: collapse; min-width: 780px; }
+.la-table thead th {
+  font-family: var(--font-mono, monospace); font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-tertiary, #64748b);
+  text-align: left; padding: 12px 16px;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.07));
+  white-space: nowrap;
+}
+.la-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 12.5px; color: var(--text-secondary, #94a3b8);
+  vertical-align: middle;
+}
+.la-table tbody tr { transition: background 0.15s ease; }
+.la-table tbody tr:hover { background: rgba(59,130,246,0.045); }
+.la-table tbody tr:last-child td { border-bottom: none; }
+.la-dom { font-weight: 600; color: var(--text-primary, #f1f5f9); word-break: break-all; }
+.la-dom-id { font-family: var(--font-mono, monospace); font-size: 9.5px; color: var(--text-tertiary, #64748b); margin-top: 2px; letter-spacing: 0.04em; }
+.la-muted { color: #475569; }
+.la-time { font-size: 11.5px; white-space: nowrap; color: var(--text-secondary, #94a3b8); }
+
+/* Pill jenis link — tint halus per kategori */
+.la-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.01em;
+  padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+}
+.la-pill .la-chip-dot { width: 5px; height: 5px; }
+
+/* Status — minimal: titik + teks */
+.la-status { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; color: #34d399; white-space: nowrap; }
+.la-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent-success, #10b981);
+  box-shadow: 0 0 7px rgba(16,185,129,0.65); flex-shrink: 0;
+}
+
+/* Aksi hapus — ghost icon, arm merah */
+.la-del {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 28px; height: 28px; padding: 0 7px; border-radius: 8px; cursor: pointer;
+  border: 1px solid transparent; background: transparent; color: var(--text-tertiary, #64748b);
+  font-family: var(--font-sans, 'Inter', sans-serif); font-size: 10.5px; font-weight: 700;
+  transition: all 0.18s ease; white-space: nowrap;
+}
+.la-del svg { width: 13px; height: 13px; }
+.la-del:hover { color: #f87171; background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.22); }
+.la-del.arm { color: #fff; background: var(--accent-danger, #ef4444); border-color: transparent; box-shadow: 0 0 12px rgba(239,68,68,0.35); padding: 0 10px; }
+.la-del.arm:hover { color: #fff; background: #dc2626; }
+
+/* Empty state */
+.la-empty { padding: 44px 20px; text-align: center; color: var(--text-tertiary, #64748b); font-size: 12.5px; line-height: 1.8; }
+.la-empty b { color: #93c5fd; font-weight: 700; }
+
+/* Baris baru — flash halus */
+@keyframes laFlash { 0% { background: rgba(59,130,246,0.16); } 100% { background: transparent; } }
+.la-table tr.la-new td { animation: laFlash 1.6s ease; }
+
+/* ---------- Modal ---------- */
+.la-modal {
+  position: fixed; inset: 0; z-index: 3000;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(4,4,8,0.70); backdrop-filter: blur(8px);
+  padding: 18px;
+}
+.la-modal.open { display: flex; }
+.la-mbox {
+  width: min(92vw, 440px);
+  background: linear-gradient(165deg, #15151f 0%, #101018 100%);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 18px; padding: 24px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+  position: relative; overflow: hidden;
+  max-height: 90vh; overflow-y: auto;
+  animation: laIn 0.22s ease;
+}
+@keyframes laIn { from { opacity: 0; transform: scale(0.96) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.la-mtop { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent-primary, #3b82f6), #8b5cf6); }
+.la-mtitle { margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary, #f1f5f9); letter-spacing: -0.01em; }
+.la-msub { margin: 4px 0 0; font-size: 11.5px; color: var(--text-tertiary, #64748b); }
+.la-field { margin-top: 15px; }
+.la-label {
+  display: block; margin-bottom: 7px;
+  font-family: var(--font-mono, monospace); font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-tertiary, #64748b);
+}
+.la-label .la-opt { text-transform: none; letter-spacing: 0.02em; color: #475569; }
+.la-input, .la-select {
+  width: 100%; background: rgba(10,10,16,0.8);
+  border: 1px solid var(--border-focus, rgba(255,255,255,0.14));
+  border-radius: 10px; padding: 11px 13px;
+  color: var(--text-primary, #f1f5f9); font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.la-input::placeholder { color: #475569; }
+.la-input:focus, .la-select:focus { border-color: rgba(59,130,246,0.55); box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+.la-select { cursor: pointer; }
+.la-select option { background: #14141e; color: var(--text-primary, #f1f5f9); }
+.la-mfoot { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
+
+/* ---------- Responsif ---------- */
+@media (max-width: 640px) {
+  .la-card { padding: 18px 16px; border-radius: 16px; }
+  .la-stat-v { font-size: 21px; }
+  .la-toolbar { flex-direction: column; align-items: stretch; }
+  .la-search { min-width: 0; }
+  .la-btn, .la-btn-primary { width: 100%; }
+}
