@@ -142,7 +142,15 @@
       syair_database: 'prediction_tools', ai_prediction: 'prediction_tools',
       gas_slot_engine: 'prediction_tools',
       my_event: 'event_tools', history_event: 'event_tools',
-      pg_report: 'event_tools'
+      pg_report: 'event_tools',
+      /* v2.5.0 — Livechat Essentials */
+      prediksi_all_pasaran: 'livechat_essentials',
+      jadwal_all_pasaran: 'livechat_essentials',
+      pk_jadwal_pasaran: 'jadwal_all_pasaran',
+      link_alternatif: 'livechat_essentials',
+      perhitungan_parlay: 'livechat_essentials',
+      hadiah_togel: 'livechat_essentials',
+      pk_perhitungan: 'hadiah_togel'
     },
 
     initAccess: function () {
