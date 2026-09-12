@@ -504,6 +504,7 @@
   <link rel="stylesheet" href="/css/keepmemo-pro.css?v=1.1.0">
   <link rel="stylesheet" href="/css/linkalt-pro.css?v=1.0.0">
   <link rel="stylesheet" href="/css/pasaran-pro.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/pkpasaran-pro.css?v=1.0.0">
 </head>
 <body>
 
@@ -618,7 +619,7 @@
                 <button type="button" class="nest-toggle" aria-expanded="true" aria-label="Buka/tutup sub-menu di dalam Jadwal All Pasaran" title="Buka/tutup sub-menu di dalamnya"><span class="nest-chev" aria-hidden="true"></span></button>
               </div>
               <div class="nav-nest-body">
-                <div class="submenu-item submenu-subitem" data-access-item="pk_jadwal_pasaran" onclick="switchToLivechatEssentials('Pk Jadwal Pasaran')"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 15 15 20 20 15"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>Pk Jadwal Pasaran</div>
+                <div class="submenu-item submenu-subitem" data-access-item="pk_jadwal_pasaran" onclick="switchToPkPasaran()"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 15 15 20 20 15"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>Pk Jadwal Pasaran</div>
               </div>
             </div>
             <div class="submenu-item" data-access-item="link_alternatif" onclick="switchToLivechatEssentials('Link Alternatif')"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Link Alternatif</div>
@@ -984,9 +985,9 @@
               <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Jadwal All Pasaran</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#22d3ee; background:rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); padding:2px 8px; border-radius:20px; white-space:nowrap;">AKTIF</span></div>
               <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Jam buka &amp; tutup tiap pasaran — terhubung database.</p>
             </div>
-            <div class="lc-card" onclick="lcSelect('Pk Jadwal Pasaran', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1); margin-left:18px;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:13px; font-weight:600; color:#cbd5e1;">↳ Pk Jadwal Pasaran</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#60a5fa; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SUB</span></div>
-              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Pengecualian jadwal pasaran tertentu.</p>
+            <div class="lc-card" onclick="switchToPkPasaran()" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1); margin-left:18px;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(34,211,238,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:13px; font-weight:600; color:#cbd5e1;">↳ Pk Jadwal Pasaran</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#22d3ee; background:rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); padding:2px 8px; border-radius:20px; white-space:nowrap;">AKTIF</span></div>
+              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Status realtime &amp; copy format pasaran — hasil resmi SGP &amp; Magnum.</p>
             </div>
             <div class="lc-card" onclick="switchToLivechatEssentials('Link Alternatif')" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Link Alternatif</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#22d3ee; background:rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); padding:2px 8px; border-radius:20px; white-space:nowrap;">AKTIF</span></div>
@@ -1013,6 +1014,8 @@
       <div id="linkAltView" style="display:none;"></div>
       <!-- ===== JADWAL PASARAN VIEW (Pro - rendered by pasaran-pro.js, data SQLite D1) ===== -->
       <div id="pasaranView" style="display:none;"></div>
+      <!-- ===== PK JADWAL PASARAN VIEW (Pro - rendered by pkpasaran-pro.js: status realtime + copy + hasil resmi) ===== -->
+      <div id="pkPasaranView" style="display:none;"></div>
 
       <!-- ===== KEEP MEMO VIEW (Pro - rendered by keepmemo-pro.js) ===== -->
       <div id="keepMemoView" style="display:none;"></div>
@@ -1594,12 +1597,14 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var lcV = document.getElementById('livechatView'); if (lcV) lcV.style.display = 'none';
       var lav = document.getElementById('linkAltView'); if (lav) lav.style.display = 'none';
       var psV = document.getElementById('pasaranView'); if (psV) psV.style.display = 'none';
+      var pkV = document.getElementById('pkPasaranView'); if (pkV) pkV.style.display = 'none';
     }
 
     /* === LIVECHAT ESSENTIALS (v2.5) === */
     function switchToLivechatEssentials(name) {
       if (name === 'Link Alternatif') { switchToLinkAlt(); return; }
       if (name === 'Jadwal All Pasaran') { switchToPasaran(); return; }
+      if (name === 'Pk Jadwal Pasaran') { switchToPkPasaran(); return; }
       hideAllViews();
       var lcV = document.getElementById('livechatView'); if (lcV) lcV.style.display = 'block';
       var t = document.getElementById('lcTitle'); if (t) t.textContent = name || 'Livechat Essentials';
@@ -1637,6 +1642,17 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
       if (window.PasaranPro && typeof window.PasaranPro.render === 'function') window.PasaranPro.render();
       addTerminalLog('Switched to Jadwal All Pasaran');
+    }
+
+    /* === PK JADWAL PASARAN (Pro - rendered by pkpasaran-pro.js: status realtime, copy, hasil resmi) === */
+    function switchToPkPasaran() {
+      hideAllViews();
+      var v = document.getElementById('pkPasaranView'); if (v) v.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'Pk Jadwal Pasaran';
+      currentView = 'pkPasaran';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      if (window.PkPasaran && typeof window.PkPasaran.render === 'function') window.PkPasaran.render();
+      addTerminalLog('Switched to Pk Jadwal Pasaran');
     }
 
     /* === P2M ANALYZER === */
@@ -2562,6 +2578,7 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
   <script src="/js/setting-pro.js?v=1.0.0"></script>
   <script src="/js/keepmemo-pro.js?v=1.1.0"></script>
   <script src="/js/linkalt-pro.js?v=1.0.0"></script>
-  <script src="/js/pasaran-pro.js?v=1.0.0"></script>
+  <script src="/js/pasaran-pro.js?v=1.1.0"></script>
+  <script src="/js/pkpasaran-pro.js?v=1.0.0"></script>
 </body>
 </html>
