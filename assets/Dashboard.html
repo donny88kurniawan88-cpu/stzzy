@@ -93,6 +93,9 @@
     .submenu-item:hover { background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(20, 20, 30, 0.8)); color: var(--neon-cyan); transform: translateY(-2px); border-color: rgba(0, 240, 255, 0.4); box-shadow: 0 4px 10px rgba(0, 240, 255, 0.1); }
     .submenu-item::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; transition: all 0.15s ease; }
     .submenu-item:hover::before { background: var(--neon-cyan); transform: scale(1.6); box-shadow: 0 0 8px var(--neon-cyan); }
+    /* v2.5.0 — sub-menu bertingkat (Pk *) tampil menjorok */
+    .submenu-item.submenu-subitem { padding-left: 32px; font-size: 13px; }
+    .submenu-item.submenu-subitem::before { width: 4px; height: 4px; background: rgba(0, 240, 255, 0.5); }
 
     .nav-submenu-wrap.click-toggle:hover > .nav-trigger { background: rgba(20, 20, 30, 0.5); color: #cbd5e1; transform: none; border-color: rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
     .nav-submenu-wrap.click-toggle:hover > .nav-trigger .menu-icon { transform: none; stroke: currentColor; filter: none; }
@@ -543,6 +546,23 @@
           </div>
         </div>
 
+        <div class="nav-submenu-wrap" data-access-item="livechat_essentials">
+          <div class="nav-trigger">
+            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+            <span class="label">Livechat Essentials</span>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
+          </div>
+          <div class="submenu">
+            <div class="submenu-item" data-access-item="prediksi_all_pasaran" onclick="switchToLivechatEssentials('Prediksi All Pasaran')">Prediksi All Pasaran</div>
+            <div class="submenu-item" data-access-item="jadwal_all_pasaran" onclick="switchToLivechatEssentials('Jadwal All Pasaran')">Jadwal All Pasaran</div>
+            <div class="submenu-item submenu-subitem" data-access-item="pk_jadwal_pasaran" onclick="switchToLivechatEssentials('Pk Jadwal Pasaran')">↳ Pk Jadwal Pasaran</div>
+            <div class="submenu-item" data-access-item="link_alternatif" onclick="switchToLivechatEssentials('Link Alternatif')">Link Alternatif</div>
+            <div class="submenu-item" data-access-item="perhitungan_parlay" onclick="switchToLivechatEssentials('Perhitungan Parlay')">Perhitungan Parlay</div>
+            <div class="submenu-item" data-access-item="hadiah_togel" onclick="switchToLivechatEssentials('Hadiah Togel')">Hadiah Togel</div>
+            <div class="submenu-item submenu-subitem" data-access-item="pk_perhitungan" onclick="switchToLivechatEssentials('Pk Perhitungan')">↳ Pk Perhitungan</div>
+          </div>
+        </div>
+
         <div class="nav-item" data-action="editBukti" data-access-item="edit_bukti">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Bukti
@@ -866,7 +886,54 @@
       <!-- ===== AUTHORITY PANEL VIEW (inline iframe) ===== -->
       <div id="authorityView" style="display:none;">
         <div style="width:100%; margin-top:14px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
-          <iframe src="/Authority.html?v=2.4.0" style="width:100%; height:calc(100vh - 130px); border:none; display:block;" title="Authority Panel - Access Control"></iframe>
+          <iframe src="/Authority.html?v=2.5.0" style="width:100%; height:calc(100vh - 130px); border:none; display:block;" title="Authority Panel - Access Control"></iframe>
+        </div>
+      </div>
+
+      <!-- ===== LIVECHAT ESSENTIALS VIEW (v2.5) ===== -->
+      <div id="livechatView" style="display:none;">
+        <div style="width:100%; margin-top:22px; background:linear-gradient(135deg,#0f0f16,#14141e); border:1px solid rgba(255,255,255,0.06); border-radius:24px; padding:28px 30px; box-shadow:0 20px 60px rgba(0,0,0,0.4); position:relative; overflow:hidden;">
+          <div style="position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,#3b82f6,#a855f7,#ec4899);"></div>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="width:52px; height:52px; border-radius:14px; background:rgba(236,72,153,0.12); border:1px solid rgba(236,72,153,0.3); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg style="width:26px; height:26px; color:#f472b6;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+            </div>
+            <div style="min-width:0;">
+              <h2 id="lcTitle" style="margin:0; font-size:22px; font-weight:700; background:linear-gradient(90deg,#60a5fa,#c084fc,#f472b6); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">Livechat Essentials</h2>
+              <p style="margin:2px 0 0; color:#64748b; font-size:13px;">Peralatan pendukung operasional livechat — pilih modul di bawah</p>
+            </div>
+          </div>
+          <div id="lcGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; margin-top:22px;">
+            <div class="lc-card" onclick="lcSelect('Prediksi All Pasaran', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Prediksi All Pasaran</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#fbbf24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SEGERA</span></div>
+              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Riwayat & prediksi angka untuk semua pasaran.</p>
+            </div>
+            <div class="lc-card" onclick="lcSelect('Jadwal All Pasaran', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Jadwal All Pasaran</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#fbbf24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SEGERA</span></div>
+              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Jam buka & tutup tiap pasaran.</p>
+            </div>
+            <div class="lc-card" onclick="lcSelect('Pk Jadwal Pasaran', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1); margin-left:18px;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:13px; font-weight:600; color:#cbd5e1;">↳ Pk Jadwal Pasaran</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#60a5fa; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SUB</span></div>
+              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Pengecualian jadwal pasaran tertentu.</p>
+            </div>
+            <div class="lc-card" onclick="lcSelect('Link Alternatif', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Link Alternatif</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#fbbf24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SEGERA</span></div>
+              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Daftar link alternatif resmi untuk dibagikan.</p>
+            </div>
+            <div class="lc-card" onclick="lcSelect('Perhitungan Parlay', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Perhitungan Parlay</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#fbbf24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SEGERA</span></div>
+              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Kalkulator hadiah parlay mix/combination.</p>
+            </div>
+            <div class="lc-card" onclick="lcSelect('Hadiah Togel', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Hadiah Togel</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#fbbf24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SEGERA</span></div>
+              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Tabel hadiah 4D/3D/2D semua pasaran.</p>
+            </div>
+            <div class="lc-card" onclick="lcSelect('Pk Perhitungan', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1); margin-left:18px;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:13px; font-weight:600; color:#cbd5e1;">↳ Pk Perhitungan</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#60a5fa; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SUB</span></div>
+              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Pengecualian & aturan khusus perhitungan hadiah.</p>
+            </div>
+          </div>
+          <div id="lcDetail" style="display:none; margin-top:18px; padding:14px 16px; border-radius:14px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); color:#93c5fd; font-size:13px; line-height:1.6;"></div>
         </div>
       </div>
 
@@ -1390,6 +1457,26 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var autV = document.getElementById('authorityView'); if (autV) autV.style.display = 'none';
       var kmV = document.getElementById('keepMemoView'); if (kmV) kmV.style.display = 'none';
       var stV = document.getElementById('settingView'); if (stV) stV.style.display = 'none';
+      var lcV = document.getElementById('livechatView'); if (lcV) lcV.style.display = 'none';
+    }
+
+    /* === LIVECHAT ESSENTIALS (v2.5) === */
+    function switchToLivechatEssentials(name) {
+      hideAllViews();
+      var lcV = document.getElementById('livechatView'); if (lcV) lcV.style.display = 'block';
+      var t = document.getElementById('lcTitle'); if (t) t.textContent = name || 'Livechat Essentials';
+      document.getElementById('breadcrumbPage').textContent = name || 'Livechat Essentials';
+      currentView = 'livechat';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to Livechat Essentials: ' + (name || 'menu'));
+    }
+    function lcSelect(name, card) {
+      document.querySelectorAll('.lc-card').forEach(function(c) {
+        c.dataset.sel = ''; c.style.borderColor = 'rgba(255,255,255,0.06)'; c.style.boxShadow = 'none';
+      });
+      if (card) { card.dataset.sel = '1'; card.style.borderColor = 'rgba(59,130,246,0.65)'; card.style.boxShadow = '0 8px 24px rgba(59,130,246,0.15)'; }
+      var d = document.getElementById('lcDetail');
+      if (d) { d.style.display = 'block'; d.textContent = 'Modul "' + name + '" dipilih — halaman fungsional akan segera dilengkapi. Gunakan Authority Panel untuk mengatur akses sub-menu ini per user.'; }
     }
 
     /* === P2M ANALYZER === */
@@ -2079,12 +2166,14 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
        =================================================================== -->
   <script>
     function getDefaultAccess(role) {
-      // Must match backend VALID_MODULES (32 keys) exactly
+      // Must match backend VALID_MODULES (40 keys) exactly
       var keys = ['core','workspace','operational','system','user_management','registration_control',
         'dashboard','profil','banking_tools','rek_validator','bank_processor',
         'saldo_pencairan','qris_tools','p2m_analyzer','xpay_analyzer','xpay_settlement','settlement_checker','mnpay_analyzer',
         'prediction_tools','syair_database','ai_prediction','gas_slot_engine',
         'event_tools','my_event','history_event','pg_report',
+        'livechat_essentials','prediksi_all_pasaran','jadwal_all_pasaran','pk_jadwal_pasaran',
+        'link_alternatif','perhitungan_parlay','hadiah_togel','pk_perhitungan',
         'edit_bukti','keep_memo','api_key','setting','ip_whitelist','authority_panel'];
       var access = {};
       if (role === 'MASTER' || role === 'ADMIN') {
@@ -2109,7 +2198,15 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
       syair_database: 'prediction_tools', ai_prediction: 'prediction_tools',
       gas_slot_engine: 'prediction_tools',
       my_event: 'event_tools', history_event: 'event_tools',
-      pg_report: 'event_tools'
+      pg_report: 'event_tools',
+      /* v2.5.0 — Livechat Essentials */
+      prediksi_all_pasaran: 'livechat_essentials',
+      jadwal_all_pasaran: 'livechat_essentials',
+      pk_jadwal_pasaran: 'jadwal_all_pasaran',
+      link_alternatif: 'livechat_essentials',
+      perhitungan_parlay: 'livechat_essentials',
+      hadiah_togel: 'livechat_essentials',
+      pk_perhitungan: 'hadiah_togel'
     };
 
     function mergeAccess(rawAccess, role) {
@@ -2297,7 +2394,7 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
     // Also check immediately on page load
     setTimeout(_checkUserExistsInDatabase, 2000);
   </script>
-  <script src="/js/dashboard-pro.js?v=3.1.0"></script>
+  <script src="/js/dashboard-pro.js?v=3.2.0"></script>
   <script src="/js/myevent-pro.js?v=1.2.0"></script>
   <script src="/js/setting-pro.js?v=1.0.0"></script>
   <script src="/js/keepmemo-pro.js?v=1.1.0"></script>
