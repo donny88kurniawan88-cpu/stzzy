@@ -125,6 +125,10 @@
   var userAccess = {};      /* access milisendiri (dari /api/me) */
   var isViewOnly = false;   /* MEMBER dengan authority_panel=true */
   var usersData = [];
+  /* v2.4.0 — versi UI ini ditulis ke badge #uiVer di modal Edit Access.
+     Bila badge TIDAK menunjukkan versi ini = browser masih memuat file lama (cache). */
+  var UI_VERSION = '2.4.0';
+  var backendLegacy = false; /* true = backend terdeteksi membuang key sub-menu saat save */
   var editUsername = null;
   var currentPage = 1;
   var regisSettings = { open: true, defaultRole: 'MEMBER', requireApproval: false };
@@ -535,7 +539,14 @@
         var hasKids = f && ((f.isGroup && f.node.items && f.node.items.length) ||
                             (!f.isGroup && f.node.children && f.node.children.length));
         if (hasKids) setSubtree(key, cb.checked);
+        /* FIX v2.4.0 (BUG CENTANG TIDAK MUNCUL): klik sub-menu TANPA anak (leaf,
+           mis. Rek Validator) tidak pernah lewat setSubtree/setChecked sehingga
+           class visual 'checked' tidak terpasang -> kotak tampak kosong padahal
+           state checkbox true. Pasang langsung + flash feedback animasi. */
+        label.classList.toggle('checked', cb.checked);
+        flashPerm(key, cb.checked);
         refreshAllParents();
+        syncAllCheckedVisual(); /* jaring pengaman: semua baris dipaksa sinkron */
         updateSummary();
       });
     });
@@ -714,7 +725,17 @@
     });
     /* recompute indeterminate/checked utk semua induk */
     refreshAllParents();
+    syncAllCheckedVisual(); /* FIX v2.4.0 */
     updateSummary();
+  }
+
+  /* FIX v2.4.0 — paksa class visual 'checked' pada SEMUA label mengikuti
+     state input aktual. Menjamin centang SELALU tampak apa pun jalurnya. */
+  function syncAllCheckedVisual() {
+    $$('#permMatrix [data-key]').forEach(function (el) {
+      var cb = el.querySelector('input[type="checkbox"]');
+      if (cb) el.classList.toggle('checked', !!cb.checked);
+    });
   }
 
   function updateSummary() {
@@ -732,6 +753,8 @@
       var wrap = cb.closest('.auth-perm-master') || cb.closest('.auth-perm-item');
       if (wrap) wrap.classList.toggle('checked', !!v);
     });
+    refreshAllParents();
+    syncAllCheckedVisual(); /* FIX v2.4.0 */
     updateSummary();
   }
 
@@ -739,9 +762,51 @@
   function presetCore() {
     setAllPerm(false);
     ['core', 'dashboard', 'profil'].forEach(function (k) { setChecked(k, true); });
+    syncAllCheckedVisual(); /* FIX v2.4.0 */
     updateSummary();
   }
   function presetNone() { setAllPerm(false); }
+
+  /* ============================================================
+     v2.4.0 — DETEKSI BACKEND LAMA
+     Backend lama hanya menyimpan sebagian key: centang sub-menu hilang
+     setelah save tanpa peringatan. Setelah save sukses, data user
+     di-fetch ulang & dibandingkan; bila ada key yang hilang -> banner
+     peringatan keras di modal + toast.
+     ============================================================ */
+  function verifySavedAccess(username, sentAccess) {
+    fetch('/api/users', { headers: { 'x-auth-token': authToken } })
+      .then(function (r) { return r.json(); })
+      .then(function (list) {
+        var arr = Array.isArray(list) ? list : [];
+        var u = arr.find(function (x) { return x.username === username; });
+        if (!u) return;
+        var saved = accessFor(u);
+        var lost = Object.keys(sentAccess).filter(function (k) { return sentAccess[k] && !saved[k]; });
+        if (lost.length) {
+          backendLegacy = true;
+          showToast('PERINGATAN: ' + lost.length + ' akses sub-menu TIDAK tersimpan — backend lama terdeteksi. Deploy src/index.js terbaru!', 'error');
+        } else {
+          backendLegacy = false;
+        }
+        updateBackendWarn(lost);
+      })
+      .catch(function () {});
+  }
+
+  function updateBackendWarn(lost) {
+    var w = $('backendWarn');
+    if (!w) return;
+    if (backendLegacy) {
+      var n = (lost && lost.length) ? lost.length : 'beberapa';
+      w.innerHTML = '<i class="fas fa-triangle-exclamation"></i><div>' +
+        '<b>Backend lama terdeteksi — ' + n + ' akses sub-menu TIDAK tersimpan ke server.</b> ' +
+        'Solusi: deploy file <code>src/index.js</code> terbaru ke Cloudflare Workers, lalu ulangi simpan akses.</div>';
+      w.style.display = 'flex';
+    } else {
+      w.style.display = 'none';
+    }
+  }
 
   /* ============================================================
      EDIT ACCESS CONTROL
@@ -784,6 +849,7 @@
 
     applyAccessToMatrix(accessFor(u));
     updateSummary();
+    updateBackendWarn(); /* v2.4.0 — tampilkan banner bila backend lama terdeteksi sebelumnya */
 
     var modal = $('editModal');
     if (modal) modal.classList.add('active');
@@ -806,6 +872,7 @@
     }
 
     var access = collectAccessFromMatrix();
+    var savedUsername = editUsername; /* v2.4.0 — editUsername dinolkan oleh closeEditModal */
 
     fetch('/api/users/' + encodeURIComponent(editUsername) + '/access', {
       method: 'PUT',
@@ -816,8 +883,10 @@
       .then(function (result) {
         if (result && result.success) {
           closeEditModal();
-          showToast('Access control @' + editUsername + ' berhasil diperbarui!', 'success');
+          showToast('Access control @' + savedUsername + ' berhasil diperbarui!', 'success');
           loadUsers();
+          /* v2.4.0 — verifikasi data benar-benar tersimpan (deteksi backend lama) */
+          verifySavedAccess(savedUsername, access);
         } else {
           showToast((result && result.error) || 'Gagal menyimpan akses', 'error');
         }
@@ -1297,6 +1366,10 @@
       buildPermMatrix();
       loadUsers();
       loadPending();
+
+      /* v2.4.0 — badge versi UI di modal Edit Access: bukti file baru termuat */
+      var verEl = $('uiVer');
+      if (verEl) verEl.textContent = 'UI v' + UI_VERSION;
     });
   }
 
