@@ -1286,6 +1286,173 @@ export default {
     }
 
     // ============================================
+    // 13f. API JADWAL PASARAN (SQLite D1 — panel terhubung database)
+    // ============================================
+    const PASARAN_SEED = [
+    { no: 1, nama: "HOKI DRAW", jadwal: "SETIAP HARI", tutup: "RESULT 24x", result: "SETIAP 1 JAM", link: "https://hokidraw.com/" },
+    { no: 2, nama: "TOTO MACAU PAGI", jadwal: "SETIAP HARI", tutup: "00:00 WIB", result: "00:15 WIB", link: "https://www.totomacau-pools.us/" },
+    { no: 3, nama: "KENTUCKY MIDDAY", jadwal: "SETIAP HARI", tutup: "00:05 WIB", result: "00:20 WIB", link: "https://www.kylottery.com/apps/draw_games/pick4/index.html" },
+    { no: 4, nama: "FLORIDA MIDDAY", jadwal: "SETIAP HARI", tutup: "00:20 WIB", result: "00:30 WIB", link: "https://floridalottery.com/games/draw-games/pick-4" },
+    { no: 5, nama: "HUAHIN 0100", jadwal: "SETIAP HARI", tutup: "00:45 WIB", result: "01:00 WIB", link: "https://huahinlottery.com/" },
+    { no: 6, nama: "NEW YORK MIDDAY", jadwal: "SETIAP HARI", tutup: "01:15 WIB", result: "01:25 WIB", link: "http://nylottery.ny.gov/wps/portal/Home/Lottery/home/your+lottery/winning+numbers/win4pastwinning+numbers" },
+    { no: 7, nama: "BANGKOK 0130", jadwal: "SETIAP HARI", tutup: "01:15 WIB", result: "01:30 WIB", link: "https://bangkokpoolstoday.com/" },
+    { no: 8, nama: "CAROLINA DAY", jadwal: "SETIAP HARI", tutup: "01:45 WIB", result: "02:00 WIB", link: "https://www.wral.com/entertainment/lottery/" },
+    { no: 9, nama: "BRUNEI 02", jadwal: "SETIAP HARI", tutup: "02:30 WIB", result: "02:45 WIB", link: "https://bruneipools.com/" },
+    { no: 10, nama: "OREGON03", jadwal: "SETIAP HARI", tutup: "02:50 WIB", result: "03:00 WIB", link: "https://www.oregonlottery.org/pick-4/winning-numbers/" },
+    { no: 11, nama: "OREGON06", jadwal: "SETIAP HARI", tutup: "05:50 WIB", result: "06:00 WIB", link: "https://www.oregonlottery.org/pick-4/winning-numbers/" },
+    { no: 12, nama: "CALIFORNIA", jadwal: "SETIAP HARI", tutup: "08:25 WIB", result: "08:30 WIB", link: "https://www.calottery.com/draw-games/daily-4" },
+    { no: 13, nama: "FLORIDA EVENING", jadwal: "SETIAP HARI", tutup: "08:35 WIB", result: "08:45 WIB", link: "https://floridalottery.com/games/draw-games/pick-4" },
+    { no: 14, nama: "OREGON09", jadwal: "SETIAP HARI", tutup: "08:50 WIB", result: "09:00 WIB", link: "https://www.oregonlottery.org/pick-4/winning-numbers/" },
+    { no: 15, nama: "BANGKOK 0930", jadwal: "SETIAP HARI", tutup: "09:15 WIB", result: "09:30 WIB", link: "https://bangkokpoolstoday.com/" },
+    { no: 16, nama: "NEWYORKEVE", jadwal: "SETIAP HARI", tutup: "09:25 WIB", result: "09:35 WIB", link: "http://nylottery.ny.gov/wps/portal/Home/Lottery/home/your+lottery/winning+numbers/win4pastwinning+numbers" },
+    { no: 17, nama: "KENTUCKYEVE", jadwal: "SETIAP HARI", tutup: "09:45 WIB", result: "10:00 WIB", link: "https://www.kylottery.com/apps/draw_games/pick4/index.html" },
+    { no: 18, nama: "CAROLINAEVE", jadwal: "SETIAP HARI", tutup: "10:17 WIB", result: "10:22 WIB", link: "http://www.wral.com/news/video/1075494/" },
+    { no: 19, nama: "TOTOCAMBODIA", jadwal: "SETIAP HARI", tutup: "10:45 WIB", result: "11:00 WIB", link: "https://totocambodialive.com/live-draw.html" },
+    { no: 20, nama: "CHELSEA 11", jadwal: "SETIAP HARI", tutup: "11:00 WIB", result: "11:15 WIB", link: "https://chelseapools.co.uk/live-draw.html" },
+    { no: 21, nama: "OREGON12", jadwal: "SETIAP HARI", tutup: "11:50 WIB", result: "12:00 WIB", link: "https://www.oregonlottery.org/pick-4/winning-numbers/" },
+    { no: 22, nama: "POIPET12", jadwal: "SETIAP HARI", tutup: "12:15 WIB", result: "12:30 WIB", link: "https://poipetlottery.com/" },
+    { no: 23, nama: "TOTOMACAU SIANG", jadwal: "SETIAP HARI", tutup: "13:00 WIB", result: "13:15 WIB", link: "https://www.totomacau-pools.us/" },
+    { no: 24, nama: "BULLSEYE", jadwal: "SETIAP HARI", tutup: "13:00 WIB", result: "13:15 WIB", link: "https://mylotto.co.nz/results/bullseye" },
+    { no: 25, nama: "SYDNEY", jadwal: "SETIAP HARI", tutup: "13:49 WIB", result: "14:05 WIB", link: "https://sydneyfunlotto.net/" },
+    { no: 26, nama: "JAKARTA 1400", jadwal: "SETIAP HARI", tutup: "13:55 WIB", result: "14:10 WIB", link: "https://jakartapool.com/" },
+    { no: 27, nama: "BRUNEI 14", jadwal: "SETIAP HARI", tutup: "14:30 WIB", result: "14:45 WIB", link: "https://bruneipools.com/" },
+    { no: 28, nama: "CHELSEA 15", jadwal: "SETIAP HARI", tutup: "15:00 WIB", result: "15:15 WIB", link: "https://chelseapools.co.uk/live-draw.html" },
+    { no: 29, nama: "TOTOMACAU 5D SORE", jadwal: "SETIAP HARI", tutup: "15:15 WIB", result: "15:30 WIB", link: "https://www.totomacau-pools.us/" },
+    { no: 30, nama: "TOTOMALI 1530", jadwal: "SETIAP HARI", tutup: "15:15 WIB", result: "15:30 WIB", link: "https://totomali.com/" },
+    { no: 31, nama: "POIPET15", jadwal: "SETIAP HARI", tutup: "15:15 WIB", result: "15:30 WIB", link: "https://poipetlottery.com/" },
+    { no: 32, nama: "TOTOMACAU SORE", jadwal: "SETIAP HARI", tutup: "16:00 WIB", result: "16:15 WIB", link: "https://www.totomacau-pools.us/" },
+    { no: 33, nama: "HUAHIN 1630", jadwal: "SETIAP HARI", tutup: "16:15 WIB", result: "16:30 WIB", link: "https://huahinlottery.com/" },
+    { no: 34, nama: "KING KONG 4D SORE", jadwal: "SETIAP HARI", tutup: "17:00 WIB", result: "17:15 WIB", link: "https://kingkongpools.id/" },
+    { no: 35, nama: "SINGAPORE", jadwal: "Selasa & Jumat TUTUP", tutup: "17:30 WIB", result: "17:45 WIB", link: "http://www.singaporepools.com.sg" },
+    { no: 36, nama: "MAGNUM4D", jadwal: "Rabu, Sabtu & Minggu", tutup: "18:10 WIB", result: "18:40 WIB", link: "http://www.magnum4d.my/en" },
+    { no: 37, nama: "TOTOMACAU MALAM I", jadwal: "SETIAP HARI", tutup: "19:00 WIB", result: "19:15 WIB", link: "https://www.totomacau-pools.us/" },
+    { no: 38, nama: "CHELSEA 19", jadwal: "SETIAP HARI", tutup: "19:00 WIB", result: "19:15 WIB", link: "https://chelseapools.co.uk/live-draw.html" },
+    { no: 39, nama: "POIPET19", jadwal: "SETIAP HARI", tutup: "19:30 WIB", result: "19:45 WIB", link: "https://poipetlottery.com/" },
+    { no: 40, nama: "PCSO", jadwal: "MINGGU TUTUP", tutup: "19:50 WIB", result: "20:10 WIB", link: "https://www.pcso.gov.ph/" },
+    { no: 41, nama: "TOTOMALI 2030", jadwal: "SETIAP HARI", tutup: "20:15 WIB", result: "20:30 WIB", link: "https://totomali.com/" },
+    { no: 42, nama: "HUAHIN 2100", jadwal: "SETIAP HARI", tutup: "20:45 WIB", result: "21:00 WIB", link: "https://huahinlottery.com/" },
+    { no: 43, nama: "CHELSEA 21", jadwal: "SETIAP HARI", tutup: "21:00 WIB", result: "21:15 WIB", link: "https://chelseapools.co.uk/live-draw.html" },
+    { no: 44, nama: "TOTOMACAU 5D MALAM", jadwal: "SETIAP HARI", tutup: "21:15 WIB", result: "21:25 WIB", link: "https://www.totomacau-pools.us/" },
+    { no: 45, nama: "NEVADA", jadwal: "SETIAP HARI", tutup: "21:15 WIB", result: "21:30 WIB", link: "https://www.nevadalottery.us/" },
+    { no: 46, nama: "BRUNEI21", jadwal: "SETIAP HARI", tutup: "21:30 WIB", result: "21:45 WIB", link: "https://bruneipools.com/" },
+    { no: 47, nama: "TOTOMACAU MALAM II", jadwal: "SETIAP HARI", tutup: "22:00 WIB", result: "22:15 WIB", link: "https://www.totomacau-pools.us/" },
+    { no: 48, nama: "POIPET22", jadwal: "SETIAP HARI", tutup: "22:30 WIB", result: "22:45 WIB", link: "https://poipetlottery.com/" },
+    { no: 49, nama: "HONGKONG", jadwal: "SETIAP HARI", tutup: "22:59 WIB", result: "23:15 WIB", link: "https://hongkongfunlotto.net/" },
+    { no: 50, nama: "TOTOMACAU MALAM III", jadwal: "SETIAP HARI", tutup: "23:00 WIB", result: "23:15 WIB", link: "https://www.totomacau-pools.us/" },
+    { no: 51, nama: "TOTOMALI 2330", jadwal: "SETIAP HARI", tutup: "23:15 WIB", result: "23:30 WIB", link: "https://totomali.com/" },
+    { no: 52, nama: "JAKARTA 2330", jadwal: "SETIAP HARI", tutup: "23:25 WIB", result: "23:40 WIB", link: "https://jakartapool.com/" },
+    { no: 53, nama: "KING KONG 4D MALAM", jadwal: "SETIAP HARI", tutup: "23:30 WIB", result: "23:45 WIB", link: "https://kingkongpools.id/" }
+    ];
+
+    // Pastikan tabel pasaran ada (auto-migrate) + seed awal bila kosong.
+    async function ensurePasaranTable() {
+      try {
+        await env.DB.prepare("SELECT no FROM pasaran LIMIT 1").first();
+        return;
+      } catch (e) {
+        await env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS pasaran (id INTEGER PRIMARY KEY AUTOINCREMENT, no INTEGER NOT NULL DEFAULT 0, nama TEXT NOT NULL, jadwal TEXT NOT NULL DEFAULT 'SETIAP HARI', tutup TEXT NOT NULL DEFAULT '', result TEXT NOT NULL DEFAULT '', link TEXT NOT NULL DEFAULT '', updated_by TEXT, updated_at INTEGER)"
+        ).run();
+        try { await env.DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_pasaran_no ON pasaran(no)").run(); } catch (e2) {}
+        const c = await env.DB.prepare("SELECT COUNT(*) AS c FROM pasaran").first();
+        if (!c || c.c === 0) {
+          const stmts = PASARAN_SEED.map((p) =>
+            env.DB.prepare("INSERT INTO pasaran (no, nama, jadwal, tutup, result, link) VALUES (?, ?, ?, ?, ?, ?)")
+              .bind(p.no, p.nama, p.jadwal, p.tutup, p.result, p.link)
+          );
+          await env.DB.batch(stmts);
+        }
+      }
+    }
+
+    // 13f-1. GET: seluruh pasaran (urut nomor)
+    if (path === '/api/pasaran' && request.method === 'GET') {
+      if (!await isUser(request)) return Response.json({ error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensurePasaranTable();
+        const { results } = await env.DB.prepare(
+          "SELECT id, no, nama, jadwal, tutup, result, link, updated_by, updated_at FROM pasaran ORDER BY no ASC"
+        ).all();
+        return Response.json({ success: true, source: 'd1', pasaran: results || [] });
+      } catch (err) {
+        return Response.json({ error: 'Gagal mengambil pasaran: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // 13f-2. POST: tambah pasaran baru (no otomatis = max+1)
+    if (path === '/api/pasaran' && request.method === 'POST') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        await ensurePasaranTable();
+        const body = await request.json();
+        const nama = String(body.nama || '').trim().toUpperCase();
+        if (!nama) return Response.json({ error: 'Nama pasaran wajib diisi' }, { status: 400 });
+        const maxRow = await env.DB.prepare("SELECT COALESCE(MAX(no), 0) AS m FROM pasaran").first();
+        const no = (maxRow ? maxRow.m : 0) + 1;
+        await env.DB.prepare(
+          "INSERT INTO pasaran (no, nama, jadwal, tutup, result, link, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        ).bind(
+          no, nama,
+          String(body.jadwal || '').trim() || 'SETIAP HARI',
+          String(body.tutup || '').trim(),
+          String(body.result || '').trim(),
+          String(body.link || '').trim(),
+          request.headers.get('x-auth-token'), Date.now()
+        ).run();
+        const row = await env.DB.prepare(
+          "SELECT id, no, nama, jadwal, tutup, result, link, updated_by, updated_at FROM pasaran WHERE no = ?"
+        ).bind(no).first();
+        return Response.json({ success: true, message: 'Pasaran "' + nama + '" ditambahkan', pasaran: row });
+      } catch (err) {
+        return Response.json({ error: 'Gagal menambah pasaran: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // 13f-3. PUT /api/pasaran/:id — edit pasaran
+    const psMatch = path.match(/^\/api\/pasaran\/(\d+)$/);
+    if (psMatch && request.method === 'PUT') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        await ensurePasaranTable();
+        const id = psMatch[1];
+        const body = await request.json();
+        const existing = await env.DB.prepare("SELECT * FROM pasaran WHERE id = ?").bind(id).first();
+        if (!existing) return Response.json({ error: 'Pasaran tidak ditemukan' }, { status: 404 });
+        const nama = body.nama !== undefined ? String(body.nama).trim().toUpperCase() : existing.nama;
+        if (!nama) return Response.json({ error: 'Nama pasaran wajib diisi' }, { status: 400 });
+        await env.DB.prepare(
+          "UPDATE pasaran SET nama = ?, jadwal = ?, tutup = ?, result = ?, link = ?, updated_by = ?, updated_at = ? WHERE id = ?"
+        ).bind(
+          nama,
+          body.jadwal !== undefined ? String(body.jadwal).trim() : existing.jadwal,
+          body.tutup !== undefined ? String(body.tutup).trim() : existing.tutup,
+          body.result !== undefined ? String(body.result).trim() : existing.result,
+          body.link !== undefined ? String(body.link).trim() : existing.link,
+          request.headers.get('x-auth-token'), Date.now(),
+          id
+        ).run();
+        const row = await env.DB.prepare(
+          "SELECT id, no, nama, jadwal, tutup, result, link, updated_by, updated_at FROM pasaran WHERE id = ?"
+        ).bind(id).first();
+        return Response.json({ success: true, message: 'Pasaran "' + nama + '" diperbarui', pasaran: row });
+      } catch (err) {
+        return Response.json({ error: 'Gagal update pasaran: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // 13f-4. DELETE /api/pasaran/:id — hapus pasaran
+    if (psMatch && request.method === 'DELETE') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        await ensurePasaranTable();
+        const del = await env.DB.prepare("DELETE FROM pasaran WHERE id = ?").bind(psMatch[1]).run();
+        return Response.json({ success: true, message: 'Pasaran dihapus', removed: del.meta ? del.meta.changes : 1 });
+      } catch (err) {
+        return Response.json({ error: 'Gagal menghapus pasaran: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ============================================
     // 14. API BANK FORMATTER
     // ============================================
     if (path === '/api/bank/format' && request.method === 'POST') {
