@@ -71,10 +71,11 @@
 
     .nav-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; margin: 5px 0; border-radius: var(--radius-md); font-size: 15px; font-weight: 500; cursor: pointer; user-select: none; position: relative; animation: slideInRight 0.3s ease backwards; color: #cbd5e1; background: rgba(20, 20, 30, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .nav-item svg { width: 20px; height: 20px; stroke-width: 1.5; flex-shrink: 0; transition: all 0.18s ease; }
-    /* v2.7.0 — efek HOVER pada seluruh list menu DIHAPUS (permintaan user,
-       sesuai referensi): baris menu tampil FLAT dan TIDAK berubah saat
-       dilewati mouse. Perubahan warna hanya terjadi pada state AKTIF
-       (item yang sedang dipilih) dan state TERBUKA (grup sub-menu). */
+    /* v2.8.0 — GLOW saat hover DIPASANG KEMBALI (permintaan user), seperti
+       kartu "Domain" pada referensi: gradient biru + shadow glow. TANPA
+       lift/translate agar baris tidak melompat saat mouse lewat. */
+    .nav-item:hover { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; border-color: rgba(59, 130, 246, 0.8); box-shadow: 0 4px 18px rgba(59, 130, 246, 0.45), inset 0 0 14px rgba(255, 255, 255, 0.08); }
+    .nav-item:hover svg { stroke: #fff; filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.55)); }
     .nav-item.active { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1); border-color: rgba(59, 130, 246, 0.8); }
     .nav-item.active svg { stroke: #fff; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
 
@@ -84,20 +85,28 @@
     .nav-submenu-wrap > .nav-trigger .label { flex: 1; }
     .nav-submenu-wrap > .nav-trigger .chevron { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
     .nav-submenu-wrap > .nav-trigger .chevron svg { width: 15px; height: 15px; stroke: var(--text-tertiary); transition: stroke 0.18s ease; }
-    /* v2.7.0 — pemicu sub-menu tidak lagi bereaksi pada hover, dan sub-menu
-       TIDAK lagi terbuka oleh hover (dulu: :hover > .submenu). Sekarang grup
-       hanya terbuka lewat KLIK (click-toggle) — konsisten di desktop & mobile. */
-    .nav-submenu-wrap > .submenu { overflow: hidden; max-height: 0; opacity: 0; padding-left: 14px; transition: max-height 0.35s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.25s ease, padding 0.3s ease; }
+    /* v2.8.0 — GLOW hover pemicu grup dipasang kembali (gradient biru +
+       shadow glow). Grup tetap HANYA terbuka lewat KLIK (click-toggle),
+       konsisten di desktop & mobile. */
+    .nav-submenu-wrap:hover > .nav-trigger { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; border-color: rgba(59, 130, 246, 0.8); box-shadow: 0 4px 18px rgba(59, 130, 246, 0.45), inset 0 0 14px rgba(255, 255, 255, 0.08); }
+    .nav-submenu-wrap:hover > .nav-trigger svg.menu-icon { stroke: #fff; filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.55)); }
+    .nav-submenu-wrap:hover > .nav-trigger .chevron svg { stroke: #fff; }
+    /* v2.8.0 — garis pohon cyan di kiri sub-menu (struktur spt referensi) */
+    .nav-submenu-wrap > .submenu { overflow: hidden; max-height: 0; opacity: 0; padding-left: 12px; margin-left: 12px; border-left: 2px solid rgba(0, 240, 255, 0.22); transition: max-height 0.35s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.25s ease, padding 0.3s ease; }
 
-    .submenu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin: 4px 0; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; cursor: pointer; user-select: none; white-space: nowrap; pointer-events: auto; color: #94a3b8; background: rgba(15, 15, 22, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    .submenu-item::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; transition: all 0.15s ease; }
-    /* v2.7.0 — item sub-menu AKTIF (yang sedang dipilih) = satu-satunya
-       baris berwarna (gradient biru), persis kartu "Bank WD" pada referensi. */
-    .submenu-item.active { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; border-color: rgba(59, 130, 246, 0.8); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.45), inset 0 0 15px rgba(255, 255, 255, 0.1); }
-    .submenu-item.active::before { background: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.8); }
-    /* v2.5.0 — sub-menu bertingkat (Pk *) tampil menjorok */
-    .submenu-item.submenu-subitem { padding-left: 32px; font-size: 13px; }
-    .submenu-item.submenu-subitem::before { width: 4px; height: 4px; background: rgba(0, 240, 255, 0.5); }
+    .submenu-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 4px 0; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; white-space: nowrap; pointer-events: auto; color: #94a3b8; background: rgba(15, 15, 22, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    /* v2.8.0 — sub-item ber-ICON (pengganti titik bullet), spt referensi
+       "Shift Kerja / Absensi Staff / Pengajuan Off Day Staff" */
+    .submenu-item .sub-icon { width: 14px; height: 14px; flex-shrink: 0; transition: all 0.18s ease; }
+    /* v2.8.0 — GLOW hover sub-item dipasang kembali (cyan) */
+    .submenu-item:hover { background: linear-gradient(135deg, rgba(0, 240, 255, 0.12), rgba(20, 20, 30, 0.8)); color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.45); box-shadow: 0 4px 12px rgba(0, 240, 255, 0.18); }
+    .submenu-item:hover .sub-icon { filter: drop-shadow(0 0 5px var(--neon-cyan)); }
+    /* v2.8.0 — item sub-menu AKTIF: glow cyan dgn border terang, spt sub
+       "Shift Kerja" pertama pada referensi */
+    .submenu-item.active { background: rgba(0, 240, 255, 0.10); color: #dff9ff; border-color: rgba(0, 240, 255, 0.55); box-shadow: 0 0 14px rgba(0, 240, 255, 0.18), inset 0 0 10px rgba(0, 240, 255, 0.06); }
+    .submenu-item.active .sub-icon { stroke: var(--neon-cyan); filter: drop-shadow(0 0 5px var(--neon-cyan)); }
+    /* v2.5.0/v2.8.0 — sub-menu bertingkat (Pk *) menjorok via nest-body */
+    .submenu-item.submenu-subitem { font-size: 12px; padding: 9px 10px; }
 
     /* ====================================================================
        v2.6.0 / v2.7.0 — TOGGLE DROPDOWN utk sub-menu yang memiliki
@@ -131,7 +140,9 @@
       transform: rotate(45deg) translate(-1px, -1px); /* menghadap bawah */
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease;
     }
-    .nest-toggle:active { transform: scale(0.88); } /* umpan balik tekan (klik), bukan hover */
+    .nest-toggle:hover { border-color: rgba(0, 240, 255, 0.5); background: rgba(0, 240, 255, 0.08); }
+    .nest-toggle:hover .nest-chev { border-color: var(--neon-cyan); }
+    .nest-toggle:active { transform: scale(0.88); } /* umpan balik tekan (klik) */
     .nav-nest.open > .nav-nest-head .nest-toggle { border-color: rgba(0, 240, 255, 0.45); background: rgba(0, 240, 255, 0.10); }
     .nav-nest.open > .nav-nest-head .nest-chev { transform: rotate(225deg) translate(-1px, -1px); border-color: var(--neon-cyan); }
     .nav-nest-body { overflow: hidden; max-height: 0; opacity: 0; padding-left: 18px; margin-left: 14px; border-left: 2px solid rgba(0, 240, 255, 0.18); transition: max-height 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.22s ease; }
@@ -143,15 +154,13 @@
     /* Nest tanpa sub-menu yang berhak (toggle disembunyikan) = baris biasa */
     .nav-nest:not(.has-kids) > .nav-nest-head { cursor: pointer; }
 
-    /* v2.7.0 — SEMUA grup sub-menu kini click-toggle (hover-open dihapus).
-       Grup TERBUKA: baris pemicu tetap FLAT seperti referensi ("Rekening
-       Situs") — hanya chevron berputar & berwarna cyan, TANPA gradient/
-       lift/glow pada barisnya. max-height 640px diseragamkan utk semua
-       grup agar grup terpanjang (Livechat Essentials, 7 baris) tidak
-       terpotong saat terbuka. */
-    .nav-submenu-wrap.click-toggle.open > .nav-trigger { border-color: rgba(0, 240, 255, 0.28); }
+    /* v2.8.0 — pemicu grup TERBUKA bergradient penuh + teks putih, persis
+       baris "Shift Kerja" yang terbuka pada referensi. (Semua grup tetap
+       click-toggle; max-height 640px agar grup terpanjang tak terpotong.) */
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; border-color: rgba(59, 130, 246, 0.8); box-shadow: 0 4px 18px rgba(59, 130, 246, 0.4), inset 0 0 14px rgba(255, 255, 255, 0.08); }
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger svg.menu-icon { stroke: #fff; filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5)); }
     .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron { transform: rotate(180deg); }
-    .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron svg { stroke: var(--neon-cyan); }
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron svg { stroke: #fff; }
     .nav-submenu-wrap.click-toggle.open > .submenu { max-height: 640px; opacity: 1; padding-top: 8px; padding-bottom: 4px; }
 
     .sidebar-footer { padding: 18px 22px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); }
@@ -537,8 +546,8 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" data-access-item="rek_validator" onclick="window.location.href='/Validator.html'">Rek Validator</div>
-            <div class="submenu-item" data-access-item="bank_processor" onclick="window.location.href='/Bank.html'">Bank Processor</div>
+            <div class="submenu-item" data-access-item="rek_validator" onclick="window.location.href='/Validator.html'"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Rek Validator</div>
+            <div class="submenu-item" data-access-item="bank_processor" onclick="window.location.href='/Bank.html'"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Bank Processor</div>
           </div>
         </div>
       </div>
@@ -558,11 +567,11 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" data-access-item="p2m_analyzer" data-action="analyzer">P2M Analyzer</div>
-            <div class="submenu-item" data-access-item="xpay_analyzer" data-action="xpayChecker">XPAY Analyzer</div>
-            <div class="submenu-item" data-access-item="xpay_settlement" data-action="xpayFull">XPAY Settlement</div>
-            <div class="submenu-item" data-access-item="settlement_checker" data-action="xpaySettlementChecker">Settlement Checker</div>
-            <div class="submenu-item" data-access-item="mnpay_analyzer" data-action="comingSoon">MNPAY Analyzer</div>
+            <div class="submenu-item" data-access-item="p2m_analyzer" data-action="analyzer"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>P2M Analyzer</div>
+            <div class="submenu-item" data-access-item="xpay_analyzer" data-action="xpayChecker"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>XPAY Analyzer</div>
+            <div class="submenu-item" data-access-item="xpay_settlement" data-action="xpayFull"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>XPAY Settlement</div>
+            <div class="submenu-item" data-access-item="settlement_checker" data-action="xpaySettlementChecker"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Settlement Checker</div>
+            <div class="submenu-item" data-access-item="mnpay_analyzer" data-action="comingSoon"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>MNPAY Analyzer</div>
           </div>
         </div>
 
@@ -573,9 +582,9 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" data-access-item="syair_database" onclick="window.location.href='/Syair.html'">Syair Database</div>
-            <div class="submenu-item" data-access-item="ai_prediction" onclick="window.location.href='/Prediksi.html'">AI Prediction</div>
-            <div class="submenu-item" data-access-item="gas_slot_engine" data-action="appInfo">Gas Slot Engine</div>
+            <div class="submenu-item" data-access-item="syair_database" onclick="window.location.href='/Syair.html'"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Syair Database</div>
+            <div class="submenu-item" data-access-item="ai_prediction" onclick="window.location.href='/Prediksi.html'"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>AI Prediction</div>
+            <div class="submenu-item" data-access-item="gas_slot_engine" data-action="appInfo"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="12" x2="16" y2="8"/></svg>Gas Slot Engine</div>
           </div>
         </div>
 
@@ -586,9 +595,9 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" data-access-item="my_event" onclick="switchToMyEvent()">My Event</div>
-            <div class="submenu-item" data-access-item="history_event" data-action="comingSoon">History Event</div>
-            <div class="submenu-item" data-access-item="pg_report" onclick="switchToPgReport()">PG Report</div>
+            <div class="submenu-item" data-access-item="my_event" onclick="switchToMyEvent()"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>My Event</div>
+            <div class="submenu-item" data-access-item="history_event" data-action="comingSoon"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>History Event</div>
+            <div class="submenu-item" data-access-item="pg_report" onclick="switchToPgReport()"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>PG Report</div>
           </div>
         </div>
 
@@ -599,26 +608,26 @@
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="submenu">
-            <div class="submenu-item" data-access-item="prediksi_all_pasaran" onclick="switchToLivechatEssentials('Prediksi All Pasaran')">Prediksi All Pasaran</div>
+            <div class="submenu-item" data-access-item="prediksi_all_pasaran" onclick="switchToLivechatEssentials('Prediksi All Pasaran')"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>Prediksi All Pasaran</div>
             <!-- v2.6.0/v2.7.0 — sub-menu beranak: toggle dropdown; default TERBUKA agar Pk langsung terlihat (tidak bolong) -->
             <div class="nav-nest has-kids open" data-access-item="jadwal_all_pasaran">
               <div class="submenu-item nav-nest-head" onclick="switchToLivechatEssentials('Jadwal All Pasaran')">
-                <span class="nav-nest-label">Jadwal All Pasaran</span>
+                <svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="nav-nest-label">Jadwal All Pasaran</span>
                 <button type="button" class="nest-toggle" aria-expanded="true" aria-label="Buka/tutup sub-menu di dalam Jadwal All Pasaran" title="Buka/tutup sub-menu di dalamnya"><span class="nest-chev" aria-hidden="true"></span></button>
               </div>
               <div class="nav-nest-body">
-                <div class="submenu-item submenu-subitem" data-access-item="pk_jadwal_pasaran" onclick="switchToLivechatEssentials('Pk Jadwal Pasaran')">↳ Pk Jadwal Pasaran</div>
+                <div class="submenu-item submenu-subitem" data-access-item="pk_jadwal_pasaran" onclick="switchToLivechatEssentials('Pk Jadwal Pasaran')"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 15 15 20 20 15"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>Pk Jadwal Pasaran</div>
               </div>
             </div>
-            <div class="submenu-item" data-access-item="link_alternatif" onclick="switchToLivechatEssentials('Link Alternatif')">Link Alternatif</div>
-            <div class="submenu-item" data-access-item="perhitungan_parlay" onclick="switchToLivechatEssentials('Perhitungan Parlay')">Perhitungan Parlay</div>
+            <div class="submenu-item" data-access-item="link_alternatif" onclick="switchToLivechatEssentials('Link Alternatif')"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Link Alternatif</div>
+            <div class="submenu-item" data-access-item="perhitungan_parlay" onclick="switchToLivechatEssentials('Perhitungan Parlay')"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Perhitungan Parlay</div>
             <div class="nav-nest has-kids open" data-access-item="hadiah_togel">
               <div class="submenu-item nav-nest-head" onclick="switchToLivechatEssentials('Hadiah Togel')">
-                <span class="nav-nest-label">Hadiah Togel</span>
+                <svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg><span class="nav-nest-label">Hadiah Togel</span>
                 <button type="button" class="nest-toggle" aria-expanded="true" aria-label="Buka/tutup sub-menu di dalam Hadiah Togel" title="Buka/tutup sub-menu di dalamnya"><span class="nest-chev" aria-hidden="true"></span></button>
               </div>
               <div class="nav-nest-body">
-                <div class="submenu-item submenu-subitem" data-access-item="pk_perhitungan" onclick="switchToLivechatEssentials('Pk Perhitungan')">↳ Pk Perhitungan</div>
+                <div class="submenu-item submenu-subitem" data-access-item="pk_perhitungan" onclick="switchToLivechatEssentials('Pk Perhitungan')"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 15 15 20 20 15"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>Pk Perhitungan</div>
               </div>
             </div>
           </div>
