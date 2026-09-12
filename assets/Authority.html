@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/authority-pro.css?v=2.3.1">
+  <link rel="stylesheet" href="/css/authority-pro.css?v=2.4.0">
 </head>
 <body>
 
@@ -394,7 +394,7 @@
   <div class="auth-modal-overlay" id="editModal">
     <div class="auth-modal auth-modal-wide">
       <div class="auth-modal-head">
-        <div class="auth-modal-title"><i class="fas fa-key"></i> Edit Access Control</div>
+        <div class="auth-modal-title"><i class="fas fa-key"></i> Edit Access Control <span class="auth-ui-ver" id="uiVer">UI v…</span></div>
         <button class="auth-modal-close" data-action="closeEdit" aria-label="Close">&times;</button>
       </div>
       <div class="auth-modal-body">
@@ -430,6 +430,7 @@
         </div>
 
         <!-- Access matrix (dibangun oleh JS mengikuti struktur menu Dashboard) -->
+        <div class="auth-backend-warn" id="backendWarn" style="display:none"></div>
         <div class="auth-form-group" style="margin-bottom:0;">
           <div class="auth-perm-head">
             <label class="auth-form-label" style="margin:0;">Akses Modul &mdash; mengikuti struktur menu Dashboard</label>
@@ -476,6 +477,6 @@
   <div class="auth-toast" id="toastEl"></div>
 
   <!-- ============ EXTERNAL SCRIPT ============ -->
-  <script src="/js/authority-pro.js?v=2.3.1"></script>
+  <script src="/js/authority-pro.js?v=2.4.0"></script>
 </body>
 </html>
