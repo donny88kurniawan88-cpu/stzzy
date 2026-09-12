@@ -1843,6 +1843,14 @@ body::before {
   animation: permTickPop 0.3s var(--pro-ease-smooth) forwards;
 }
 
+/* v2.4.0 — saat INDETERMINATE (parsial): tampilkan dash saja,
+   sembunyikan centang agar tidak dobel */
+.auth-perm-master input:indeterminate + .perm-box::before,
+.auth-perm-item input:indeterminate + .perm-box::before {
+  opacity: 0;
+  animation: none;
+}
+
 @keyframes permBoxPop {
   0%   { transform: scale(1); }
   45%  { transform: scale(1.18); }
@@ -1882,6 +1890,59 @@ body::before {
 @keyframes permDashIn {
   from { opacity: 0; transform: scaleX(0.2); }
   to   { opacity: 1; transform: scaleX(1); }
+}
+
+/* ============================================================
+   v2.4.0 — Banner peringatan backend lama + badge versi UI
+   ============================================================ */
+.auth-backend-warn {
+  display: none;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.14), rgba(239, 68, 68, 0.07));
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  font-size: 12.5px;
+  line-height: 1.55;
+  animation: permDashIn 0.25s ease-out;
+}
+
+.auth-backend-warn i {
+  font-size: 16px;
+  color: #f87171;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.auth-backend-warn b { color: #fecaca; }
+
+.auth-backend-warn code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 5px;
+  padding: 1px 6px;
+  color: #fca5a5;
+}
+
+.auth-ui-ver {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 20px;
+  padding: 3px 10px;
+  margin-left: 10px;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 /* Ikon grup berwarna */
