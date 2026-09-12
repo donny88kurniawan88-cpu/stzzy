@@ -71,8 +71,10 @@
 
     .nav-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; margin: 5px 0; border-radius: var(--radius-md); font-size: 15px; font-weight: 500; cursor: pointer; user-select: none; position: relative; animation: slideInRight 0.3s ease backwards; color: #cbd5e1; background: rgba(20, 20, 30, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .nav-item svg { width: 20px; height: 20px; stroke-width: 1.5; flex-shrink: 0; transition: all 0.18s ease; }
-    .nav-item:hover { background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15)); color: #ffffff; transform: translateY(-2px); border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25), inset 0 0 10px rgba(59, 130, 246, 0.1); }
-    .nav-item:hover svg { transform: scale(1.1); stroke: var(--neon-cyan); filter: drop-shadow(0 0 5px var(--neon-cyan)); }
+    /* v2.7.0 — efek HOVER pada seluruh list menu DIHAPUS (permintaan user,
+       sesuai referensi): baris menu tampil FLAT dan TIDAK berubah saat
+       dilewati mouse. Perubahan warna hanya terjadi pada state AKTIF
+       (item yang sedang dipilih) dan state TERBUKA (grup sub-menu). */
     .nav-item.active { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1); border-color: rgba(59, 130, 246, 0.8); }
     .nav-item.active svg { stroke: #fff; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
 
@@ -82,30 +84,31 @@
     .nav-submenu-wrap > .nav-trigger .label { flex: 1; }
     .nav-submenu-wrap > .nav-trigger .chevron { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
     .nav-submenu-wrap > .nav-trigger .chevron svg { width: 15px; height: 15px; stroke: var(--text-tertiary); transition: stroke 0.18s ease; }
-    .nav-submenu-wrap:hover > .nav-trigger { background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.15)); color: #fff; transform: translateY(-2px); border-color: rgba(139, 92, 246, 0.6); box-shadow: 0 4px 15px rgba(139, 92, 246, 0.25), inset 0 0 10px rgba(139, 92, 246, 0.1); }
-    .nav-submenu-wrap:hover > .nav-trigger .menu-icon { transform: scale(1.1); stroke: var(--neon-purple); filter: drop-shadow(0 0 5px var(--neon-purple)); }
-    .nav-submenu-wrap:hover > .nav-trigger .chevron { transform: rotate(180deg); }
-    .nav-submenu-wrap:hover > .nav-trigger .chevron svg { stroke: #fff; }
+    /* v2.7.0 — pemicu sub-menu tidak lagi bereaksi pada hover, dan sub-menu
+       TIDAK lagi terbuka oleh hover (dulu: :hover > .submenu). Sekarang grup
+       hanya terbuka lewat KLIK (click-toggle) — konsisten di desktop & mobile. */
     .nav-submenu-wrap > .submenu { overflow: hidden; max-height: 0; opacity: 0; padding-left: 14px; transition: max-height 0.35s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.25s ease, padding 0.3s ease; }
-    .nav-submenu-wrap:hover > .submenu { max-height: 400px; opacity: 1; padding-top: 8px; padding-bottom: 4px; }
 
     .submenu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin: 4px 0; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; cursor: pointer; user-select: none; white-space: nowrap; pointer-events: auto; color: #94a3b8; background: rgba(15, 15, 22, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    .submenu-item:hover { background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(20, 20, 30, 0.8)); color: var(--neon-cyan); transform: translateY(-2px); border-color: rgba(0, 240, 255, 0.4); box-shadow: 0 4px 10px rgba(0, 240, 255, 0.1); }
     .submenu-item::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; transition: all 0.15s ease; }
-    .submenu-item:hover::before { background: var(--neon-cyan); transform: scale(1.6); box-shadow: 0 0 8px var(--neon-cyan); }
+    /* v2.7.0 — item sub-menu AKTIF (yang sedang dipilih) = satu-satunya
+       baris berwarna (gradient biru), persis kartu "Bank WD" pada referensi. */
+    .submenu-item.active { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; border-color: rgba(59, 130, 246, 0.8); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.45), inset 0 0 15px rgba(255, 255, 255, 0.1); }
+    .submenu-item.active::before { background: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.8); }
     /* v2.5.0 — sub-menu bertingkat (Pk *) tampil menjorok */
     .submenu-item.submenu-subitem { padding-left: 32px; font-size: 13px; }
     .submenu-item.submenu-subitem::before { width: 4px; height: 4px; background: rgba(0, 240, 255, 0.5); }
 
     /* ====================================================================
-       v2.6.0 — TOGGLE DROPDOWN utk sub-menu yang memiliki sub-menu di
-       dalamnya (mis. Jadwal All Pasaran > Pk Jadwal Pasaran).
+       v2.6.0 / v2.7.0 — TOGGLE DROPDOWN utk sub-menu yang memiliki
+       sub-menu di dalamnya (mis. Jadwal All Pasaran > Pk Jadwal Pasaran).
        - Baris induk mendapat tombol toggle (chevron digambar murni CSS,
          TIDAK bergantung font/CDN apa pun) -> perbedaan dgn baris biasa
          langsung terlihat.
-       - Klik toggle  : buka/tutup dropdown sub-menu di dalamnya.
-       - Toggle aktif : efek HOVER pada baris menu induk BERHENTI (warna
-         baris terkunci, tidak ada lift/glow saat mouse lewat).
+       - Klik toggle : buka/tutup dropdown sub-menu di dalamnya.
+       - v2.7.0      : nest default TERBUKA (item Pk langsung terlihat —
+         sidebar tidak pernah tampak "bolong"), dan karena SELURUH hover
+         pada list menu dihapus, baris mana pun tidak berubah oleh mouse.
        ==================================================================== */
     .nav-nest { margin: 4px 0; }
     .nav-nest > .nav-nest-head { margin: 0; }
@@ -128,37 +131,28 @@
       transform: rotate(45deg) translate(-1px, -1px); /* menghadap bawah */
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease;
     }
-    .nest-toggle:hover { border-color: rgba(0, 240, 255, 0.5); background: rgba(0, 240, 255, 0.08); }
-    .nest-toggle:hover .nest-chev { border-color: var(--neon-cyan); }
-    .nest-toggle:active { transform: scale(0.88); }
+    .nest-toggle:active { transform: scale(0.88); } /* umpan balik tekan (klik), bukan hover */
     .nav-nest.open > .nav-nest-head .nest-toggle { border-color: rgba(0, 240, 255, 0.45); background: rgba(0, 240, 255, 0.10); }
     .nav-nest.open > .nav-nest-head .nest-chev { transform: rotate(225deg) translate(-1px, -1px); border-color: var(--neon-cyan); }
     .nav-nest-body { overflow: hidden; max-height: 0; opacity: 0; padding-left: 18px; margin-left: 14px; border-left: 2px solid rgba(0, 240, 255, 0.18); transition: max-height 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.22s ease; }
     .nav-nest.open > .nav-nest-body { max-height: 140px; opacity: 1; }
-    /* TOGGLE AKTIF (open) -> HOVER PADA BARIS MENU INDUK DIHENTIKAN:
-       rule di bawah lebih spesifik daripada .submenu-item:hover sehingga
-       mouse yang lewat TIDAK mengubah tampilan baris lagi (warna terkunci). */
-    .nav-nest.open > .nav-nest-head,
-    .nav-nest.open > .nav-nest-head:hover { background: rgba(0, 240, 255, 0.05); color: #cbd5e1; transform: none; border-color: rgba(0, 240, 255, 0.28); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); }
-    .nav-nest.open > .nav-nest-head:hover::before { background: rgba(0, 240, 255, 0.9); transform: none; box-shadow: none; }
+    /* Baris induk dgn nest TERBUKA: tampilan terkunci flat + titik cyan
+       sebagai penanda grup sedang terbuka — tidak dipengaruhi mouse. */
+    .nav-nest.open > .nav-nest-head { background: rgba(0, 240, 255, 0.05); color: #cbd5e1; transform: none; border-color: rgba(0, 240, 255, 0.28); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); }
+    .nav-nest.open > .nav-nest-head::before { background: rgba(0, 240, 255, 0.9); box-shadow: 0 0 6px rgba(0, 240, 255, 0.5); }
     /* Nest tanpa sub-menu yang berhak (toggle disembunyikan) = baris biasa */
     .nav-nest:not(.has-kids) > .nav-nest-head { cursor: pointer; }
 
-    .nav-submenu-wrap.click-toggle:hover > .nav-trigger { background: rgba(20, 20, 30, 0.5); color: #cbd5e1; transform: none; border-color: rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .menu-icon { transform: none; stroke: currentColor; filter: none; }
-    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .chevron { transform: none; }
-    .nav-submenu-wrap.click-toggle:hover > .nav-trigger .chevron svg { stroke: var(--text-tertiary); }
-    .nav-submenu-wrap.click-toggle:hover > .submenu { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
-    .nav-submenu-wrap.click-toggle.open > .nav-trigger { background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15)); color: #fff; transform: translateY(-2px); border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25), inset 0 0 10px rgba(59, 130, 246, 0.1); }
-    .nav-submenu-wrap.click-toggle.open > .nav-trigger .menu-icon { transform: scale(1.1); stroke: var(--neon-cyan); filter: drop-shadow(0 0 5px var(--neon-cyan)); }
+    /* v2.7.0 — SEMUA grup sub-menu kini click-toggle (hover-open dihapus).
+       Grup TERBUKA: baris pemicu tetap FLAT seperti referensi ("Rekening
+       Situs") — hanya chevron berputar & berwarna cyan, TANPA gradient/
+       lift/glow pada barisnya. max-height 640px diseragamkan utk semua
+       grup agar grup terpanjang (Livechat Essentials, 7 baris) tidak
+       terpotong saat terbuka. */
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger { border-color: rgba(0, 240, 255, 0.28); }
     .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron { transform: rotate(180deg); }
-    .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron svg { stroke: #fff; }
-    .nav-submenu-wrap.click-toggle.open > .submenu { max-height: 400px; opacity: 1; padding-top: 8px; padding-bottom: 4px; }
-    /* v2.6.0 — Livechat Essentials punya nest dropdown: ruang vertikal lebih besar agar tidak terpotong.
-       WAJIB hanya saat TERBUKA (hover / click-toggle open) — kalau tanpa syarat,
-       submenu tertutup tetap memakan tinggi content-nya (opacity 0) -> sidebar "bolong". */
-    .nav-submenu-wrap.submenu-xl:hover > .submenu { max-height: 640px; }
-    .nav-submenu-wrap.submenu-xl.click-toggle.open > .submenu { max-height: 640px; }
+    .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron svg { stroke: var(--neon-cyan); }
+    .nav-submenu-wrap.click-toggle.open > .submenu { max-height: 640px; opacity: 1; padding-top: 8px; padding-bottom: 4px; }
 
     .sidebar-footer { padding: 18px 22px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); }
 
@@ -536,7 +530,7 @@
 
       <div class="nav-group" data-access="workspace">
         <div class="nav-group-title">Workspace</div>
-        <div class="nav-submenu-wrap" data-access-item="banking_tools">
+        <div class="nav-submenu-wrap click-toggle" data-access-item="banking_tools">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
             <span class="label">Banking Tools</span>
@@ -557,7 +551,7 @@
           Saldo Pencairan
         </div>
 
-        <div class="nav-submenu-wrap" data-access-item="qris_tools">
+        <div class="nav-submenu-wrap click-toggle" data-access-item="qris_tools">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="14.01"/><line x1="21" y1="21" x2="21" y2="21.01"/></svg>
             <span class="label">QRIS Tools</span>
@@ -572,7 +566,7 @@
           </div>
         </div>
 
-        <div class="nav-submenu-wrap" data-access-item="prediction_tools">
+        <div class="nav-submenu-wrap click-toggle" data-access-item="prediction_tools">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
             <span class="label">Prediction Tools</span>
@@ -598,7 +592,7 @@
           </div>
         </div>
 
-        <div class="nav-submenu-wrap submenu-xl" data-access-item="livechat_essentials">
+        <div class="nav-submenu-wrap submenu-xl click-toggle" data-access-item="livechat_essentials">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
             <span class="label">Livechat Essentials</span>
@@ -606,11 +600,11 @@
           </div>
           <div class="submenu">
             <div class="submenu-item" data-access-item="prediksi_all_pasaran" onclick="switchToLivechatEssentials('Prediksi All Pasaran')">Prediksi All Pasaran</div>
-            <!-- v2.6.0 — sub-menu beranak: toggle dropdown buka/tutup sub-menu di dalamnya -->
-            <div class="nav-nest has-kids" data-access-item="jadwal_all_pasaran">
+            <!-- v2.6.0/v2.7.0 — sub-menu beranak: toggle dropdown; default TERBUKA agar Pk langsung terlihat (tidak bolong) -->
+            <div class="nav-nest has-kids open" data-access-item="jadwal_all_pasaran">
               <div class="submenu-item nav-nest-head" onclick="switchToLivechatEssentials('Jadwal All Pasaran')">
                 <span class="nav-nest-label">Jadwal All Pasaran</span>
-                <button type="button" class="nest-toggle" aria-expanded="false" aria-label="Buka/tutup sub-menu di dalam Jadwal All Pasaran" title="Buka/tutup sub-menu di dalamnya"><span class="nest-chev" aria-hidden="true"></span></button>
+                <button type="button" class="nest-toggle" aria-expanded="true" aria-label="Buka/tutup sub-menu di dalam Jadwal All Pasaran" title="Buka/tutup sub-menu di dalamnya"><span class="nest-chev" aria-hidden="true"></span></button>
               </div>
               <div class="nav-nest-body">
                 <div class="submenu-item submenu-subitem" data-access-item="pk_jadwal_pasaran" onclick="switchToLivechatEssentials('Pk Jadwal Pasaran')">↳ Pk Jadwal Pasaran</div>
@@ -618,10 +612,10 @@
             </div>
             <div class="submenu-item" data-access-item="link_alternatif" onclick="switchToLivechatEssentials('Link Alternatif')">Link Alternatif</div>
             <div class="submenu-item" data-access-item="perhitungan_parlay" onclick="switchToLivechatEssentials('Perhitungan Parlay')">Perhitungan Parlay</div>
-            <div class="nav-nest has-kids" data-access-item="hadiah_togel">
+            <div class="nav-nest has-kids open" data-access-item="hadiah_togel">
               <div class="submenu-item nav-nest-head" onclick="switchToLivechatEssentials('Hadiah Togel')">
                 <span class="nav-nest-label">Hadiah Togel</span>
-                <button type="button" class="nest-toggle" aria-expanded="false" aria-label="Buka/tutup sub-menu di dalam Hadiah Togel" title="Buka/tutup sub-menu di dalamnya"><span class="nest-chev" aria-hidden="true"></span></button>
+                <button type="button" class="nest-toggle" aria-expanded="true" aria-label="Buka/tutup sub-menu di dalam Hadiah Togel" title="Buka/tutup sub-menu di dalamnya"><span class="nest-chev" aria-hidden="true"></span></button>
               </div>
               <div class="nav-nest-body">
                 <div class="submenu-item submenu-subitem" data-access-item="pk_perhitungan" onclick="switchToLivechatEssentials('Pk Perhitungan')">↳ Pk Perhitungan</div>
@@ -1431,12 +1425,29 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
        =================================================================== */
     var currentView = 'dashboard';
 
-    /* Click-toggle submenus */
+    /* Click-toggle submenus (v2.7.0 — SEMUA grup: hover-open sudah dihapus) */
     document.querySelectorAll('.nav-submenu-wrap.click-toggle > .nav-trigger').forEach(function(trigger) {
       trigger.addEventListener('click', function(e) {
         e.stopPropagation();
         this.parentElement.classList.toggle('open');
       });
+    });
+
+    /* v2.7.0 — item sub-menu yang diklik menjadi AKTIF (satu-satunya baris
+       berwarna, seperti kartu "Bank WD" pada referensi); memilih menu level
+       atas membersihkan penanda aktif sub-menu. Klik tombol toggle nest
+       tidak mengubah penanda ini (event-nya di-stopPropagation). */
+    document.addEventListener('click', function(e) {
+      if (!e.target || !e.target.closest) return;
+      var sm = e.target.closest('.submenu-item');
+      if (sm) {
+        document.querySelectorAll('.submenu-item.active').forEach(function(x) { x.classList.remove('active'); });
+        sm.classList.add('active');
+        return;
+      }
+      if (e.target.closest('.nav-item')) {
+        document.querySelectorAll('.submenu-item.active').forEach(function(x) { x.classList.remove('active'); });
+      }
     });
 
     /* ===================================================================
