@@ -97,6 +97,53 @@
     .submenu-item.submenu-subitem { padding-left: 32px; font-size: 13px; }
     .submenu-item.submenu-subitem::before { width: 4px; height: 4px; background: rgba(0, 240, 255, 0.5); }
 
+    /* ====================================================================
+       v2.6.0 — TOGGLE DROPDOWN utk sub-menu yang memiliki sub-menu di
+       dalamnya (mis. Jadwal All Pasaran > Pk Jadwal Pasaran).
+       - Baris induk mendapat tombol toggle (chevron digambar murni CSS,
+         TIDAK bergantung font/CDN apa pun) -> perbedaan dgn baris biasa
+         langsung terlihat.
+       - Klik toggle  : buka/tutup dropdown sub-menu di dalamnya.
+       - Toggle aktif : efek HOVER pada baris menu induk BERHENTI (warna
+         baris terkunci, tidak ada lift/glow saat mouse lewat).
+       ==================================================================== */
+    .nav-nest { margin: 4px 0; }
+    .nav-nest > .nav-nest-head { margin: 0; }
+    .nav-nest-head .nav-nest-label { flex: 1; min-width: 0; }
+    .nest-toggle {
+      -webkit-appearance: none; appearance: none;
+      width: 24px; height: 24px; flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0; margin-left: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer; outline: none;
+      transition: all 0.2s ease;
+    }
+    .nest-chev {
+      width: 6px; height: 6px; flex-shrink: 0;
+      border-right: 2px solid rgba(148, 163, 184, 0.9);
+      border-bottom: 2px solid rgba(148, 163, 184, 0.9);
+      transform: rotate(45deg) translate(-1px, -1px); /* menghadap bawah */
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease;
+    }
+    .nest-toggle:hover { border-color: rgba(0, 240, 255, 0.5); background: rgba(0, 240, 255, 0.08); }
+    .nest-toggle:hover .nest-chev { border-color: var(--neon-cyan); }
+    .nest-toggle:active { transform: scale(0.88); }
+    .nav-nest.open > .nav-nest-head .nest-toggle { border-color: rgba(0, 240, 255, 0.45); background: rgba(0, 240, 255, 0.10); }
+    .nav-nest.open > .nav-nest-head .nest-chev { transform: rotate(225deg) translate(-1px, -1px); border-color: var(--neon-cyan); }
+    .nav-nest-body { overflow: hidden; max-height: 0; opacity: 0; padding-left: 18px; margin-left: 14px; border-left: 2px solid rgba(0, 240, 255, 0.18); transition: max-height 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.22s ease; }
+    .nav-nest.open > .nav-nest-body { max-height: 140px; opacity: 1; }
+    /* TOGGLE AKTIF (open) -> HOVER PADA BARIS MENU INDUK DIHENTIKAN:
+       rule di bawah lebih spesifik daripada .submenu-item:hover sehingga
+       mouse yang lewat TIDAK mengubah tampilan baris lagi (warna terkunci). */
+    .nav-nest.open > .nav-nest-head,
+    .nav-nest.open > .nav-nest-head:hover { background: rgba(0, 240, 255, 0.05); color: #cbd5e1; transform: none; border-color: rgba(0, 240, 255, 0.28); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); }
+    .nav-nest.open > .nav-nest-head:hover::before { background: rgba(0, 240, 255, 0.9); transform: none; box-shadow: none; }
+    /* Nest tanpa sub-menu yang berhak (toggle disembunyikan) = baris biasa */
+    .nav-nest:not(.has-kids) > .nav-nest-head { cursor: pointer; }
+
     .nav-submenu-wrap.click-toggle:hover > .nav-trigger { background: rgba(20, 20, 30, 0.5); color: #cbd5e1; transform: none; border-color: rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
     .nav-submenu-wrap.click-toggle:hover > .nav-trigger .menu-icon { transform: none; stroke: currentColor; filter: none; }
     .nav-submenu-wrap.click-toggle:hover > .nav-trigger .chevron { transform: none; }
@@ -107,6 +154,8 @@
     .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron { transform: rotate(180deg); }
     .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron svg { stroke: #fff; }
     .nav-submenu-wrap.click-toggle.open > .submenu { max-height: 400px; opacity: 1; padding-top: 8px; padding-bottom: 4px; }
+    /* v2.6.0 — Livechat Essentials punya nest dropdown: ruang vertikal lebih besar agar tidak terpotong */
+    .nav-submenu-wrap.submenu-xl > .submenu { max-height: 640px; }
 
     .sidebar-footer { padding: 18px 22px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); }
 
@@ -546,7 +595,7 @@
           </div>
         </div>
 
-        <div class="nav-submenu-wrap" data-access-item="livechat_essentials">
+        <div class="nav-submenu-wrap submenu-xl" data-access-item="livechat_essentials">
           <div class="nav-trigger">
             <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
             <span class="label">Livechat Essentials</span>
@@ -554,12 +603,27 @@
           </div>
           <div class="submenu">
             <div class="submenu-item" data-access-item="prediksi_all_pasaran" onclick="switchToLivechatEssentials('Prediksi All Pasaran')">Prediksi All Pasaran</div>
-            <div class="submenu-item" data-access-item="jadwal_all_pasaran" onclick="switchToLivechatEssentials('Jadwal All Pasaran')">Jadwal All Pasaran</div>
-            <div class="submenu-item submenu-subitem" data-access-item="pk_jadwal_pasaran" onclick="switchToLivechatEssentials('Pk Jadwal Pasaran')">↳ Pk Jadwal Pasaran</div>
+            <!-- v2.6.0 — sub-menu beranak: toggle dropdown buka/tutup sub-menu di dalamnya -->
+            <div class="nav-nest has-kids" data-access-item="jadwal_all_pasaran">
+              <div class="submenu-item nav-nest-head" onclick="switchToLivechatEssentials('Jadwal All Pasaran')">
+                <span class="nav-nest-label">Jadwal All Pasaran</span>
+                <button type="button" class="nest-toggle" aria-expanded="false" aria-label="Buka/tutup sub-menu di dalam Jadwal All Pasaran" title="Buka/tutup sub-menu di dalamnya"><span class="nest-chev" aria-hidden="true"></span></button>
+              </div>
+              <div class="nav-nest-body">
+                <div class="submenu-item submenu-subitem" data-access-item="pk_jadwal_pasaran" onclick="switchToLivechatEssentials('Pk Jadwal Pasaran')">↳ Pk Jadwal Pasaran</div>
+              </div>
+            </div>
             <div class="submenu-item" data-access-item="link_alternatif" onclick="switchToLivechatEssentials('Link Alternatif')">Link Alternatif</div>
             <div class="submenu-item" data-access-item="perhitungan_parlay" onclick="switchToLivechatEssentials('Perhitungan Parlay')">Perhitungan Parlay</div>
-            <div class="submenu-item" data-access-item="hadiah_togel" onclick="switchToLivechatEssentials('Hadiah Togel')">Hadiah Togel</div>
-            <div class="submenu-item submenu-subitem" data-access-item="pk_perhitungan" onclick="switchToLivechatEssentials('Pk Perhitungan')">↳ Pk Perhitungan</div>
+            <div class="nav-nest has-kids" data-access-item="hadiah_togel">
+              <div class="submenu-item nav-nest-head" onclick="switchToLivechatEssentials('Hadiah Togel')">
+                <span class="nav-nest-label">Hadiah Togel</span>
+                <button type="button" class="nest-toggle" aria-expanded="false" aria-label="Buka/tutup sub-menu di dalam Hadiah Togel" title="Buka/tutup sub-menu di dalamnya"><span class="nest-chev" aria-hidden="true"></span></button>
+              </div>
+              <div class="nav-nest-body">
+                <div class="submenu-item submenu-subitem" data-access-item="pk_perhitungan" onclick="switchToLivechatEssentials('Pk Perhitungan')">↳ Pk Perhitungan</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1371,6 +1435,46 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
         this.parentElement.classList.toggle('open');
       });
     });
+
+    /* ===================================================================
+       v2.6.0 — TOGGLE DROPDOWN sub-menu beranak (Livechat Essentials:
+       Jadwal All Pasaran > Pk Jadwal Pasaran, Hadiah Togel > Pk Perhitungan)
+       Klik toggle = buka/tutup sub-menu di dalamnya (BUKAN pindah view).
+       Saat toggle aktif (open), efek hover pada baris menu induk BERHENTI
+       — ditangani CSS (.nav-nest.open > .nav-nest-head ...). */
+    document.querySelectorAll('.nest-toggle').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation(); /* jangan memicu onclick pindah view pada baris induk */
+        var nest = btn.closest('.nav-nest');
+        if (!nest) return;
+        var open = !nest.classList.contains('open');
+        nest.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.blur(); /* fokus/hover tidak "nyangkut" setelah klik */
+      });
+    });
+
+    /* Normalisasi nest setelah gating akses: bila SELURUH sub-menu di
+       dalamnya tidak berhak (tersembunyi), toggle dihilangkan & nest
+       diperlakukan sebagai baris biasa — perbedaan "punya sub-menu" vs
+       "baris biasa" selalu akurat mengikuti akses user. */
+    function normalizeNavNests() {
+      document.querySelectorAll('.nav-nest').forEach(function(nest) {
+        var kids = nest.querySelectorAll('.nav-nest-body .submenu-item[data-access-item]');
+        var anyVisible = Array.prototype.some.call(kids, function(k) { return k.style.display !== 'none'; });
+        var btn = nest.querySelector('.nest-toggle');
+        if (anyVisible) {
+          nest.classList.add('has-kids');
+          if (btn) btn.style.display = '';
+        } else {
+          nest.classList.remove('has-kids');
+          nest.classList.remove('open');
+          if (btn) { btn.style.display = 'none'; btn.setAttribute('aria-expanded', 'false'); }
+        }
+      });
+    }
+    normalizeNavNests();
 
     /* Nav items with data-action */
     document.querySelectorAll('[data-action]').forEach(function(el) {
@@ -2284,6 +2388,9 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
           group.style.display = '';
         }
       });
+
+      /* v2.6.0 — toggle nest disesuaikan dengan hasil gating terbaru */
+      normalizeNavNests();
 
       /* SYNC MODULE CARD DASHBOARD: render kartu modul mengikuti akses
          terbaru (bug fix: kartu Setting & modul lain tidak hilang padahal
