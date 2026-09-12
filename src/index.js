@@ -624,6 +624,109 @@ async function buildValidatorDatabaseFromSheets() {
 // ============================================================
 // MAIN WORKER
 // ============================================================
+// ============================================================
+// HASIL RESMI PASARAN — cache isolate + fetch helper (v3.1.0)
+// ============================================================
+const PS_RES_CACHE = Object.create(null);
+const PS_RES_TTL_MS = 5 * 60 * 1000;
+
+function psCacheGet(k) {
+  const c = PS_RES_CACHE[k];
+  if (c && (Date.now() - c.t) < PS_RES_TTL_MS) return c.v;
+  return null;
+}
+function psCacheSet(k, v) { PS_RES_CACHE[k] = { t: Date.now(), v: v }; }
+
+async function psFetch(url) {
+  const ac = new AbortController();
+  const timer = setTimeout(function () { try { ac.abort(); } catch (e) {} }, 12000);
+  try {
+    const r = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9,id;q=0.8'
+      },
+      signal: ac.signal
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.text();
+  } finally { clearTimeout(timer); }
+}
+
+function psAttr(html, cls) {
+  let m = html.match(new RegExp("class=['\"]" + cls + "['\"]>([^<]*)<"));
+  return m ? m[1].trim() : '';
+}
+
+function psParseSG4D(html) {
+  if (!html || html.indexOf('tdFirstPrize') === -1) return null;
+  function prize(cls) {
+    let m = html.match(new RegExp("td" + cls + "Prize['\"]?>(\\d{4})<"));
+    return m ? m[1] : '';
+  }
+  function tbodyNums(cls) {
+    let m = html.match(new RegExp("<tbody class=['\"]" + cls + "['\"]>([\\s\\S]*?)</tbody>"));
+    return m ? (m[1].match(/\b\d{4}\b/g) || []) : [];
+  }
+  const first = prize('First');
+  if (!first) return null;
+  return {
+    site: 'Singapore Pools', url: 'https://www.singaporepools.com.sg/en/product/Pages/4d_results.aspx',
+    drawNo: (html.match(/Draw No\.\s*(\d+)/) || ['', ''])[1],
+    date: psAttr(html, 'drawDate'),
+    first: first, second: prize('Second'), third: prize('Third'),
+    starters: tbodyNums('tbodyStarterPrizes'),
+    consolation: tbodyNums('tbodyConsolationPrizes')
+  };
+}
+
+function psParseSGToto(html) {
+  if (!html || html.indexOf("class='win1'") === -1) return null;
+  const nums = [];
+  for (let i = 1; i <= 6; i++) {
+    const m = html.match(new RegExp("class=['\"]win" + i + "['\"]>(\\d+)<"));
+    nums.push(m ? m[1] : '');
+  }
+  if (!nums[0]) return null;
+  return {
+    site: 'Singapore Pools', url: 'https://www.singaporepools.com.sg/en/product/Pages/toto_results.aspx',
+    drawNo: (html.match(/Draw No\.\s*(\d+)/) || ['', ''])[1],
+    date: psAttr(html, 'drawDate'),
+    numbers: nums,
+    additional: (html.match(/class=['\"]additional['\"]>(\d+)</) || ['', ''])[1],
+    jackpot: (html.match(/class=['\"]jackpotPrize['\"]>([^<]*)</) || ['', ''])[1].trim()
+  };
+}
+
+function psParseMagnum(html) {
+  if (!html || html.length < 500) return null;
+  const head = html.slice(0, 4000);
+  if (/request is blocked|service unavailable|just a moment|access denied|captcha|are you a human/i.test(head)) return null;
+  const txt = html.replace(/<script[\s\S]*?<\/script>/gi, ' ')
+                  .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+                  .replace(/<[^>]*>/g, ' ')
+                  .replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+  function grab4(re) { const m = txt.match(re); return m ? m[1] : ''; }
+  const drawNo = grab4(/Draw\s*(?:No|Number)[.:]?\s*([0-9]{3,6})/i);
+  const first = grab4(/(?:1st|First)\s*Prize[:\s]*([0-9]{4})\b/i);
+  if (!first) return null;
+  const second = grab4(/(?:2nd|Second)\s*Prize[:\s]*([0-9]{4})\b/i);
+  const third = grab4(/(?:3rd|Third)\s*Prize[:\s]*([0-9]{4})\b/i);
+  const sp = txt.match(/Special\s*(?:Prizes?)?[:\s]*((?:\b[0-9]{4}\b[\s,]*){2,})/i);
+  const co = txt.match(/Consolation\s*(?:Prizes?)?[:\s]*((?:\b[0-9]{4}\b[\s,]*){2,})/i);
+  const dm = txt.match(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})\b/);
+  return {
+    site: 'Magnum 4D', url: 'https://www.magnum4d.my',
+    drawNo: drawNo, date: dm ? (dm[1] + '/' + dm[2] + '/' + dm[3]) : '',
+    first: first, second: second, third: third,
+    special: sp ? (sp[1].match(/\b\d{4}\b/g) || []) : [],
+    consolation: co ? (co[1].match(/\b\d{4}\b/g) || []) : []
+  };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -1449,6 +1552,35 @@ export default {
         return Response.json({ success: true, message: 'Pasaran dihapus', removed: del.meta ? del.meta.changes : 1 });
       } catch (err) {
         return Response.json({ error: 'Gagal menghapus pasaran: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ============================================
+    // 13g. API HASIL RESMI PASARAN (v3.1.0 — server-side fetch + parse + cache 5 menit)
+    //      GET /api/pasaran/results/sg4d | sgtoto | magnum
+    // ============================================
+    const psResMatch = path.match(/^\/api\/pasaran\/results\/(sg4d|sgtoto|magnum)$/);
+    if (psResMatch && request.method === 'GET') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      const psKind = psResMatch[1];
+      const psCached = psCacheGet(psKind);
+      if (psCached) return Response.json({ success: true, cached: true, data: psCached });
+      try {
+        let psData = null;
+        if (psKind === 'sg4d') {
+          psData = psParseSG4D(await psFetch('https://www.singaporepools.com.sg/DataFileArchive/Lottery/Output/fourd_result_top_draws_en.html'));
+        } else if (psKind === 'sgtoto') {
+          psData = psParseSGToto(await psFetch('https://www.singaporepools.com.sg/DataFileArchive/Lottery/Output/toto_result_top_draws_en.html'));
+        } else {
+          psData = psParseMagnum(await psFetch('https://www.magnum4d.my/'));
+        }
+        if (!psData) {
+          return Response.json({ success: false, error: 'Gagal membaca hasil dari situs resmi — format berubah atau akses otomatis ditolak. Coba lagi nanti.' }, { status: 502 });
+        }
+        psCacheSet(psKind, psData);
+        return Response.json({ success: true, cached: false, data: psData });
+      } catch (psErr) {
+        return Response.json({ success: false, error: 'Gagal mengambil data: ' + psErr.message }, { status: 502 });
       }
     }
 
