@@ -1,23 +1,22 @@
 /* ============================================================
-   AURA.OS // PKPASARAN-PRO.JS v1.0.0
-   Modul Pk Jadwal Pasaran (Pro) — kontrol & status realtime.
-   Fitur:
-   - Status tiap pasaran berdasar jam WIB saat ini:
-     BUKA (sebelum tutup) / TUTUP (tutup s.d. result) /
-     RESULT (sudah keluar) / LIBUR (hari tutup mingguan).
-   - HOKI DRAW result 24x: otomatis digenerate 24 sesi/hari
-     (tutup HH:00, result HH:10) — copy memakai format:
-       "Pasaran HOKI DRAW\t\nJam Tutup :\t00:00 WIB\n..."
-   - Copy pasaran (per kartu) & Copy All (list terfilter),
-     dipindah dari modul Jadwal Pasaran.
-   - Chip negara asal pasaran.
-   - Control panel: jam WIB live, filter status + search +
-     statistik, refresh.
-   - Panel Hasil Resmi: SGP 4D & Toto + Magnum 4D Classic,
-     diambil server-side dari situs resmi via
-     /api/pasaran/results/{sg4d,sgtoto,magnum}.
+   AURA.OS // PKPASARAN-PRO.JS v2.0.0 — NEWS EDITION
+   Modul Pk Jadwal Pasaran (Pro) — gaya siaran berita.
+   Perubahan v2.0.0 (permintaan user):
+   - TANPA card grid data pasaran.
+   - TANPA search pasaran — diganti TOGGLE DROPDOWN pilih pasaran.
+   - Memilih pasaran -> animasi TABEL berita (hanya pasaran
+     terpilih + informasi negara asalnya), gaya news classy.
+   - Data negara mengikuti acuan tabel user (53 pasaran).
+   - Headline bergaya berita: font serif animasi + ticker.
+   - Singapore 4D & Toto: keterangan NEXT DRAW dari situs resmi
+     (/api/pasaran/results/sg4d|sgtoto -> field nextDraw).
+   Dipertahankan:
+   - Status BUKA/TUTUP/RESULT/LIBUR realtime vs jam WIB.
+   - HOKI DRAW: 24 sesi otomatis per 1 jam (tutup :00 result :10).
+   - Copy pasaran & Copy All (format tab, dipindah dari Jadwal).
+   - Control panel: jam WIB live, filter status, refresh, stat.
    Data sumber: GET /api/pasaran (SQLite D1, fallback lokal).
-   UI dirender penuh ke #pkPasaranView. Exposed: window.PkPasaran.
+   Exposed: window.PkPasaran.
    ============================================================ */
 
 (function () {
@@ -27,12 +26,10 @@
      STATE & KONSTANTA
      ============================================================ */
   var LKEY = 'aura_pasaran_local_v1'; // sama dengan pasaran-pro.js (sumber data sama)
-  var HOKI_RESULT_OFFSET = 10;        // jam result = jam tutup + 10 menit (contoh user: 00:00 -> 00:10)
+  var HOKI_RESULT_OFFSET = 10;        // jam result = jam tutup + 10 menit (00:00 -> 00:10)
 
   var ICON_COPY =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-  var ICON_SEARCH =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
   var ICON_EXT =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>';
   var ICON_REFRESH =
@@ -45,55 +42,73 @@
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
   var ICON_GLOBE =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+  var ICON_CHEV =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+  var ICON_CHECK =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  var ICON_SIGNAL =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 4v16"/></svg>';
 
-  /* Negara asal pasaran — urutan penting (kata kunci spesifik dulu) */
-  var COUNTRIES = [
+  /* ============================================================
+     NEGARA ASAL PASARAN — ACUAN TABEL USER (gambar terlampir).
+     Urutan penting: keyword spesifik dulu, umum kemudian.
+     "KING KONG 4D MALAM" = "-" di acuan (didahulukan sebelum
+     "KING KONG" yang acuannya MACAU). "-" = flag netral globe.
+     ============================================================ */
+  var COUNTRY_REF = [
+    ['KINGKONG4DMALAM', '\u{1F30D}', '-'],                 // acuan: -
+    ['KINGKONG4DSORE', '\u{1F1F2}\u{1F1F4}', 'Macau'],     // acuan: MACAU (kingkong pools sore)
+    ['KINGKONG', '\u{1F1F2}\u{1F1F4}', 'Macau'],
+    ['HOKI', '\u{1F30D}', '-'],                            // acuan: -
     ['TOTOMACAU', '\u{1F1F2}\u{1F1F4}', 'Macau'],
-    ['MAGNUM4D', '\u{1F1F2}\u{1F1FE}', 'Malaysia'],
-    ['TOTOMALI', '\u{1F1F2}\u{1F1FE}', 'Malaysia'],
-    ['SINGAPORE', '\u{1F1F8}\u{1F1EC}', 'Singapura'],
-    ['KING KONG', '\u{1F1ED}\u{1F1F0}', 'Hong Kong'],
-    ['HOKI', '\u{1F1ED}\u{1F1F0}', 'Hong Kong'],
-    ['HONGKONG', '\u{1F1ED}\u{1F1F0}', 'Hong Kong'],
-    ['KENTUCKY', '\u{1F1FA}\u{1F1F8}', 'Amerika'],
-    ['FLORIDA', '\u{1F1FA}\u{1F1F8}', 'Amerika'],
-    ['NEW YORK', '\u{1F1FA}\u{1F1F8}', 'Amerika'],
-    ['NEWYORKEVE', '\u{1F1FA}\u{1F1F8}', 'Amerika'],
-    ['OREGON', '\u{1F1FA}\u{1F1F8}', 'Amerika'],
-    ['CALIFORNIA', '\u{1F1FA}\u{1F1F8}', 'Amerika'],
-    ['CAROLINA', '\u{1F1FA}\u{1F1F8}', 'Amerika'],
-    ['NEVADA', '\u{1F1FA}\u{1F1F8}', 'Amerika'],
+    ['MACAU', '\u{1F1F2}\u{1F1F4}', 'Macau'],
+    ['MAGNUM', '\u{1F1F2}\u{1F1FE}', 'Malaysia'],
+    ['TOTOMALI', '\u{1F1F2}\u{1F1F1}', 'Mali of Africa'],
+    ['SINGAPORE', '\u{1F1F8}\u{1F1EC}', 'Singapore'],
+    ['HONGKONG', '\u{1F1ED}\u{1F1F0}', 'Hongkong'],
+    ['KENTUCKY', '\u{1F1FA}\u{1F1F8}', 'Amerika Serikat'],
+    ['FLORIDA', '\u{1F1FA}\u{1F1F8}', 'Amerika Serikat'],
+    ['NEWYORK', '\u{1F1FA}\u{1F1F8}', 'Amerika Serikat'],
+    ['OREGON', '\u{1F1FA}\u{1F1F8}', 'Amerika Serikat'],
+    ['CALIFORNIA', '\u{1F1FA}\u{1F1F8}', 'Amerika Serikat'],
+    ['CAROLINA', '\u{1F1FA}\u{1F1F8}', 'Amerika Serikat'],
+    ['NEVADA', '\u{1F1FA}\u{1F1F8}', 'Amerika Serikat'],
     ['HUAHIN', '\u{1F1F9}\u{1F1ED}', 'Thailand'],
     ['BANGKOK', '\u{1F1F9}\u{1F1ED}', 'Thailand'],
-    ['BRUNEI', '\u{1F1E7}\u{1F1F3}', 'Brunei'],
-    ['TOTOCAMBODIA', '\u{1F1F0}\u{1F1ED}', 'Kamboja'],
-    ['POIPET', '\u{1F1F0}\u{1F1ED}', 'Kamboja'],
-    ['CHELSEA', '\u{1F1EC}\u{1F1E7}', 'Inggris'],
-    ['BULLSEYE', '\u{1F1F3}\u{1F1FF}', 'Selandia Baru'],
+    ['BRUNEI', '\u{1F1E7}\u{1F1F3}', 'Brunei Darussalam'],
+    ['TOTOCAMBODIA', '\u{1F1F0}\u{1F1ED}', 'Cambodia'],
+    ['CAMBODIA', '\u{1F1F0}\u{1F1ED}', 'Cambodia'],
+    ['POIPET', '\u{1F1F0}\u{1F1ED}', 'Cambodia'],
+    ['CHELSEA', '\u{1F1EC}\u{1F1E7}', 'London'],
+    ['BULLSEYE', '\u{1F1F3}\u{1F1FF}', 'New Zealand'],
     ['SYDNEY', '\u{1F1E6}\u{1F1FA}', 'Australia'],
     ['JAKARTA', '\u{1F1EE}\u{1F1E9}', 'Indonesia'],
     ['PCSO', '\u{1F1F5}\u{1F1ED}', 'Filipina']
   ];
-  var FLAG_DEFAULT = ['\u{1F30D}', 'Internasional'];
+  var FLAG_DEFAULT = ['\u{1F30D}', '-'];
 
   var DAY_NAMES = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
   var DAY_SHORT = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  var MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
   var ST_META = {
-    buka:   { cls: 'pk-st-buka-b',   label: 'BUKA' },
-    tutup:  { cls: 'pk-st-tutup-b',  label: 'TUTUP' },
-    result: { cls: 'pk-st-result-b', label: 'RESULT' },
-    libur:  { cls: 'pk-st-libur-b',  label: 'LIBUR' },
-    khusus: { cls: 'pk-st-libur-b',  label: 'KHUSUS' }
+    buka:   { label: 'BUKA',   cls: 'pk-st-buka'   },
+    tutup:  { label: 'TUTUP',  cls: 'pk-st-tutup'  },
+    result: { label: 'RESULT', cls: 'pk-st-result' },
+    libur:  { label: 'LIBUR',  cls: 'pk-st-libur'  },
+    khusus: { label: 'KHUSUS', cls: 'pk-st-libur'  }
   };
 
   var state = {
     items: [],
-    filter: 'all',        // all | buka | tutup | result
-    source: null,
+    source: null,          // 'db' | 'local'
     loading: false,
     loaded: false,
-    lastList: [],         // hasil deriveList() terakhir (untuk copy per kartu)
+    sel: '',               // key pasaran terpilih di dropdown
+    selLocked: false,      // true = user sudah memilih manual (jangan auto-ganti)
+    filter: 'all',         // all | buka | tutup | result
+    lastList: [],          // hasil deriveList()
+    animate: true,        // true = tabel animasi masuk (saat ganti pasaran/filter)
     res: {
       sg4d:   { st: 'idle', data: null, err: '' },
       sgtoto: { st: 'idle', data: null, err: '' },
@@ -147,18 +162,22 @@
     return h * 60 + mm;
   }
 
-  /* Nilai jam utk COPY — contoh user: "00:00 WIB" (tanpa detik).
-     Teks non-jam (mis. "Selasa & Jumat TUTUP") dikeluarkan apa adanya. */
+  /* Nilai jam utk COPY — contoh user: "00:00 WIB" (tanpa detik) */
   function copyTime(s) {
     var m = String(s == null ? '' : s).match(/\b(\d{1,2}):(\d{2})(?::\d{2})?\s*WIB\b/i);
     if (!m) return String(s == null ? '' : s).trim() || '-';
     return pad2(parseInt(m[1], 10)) + ':' + m[2] + ' WIB';
   }
 
+  function normKey(s) {
+    return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+
+  /* Negara pasaran — murni dari acuan tabel user */
   function countryOf(nama) {
-    var n = String(nama || '').toUpperCase();
-    for (var i = 0; i < COUNTRIES.length; i++) {
-      if (n.indexOf(COUNTRIES[i][0]) !== -1) return { flag: COUNTRIES[i][1], name: COUNTRIES[i][2] };
+    var n = normKey(nama);
+    for (var i = 0; i < COUNTRY_REF.length; i++) {
+      if (n.indexOf(COUNTRY_REF[i][0]) !== -1) return { flag: COUNTRY_REF[i][1], name: COUNTRY_REF[i][2] };
     }
     return { flag: FLAG_DEFAULT[0], name: FLAG_DEFAULT[1] };
   }
@@ -227,7 +246,7 @@
     return nU.indexOf('HOKI') !== -1 && (tU.indexOf('24X') !== -1 || rU.indexOf('1 JAM') !== -1 || nU.indexOf('HOKI DRAW') !== -1);
   }
 
-  /* Ekspansi list: 1 baris D1 -> kartu-kartu view (HOKI DRAW = 24 sesi) */
+  /* Ekspansi list: 1 baris D1 -> entri view (HOKI DRAW = 24 sesi) */
   function deriveList() {
     var now = wibNow();
     var out = [];
@@ -268,27 +287,85 @@
     return out;
   }
 
-  /* Nama ternormalisasi utk pencarian tanpa spasi:
-     "hokidraw" cocok dgn "HOKI DRAW", "totomacau" dgn "TOTOMACAU SIANG" */
-  function normKey(s) {
-    return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  /* Entri pasaran non-HOKI unik utk dropdown (HOKI = 1 pilihan).
+     Mengikuti filter status chips — sama dengan aturan visibleItems. */
+  function dropOptions() {
+    var now = wibNow();
+    var f = state.filter;
+    var seen = {};
+    var out = [];
+    sorted().forEach(function (it) {
+      var nama = String(it.nama || '').toUpperCase();
+      if (seen[nama]) return;
+      seen[nama] = true;
+      var ctry = countryOf(nama);
+      var hoki = isHokiRow(it);
+      var st = hoki ? hokiSlotStatus(now.h, now) : statusOf(it, now).st;
+      if (f === 'tutup') { if (st !== 'tutup' && st !== 'libur') return; }
+      else if (f !== 'all' && st !== f) return;
+      out.push({ key: String(it.id), no: it.no || 0, nama: nama, jadwal: it.jadwal || '', st: st, hoki: hoki, flag: ctry.flag, country: ctry.name });
+    });
+    return out;
   }
 
+  /* ============================================================
+     FILTER STATUS (chips) — dropdown & copy all mengikuti filter
+     ============================================================ */
   function visibleItems() {
-    var term = normKey(searchTerm());
     var f = state.filter;
     return state.lastList.filter(function (it) {
       if (f === 'tutup') { if (it.st !== 'tutup' && it.st !== 'libur') return false; }
       else if (f !== 'all' && it.st !== f) return false;
-      if (term && normKey(it.nama).indexOf(term) === -1) return false;
       return true;
     });
   }
 
-  function searchTerm() {
-    var v = container();
-    var s = v && q('[data-pk="search"]', v);
-    return s ? s.value.trim() : '';
+  function selectedItems() {
+    /* baris-baris tabel = pasaran terpilih saja
+       (HOKI DRAW = 24 sesi sekaligus; pasaran lain = 1 baris) */
+    if (!state.sel) return [];
+    var pre = state.sel + '-s';
+    var out = [];
+    state.lastList.forEach(function (it) {
+      if (it.hoki ? it.key.indexOf(pre) === 0 : it.key === state.sel) out.push(it);
+    });
+    return out;
+  }
+
+  /* Auto-pilih: pasaran dgn result terdekat berikutnya (bukan libur).
+     Selalu menghitung ulang lastList agar dipanggil kapan pun aman. */
+  function ensureSelection() {
+    state.lastList = deriveList();
+    if (state.selLocked && state.sel) {
+      var still = false;
+      state.lastList.forEach(function (it) { if (it.key === state.sel) still = true; });
+      if (still) return;
+      state.selLocked = false;
+    }
+    if (state.sel) {
+      var pre = state.sel + '-s';
+      var ok = false;
+      state.lastList.forEach(function (it) {
+        if (it.key === state.sel || (it.hoki && it.key.indexOf(pre) === 0)) ok = true;
+      });
+      if (ok) return;
+    }
+    var now = wibNow();
+    var best = null, bestDelta = 1e9;
+    state.lastList.forEach(function (it) {
+      if (it.st === 'libur' || it.st === 'khusus') return;
+      var re = parseHM(it.result);
+      if (re == null) return;
+      var d = re - now.m;
+      if (d <= 0) d += 24 * 60;
+      if (d < bestDelta) { bestDelta = d; best = it; }
+    });
+    /* kunci dropdown = id dasar pasaran (sesi HOKI: buang akhiran -sXX) */
+    if (best) {
+      state.sel = best.hoki ? String(best.key).split('-s')[0] : best.key;
+    } else {
+      state.sel = state.lastList.length ? String(state.lastList[0].no && state.lastList[0].id ? state.lastList[0].id : state.lastList[0].key).split('-s')[0] : '';
+    }
   }
 
   /* ============================================================
@@ -299,15 +376,14 @@
       Link :\thttps://hokidraw.com/"
      ============================================================ */
   function buildCopy(it) {
-    return 'Pasaran ' + (it.nama || '') + '\t\n' +
+    return 'Pasaran ' + (it.nama || '') + (it.hoki ? ' ' + it.slot : '') + '\t\n' +
       'Jam Tutup :\t' + copyTime(it.tutup) + '\n' +
       'Jam Result :\t' + copyTime(it.result) + '\n' +
       'Link :\t' + (it.link || '-');
   }
 
   function buildCopyAll() {
-    var vis = visibleItems();
-    return vis.map(buildCopy).join('\n\n');
+    return visibleItems().map(buildCopy).join('\n\n');
   }
 
   function copyText(text, okMsg) {
@@ -334,11 +410,11 @@
     state.lastList.forEach(function (x) { if (x.key === key) it = x; });
     if (!it) { toast('Pasaran tidak ditemukan', 'warning'); return; }
     copyText(buildCopy(it), '"' + it.nama + (it.hoki ? ' ' + it.slot : '') + '" tersalin');
-    var card = container().querySelector('[data-keycard="' + key + '"]');
-    if (card) {
-      card.classList.remove('pk-new');
-      void card.offsetWidth;
-      card.classList.add('pk-new');
+    var tr = container().querySelector('[data-keyrow="' + key + '"]');
+    if (tr) {
+      tr.classList.remove('pk-flash');
+      void tr.offsetWidth;
+      tr.classList.add('pk-flash');
     }
   }
 
@@ -354,7 +430,7 @@
      ============================================================ */
   function fetchList(force) {
     state.loading = true;
-    paintList('<span class="pk-spin"></span>Memuat data pasaran dari database&hellip;');
+    paintBody('<div class="pk-loading"><span class="pk-spin"></span>Memuat data pasaran dari database&hellip;</div>');
     fetch('/api/pasaran', { headers: { 'x-auth-token': token() } })
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(function (j) {
@@ -363,8 +439,7 @@
           state.items = j.pasaran;
           state.source = 'db';
           state.loaded = true;
-          paint();
-          if (state.resLoaded) paintResCard('magnum'); // chip jadwal magnum butuh data pasaran
+          afterData(force);
         } else throw new Error('bad payload');
       })
       .catch(function () {
@@ -376,20 +451,44 @@
           var arr = raw ? JSON.parse(raw) : [];
           state.items = Array.isArray(arr) ? arr : [];
         } catch (e) { state.items = []; }
-        paint();
-        if (state.resLoaded) paintResCard('magnum');
+        afterData(force);
         if (force) toast('Database tidak terjangkau — mode lokal', 'warning');
       });
   }
 
+  function afterData(force) {
+    state.animate = true; // data baru = animasi masuk
+    ensureSelection();
+    paint();
+    paintSource();
+    if (state.resLoaded) paintResBlock('magnum'); // chip jadwal magnum butuh data pasaran
+  }
+
+  function paintSource() {
+    var v = container();
+    if (!v) return;
+    var el = q('[data-pk="source"]', v);
+    if (!el) return;
+    if (state.source === 'db') {
+      el.textContent = 'SQLITE\u2022D1';
+      el.className = 'pk-src pk-src-db';
+    } else if (state.source === 'local') {
+      el.textContent = 'MODE LOKAL';
+      el.className = 'pk-src pk-src-local';
+    } else {
+      el.textContent = '\u2026';
+      el.className = 'pk-src';
+    }
+  }
+
   /* ============================================================
-     HASIL RESMI (SGP 4D / Toto, Magnum)
+     HASIL RESMI (SGP 4D / Toto + Magnum) — gaya berita
      ============================================================ */
   function loadRes(kind, force) {
     var r = state.res[kind];
     if (r.st === 'loading') return;
     r.st = 'loading'; r.err = '';
-    paintResCard(kind);
+    paintResBlock(kind);
     fetch('/api/pasaran/results/' + kind + (force ? '?fresh=1' : ''), { headers: { 'x-auth-token': token() } })
       .then(function (res) { return res.json().then(function (j) { return { ok: res.ok, j: j }; }); })
       .then(function (out) {
@@ -398,11 +497,11 @@
         } else {
           r.st = 'err'; r.data = null; r.err = (out.j && out.j.error) || 'Gagal memuat hasil';
         }
-        paintResCard(kind);
+        paintResBlock(kind);
       })
       .catch(function (e) {
         r.st = 'err'; r.data = null; r.err = e.message || 'Gagal memuat hasil';
-        paintResCard(kind);
+        paintResBlock(kind);
       });
   }
 
@@ -414,96 +513,103 @@
     loadRes('magnum', force);
   }
 
-  function numGrid(arr, cls) {
-    if (!arr || !arr.length) return '<div class="pk-res-empty">Belum ada data</div>';
-    return '<div class="pk-subnums-g">' + arr.map(function (n) {
-      return '<span class="pk-subnum">' + esc(n) + '</span>';
+  function numGrid(arr) {
+    if (!arr || !arr.length) return '<div class="pk-res-none">Belum ada data</div>';
+    return '<div class="pk-numgrid">' + arr.map(function (n, i) {
+      return '<span class="pk-numcell" style="--i:' + i + '">' + esc(n) + '</span>';
     }).join('') + '</div>';
   }
 
-  function resMeta(data) {
-    return '<div class="pk-res-meta">' +
-      '<span class="pk-res-drawno">DRAW #' + esc(data.drawNo || '?') + '</span>' +
-      '<span>' + esc(data.date || '') + '</span>' +
+  function resHead(kind, flag, name) {
+    return '<div class="pk-res-top">' +
+      '<div class="pk-res-id"><span class="pk-res-flag">' + flag + '</span>' +
+      '<span class="pk-res-name">' + esc(name) + '</span>' +
+      '<span class="pk-res-official">' + ICON_SIGNAL + 'RESMI</span></div>' +
+      '<button type="button" class="pk-res-refresh" data-action="resrefresh" data-res="' + kind + '" title="Muat ulang hasil">' + ICON_REFRESH + '</button>' +
       '</div>';
   }
 
-  function paintResCard(kind) {
+  function nextDrawBar(label, value, gold) {
+    if (!value) return '';
+    return '<div class="pk-next' + (gold ? ' pk-next-gold' : '') + '">' + ICON_CAL +
+      '<span class="pk-next-k">' + esc(label) + '</span>' +
+      '<span class="pk-next-v">' + esc(value) + '</span></div>';
+  }
+
+  function prizeRows(d, keys) {
+    /* keys: [['first','1st Prize'],...] — baris tabel hadiah + animasi angka */
+    return '<div class="pk-prizetable">' + keys.map(function (k, i) {
+      return '<div class="pk-prizerow' + (i === 0 ? ' pk-prizerow-1' : '') + '" style="--i:' + i + '">' +
+        '<span class="pk-prize-k">' + esc(k[1]) + '</span>' +
+        '<span class="pk-prize-v">' + (esc(d[k[0]]) || '&mdash;') + '</span></div>';
+    }).join('') + '</div>';
+  }
+
+  function paintResBlock(kind) {
     var v = container();
     if (!v) return;
-    var card = q('[data-res="' + kind + '"]', v);
-    if (!card) return;
-    var body = q('[data-res-body]', card);
+    var block = q('[data-res="' + kind + '"]', v);
+    if (!block) return;
+    var body = q('[data-res-body]', block);
     var r = state.res[kind];
-    var btn = q('[data-res-refresh]', card);
+    var btn = q('[data-res-refresh]', block);
     if (btn) btn.classList[r.st === 'loading' ? 'add' : 'remove']('spin');
 
     var info = {
-      sg4d:   { logo: '\u{1F1F8}\u{1F1EC}', name: 'SGP — 4D' },
-      sgtoto: { logo: '\u{1F1F8}\u{1F1EC}', name: 'SGP — Toto' },
-      magnum: { logo: '\u{1F1F2}\u{1F1FE}', name: 'Magnum 4D Classic' }
+      sg4d:   { flag: '\u{1F1F8}\u{1F1EC}', name: 'SINGAPORE POOLS \u2014 4D' },
+      sgtoto: { flag: '\u{1F1F8}\u{1F1EC}', name: 'SINGAPORE POOLS \u2014 TOTO' },
+      magnum: { flag: '\u{1F1F2}\u{1F1FE}', name: 'MAGNUM 4D CLASSIC' }
     }[kind];
 
-    var head =
-      '<div class="pk-res-card-top">' +
-        '<div class="pk-res-site"><span class="pk-res-logo">' + info.logo + '</span><span class="pk-res-name">' + info.name + '</span></div>' +
-        '<button type="button" class="pk-res-refresh" data-action="resrefresh" data-res="' + kind + '" title="Muat ulang hasil">' + ICON_REFRESH + '</button>' +
-      '</div>';
-
     if (r.st === 'loading') {
-      body.innerHTML = head + '<div class="pk-res-loading"><span class="pk-spin"></span>Mengambil hasil dari situs resmi&hellip;</div>';
+      body.innerHTML = resHead(kind, info.flag, info.name) +
+        '<div class="pk-skel"><div class="pk-skrow" style="width:52%"></div><div class="pk-skrow" style="width:78%"></div><div class="pk-skrow" style="width:64%"></div><div class="pk-skrow" style="width:71%"></div></div>' +
+        '<div class="pk-res-foot">Mengambil hasil dari situs resmi&hellip;</div>';
       return;
     }
     if (r.st === 'err' || !r.data) {
-      body.innerHTML = head +
-        '<div class="pk-res-error">' + esc(r.err || 'Hasil belum tersedia.') +
-        '<br><button type="button" class="pk-btn" data-action="resrefresh" data-res="' + kind + '">' + ICON_REFRESH + 'Coba Lagi</button></div>';
+      body.innerHTML = resHead(kind, info.flag, info.name) +
+        '<div class="pk-res-error">' + esc(r.err || 'Hasil belum tersedia.') + '</div>' +
+        '<button type="button" class="pk-btn" data-action="resrefresh" data-res="' + kind + '">' + ICON_REFRESH + 'Coba Lagi</button>';
       return;
     }
 
     var d = r.data;
-    var html = head + resMeta(d);
+    var meta = '<div class="pk-res-meta">' +
+      '<span class="pk-res-drawno">DRAW #' + esc(d.drawNo || '?') + '</span>' +
+      '<span class="pk-res-date">' + esc(d.date || '') + '</span></div>';
+    var html = resHead(kind, info.flag, info.name) + meta;
 
     if (kind === 'sg4d') {
-      html +=
-        '<div class="pk-prizes">' +
-          '<div class="pk-prize"><div class="pk-prize-k pk-pk-1">1st Prize</div><div class="pk-prize-v">' + esc(d.first) + '</div></div>' +
-          '<div class="pk-prize"><div class="pk-prize-k">2nd Prize</div><div class="pk-prize-v">' + esc(d.second) + '</div></div>' +
-          '<div class="pk-prize"><div class="pk-prize-k">3rd Prize</div><div class="pk-prize-v">' + esc(d.third) + '</div></div>' +
-        '</div>' +
-        '<div class="pk-subnums"><div class="pk-subnums-k"><span>Starter Prizes</span><span>' + (d.starters || []).length + '</span></div>' + numGrid(d.starters) + '</div>' +
-        '<div class="pk-subnums"><div class="pk-subnums-k"><span>Consolation</span><span>' + (d.consolation || []).length + '</span></div>' + numGrid(d.consolation) + '</div>';
+      html += nextDrawBar('NEXT DRAW', d.nextDraw || 'Segera diumumkan situs resmi', true) +
+        prizeRows(d, [['first', '1st Prize'], ['second', '2nd Prize'], ['third', '3rd Prize']]) +
+        '<div class="pk-res-sect"><div class="pk-res-sect-k"><span>Starter Prizes</span><span>' + (d.starters || []).length + '</span></div>' + numGrid(d.starters) + '</div>' +
+        '<div class="pk-res-sect"><div class="pk-res-sect-k"><span>Consolation Prizes</span><span>' + (d.consolation || []).length + '</span></div>' + numGrid(d.consolation) + '</div>';
     } else if (kind === 'sgtoto') {
-      var balls = (d.numbers || []).map(function (n) {
-        return '<span class="pk-ball">' + esc(n) + '</span>';
+      var balls = (d.numbers || []).map(function (n, i) {
+        return '<span class="pk-ball" style="--i:' + i + '">' + esc(n) + '</span>';
       }).join('<span class="pk-plus-sep"></span>');
-      html +=
+      html += nextDrawBar('NEXT DRAW', d.nextDraw || 'Segera diumumkan situs resmi', true) +
+        (d.nextJackpot ? nextDrawBar('EST. JACKPOT BERIKUTNYA', d.nextJackpot, false) : '') +
         '<div class="pk-balls">' + balls +
           '<span class="pk-plus-sep">+</span><span class="pk-ball pk-ball-add">' + esc(d.additional || '-') + '</span>' +
         '</div>' +
-        '<div class="pk-jackpot"><span class="pk-jackpot-k">Group 1 Prize</span><span class="pk-jackpot-v">' + esc(d.jackpot || '-') + '</span></div>';
+        '<div class="pk-jackpotbar"><span class="pk-jackpot-k">GROUP 1 PRIZE</span><span class="pk-jackpot-v">' + esc(d.jackpot || '-') + '</span></div>';
     } else {
       var magRow = null;
       state.items.forEach(function (it) { if (String(it.nama || '').toUpperCase().indexOf('MAGNUM') !== -1 && !magRow) magRow = it; });
       var jadwal = magRow ? (magRow.jadwal || '') : '';
-      html += '<div style="margin-bottom:10px;">';
-      if (jadwal) {
-        html += '<span class="pk-res-cal">' + ICON_CAL + 'Jadwal: ' + esc(jadwal) + '</span>';
-      }
-      html += '</div>' +
-        '<div class="pk-prizes">' +
-          '<div class="pk-prize"><div class="pk-prize-k pk-pk-1">1st Prize</div><div class="pk-prize-v">' + esc(d.first || '-') + '</div></div>' +
-          '<div class="pk-prize"><div class="pk-prize-k">2nd Prize</div><div class="pk-prize-v">' + esc(d.second || '-') + '</div></div>' +
-          '<div class="pk-prize"><div class="pk-prize-k">3rd Prize</div><div class="pk-prize-v">' + esc(d.third || '-') + '</div></div>' +
-        '</div>' +
-        '<div class="pk-subnums"><div class="pk-subnums-k"><span>Special</span><span>' + (d.special || []).length + '</span></div>' + numGrid(d.special) + '</div>' +
-        '<div class="pk-subnums"><div class="pk-subnums-k"><span>Consolation</span><span>' + (d.consolation || []).length + '</span></div>' + numGrid(d.consolation) + '</div>';
+      html += (jadwal ? '<div class="pk-res-calwrap"><span class="pk-res-cal">' + ICON_CAL + 'Jadwal: ' + esc(jadwal) + '</span></div>' : '') +
+        prizeRows(d, [['first', '1st Prize'], ['second', '2nd Prize'], ['third', '3rd Prize']]) +
+        '<div class="pk-res-sect"><div class="pk-res-sect-k"><span>Special Prizes</span><span>' + (d.special || []).length + '</span></div>' + numGrid(d.special) + '</div>' +
+        '<div class="pk-res-sect"><div class="pk-res-sect-k"><span>Consolation Prizes</span><span>' + (d.consolation || []).length + '</span></div>' + numGrid(d.consolation) + '</div>';
     }
+    html += '<div class="pk-res-foot">Sumber: ' + esc(d.site || '') + ' \u2022 cache 5 menit</div>';
     body.innerHTML = html;
   }
 
   /* ============================================================
-     MARKUP (dibangun sekali)
+     MARKUP (dibangun sekali) — dropdown, chips, berita, tabel
      ============================================================ */
   function build() {
     var v = container();
@@ -517,10 +623,11 @@
             '<div class="pk-icon">' + ICON_GLOBE + '</div>' +
             '<div style="min-width:0;">' +
               '<h2 class="pk-title">Pk Jadwal Pasaran</h2>' +
-              '<p class="pk-sub">Status buka / tutup / result realtime &mdash; copy format pasaran &amp; hasil resmi.</p>' +
+              '<p class="pk-sub">Siaran status pasaran realtime &mdash; pilih pasaran untuk melihat laporan lengkapnya.</p>' +
             '</div>' +
           '</div>' +
           '<div class="pk-head-btns">' +
+            '<span class="pk-src" data-pk="source">\u2026</span>' +
             '<span class="pk-clock"><span class="pk-clock-dot"></span><span data-pk="clock">--:--:-- WIB</span></span>' +
             '<button type="button" class="pk-btn pk-btn-primary" data-action="copyall">' + ICON_COPY + 'Copy All Pasaran</button>' +
           '</div>' +
@@ -532,28 +639,35 @@
           '<div class="pk-stat pk-stat-result"><div class="pk-stat-k">Result</div><div class="pk-stat-v" data-pk="result">0</div><div class="pk-stat-s">sudah keluar hari ini</div></div>' +
         '</div>' +
         '<div class="pk-toolbar">' +
+          '<div class="pk-dd" data-pk="dd">' +
+            '<button type="button" class="pk-dd-btn" data-action="ddtoggle" aria-expanded="false">' +
+              '<span class="pk-dd-cur" data-pk="ddcur">' + ICON_GLOBE + '<span class="pk-dd-cur-t">Pilih Pasaran&hellip;</span></span>' +
+              '<span class="pk-dd-chev">' + ICON_CHEV + '</span>' +
+            '</button>' +
+            '<div class="pk-dd-panel" data-pk="ddpanel" hidden>' +
+              '<div class="pk-dd-list" data-pk="ddlist"></div>' +
+            '</div>' +
+          '</div>' +
           '<div class="pk-fchips">' +
             '<button type="button" class="pk-fchip" data-action="filter" data-f="all"><span class="pk-dot"></span>Semua <span class="pk-fc-n" data-pk="fc-all">0</span></button>' +
             '<button type="button" class="pk-fchip" data-action="filter" data-f="buka"><span class="pk-dot"></span>Buka <span class="pk-fc-n" data-pk="fc-buka">0</span></button>' +
             '<button type="button" class="pk-fchip" data-action="filter" data-f="tutup"><span class="pk-dot"></span>Tutup <span class="pk-fc-n" data-pk="fc-tutup">0</span></button>' +
             '<button type="button" class="pk-fchip" data-action="filter" data-f="result"><span class="pk-dot"></span>Result <span class="pk-fc-n" data-pk="fc-result">0</span></button>' +
           '</div>' +
-          '<div class="pk-search">' + ICON_SEARCH +
-            '<input data-pk="search" type="text" placeholder="Cari pasaran (mis. hokidraw, sydney)&hellip;" autocomplete="off">' +
-          '</div>' +
           '<button type="button" class="pk-btn" data-action="refresh" title="Muat ulang data pasaran">' + ICON_REFRESH + 'Refresh</button>' +
         '</div>' +
-        '<div data-pk="content"></div>' +
+        '<div data-pk="news"></div>' +
+        '<div data-pk="body"></div>' +
         '<div class="pk-count" data-pk="count"></div>' +
         '<div class="pk-res">' +
           '<div class="pk-res-head">' +
             '<span class="pk-res-title">' + ICON_TROPHY + 'Hasil Resmi Hari Ini</span>' +
-            '<span class="pk-res-note">Diambil langsung dari situs resmi Singapore Pools &amp; Magnum 4D (cache 5 menit)</span>' +
+            '<span class="pk-res-note">Langsung dari situs resmi Singapore Pools &amp; Magnum 4D</span>' +
           '</div>' +
           '<div class="pk-res-grid">' +
-            '<div class="pk-res-card" data-res="sg4d"><div data-res-body></div></div>' +
-            '<div class="pk-res-card" data-res="sgtoto"><div data-res-body></div></div>' +
-            '<div class="pk-res-card" data-res="magnum"><div data-res-body></div></div>' +
+            '<div class="pk-res-block" data-res="sg4d"><div data-res-body></div></div>' +
+            '<div class="pk-res-block" data-res="sgtoto"><div data-res-body></div></div>' +
+            '<div class="pk-res-block" data-res="magnum"><div data-res-body></div></div>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -565,15 +679,213 @@
       var t = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
       if (!t || !v.contains(t)) return;
       var act = t.getAttribute('data-action');
-      if (act === 'copy') copyOne(t.getAttribute('data-key'));
+      if (act === 'ddtoggle') toggleDrop();
+      else if (act === 'ddselect') selectPasaran(t.getAttribute('data-key'), true);
+      else if (act === 'copy') copyOne(t.getAttribute('data-key'));
       else if (act === 'copyall') copyAll();
-      else if (act === 'filter') { state.filter = t.getAttribute('data-f') || 'all'; paint(); }
+      else if (act === 'filter') {
+        state.filter = t.getAttribute('data-f') || 'all';
+        state.animate = true; // ganti filter = animasi ulang
+        ensureSelection();
+        paint();
+      }
       else if (act === 'refresh') fetchList(true);
       else if (act === 'resrefresh') loadRes(t.getAttribute('data-res'), true);
     });
 
-    var search = q('[data-pk="search"]', v);
-    if (search) search.addEventListener('input', function () { paint(); });
+    /* Klik di luar dropdown & Escape menutup dropdown */
+    document.addEventListener('click', function (e) {
+      var v2 = container();
+      if (!v2) return;
+      var dd = q('[data-pk="dd"]', v2);
+      if (dd && !dd.contains(e.target)) closeDrop();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeDrop();
+    });
+  }
+
+  /* ============================================================
+     DROPDOWN PASARAN (toggle — tanpa search)
+     ============================================================ */
+  function isOpen() {
+    var v = container();
+    var p = v && q('[data-pk="ddpanel"]', v);
+    return !!(p && !p.hidden);
+  }
+
+  function toggleDrop() {
+    if (isOpen()) closeDrop();
+    else openDrop();
+  }
+
+  function openDrop() {
+    var v = container();
+    if (!v) return;
+    var p = q('[data-pk="ddpanel"]', v);
+    var btn = q('[data-pk="dd"] .pk-dd-btn', v);
+    if (!p) return;
+    q('[data-pk="ddlist"]', v).innerHTML = dropOptions().map(function (o) {
+      var meta = ST_META[o.st] || ST_META.khusus;
+      var selCls = o.key === state.sel ? ' pk-dd-opt-sel' : '';
+      return '<button type="button" class="pk-dd-opt' + selCls + '" data-action="ddselect" data-key="' + esc(o.key) + '">' +
+        '<span class="pk-dd-no">' + esc(o.no) + '</span>' +
+        '<span class="pk-dd-flag">' + o.flag + '</span>' +
+        '<span class="pk-dd-name" title="' + esc(o.nama) + '">' + esc(o.nama) + '</span>' +
+        (o.hoki ? '<span class="pk-dd-24">24 SESI</span>' : '') +
+        '<span class="pk-dd-st ' + meta.cls + '"><span class="pk-st-dot"></span>' + meta.label + '</span>' +
+        '<span class="pk-dd-check">' + ICON_CHECK + '</span>' +
+      '</button>';
+    }).join('');
+    p.hidden = false;
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    /* scroll ke opsi terpilih */
+    setTimeout(function () {
+      var selEl = q('.pk-dd-opt-sel', p);
+      if (selEl && selEl.scrollIntoView) selEl.scrollIntoView({ block: 'center' });
+    }, 30);
+  }
+
+  function closeDrop() {
+    var v = container();
+    if (!v) return;
+    var p = q('[data-pk="ddpanel"]', v);
+    var btn = q('[data-pk="dd"] .pk-dd-btn', v);
+    if (p && !p.hidden) {
+      p.hidden = true;
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function selectPasaran(key, byUser) {
+    if (!key) return;
+    state.sel = key;
+    if (byUser) state.selLocked = true;
+    closeDrop();
+    state.animate = true; // pasaran baru = animasi tabel masuk
+    paint();
+  }
+
+  /* ============================================================
+     BANNER BERITA — headline animasi utk pasaran terpilih
+     ============================================================ */
+  function headlineHTML(nama) {
+    /* tiap huruf = span (stagger fadeUp); spasi dipertahankan */
+    var out = '';
+    for (var i = 0; i < nama.length; i++) {
+      var ch = nama.charAt(i);
+      out += ch === ' '
+        ? '<span class="pk-hl-sp"> </span>'
+        : '<span class="pk-hl-ch" style="--i:' + i + '">' + esc(ch) + '</span>';
+    }
+    return out;
+  }
+
+  function paintNews(it) {
+    var v = container();
+    if (!v) return;
+    var n = q('[data-pk="news"]', v);
+    if (!n) return;
+    if (!it) { n.innerHTML = ''; return; }
+    var meta = ST_META[it.st] || ST_META.khusus;
+    var now = wibNow();
+    var dateline = DAY_SHORT[now.day] + ', ' + now.date.getDate() + ' ' + MONTH_SHORT[now.date.getMonth()] + ' ' + now.date.getFullYear();
+    var ticker =
+      'PASARAN ' + it.nama + ' \u2022 NEGARA: ' + it.country + ' \u2022 STATUS: ' + meta.label +
+      (it.hoki ? ' \u2022 SESI ' + it.slot + ' WIB' : '') +
+      ' \u2022 JAM TUTUP: ' + copyTime(it.tutup) + ' \u2022 JAM RESULT: ' + copyTime(it.result) +
+      ' \u2022 LINK: ' + (it.link || '-') + ' \u2022 ';
+    n.innerHTML =
+      '<div class="pk-news pk-news-' + it.st + '">' +
+        '<div class="pk-news-top">' +
+          '<span class="pk-live"><span class="pk-live-dot"></span>LIVE</span>' +
+          '<span class="pk-kicker">LAPORAN PASARAN</span>' +
+          '<span class="pk-dateline">' + esc(dateline) + ' \u2014 WIB</span>' +
+        '</div>' +
+        '<div class="pk-headline-row">' +
+          '<span class="pk-news-flag">' + it.flag + '</span>' +
+          '<h3 class="pk-headline">' + headlineHTML(it.nama) + '</h3>' +
+        '</div>' +
+        '<div class="pk-news-meta">' +
+          '<span class="pk-ctry"><span class="pk-ctry-k">NEGARA</span><span class="pk-ctry-v">' + it.flag + ' ' + esc(it.country) + '</span></span>' +
+          '<span class="pk-st ' + meta.cls + '"><span class="pk-st-dot"></span>' + meta.label + '</span>' +
+          (it.hoki ? '<span class="pk-slot">SESI ' + it.slot + ' WIB</span>' : '') +
+          (it.note ? '<span class="pk-note">' + esc(it.note) + '</span>' : '') +
+        '</div>' +
+        '<div class="pk-ticker">' +
+          '<span class="pk-ticker-tag">BREAKING</span>' +
+          '<div class="pk-ticker-win"><div class="pk-ticker-move"><span>' + esc(ticker) + '</span><span>' + esc(ticker) + '</span></div></div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  /* ============================================================
+     TABEL PASARAN TERPILIH — baris animasi masuk
+     ============================================================ */
+  function tableRowsHTML(rows, animate) {
+    var now = wibNow();
+    /* sesi HOKI aktif = sesi terakhir yg jam tutupnya sudah lewat */
+    var activeHoki = null;
+    rows.forEach(function (it) {
+      if (it.hoki && parseHM(it.tutup) != null && now.m >= parseHM(it.tutup)) {
+        if (activeHoki == null || parseHM(it.tutup) > parseHM(activeHoki.tutup)) activeHoki = it;
+      }
+    });
+    return rows.map(function (it, i) {
+      var meta = ST_META[it.st] || ST_META.khusus;
+      var isNow = activeHoki && it.key === activeHoki.key;
+      var jadwalCell = it.hoki
+        ? '<span class="pk-sesichip">SESI ' + it.slot + '</span>'
+        : esc(it.jadwal || '\u2014');
+      return '<tr class="pk-tr pk-strow-' + it.st + (isNow ? ' pk-tr-now' : '') + (animate ? '' : ' pk-noanim') + '" style="--i:' + i + '" data-keyrow="' + esc(it.key) + '">' +
+        '<td class="pk-td-no">' + esc(it.no) + '</td>' +
+        '<td class="pk-td-nama"><span class="pk-td-nama-t">' + esc(it.nama) + '</span>' +
+          (it.hoki ? '<span class="pk-td-sub">result 24x sehari</span>' : '') + '</td>' +
+        '<td class="pk-td-negara"><span class="pk-flagcell"><span class="pk-flagcell-ic">' + it.flag + '</span>' + esc(it.country) + '</span></td>' +
+        '<td class="pk-td-jadwal">' + jadwalCell + '</td>' +
+        '<td class="pk-td-jam pk-td-tutup">' + esc(copyTime(it.tutup)) + '</td>' +
+        '<td class="pk-td-jam pk-td-result">' + esc(copyTime(it.result)) + '</td>' +
+        '<td class="pk-td-st"><span class="pk-st ' + meta.cls + '"><span class="pk-st-dot"></span>' + meta.label + '</span></td>' +
+        '<td class="pk-td-aksi">' +
+          '<a class="pk-actbtn" href="' + esc(it.link || '#') + '" target="_blank" rel="noopener noreferrer" title="Buka website pasaran">' + ICON_EXT + '</a>' +
+          '<button type="button" class="pk-actbtn" data-action="copy" data-key="' + esc(it.key) + '" title="Copy format pasaran">' + ICON_COPY + '</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function paintTable(rows, animate) {
+    var v = container();
+    if (!v) return;
+    var b = q('[data-pk="body"]', v);
+    if (!b) return;
+    if (!rows.length) {
+      b.innerHTML = '<div class="pk-empty">Tidak ada baris untuk ditampilkan pada filter saat ini.</div>';
+      return;
+    }
+    b.innerHTML =
+      '<div class="pk-tablewrap">' +
+        '<table class="pk-table">' +
+          '<thead><tr>' +
+            '<th class="pk-th-no">No</th>' +
+            '<th>Pasaran</th>' +
+            '<th>Negara Asal</th>' +
+            '<th>Jadwal</th>' +
+            '<th>Jam Tutup</th>' +
+            '<th>Jam Result</th>' +
+            '<th>Status</th>' +
+            '<th class="pk-th-aksi">Aksi</th>' +
+          '</tr></thead>' +
+          '<tbody>' + tableRowsHTML(rows, animate) + '</tbody>' +
+        '</table>' +
+      '</div>';
+  }
+
+  function paintBody(html) {
+    var v = container();
+    if (!v) return;
+    var b = q('[data-pk="body"]', v);
+    if (b) b.innerHTML = html;
   }
 
   /* ============================================================
@@ -597,25 +909,21 @@
     if (el) {
       el.textContent = pad2(now.h) + ':' + pad2(now.mi) + ':' + pad2(now.s) + ' WIB';
       el.setAttribute('title', DAY_SHORT[now.day] + ', ' + now.date.getDate() + ' ' +
-        ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][now.date.getMonth()] +
-        ' ' + now.date.getFullYear());
+        MONTH_SHORT[now.date.getMonth()] + ' ' + now.date.getFullYear());
     }
     if (now.mi !== lastMinute) {
       lastMinute = now.mi;
-      if (state.loaded) paint(); // status kartu ikut berganti begitu menit berubah
+      if (state.loaded && !state.selLocked) ensureSelection();
+      if (state.loaded) {
+        state.animate = false; // repaint menit-an TANPA replay animasi
+        paint();
+      }
     }
   }
 
   /* ============================================================
-     PAINT
+     PAINT UTAMA
      ============================================================ */
-  function paintList(html) {
-    var v = container();
-    if (!v) return;
-    var c = q('[data-pk="content"]', v);
-    if (c) c.innerHTML = html;
-  }
-
   function paint() {
     build();
     var v = container();
@@ -630,6 +938,17 @@
       else nResult++;
     });
     var vis = visibleItems();
+    var rows = selectedItems();
+    var selItem = rows.length ? rows[0] : null;
+    /* banner HOKI DRAW = sesi yang sedang aktif (terakhir tutup) */
+    if (selItem && selItem.hoki) {
+      var nowB = wibNow(), act = null;
+      rows.forEach(function (it) {
+        var tu = parseHM(it.tutup);
+        if (tu != null && nowB.m >= tu && (act == null || tu > parseHM(act.tutup))) act = it;
+      });
+      if (act) selItem = act;
+    }
 
     var elT = q('[data-pk="total"]', v); if (elT) elT.textContent = total;
     var elB = q('[data-pk="buka"]', v); if (elB) elB.textContent = nBuka;
@@ -646,54 +965,47 @@
       else chips[i].classList.remove('active');
     }
 
-    var elCnt = q('[data-pk="count"]', v);
-    if (elCnt) {
-      var term = searchTerm();
-      elCnt.innerHTML = term
-        ? 'Hasil pencarian "<b>' + esc(term) + '</b>": <b>' + vis.length + '</b> entri'
-        : 'Menampilkan <b>' + vis.length + '</b> dari <b>' + total + '</b> entri pasaran';
+    /* tombol dropdown: pasaran terpilih */
+    var cur = q('[data-pk="ddcur"]', v);
+    if (cur) {
+      if (selItem) {
+        var m0 = ST_META[selItem.st] || ST_META.khusus;
+        cur.innerHTML = '<span class="pk-dd-cur-f">' + selItem.flag + '</span>' +
+          '<span class="pk-dd-cur-t">' + esc(selItem.nama) + '</span>' +
+          '<span class="pk-dd-cur-st ' + m0.cls + '"><span class="pk-st-dot"></span>' + m0.label + '</span>';
+      } else {
+        cur.innerHTML = ICON_GLOBE + '<span class="pk-dd-cur-t">Pilih Pasaran&hellip;</span>';
+      }
     }
 
-    if (!state.loaded && state.loading) return; // paintList sedang menampilkan loading
+    var elCnt = q('[data-pk="count"]', v);
+    if (elCnt) {
+      elCnt.innerHTML = selItem
+        ? 'Menampilkan <b>1</b> pasaran terpilih \u2022 <b>' + rows.length + '</b> baris \u2022 dari <b>' + total + '</b> total sesi'
+        : 'Menampilkan <b>0</b> pasaran \u2022 dari <b>' + total + '</b> total sesi';
+    }
+
+    if (!state.loaded && state.loading) return; // loading sedang tampil
 
     if (!state.items.length) {
-      paintList('<div class="pk-empty">' +
+      paintNews(null);
+      paintBody('<div class="pk-empty">' +
         (state.source === 'local'
           ? 'Database tidak terjangkau dan belum ada data lokal.<br>Buka <b>Jadwal All Pasaran</b> lalu <b>Tambah Pasaran</b>, atau klik <b>Refresh</b> setelah backend aktif.'
           : 'Belum ada pasaran &mdash; tambahkan lewat menu <b>Jadwal All Pasaran</b>.') +
         '</div>');
       return;
     }
-    if (!vis.length) {
-      paintList('<div class="pk-empty">Tidak ada pasaran yang cocok dengan filter/pencarian saat ini.</div>');
+    if (!rows.length) {
+      paintNews(null);
+      paintBody('<div class="pk-empty">Pilih pasaran pada dropdown di atas untuk melihat laporannya.</div>');
       return;
     }
 
-    paintList('<div class="pk-grid">' + vis.map(function (it) {
-      var meta = ST_META[it.st] || ST_META.khusus;
-      var slotChip = it.hoki ? '<span class="pk-slot">SESI ' + it.slot + '</span>' : '';
-      var note = it.note ? '<span class="pk-slot" title="' + esc(it.note) + '">' + esc(it.note) + '</span>' : '';
-      return '<article class="pk-item pk-st-' + it.st + '" data-keycard="' + esc(it.key) + '">' +
-        '<div class="pk-item-top">' +
-          '<span class="pk-num">' + esc(it.no) + '</span>' +
-          '<h3 class="pk-name" title="' + esc(it.nama) + '">' + esc(it.nama) + '</h3>' +
-          '<button type="button" class="pk-copy" data-action="copy" data-key="' + esc(it.key) + '" title="Copy format pasaran">' + ICON_COPY + '</button>' +
-        '</div>' +
-        '<div class="pk-item-meta">' +
-          '<span class="pk-flag"><span class="pk-flag-ic">' + it.flag + '</span>' + esc(it.country) + '</span>' +
-          '<span class="pk-st ' + meta.cls + '"><span class="pk-st-dot"></span>' + meta.label + '</span>' +
-        '</div>' +
-        '<div class="pk-rows">' +
-          '<div class="pk-row"><span class="pk-k">Jadwal</span><span class="pk-v">' + (esc(it.jadwal) || '&mdash;') + '</span></div>' +
-          '<div class="pk-row pk-row-hl"><span class="pk-k">Tutup</span><span class="pk-v">' + (esc(copyTime(it.tutup)) || '&mdash;') + '</span></div>' +
-          '<div class="pk-row"><span class="pk-k">Result</span><span class="pk-v">' + (esc(copyTime(it.result)) || '&mdash;') + '</span></div>' +
-        '</div>' +
-        '<div class="pk-item-foot">' +
-          '<a class="pk-visit" href="' + esc(it.link || '#') + '" target="_blank" rel="noopener noreferrer"><span>Kunjungi Website</span>' + ICON_EXT + '</a>' +
-          (slotChip || note) +
-        '</div>' +
-      '</article>';
-    }).join('') + '</div>');
+    var animate = state.animate;
+    state.animate = false;
+    paintNews(selItem);
+    paintTable(rows, animate);
   }
 
   /* ============================================================
@@ -705,9 +1017,10 @@
       startClock();
       loadAllRes(false);
       if (!state.loaded && !state.loading) fetchList();
-      else paint();
+      else { ensureSelection(); paint(); }
     },
     refresh: function () { fetchList(true); loadAllRes(true); },
+    select: function (key) { selectPasaran(key, true); },
     copyAll: copyAll,
     buildCopy: buildCopy,
     buildCopyAll: buildCopyAll,
