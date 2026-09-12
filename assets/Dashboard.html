@@ -154,8 +154,11 @@
     .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron { transform: rotate(180deg); }
     .nav-submenu-wrap.click-toggle.open > .nav-trigger .chevron svg { stroke: #fff; }
     .nav-submenu-wrap.click-toggle.open > .submenu { max-height: 400px; opacity: 1; padding-top: 8px; padding-bottom: 4px; }
-    /* v2.6.0 — Livechat Essentials punya nest dropdown: ruang vertikal lebih besar agar tidak terpotong */
-    .nav-submenu-wrap.submenu-xl > .submenu { max-height: 640px; }
+    /* v2.6.0 — Livechat Essentials punya nest dropdown: ruang vertikal lebih besar agar tidak terpotong.
+       WAJIB hanya saat TERBUKA (hover / click-toggle open) — kalau tanpa syarat,
+       submenu tertutup tetap memakan tinggi content-nya (opacity 0) -> sidebar "bolong". */
+    .nav-submenu-wrap.submenu-xl:hover > .submenu { max-height: 640px; }
+    .nav-submenu-wrap.submenu-xl.click-toggle.open > .submenu { max-height: 640px; }
 
     .sidebar-footer { padding: 18px 22px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); }
 
