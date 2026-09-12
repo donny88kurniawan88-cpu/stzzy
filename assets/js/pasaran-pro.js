@@ -1,9 +1,10 @@
 /* ============================================================
-   AURA.OS // PASARAN-PRO.JS v1.0.0
+   AURA.OS // PASARAN-PRO.JS v1.1.0
    Modul Jadwal Pasaran (Pro) — grid kartu pasaran terstruktur.
    Sumber data: SQLite D1 via GET /api/pasaran (fallback lokal).
-   Fitur: edit jadwal/tutup/result/link per kartu, copy pasaran
-   & copy all (format tab), tampilkan 1-10 / 1-25 / Semua.
+   Fitur: edit jadwal/tutup/result/link per kartu (saja — fungsi
+   COPY pindah ke modul Pk Jadwal Pasaran / pkpasaran-pro.js),
+   tampilkan 1-10 / 1-25 / Semua.
    UI dirender penuh ke #pasaranView. Exposed: window.PasaranPro.
    ============================================================ */
 
@@ -19,8 +20,6 @@
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
   var ICON_PLUS =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-  var ICON_COPY =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
   var ICON_EDIT =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
   var ICON_SEARCH =
@@ -91,43 +90,6 @@
   }
 
   /* ============================================================
-     FORMAT COPY (persis spesifikasi)
-     "Pasaran TOTOMACAU SIANG\t
-      Jam Tutup :\t13:00:00 WIB
-      Jam Result :\t13:15:00 WIB
-      Link :\thttps://..."
-     ============================================================ */
-  function buildCopy(it) {
-    return 'Pasaran ' + (it.nama || '') + '\t\n' +
-      'Jam Tutup :\t' + (normTime(it.tutup) || '-') + '\n' +
-      'Jam Result :\t' + (normTime(it.result) || '-') + '\n' +
-      'Link :\t' + (it.link || '-');
-  }
-
-  function buildCopyAll() {
-    return sorted().map(buildCopy).join('\n\n');
-  }
-
-  function copyText(text, okMsg) {
-    var done = function () { toast(okMsg, 'success'); };
-    var fail = function () {
-      try {
-        var ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        done();
-      } catch (e) { toast('Gagal menyalin ke clipboard', 'error'); }
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done, fail);
-    } else fail();
-  }
-
-  /* ============================================================
      DATA — API D1 dulu, gagal -> localStorage (mode lokal)
      ============================================================ */
   function fetchList(force) {
@@ -181,7 +143,6 @@
             '</div>' +
           '</div>' +
           '<div class="ps-head-btns">' +
-            '<button type="button" class="ps-btn" data-action="copyall">' + ICON_COPY + 'Copy All Pasaran</button>' +
             '<button type="button" class="ps-btn ps-btn-primary" data-action="add">' + ICON_PLUS + 'Tambah Pasaran</button>' +
           '</div>' +
         '</div>' +
@@ -257,8 +218,6 @@
       var act = t.getAttribute('data-action');
       if (act === 'add') openModal('add');
       else if (act === 'edit') openModal('edit', t.getAttribute('data-id'));
-      else if (act === 'copy') copyOne(t.getAttribute('data-id'));
-      else if (act === 'copyall') copyAll();
       else if (act === 'seg') { state.view = t.getAttribute('data-range') || 'all'; paint(); }
       else if (act === 'close') closeModal();
       else if (act === 'save') save();
@@ -372,7 +331,6 @@
           '<span class="ps-num">' + esc(it.no) + '</span>' +
           '<h3 class="ps-name" title="' + esc(it.nama) + '">' + esc(it.nama) + '</h3>' +
           '<div class="ps-acts">' +
-            '<button type="button" class="ps-act ps-act-ok" data-action="copy" data-id="' + esc(it.id) + '" title="Copy pasaran">' + ICON_COPY + '</button>' +
             '<button type="button" class="ps-act" data-action="edit" data-id="' + esc(it.id) + '" title="Edit pasaran">' + ICON_EDIT + '</button>' +
           '</div>' +
         '</div>' +
@@ -559,20 +517,6 @@
       .catch(function (e) { toast(e.message || 'Gagal menghapus pasaran', 'error'); });
   }
 
-  /* ============================================================
-     COPY
-     ============================================================ */
-  function copyOne(id) {
-    var it = byId(id);
-    if (!it) { toast('Pasaran tidak ditemukan', 'warning'); return; }
-    copyText(buildCopy(it), 'Format "' + it.nama + '" tersalin');
-  }
-
-  function copyAll() {
-    if (!state.items.length) { toast('Belum ada pasaran untuk disalin', 'warning'); return; }
-    copyText(buildCopyAll(), state.items.length + ' pasaran tersalin');
-  }
-
   /* Escape menutup modal */
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeModal();
@@ -585,9 +529,6 @@
     render: function () { build(); if (!state.loaded && !state.loading) fetchList(); else paint(); },
     refresh: function () { fetchList(true); },
     openAdd: function () { openModal('add'); },
-    copyAll: copyAll,
-    buildCopy: buildCopy,
-    buildCopyAll: buildCopyAll,
     state: state
   };
 })();
