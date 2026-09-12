@@ -701,6 +701,27 @@ function psParseSGToto(html) {
   };
 }
 
+// Next Draw SG 4D — dari file resmi fourd_next_draw_info_en.html
+// (mis. " Next Draw Sun, 13 Sep 2026, 6.30pm ")
+function psParseSGNextDraw(html) {
+  if (!html) return '';
+  const t = html.replace(/<script[\s\S]*?<\/script>/gi, ' ')
+                .replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+  const m = t.match(/Next\s*Draw\s*:?\s*([A-Za-z]{3},?\s*\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\s*,?\s*[\d.]+\s*(?:am|pm)?)/i);
+  return m ? m[1].trim() : '';
+}
+
+// Next Draw + estimasi jackpot Toto — dari file resmi toto_next_draw_estimate_en.html
+// (mis. " Next Jackpot $2,500,000 est Next Draw Mon, 14 Sep 2026 , 6.30pm ")
+function psParseSGTotoNext(html) {
+  if (!html) return { nextDraw: '', nextJackpot: '' };
+  const t = html.replace(/<script[\s\S]*?<\/script>/gi, ' ')
+                .replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+  const nd = t.match(/Next\s*Draw\s*:?\s*([A-Za-z]{3},?\s*\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\s*,?\s*[\d.]+\s*(?:am|pm)?)/i);
+  const nj = t.match(/Next\s*Jackpot\s*(:|est\b)?\s*(\$[\d,.]+)/i);
+  return { nextDraw: nd ? nd[1].trim() : '', nextJackpot: nj ? nj[2] : '' };
+}
+
 function psParseMagnum(html) {
   if (!html || html.length < 500) return null;
   const head = html.slice(0, 4000);
@@ -1568,9 +1589,25 @@ export default {
       try {
         let psData = null;
         if (psKind === 'sg4d') {
-          psData = psParseSG4D(await psFetch('https://www.singaporepools.com.sg/DataFileArchive/Lottery/Output/fourd_result_top_draws_en.html'));
+          // Hasil + info Next Draw (keduanya file resmi Singapore Pools)
+          const [sgHtml, sgNextHtml] = await Promise.all([
+            psFetch('https://www.singaporepools.com.sg/DataFileArchive/Lottery/Output/fourd_result_top_draws_en.html'),
+            psFetch('https://www.singaporepools.com.sg/DataFileArchive/Lottery/Output/fourd_next_draw_info_en.html').catch(() => '')
+          ]);
+          psData = psParseSG4D(sgHtml);
+          if (psData) psData.nextDraw = psParseSGNextDraw(sgNextHtml);
         } else if (psKind === 'sgtoto') {
-          psData = psParseSGToto(await psFetch('https://www.singaporepools.com.sg/DataFileArchive/Lottery/Output/toto_result_top_draws_en.html'));
+          // Hasil + Next Draw + estimasi Next Jackpot (file resmi Singapore Pools)
+          const [ttHtml, ttNextHtml] = await Promise.all([
+            psFetch('https://www.singaporepools.com.sg/DataFileArchive/Lottery/Output/toto_result_top_draws_en.html'),
+            psFetch('https://www.singaporepools.com.sg/DataFileArchive/Lottery/Output/toto_next_draw_estimate_en.html').catch(() => '')
+          ]);
+          psData = psParseSGToto(ttHtml);
+          if (psData) {
+            const ttNext = psParseSGTotoNext(ttNextHtml);
+            psData.nextDraw = ttNext.nextDraw;
+            psData.nextJackpot = ttNext.nextJackpot;
+          }
         } else {
           psData = psParseMagnum(await psFetch('https://www.magnum4d.my/'));
         }
