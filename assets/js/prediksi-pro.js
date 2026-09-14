@@ -1,5 +1,5 @@
 /* ============================================================
-   AURA.OS // PREDIKSI-PRO.JS v1.0.0 — PREDIKSI ALL PASARAN
+   AURA.OS // PREDIKSI-PRO.JS v1.1.0 — PREDIKSI ALL PASARAN
    Modul Prediksi All Pasaran (Pro):
    - Menarik data pasaran dari menu Jadwal Pasaran (D1 SQLite
      via GET /api/pasaran, fallback localStorage — sumber sama).
@@ -40,6 +40,8 @@
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
   var ICON_BOLT =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+  var ICON_SEARCH =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>';
 
   /* Negara pasaran — acuan tabel 53 pasaran (sama dgn pkpasaran-pro.js) */
   var COUNTRY_REF = [
@@ -78,9 +80,9 @@
   var DAY_SHORT = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   var MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
-  /* 12 shio togel (urutan resmi) */
-  var SHIO_LIST = ['RAT', 'BANTENG', 'HARIMAU', 'KELINCI', 'NAGA', 'ULAR',
-    'KUDA', 'KAMBING', 'MONYET', 'AYAM', 'ANJING', 'BABI'];
+  /* Tabel shio — acuan user (urutan persis gambar) */
+  var SHIO_LIST = ['KUDA', 'ULAR', 'NAGA', 'KELINCI', 'HARIMAU', 'KERBAU',
+    'TIKUS', 'BABI', 'ANJING', 'AYAM', 'MONYET', 'KAMBING'];
 
   var ST_META = {
     buka:   { label: 'BUKA',   cls: 'pr-st-buka'   },
@@ -98,6 +100,7 @@
     sel: '',               // key pasaran terpilih (id D1, HOKI = id dasar)
     selLocked: false,      // user sudah memilih manual
     filter: 'all',         // all | buka | tutup | result
+    dropQuery: '',         // kata kunci pencarian dropdown
     lastList: [],          // hasil deriveList() (76 entri, HOKI = 24)
     built: false,
     animate: true
@@ -294,26 +297,59 @@
     };
   }
 
-  /* Prediksi utk 1 entri pasaran — PERSIS format contoh user */
+  /* Prediksi utk 1 entri pasaran — PERSIS format contoh user.
+     ATURAN: satu baris TANPA angka kembar (4D/3D/2D/Colok Bebas/Colok
+     Macau). Invest Twin wajib angka kembar & tak sama dlm 1 baris
+     (11/44/77 — bukan 11/11). Colok Shio = 3 shio beda dr tabel. */
   function genPrediction(it) {
     var dp = wibDateParts();
     var r = makeRng(normKey(it.nama) + (it.hoki ? '|' + it.slot : '') + '|' + dp.seed);
     function dig(n) { var s = ''; for (var i = 0; i < n; i++) s += String(Math.floor(r() * 10)); return s; }
-    function fromBBFS(n) { var s = ''; for (var i = 0; i < n; i++) s += bbfs.charAt(Math.floor(r() * 7)); return s; }
+    function dig1() { return String(Math.floor(r() * 10)); }
     function pick(arr) { return arr[Math.floor(r() * arr.length)]; }
 
     var bbfs = dig(7);
     var angkaIkut = dig(5);
 
-    var d4 = [], d3 = [], d2 = [], i;
-    for (i = 0; i < 4; i++) d4.push(fromBBFS(4));
-    for (i = 0; i < 4; i++) d3.push(fromBBFS(3));
-    for (i = 0; i < 10; i++) d2.push(fromBBFS(2));
+    /* Sampel grup unik dari digit BBFS — anti kembar dalam satu baris */
+    function uniqBBFS(n, count) {
+      var seen = {}, out = [], guard = 0;
+      while (out.length < count && guard < 400) {
+        guard++;
+        var s = '';
+        for (var i = 0; i < n; i++) s += bbfs.charAt(Math.floor(r() * 7));
+        if (seen[s]) continue;
+        seen[s] = 1; out.push(s);
+      }
+      /* fallback nyaris mustahil (BBFS digit seragam): lengkapi dr digit penuh */
+      while (out.length < count) {
+        var t = dig(n);
+        if (!seen[t]) { seen[t] = 1; out.push(t); }
+      }
+      return out;
+    }
 
-    var colokBebas = String(Math.floor(r() * 10)) + '/' + String(Math.floor(r() * 10));
-    var colokMacau = fromBBFS(2) + '/' + fromBBFS(2) + '/' + fromBBFS(2);
-    var colokShio = pick(SHIO_LIST) + '/' + pick(SHIO_LIST) + '/' + pick(SHIO_LIST);
-    var investTwin = fromBBFS(2) + '/' + fromBBFS(2) + '/' + fromBBFS(2);
+    var d4 = uniqBBFS(4, 4);
+    var d3 = uniqBBFS(3, 4);
+    var d2 = uniqBBFS(2, 10);
+
+    /* Colok Bebas: dua digit beda (3/5 — bukan 3/3) */
+    var cb1 = dig1(), cb2 = dig1();
+    while (cb2 === cb1) cb2 = dig1();
+    var colokBebas = cb1 + '/' + cb2;
+
+    /* Colok Macau: 3 grup unik (88/17/76) */
+    var colokMacau = uniqBBFS(2, 3).join('/');
+
+    /* Colok Shio: 3 shio BEDA — ikut tabel shio acuan */
+    var shioPool = SHIO_LIST.slice(), shioOut = [], si;
+    for (si = 0; si < 3; si++) shioOut.push(shioPool.splice(Math.floor(r() * shioPool.length), 1)[0]);
+    var colokShio = shioOut.join('/');
+
+    /* Invest Twin: angka kembar & tak sama satu baris (11/44/77 — bukan 11/11) */
+    var twins = ['00', '11', '22', '33', '44', '55', '66', '77', '88', '99'], twinOut = [], ti;
+    for (ti = 0; ti < 3; ti++) twinOut.push(twins.splice(Math.floor(r() * twins.length), 1)[0]);
+    var investTwin = twinOut.join('/');
 
     return {
       bbfs: bbfs,
@@ -425,9 +461,14 @@
     });
   }
 
-  /* Opsi dropdown — HOKI DRAW = 24 sesi (tiap sesi prediksi sendiri) */
+  /* Opsi dropdown — ikut filter chip + kata kunci ketikan (HOKI = 24 sesi) */
   function dropOptions() {
-    return visibleItems();
+    var kw = normKey(state.dropQuery || '');
+    return visibleItems().filter(function (it) {
+      if (!kw) return true;
+      var hay = normKey(it.nama) + ' ' + normKey(it.slot || '') + ' ' + normKey(it.country || '') + ' SESI';
+      return hay.indexOf(kw) !== -1;
+    });
   }
 
   function selectedEntry() {
@@ -505,6 +546,10 @@
               '<span class="pr-drop-chev' + (ICON_CHEV ? ' pr-chev-svg' : '') + '">' + ICON_CHEV + '</span>' +
             '</button>' +
             '<div class="pr-dropdown" id="prDropdown" style="display:none;" role="listbox">' +
+              '<div class="pr-drop-searchbox">' +
+                '<span class="pr-drop-search-ico">' + ICON_SEARCH + '</span>' +
+                '<input id="prDropSearch" class="pr-drop-search" type="text" autocomplete="off" spellcheck="false" placeholder="Ketik utk cari pasaran\u2026" />' +
+              '</div>' +
               '<div class="pr-drop-list" id="prDropList"></div>' +
             '</div>' +
           '</div>' +
@@ -577,9 +622,12 @@
     var list = document.getElementById('prDropList');
     if (!list) return;
     var opts = dropOptions();
+    var kw = String(state.dropQuery || '').trim();
     var h = '';
     if (!opts.length) {
-      h = '<div class="pr-drop-empty">Tidak ada pasaran pada filter ini</div>';
+      h = '<div class="pr-drop-empty">' + (kw
+        ? 'Tidak ada pasaran cocok &quot;' + esc(kw) + '&quot;'
+        : 'Tidak ada pasaran pada filter ini') + '</div>';
     }
     opts.forEach(function (o, i) {
       var m = ST_META[o.st] || ST_META.khusus;
@@ -593,9 +641,11 @@
         '</button>';
     });
     list.innerHTML = h;
-    /* auto-scroll ke opsi terpilih */
-    var selEl = list.querySelector('.pr-opt.is-sel');
-    if (selEl) list.scrollTop = Math.max(0, selEl.offsetTop - list.clientHeight / 2);
+    /* auto-scroll ke opsi terpilih (hanya saat tanpa pencarian) */
+    if (!kw) {
+      var selEl = list.querySelector('.pr-opt.is-sel');
+      if (selEl) list.scrollTop = Math.max(0, selEl.offsetTop - list.clientHeight / 2);
+    } else list.scrollTop = 0;
   }
 
   function openDrop() {
@@ -604,6 +654,9 @@
     if (dd) { dd.style.display = 'block'; }
     if (btn) btn.classList.add('is-open');
     paintDrop();
+    /* fokuskan kotak pencarian agar langsung bisa mengetik */
+    var si = document.getElementById('prDropSearch');
+    if (si) setTimeout(function () { try { si.focus(); si.select(); } catch (e) { /* noop */ } }, 60);
   }
 
   function closeDrop() {
@@ -611,6 +664,10 @@
     var btn = q('#prDropWrap .pr-dropbtn');
     if (dd) dd.style.display = 'none';
     if (btn) btn.classList.remove('is-open');
+    /* reset kata kunci pencarian */
+    state.dropQuery = '';
+    var si = document.getElementById('prDropSearch');
+    if (si) si.value = '';
   }
 
   function dropIsOpen() {
@@ -789,6 +846,24 @@
       var optEl = t.closest ? t.closest('.pr-opt[data-key]') : null;
       if (optEl && c.contains(optEl)) { selectKey(optEl.getAttribute('data-key'), { manual: true }); return; }
     });
+
+    /* kotak pencarian dropdown: ketik -> filter opsi; Enter -> pilih match pertama */
+    var si = document.getElementById('prDropSearch');
+    if (si && !si.dataset.prBound) {
+      si.dataset.prBound = '1';
+      si.addEventListener('input', function () {
+        state.dropQuery = si.value || '';
+        paintDrop();
+      });
+      si.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter') {
+          var opts = dropOptions();
+          if (opts.length) selectKey(opts[0].key, { manual: true });
+          ev.preventDefault();
+        }
+        /* Escape ditangani listener document (tutup dropdown) */
+      });
+    }
 
     /* klik di luar dropdown (di mana pun pada dokumen) -> tutup */
     if (!document.__prDropOutside) {
