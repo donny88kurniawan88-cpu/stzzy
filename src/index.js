@@ -1622,6 +1622,292 @@ export default {
     }
 
     // ============================================
+    // 13h. API KEEPMEMO + LINK ALTERNATIF (v3.2.0 — data D1 SQLite)
+    //      KeepMemo : data PER-USER (owner = username dari x-auth-token)
+    //      LinkAlt  : data SHARED tim (created_by / updated_by)
+    //      GET    /api/keepmemo
+    //      POST   /api/keepmemo/import                    (migrasi localStorage -> D1)
+    //      POST   /api/keepmemo/notes|reminders|logins
+    //      PUT    /api/keepmemo/notes|reminders|logins/:id
+    //      DELETE /api/keepmemo/notes|reminders|logins/:id
+    //      GET    /api/linkalt
+    //      POST   /api/linkalt | /api/linkalt/import
+    //      PUT    /api/linkalt/:id   DELETE /api/linkalt/:id
+    // ============================================
+
+    // Auto-ensure tabel (auto-migrate, pola sama dgn ensurePasaranTable)
+    async function ensureKmTables() {
+      try {
+        await env.DB.prepare("SELECT id FROM keepmemo_notes LIMIT 1").first();
+        return;
+      } catch (e) { /* tabel belum ada -> buat semua */ }
+      await env.DB.batch([
+        env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS keepmemo_notes (id TEXT PRIMARY KEY, owner TEXT NOT NULL, title TEXT NOT NULL DEFAULT '', content TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT 'blue', created_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0)"
+        ),
+        env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS keepmemo_reminders (id TEXT PRIMARY KEY, owner TEXT NOT NULL, title TEXT NOT NULL DEFAULT '', date TEXT NOT NULL DEFAULT '', time TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '', done INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0)"
+        ),
+        env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS keepmemo_logins (id TEXT PRIMARY KEY, owner TEXT NOT NULL, link TEXT NOT NULL DEFAULT '', username TEXT NOT NULL DEFAULT '', password TEXT NOT NULL DEFAULT '', pin TEXT NOT NULL DEFAULT '', noted TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0)"
+        ),
+        env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS link_alternatif (id TEXT PRIMARY KEY, domain TEXT NOT NULL, cat TEXT NOT NULL DEFAULT 'Link IP Domain', redirect TEXT NOT NULL DEFAULT '', created_by TEXT, created_at INTEGER NOT NULL DEFAULT 0, updated_by TEXT, updated_at INTEGER)"
+        ),
+        env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_km_notes_owner ON keepmemo_notes(owner, updated_at)"),
+        env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_km_rem_owner ON keepmemo_reminders(owner, date, time)"),
+        env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_km_logins_owner ON keepmemo_logins(owner, updated_at)"),
+        env.DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_linkalt_domain ON link_alternatif(domain COLLATE NOCASE)")
+      ]);
+    }
+
+    function kmOwner(req) {
+      return String(req.headers.get('x-auth-token') || '').trim();
+    }
+
+    // ---- 13h-1. GET /api/keepmemo — seluruh data milik user ini ----
+    if (path === '/api/keepmemo' && request.method === 'GET') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureKmTables();
+        const owner = kmOwner(request);
+        const [kmNotes, kmRems, kmLogs] = await Promise.all([
+          env.DB.prepare("SELECT id, title, content, color, created_at, updated_at FROM keepmemo_notes WHERE owner = ? ORDER BY updated_at DESC, created_at DESC").bind(owner).all(),
+          env.DB.prepare("SELECT id, title, date, time, description, done, created_at, updated_at FROM keepmemo_reminders WHERE owner = ? ORDER BY date ASC, time ASC").bind(owner).all(),
+          env.DB.prepare("SELECT id, link, username, password, pin, noted, created_at, updated_at FROM keepmemo_logins WHERE owner = ? ORDER BY updated_at DESC, created_at DESC").bind(owner).all()
+        ]);
+        return Response.json({
+          success: true, source: 'd1',
+          notes: kmNotes.results || [],
+          reminders: kmRems.results || [],
+          logins: kmLogs.results || []
+        });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal mengambil keepmemo: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ---- 13h-2. POST /api/keepmemo/import — migrasi data lama localStorage ----
+    if (path === '/api/keepmemo/import' && request.method === 'POST') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureKmTables();
+        const owner = kmOwner(request);
+        const body = await request.json();
+        const now = Date.now();
+        const stmts = [];
+        const notes = Array.isArray(body.notes) ? body.notes : [];
+        const reminders = Array.isArray(body.reminders) ? body.reminders : [];
+        const logins = Array.isArray(body.logins) ? body.logins : [];
+        for (const n of notes) {
+          if (!n || !n.id) continue;
+          stmts.push(env.DB.prepare(
+            "INSERT OR IGNORE INTO keepmemo_notes (id, owner, title, content, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+          ).bind(String(n.id), owner, String(n.title || ''), String(n.content || ''), String(n.color || 'blue'), Number(n.created_at) || now, Number(n.updated_at) || now));
+        }
+        for (const r of reminders) {
+          if (!r || !r.id) continue;
+          stmts.push(env.DB.prepare(
+            "INSERT OR IGNORE INTO keepmemo_reminders (id, owner, title, date, time, description, done, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          ).bind(String(r.id), owner, String(r.title || ''), String(r.date || ''), String(r.time || ''), String(r.description || ''), (r.done ? 1 : 0), Number(r.created_at) || now, Number(r.updated_at) || Number(r.created_at) || now));
+        }
+        for (const l of logins) {
+          if (!l || !l.id) continue;
+          stmts.push(env.DB.prepare(
+            "INSERT OR IGNORE INTO keepmemo_logins (id, owner, link, username, password, pin, noted, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          ).bind(String(l.id), owner, String(l.link || ''), String(l.username || ''), String(l.password || ''), String(l.pin || ''), String(l.noted || ''), Number(l.created_at) || now, Number(l.updated_at) || Number(l.created_at) || now));
+        }
+        for (let i = 0; i < stmts.length; i += 50) {
+          await env.DB.batch(stmts.slice(i, i + 50));
+        }
+        return Response.json({ success: true, imported: { notes: notes.length, reminders: reminders.length, logins: logins.length } });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal import keepmemo: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ---- 13h-3. Peta entitas KeepMemo (anti-duplikasi kode CRUD) ----
+    const KM_KINDS = {
+      notes:     { table: 'keepmemo_notes',     cols: ['title', 'content', 'color'],                          key: 'note' },
+      reminders: { table: 'keepmemo_reminders', cols: ['title', 'date', 'time', 'description', 'done'],       key: 'reminder' },
+      logins:    { table: 'keepmemo_logins',    cols: ['link', 'username', 'password', 'pin', 'noted'],       key: 'login' }
+    };
+
+    // ---- 13h-4. POST /api/keepmemo/:kind — create ----
+    const kmKindMatch = path.match(/^\/api\/keepmemo\/(notes|reminders|logins)$/);
+    if (kmKindMatch && request.method === 'POST') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureKmTables();
+        const owner = kmOwner(request);
+        const kind = KM_KINDS[kmKindMatch[1]];
+        const body = await request.json();
+        const id = String(body.id || '').trim() || ('km-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8));
+        const now = Date.now();
+        const vals = kind.cols.map(function (c) {
+          if (c === 'done') return body[c] ? 1 : 0;
+          return body[c] !== undefined && body[c] !== null ? String(body[c]) : '';
+        });
+        await env.DB.prepare(
+          "INSERT INTO " + kind.table + " (id, owner, " + kind.cols.join(', ') + ", created_at, updated_at) VALUES (?, ?, " + kind.cols.map(function () { return '?'; }).join(', ') + ", ?, ?)"
+        ).bind(id, owner, ...vals, Number(body.created_at) || now, now).run();
+        const row = await env.DB.prepare("SELECT * FROM " + kind.table + " WHERE id = ? AND owner = ?").bind(id, owner).first();
+        return Response.json({ success: true, message: 'Tersimpan di database', [kind.key]: row });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal simpan: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ---- 13h-5. PUT / DELETE /api/keepmemo/:kind/:id — edit & hapus (owner-scoped) ----
+    const kmIdMatch = path.match(/^\/api\/keepmemo\/(notes|reminders|logins)\/([^\/]+)$/);
+    if (kmIdMatch && request.method === 'PUT') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureKmTables();
+        const owner = kmOwner(request);
+        const kind = KM_KINDS[kmIdMatch[1]];
+        const id = decodeURIComponent(kmIdMatch[2]);
+        const body = await request.json();
+        const existing = await env.DB.prepare("SELECT * FROM " + kind.table + " WHERE id = ? AND owner = ?").bind(id, owner).first();
+        if (!existing) return Response.json({ success: false, error: 'Data tidak ditemukan' }, { status: 404 });
+        const sets = [];
+        const binds = [];
+        for (const c of kind.cols) {
+          if (body[c] !== undefined) {
+            sets.push(c + " = ?");
+            binds.push(c === 'done' ? (body[c] ? 1 : 0) : String(body[c]));
+          }
+        }
+        sets.push('updated_at = ?');
+        binds.push(Date.now(), id, owner);
+        await env.DB.prepare("UPDATE " + kind.table + " SET " + sets.join(', ') + " WHERE id = ? AND owner = ?").bind(...binds).run();
+        const row = await env.DB.prepare("SELECT * FROM " + kind.table + " WHERE id = ? AND owner = ?").bind(id, owner).first();
+        return Response.json({ success: true, message: 'Diperbarui di database', [kind.key]: row });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal update: ' + err.message }, { status: 500 });
+      }
+    }
+    if (kmIdMatch && request.method === 'DELETE') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureKmTables();
+        const owner = kmOwner(request);
+        const kind = KM_KINDS[kmIdMatch[1]];
+        const id = decodeURIComponent(kmIdMatch[2]);
+        const del = await env.DB.prepare("DELETE FROM " + kind.table + " WHERE id = ? AND owner = ?").bind(id, owner).run();
+        if (!del.meta || del.meta.changes === 0) return Response.json({ success: false, error: 'Data tidak ditemukan' }, { status: 404 });
+        return Response.json({ success: true, message: 'Dihapus dari database' });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal hapus: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ---- 13h-6. GET /api/linkalt — daftar link shared (urut terbaru) ----
+    if (path === '/api/linkalt' && request.method === 'GET') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureKmTables();
+        const { results } = await env.DB.prepare(
+          "SELECT id, domain, cat, redirect, created_by, created_at, updated_by, updated_at FROM link_alternatif ORDER BY created_at DESC, id DESC"
+        ).all();
+        return Response.json({ success: true, source: 'd1', items: results || [] });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal mengambil link alternatif: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ---- 13h-7. POST /api/linkalt/import — migrasi data lama localStorage ----
+    if (path === '/api/linkalt/import' && request.method === 'POST') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureKmTables();
+        const by = kmOwner(request);
+        const body = await request.json();
+        const now = Date.now();
+        const items = Array.isArray(body.items) ? body.items : [];
+        const stmts = [];
+        for (const it of items) {
+          if (!it || !it.id || !it.domain) continue;
+          stmts.push(env.DB.prepare(
+            "INSERT OR IGNORE INTO link_alternatif (id, domain, cat, redirect, created_by, created_at, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+          ).bind(String(it.id), String(it.domain), String(it.cat || 'Link IP Domain'), String(it.redirect || ''), by, Number(it.created) || Number(it.created_at) || now, by, it.updated ? Number(it.updated) : null));
+        }
+        for (let i = 0; i < stmts.length; i += 50) {
+          await env.DB.batch(stmts.slice(i, i + 50));
+        }
+        return Response.json({ success: true, imported: items.length });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal import link: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ---- 13h-8. POST /api/linkalt — tambah link (dup check via unique index) ----
+    if (path === '/api/linkalt' && request.method === 'POST') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureKmTables();
+        const body = await request.json();
+        const domain = String(body.domain || '').trim();
+        if (!domain) return Response.json({ success: false, error: 'Domain wajib diisi' }, { status: 400 });
+        const cat = String(body.cat || '').trim() || 'Link IP Domain';
+        const redirect = String(body.redirect || '').trim();
+        const dup = await env.DB.prepare("SELECT id FROM link_alternatif WHERE domain = ? COLLATE NOCASE").bind(domain).first();
+        if (dup) return Response.json({ success: false, error: 'Domain sudah terdaftar di database' }, { status: 409 });
+        const id = String(body.id || '').trim() || ('l' + Date.now().toString(36) + Math.random().toString(16).slice(2, 6));
+        const now = Date.now();
+        const by = kmOwner(request);
+        await env.DB.prepare(
+          "INSERT INTO link_alternatif (id, domain, cat, redirect, created_by, created_at, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        ).bind(id, domain, cat, redirect, by, Number(body.created_at) || now, by, now).run();
+        const row = await env.DB.prepare("SELECT id, domain, cat, redirect, created_by, created_at, updated_by, updated_at FROM link_alternatif WHERE id = ?").bind(id).first();
+        return Response.json({ success: true, message: 'Link tersimpan di database', item: row });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal simpan link: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ---- 13h-9. PUT / DELETE /api/linkalt/:id — edit & hapus link ----
+    const laIdMatch = path.match(/^\/api\/linkalt\/([^\/]+)$/);
+    if (laIdMatch && request.method === 'PUT') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureKmTables();
+        const id = decodeURIComponent(laIdMatch[1]);
+        const body = await request.json();
+        const existing = await env.DB.prepare("SELECT * FROM link_alternatif WHERE id = ?").bind(id).first();
+        if (!existing) return Response.json({ success: false, error: 'Link tidak ditemukan' }, { status: 404 });
+        const domain = body.domain !== undefined ? String(body.domain).trim() : existing.domain;
+        if (!domain) return Response.json({ success: false, error: 'Domain wajib diisi' }, { status: 400 });
+        const dup = await env.DB.prepare("SELECT id FROM link_alternatif WHERE domain = ? COLLATE NOCASE AND id != ?").bind(domain, id).first();
+        if (dup) return Response.json({ success: false, error: 'Domain sudah dipakai link lain' }, { status: 409 });
+        await env.DB.prepare(
+          "UPDATE link_alternatif SET domain = ?, cat = ?, redirect = ?, updated_by = ?, updated_at = ? WHERE id = ?"
+        ).bind(
+          domain,
+          body.cat !== undefined ? String(body.cat).trim() : existing.cat,
+          body.redirect !== undefined ? String(body.redirect).trim() : existing.redirect,
+          kmOwner(request), Date.now(), id
+        ).run();
+        const row = await env.DB.prepare("SELECT id, domain, cat, redirect, created_by, created_at, updated_by, updated_at FROM link_alternatif WHERE id = ?").bind(id).first();
+        return Response.json({ success: true, message: 'Link diperbarui di database', item: row });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal update link: ' + err.message }, { status: 500 });
+      }
+    }
+    if (laIdMatch && request.method === 'DELETE') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureKmTables();
+        const id = decodeURIComponent(laIdMatch[1]);
+        const del = await env.DB.prepare("DELETE FROM link_alternatif WHERE id = ?").bind(id).run();
+        if (!del.meta || del.meta.changes === 0) return Response.json({ success: false, error: 'Link tidak ditemukan' }, { status: 404 });
+        return Response.json({ success: true, message: 'Link dihapus dari database' });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal hapus link: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // ============================================
     // 14. API BANK FORMATTER
     // ============================================
     if (path === '/api/bank/format' && request.method === 'POST') {
