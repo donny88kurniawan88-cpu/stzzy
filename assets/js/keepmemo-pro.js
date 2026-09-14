@@ -31,6 +31,7 @@
     reminders: [],
     logins: [],
     activeTab: 'notes',
+    source: 'local',
     calendarDate: new Date(),
     selectedDay: null,
     editingNoteId: null,
@@ -81,44 +82,110 @@
     } catch (e) {}
   }
 
-  function loadNotes() {
-    try {
-      var raw = localStorage.getItem(NOTES_KEY);
-      state.notes = raw ? JSON.parse(raw) : [];
-    } catch (e) { state.notes = []; }
+  /* ============================================================
+     DATA — DATABASE D1 (SQLite) dulu, gagal -> localStorage (mode lokal)
+     KeepMemo tersimpan PER-USER: owner = username (x-auth-token).
+     Edit / hapus / toggle langsung menulis ke database.
+     ============================================================ */
+  function token() {
+    return localStorage.getItem('aura_auth_token') || '';
   }
 
-  function saveNotes() {
-    try {
-      localStorage.setItem(NOTES_KEY, JSON.stringify(state.notes));
-    } catch (e) { console.error('Save notes error:', e); }
+  function setSource(src) {
+    state.source = (src === 'db') ? 'db' : 'local';
+    var tag = document.getElementById('kmSrcTag');
+    if (tag) {
+      tag.innerHTML = state.source === 'db'
+        ? '<i class="fas fa-database"></i> SQLITE&#8226;D1'
+        : '<i class="fas fa-cloud"></i> MODE LOKAL';
+      tag.classList.toggle('km-src-local', state.source !== 'db');
+    }
   }
 
-  function loadReminders() {
-    try {
-      var raw = localStorage.getItem(REMINDERS_KEY);
-      state.reminders = raw ? JSON.parse(raw) : [];
-    } catch (e) { state.reminders = []; }
+  function kmApi(kind) { return '/api/keepmemo/' + kind; }
+
+  function apiGetAll() {
+    return fetch('/api/keepmemo', { headers: { 'x-auth-token': token() } })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   }
 
-  function saveReminders() {
-    try {
-      localStorage.setItem(REMINDERS_KEY, JSON.stringify(state.reminders));
-    } catch (e) { console.error('Save reminders error:', e); }
+  function apiSend(path, method, body) {
+    return fetch(path, {
+      method: method,
+      headers: { 'Content-Type': 'application/json', 'x-auth-token': token() },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok || !j || j.success === false) throw new Error((j && j.error) || ('HTTP ' + r.status));
+        return j;
+      });
+    });
   }
 
-  function loadLogins() {
+  function readLocalRaw(key) {
     try {
-      var raw = localStorage.getItem(LOGINS_KEY);
-      state.logins = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(state.logins)) state.logins = [];
-    } catch (e) { state.logins = []; }
+      var raw = localStorage.getItem(key);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
   }
 
-  function saveLogins() {
+  function loadLocalAll() {
+    state.notes = readLocalRaw(NOTES_KEY);
+    state.reminders = readLocalRaw(REMINDERS_KEY);
+    state.logins = readLocalRaw(LOGINS_KEY);
+  }
+
+  function saveLocalMirror(kind) {
+    if (state.source === 'db') return; /* DB aktif — localStorage tidak dipakai */
     try {
-      localStorage.setItem(LOGINS_KEY, JSON.stringify(state.logins));
-    } catch (e) { console.error('Save logins error:', e); }
+      if (kind === 'notes') localStorage.setItem(NOTES_KEY, JSON.stringify(state.notes));
+      else if (kind === 'reminders') localStorage.setItem(REMINDERS_KEY, JSON.stringify(state.reminders));
+      else localStorage.setItem(LOGINS_KEY, JSON.stringify(state.logins));
+    } catch (e) { console.error('Save ' + kind + ' error:', e); }
+  }
+
+  /* Migrasi satu kali: data lama di localStorage -> D1, lalu localStorage dibersihkan */
+  function migrateLocalToDb() {
+    var notes = readLocalRaw(NOTES_KEY);
+    var reminders = readLocalRaw(REMINDERS_KEY);
+    var logins = readLocalRaw(LOGINS_KEY);
+    if (!notes.length && !reminders.length && !logins.length) return Promise.resolve(false);
+    return apiSend('/api/keepmemo/import', 'POST', { notes: notes, reminders: reminders, logins: logins })
+      .then(function () {
+        try {
+          localStorage.removeItem(NOTES_KEY);
+          localStorage.removeItem(REMINDERS_KEY);
+          localStorage.removeItem(LOGINS_KEY);
+        } catch (e) {}
+        showToast('Data lama berhasil dimigrasikan ke database', 'success');
+        return true;
+      })
+      .catch(function () { return false; });
+  }
+
+  function applyRemote(j) {
+    if (!j || !j.success || !j.notes || !j.reminders || !j.logins) throw new Error('bad payload');
+    state.notes = j.notes;
+    state.reminders = j.reminders;
+    state.logins = j.logins;
+    setSource('db');
+  }
+
+  function loadAllFromApi() {
+    return apiGetAll().then(function (j) {
+      applyRemote(j);
+      /* DB masih kosong total tapi ada data lama di localStorage -> migrasi sekali */
+      if (!state.notes.length && !state.reminders.length && !state.logins.length) {
+        return migrateLocalToDb().then(function (did) {
+          if (!did) return;
+          return apiGetAll().then(applyRemote);
+        });
+      }
+    }).catch(function () {
+      setSource('local');
+      loadLocalAll();
+    });
   }
 
   function getColorValue(key) {
@@ -293,37 +360,53 @@
       return;
     }
     if (!title) title = 'Untitled';
-    var now = Date.now();
-    if (state.editingNoteId) {
-      // Update
-      state.notes.forEach(function (n) {
-        if (n.id === state.editingNoteId) {
-          n.title = title;
-          n.content = content;
-          n.color = state.selectedNoteColor;
-          n.updated_at = now;
-        }
-      });
-      showToast('Note updated', 'success');
-      addTerminalLog('KeepMemo: note updated (' + state.editingNoteId + ')');
-    } else {
-      // Create
-      var note = {
-        id: uuid(),
-        title: title,
-        content: content,
-        color: state.selectedNoteColor,
-        created_at: now,
-        updated_at: now
-      };
-      state.notes.push(note);
-      showToast('Note created', 'success');
-      addTerminalLog('KeepMemo: note created (' + note.id + ')');
+    var isEdit = !!state.editingNoteId;
+    var payload = isEdit
+      ? { title: title, content: content, color: state.selectedNoteColor }
+      : { id: uuid(), title: title, content: content, color: state.selectedNoteColor, created_at: Date.now() };
+
+    var afterSave = function (row) {
+      upsertInState('notes', payload, row, isEdit);
+      saveLocalMirror('notes');
+      closeNoteModal();
+      renderNotes();
+      updateTabBadges();
+      showToast(isEdit ? 'Note updated' : 'Note created', 'success');
+      addTerminalLog('KeepMemo: note ' + (isEdit ? 'updated' : 'created') + ' (' + payload.id + ')');
+    };
+
+    if (state.source === 'local') {
+      afterSave(null); /* mode lokal — tulis mirror saja */
+      return;
     }
-    saveNotes();
-    closeNoteModal();
-    renderNotes();
-    updateTabBadges();
+
+    apiSend(isEdit ? kmApi('notes') + '/' + encodeURIComponent(payload.id || state.editingNoteId) : kmApi('notes'),
+      isEdit ? 'PUT' : 'POST', payload)
+      .then(function (j) { afterSave(j.note || null); })
+      .catch(function (err) {
+        showToast('Gagal simpan ke database: ' + err.message, 'error');
+      });
+  }
+
+  /* Terapkan hasil create/update ke state (dari row DB atau payload lokal) */
+  function upsertInState(kind, payload, row, isEdit) {
+    var arr = kind === 'notes' ? state.notes : (kind === 'reminders' ? state.reminders : state.logins);
+    var now = Date.now();
+    if (isEdit) {
+      var id = payload.id || state.editingNoteId || state.editingReminderId || state.editingLoginId;
+      for (var i = 0; i < arr.length; i++) {
+        if (arr[i].id === id) {
+          var merged = row || (function () { var o = {}; for (var k in payload) o[k] = payload[k]; o.updated_at = now; return o; })();
+          for (var kk in merged) arr[i][kk] = merged[kk];
+        }
+      }
+    } else {
+      arr.push(row || (function () {
+        var o = {}; for (var k in payload) o[k] = payload[k];
+        if (o.updated_at === undefined) o.updated_at = o.created_at || now;
+        return o;
+      })());
+    }
   }
 
   function deleteNote(id) {
@@ -342,12 +425,21 @@
   }
 
   function confirmDeleteNote(id) {
-    state.notes = state.notes.filter(function (n) { return n.id !== id; });
-    saveNotes();
-    renderNotes();
-    updateTabBadges();
-    showToast('Note deleted', 'success');
-    addTerminalLog('KeepMemo: note deleted (' + id + ')');
+    var done = function () {
+      state.notes = state.notes.filter(function (n) { return n.id !== id; });
+      saveLocalMirror('notes');
+      renderNotes();
+      updateTabBadges();
+      showToast('Note deleted', 'success');
+      addTerminalLog('KeepMemo: note deleted (' + id + ')');
+    };
+    if (state.source === 'db') {
+      apiSend(kmApi('notes') + '/' + encodeURIComponent(id), 'DELETE')
+        .then(done)
+        .catch(function (err) { showToast('Gagal hapus dari database: ' + err.message, 'error'); });
+    } else {
+      done();
+    }
   }
 
   /* ============================================================
@@ -589,37 +681,33 @@
       showToast('Date required', 'warning');
       return;
     }
-    var now = Date.now();
-    if (state.editingReminderId) {
-      state.reminders.forEach(function (r) {
-        if (r.id === state.editingReminderId) {
-          r.title = title;
-          r.date = date;
-          r.time = time;
-          r.description = desc;
-        }
-      });
-      showToast('Reminder updated', 'success');
-      addTerminalLog('KeepMemo: reminder updated (' + state.editingReminderId + ')');
-    } else {
-      var rem = {
-        id: uuid(),
-        title: title,
-        date: date,
-        time: time,
-        description: desc,
-        done: false,
-        created_at: now
-      };
-      state.reminders.push(rem);
-      showToast('Reminder created', 'success');
-      addTerminalLog('KeepMemo: reminder created (' + rem.id + ')');
+    var isEdit = !!state.editingReminderId;
+    var payload = isEdit
+      ? { id: state.editingReminderId, title: title, date: date, time: time, description: desc }
+      : { id: uuid(), title: title, date: date, time: time, description: desc, done: false, created_at: Date.now() };
+
+    var afterSave = function (row) {
+      upsertInState('reminders', payload, row, isEdit);
+      saveLocalMirror('reminders');
+      closeReminderModal();
+      renderReminders();
+      renderCalendar();
+      updateTabBadges();
+      showToast(isEdit ? 'Reminder updated' : 'Reminder created', 'success');
+      addTerminalLog('KeepMemo: reminder ' + (isEdit ? 'updated' : 'created') + ' (' + payload.id + ')');
+    };
+
+    if (state.source === 'local') {
+      afterSave(null);
+      return;
     }
-    saveReminders();
-    closeReminderModal();
-    renderReminders();
-    renderCalendar();
-    updateTabBadges();
+
+    apiSend(isEdit ? kmApi('reminders') + '/' + encodeURIComponent(payload.id) : kmApi('reminders'),
+      isEdit ? 'PUT' : 'POST', payload)
+      .then(function (j) { afterSave(j.reminder || null); })
+      .catch(function (err) {
+        showToast('Gagal simpan ke database: ' + err.message, 'error');
+      });
   }
 
   function deleteReminder(id) {
@@ -638,23 +726,42 @@
   }
 
   function confirmDeleteReminder(id) {
-    state.reminders = state.reminders.filter(function (r) { return r.id !== id; });
-    saveReminders();
-    renderReminders();
-    renderCalendar();
-    updateTabBadges();
-    showToast('Reminder deleted', 'success');
-    addTerminalLog('KeepMemo: reminder deleted (' + id + ')');
+    var done = function () {
+      state.reminders = state.reminders.filter(function (r) { return r.id !== id; });
+      saveLocalMirror('reminders');
+      renderReminders();
+      renderCalendar();
+      updateTabBadges();
+      showToast('Reminder deleted', 'success');
+      addTerminalLog('KeepMemo: reminder deleted (' + id + ')');
+    };
+    if (state.source === 'db') {
+      apiSend(kmApi('reminders') + '/' + encodeURIComponent(id), 'DELETE')
+        .then(done)
+        .catch(function (err) { showToast('Gagal hapus dari database: ' + err.message, 'error'); });
+    } else {
+      done();
+    }
   }
 
   function toggleReminderDone(id) {
-    state.reminders.forEach(function (r) {
-      if (r.id === id) r.done = !r.done;
-    });
-    saveReminders();
-    renderReminders();
-    renderCalendar();
-    showToast('Reminder marked as ' + (state.reminders.filter(function (r) { return r.id === id; })[0].done ? 'done' : 'active'), 'success');
+    var r = state.reminders.filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+    var newDone = !r.done;
+    var apply = function () {
+      r.done = newDone;
+      saveLocalMirror('reminders');
+      renderReminders();
+      renderCalendar();
+      showToast('Reminder marked as ' + (newDone ? 'done' : 'active'), 'success');
+    };
+    if (state.source === 'db') {
+      apiSend(kmApi('reminders') + '/' + encodeURIComponent(id), 'PUT', { done: newDone })
+        .then(function (j) { if (j.reminder) { r.done = j.reminder.done; } apply(); })
+        .catch(function (err) { showToast('Gagal update di database: ' + err.message, 'error'); });
+    } else {
+      apply();
+    }
   }
 
   /* ============================================================
@@ -912,39 +1019,32 @@
       return;
     }
 
-    var now = Date.now();
-    if (state.editingLoginId) {
-      state.logins.forEach(function (l) {
-        if (l.id === state.editingLoginId) {
-          l.link = link;
-          l.username = username;
-          l.password = password;
-          l.pin = pin;
-          l.noted = noted;
-          l.updated_at = now;
-        }
-      });
-      showToast('Data login diperbarui', 'success');
-      addTerminalLog('KeepMemo: login data updated (' + state.editingLoginId + ')');
-    } else {
-      var item = {
-        id: uuid(),
-        link: link,
-        username: username,
-        password: password,
-        pin: pin,
-        noted: noted,
-        created_at: now,
-        updated_at: now
-      };
-      state.logins.push(item);
-      showToast('Data login tersimpan', 'success');
-      addTerminalLog('KeepMemo: login data created (' + item.id + ')');
+    var isEdit = !!state.editingLoginId;
+    var payload = isEdit
+      ? { id: state.editingLoginId, link: link, username: username, password: password, pin: pin, noted: noted }
+      : { id: uuid(), link: link, username: username, password: password, pin: pin, noted: noted, created_at: Date.now() };
+
+    var afterSave = function (row) {
+      upsertInState('logins', payload, row, isEdit);
+      saveLocalMirror('logins');
+      closeLoginModal();
+      renderLogins();
+      updateTabBadges();
+      showToast(isEdit ? 'Data login diperbarui' : 'Data login tersimpan', 'success');
+      addTerminalLog('KeepMemo: login data ' + (isEdit ? 'updated' : 'created') + ' (' + payload.id + ')');
+    };
+
+    if (state.source === 'local') {
+      afterSave(null);
+      return;
     }
-    saveLogins();
-    closeLoginModal();
-    renderLogins();
-    updateTabBadges();
+
+    apiSend(isEdit ? kmApi('logins') + '/' + encodeURIComponent(payload.id) : kmApi('logins'),
+      isEdit ? 'PUT' : 'POST', payload)
+      .then(function (j) { afterSave(j.login || null); })
+      .catch(function (err) {
+        showToast('Gagal simpan ke database: ' + err.message, 'error');
+      });
   }
 
   function deleteLogin(id) {
@@ -963,13 +1063,22 @@
   }
 
   function confirmDeleteLogin(id) {
-    state.logins = state.logins.filter(function (l) { return l.id !== id; });
-    delete state.loginRevealed[id];
-    saveLogins();
-    renderLogins();
-    updateTabBadges();
-    showToast('Data login dihapus', 'success');
-    addTerminalLog('KeepMemo: login data deleted (' + id + ')');
+    var done = function () {
+      state.logins = state.logins.filter(function (l) { return l.id !== id; });
+      delete state.loginRevealed[id];
+      saveLocalMirror('logins');
+      renderLogins();
+      updateTabBadges();
+      showToast('Data login dihapus', 'success');
+      addTerminalLog('KeepMemo: login data deleted (' + id + ')');
+    };
+    if (state.source === 'db') {
+      apiSend(kmApi('logins') + '/' + encodeURIComponent(id), 'DELETE')
+        .then(done)
+        .catch(function (err) { showToast('Gagal hapus dari database: ' + err.message, 'error'); });
+    } else {
+      done();
+    }
   }
 
   function toggleLoginReveal(id, field) {
@@ -1029,7 +1138,7 @@
           '<div class="km-title-block">' +
             '<div class="km-eyebrow"><span class="pulse-dot"></span> Productivity Suite</div>' +
             '<div class="km-title"><i class="fas fa-bookmark"></i> Keep Memo</div>' +
-            '<div class="sp-sub" style="font-size:12.5px; color:#64748b;">Notes, calendar, reminders & data login <span class="km-stat-tag"><i class="fas fa-cloud"></i> Local Storage</span></div>' +
+            '<div class="sp-sub" style="font-size:12.5px; color:#64748b;">Notes, calendar, reminders & data login <span class="km-stat-tag" id="kmSrcTag"><i class="fas fa-database"></i> SQLITE&#8226;D1</span></div>' +
           '</div>' +
           '<div style="display:flex; gap:8px;">' +
             '<button class="km-btn secondary" id="kmExportBtn"><i class="fas fa-file-export"></i> Export</button>' +
@@ -1158,7 +1267,7 @@
             '<button class="km-modal-close" id="kmLoginModalClose"><i class="fas fa-times"></i></button>' +
           '</div>' +
           '<div class="km-modal-body">' +
-            '<div class="km-login-form-note"><i class="fas fa-shield-halved"></i> Data login tersimpan lokal di perangkat ini — password & PIN termasking otomatis</div>' +
+            '<div class="km-login-form-note"><i class="fas fa-shield-halved"></i> Data login tersimpan aman di database (per akun) — password & PIN termasking otomatis</div>' +
             '<div class="km-field">' +
               '<label class="km-field-label"><i class="fas fa-link"></i> Link</label>' +
               '<div class="km-input-iconwrap">' +
@@ -1320,13 +1429,10 @@
       console.warn('KeepMemoPro: #keepMemoView container not found');
       return;
     }
-    loadNotes();
-    loadReminders();
-    loadLogins();
     renderShell(container);
     wireEvents();
 
-    // Restore active tab
+    // Restore active tab (preferensi UI saja — bukan data)
     var savedTab = localStorage.getItem(ACTIVE_TAB_KEY);
     if (savedTab && savedTab !== 'notes') {
       switchTab(savedTab);
@@ -1335,18 +1441,26 @@
     }
     updateTabBadges();
 
+    // Data dari database D1 (fallback mode lokal otomatis)
+    loadAllFromApi().then(function () {
+      renderNotes();
+      renderReminders();
+      renderCalendar();
+      renderLogins();
+      updateTabBadges();
+      addTerminalLog('KeepMemoPro loaded — ' + (state.source === 'db' ? 'SQLite D1 (per-user)' : 'MODE LOKAL (db tidak terjangkau)') +
+        ' (' + state.notes.length + ' notes, ' + state.reminders.length + ' reminders, ' + state.logins.length + ' logins)');
+    });
+
     // Start reminder checker
     if (state.reminderCheckTimer) clearInterval(state.reminderCheckTimer);
     state.reminderCheckTimer = setInterval(checkUpcomingReminders, 30000); // every 30s
     checkUpcomingReminders(); // initial check
-
-    addTerminalLog('KeepMemoPro panel loaded (' + state.notes.length + ' notes, ' + state.reminders.length + ' reminders, ' + state.logins.length + ' logins)');
   }
 
   function init() {
-    loadNotes();
-    loadReminders();
-    loadLogins();
+    // Muat data dari database saat boot agar reminder toast tetap jalan
+    loadAllFromApi();
     // Start reminder checker on init so toasts fire even if user hasn't opened the panel
     if (state.reminderCheckTimer) clearInterval(state.reminderCheckTimer);
     state.reminderCheckTimer = setInterval(checkUpcomingReminders, 30000);
@@ -1364,14 +1478,13 @@
     getReminders: function () { return state.reminders.slice(); },
     getLogins: function () { return state.logins.slice(); },
     refresh: function () {
-      loadNotes();
-      loadReminders();
-      loadLogins();
-      renderNotes();
-      renderReminders();
-      renderCalendar();
-      renderLogins();
-      updateTabBadges();
+      return loadAllFromApi().then(function () {
+        renderNotes();
+        renderReminders();
+        renderCalendar();
+        renderLogins();
+        updateTabBadges();
+      });
     },
     exportData: exportData
   };
