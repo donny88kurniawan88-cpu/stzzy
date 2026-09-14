@@ -1356,3 +1356,10 @@
   .km-login-modal { max-width: 100%; }
   .km-login-time { display: none; }
 }
+
+/* === v2.0.0 — indikator sumber data (SQLite D1 vs mode lokal) === */
+.km-stat-tag.km-src-local {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
