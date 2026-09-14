@@ -1,5 +1,5 @@
 /* ============================================================
-   AURA.OS // PREDIKSI-PRO.CSS v1.0.0 — PREDIKSI ALL PASARAN
+   AURA.OS // PREDIKSI-PRO.CSS v1.1.0 — PREDIKSI ALL PASARAN
    Modul Prediksi: card popup gaya berita (senada Pk Jadwal).
    - Control panel: jam WIB live, chip filter status, copy all
    - Toggle dropdown pasaran (HOKI DRAW = 24 sesi)
@@ -162,6 +162,33 @@
 .pr-drop-list::-webkit-scrollbar { width: 8px; }
 .pr-drop-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 8px; }
 .pr-drop-list::-webkit-scrollbar-track { background: transparent; }
+
+/* kotak pencarian dropdown — ketik utk filter pasaran */
+.pr-drop-searchbox {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 12px;
+  background: rgba(8,10,16,0.96);
+  border-bottom: 1px solid rgba(34,211,238,0.16);
+}
+.pr-drop-search-ico { color: rgba(34,211,238,0.75); display: inline-flex; flex: 0 0 auto; }
+.pr-drop-search-ico svg { width: 15px; height: 15px; }
+.pr-drop-search {
+  flex: 1; min-width: 0;
+  font-family: var(--font-mono, monospace); font-size: 13px; font-weight: 600; letter-spacing: 0.05em;
+  color: #f1f5f9;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; padding: 9px 12px; outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.pr-drop-search::placeholder { color: rgba(148,163,184,0.6); font-weight: 500; }
+.pr-drop-search:hover { border-color: rgba(34,211,238,0.35); }
+.pr-drop-search:focus {
+  border-color: rgba(34,211,238,0.65);
+  background: rgba(34,211,238,0.06);
+  box-shadow: 0 0 0 3px rgba(34,211,238,0.14);
+}
 
 .pr-drop-empty { padding: 26px 16px; text-align: center; font-size: 12.5px; color: var(--text-tertiary, #64748b); }
 
@@ -343,21 +370,22 @@
 /* digit tiles BBFS + Angka Ikut */
 .pr-bbfs { display: flex; gap: 10px; flex-wrap: wrap; }
 .pr-tile {
-  width: 46px; height: 56px; border-radius: 12px;
+  width: 54px; height: 66px; border-radius: 13px;
   display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--font-mono, monospace); font-size: 24px; font-weight: 800;
-  color: #e0f7ff;
-  background: linear-gradient(160deg, rgba(34,211,238,0.16), rgba(99,102,241,0.12));
-  border: 1px solid rgba(34,211,238,0.35);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 18px rgba(34,211,238,0.10);
-  text-shadow: 0 0 14px rgba(34,211,238,0.55);
+  font-family: var(--font-mono, monospace); font-size: 30px; font-weight: 800;
+  color: #f0fcff;
+  background: linear-gradient(165deg, rgba(34,211,238,0.30) 0%, rgba(34,211,238,0.14) 45%, rgba(99,102,241,0.16) 100%);
+  border: 1.5px solid rgba(34,211,238,0.55);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -10px 18px rgba(8,47,73,0.45), 0 8px 22px rgba(34,211,238,0.18);
+  text-shadow: 0 0 6px rgba(34,211,238,0.9), 0 2px 3px rgba(0,0,0,0.6);
   opacity: 0; transform: scale(0.5) rotate(-8deg);
   animation: prTileIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards;
   animation-delay: calc(var(--i) * 70ms + 200ms);
 }
-.pr-tile:hover { transform: translateY(-3px); border-color: rgba(34,211,238,0.7); }
+.pr-tile:hover { transform: translateY(-3px); border-color: rgba(34,211,238,0.95); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 10px 26px rgba(34,211,238,0.3); }
 @keyframes prTileIn { to { opacity: 1; transform: scale(1) rotate(0); } }
-.pr-tile-sm { width: 38px; height: 46px; font-size: 19px; border-radius: 10px; color: #ede9fe; background: linear-gradient(160deg, rgba(139,92,246,0.15), rgba(59,130,246,0.1)); border-color: rgba(139,92,246,0.35); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 16px rgba(139,92,246,0.1); text-shadow: 0 0 12px rgba(139,92,246,0.55); animation-delay: calc(var(--i) * 60ms + 260ms); }
+.pr-tile-sm { width: 44px; height: 54px; font-size: 24px; border-radius: 11px; color: #f3efff; background: linear-gradient(165deg, rgba(139,92,246,0.32) 0%, rgba(139,92,246,0.14) 50%, rgba(59,130,246,0.14) 100%); border: 1.5px solid rgba(139,92,246,0.6); box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 7px 18px rgba(139,92,246,0.2); text-shadow: 0 0 7px rgba(167,139,250,0.95), 0 2px 3px rgba(0,0,0,0.55); animation-delay: calc(var(--i) * 60ms + 260ms); }
+.pr-tile-sm:hover { border-color: rgba(167,139,250,0.95); }
 .pr-ai { display: flex; gap: 9px; flex-wrap: wrap; }
 
 /* angka 4D / 3D / 2D */
@@ -374,24 +402,26 @@
 @keyframes prNumIn { to { opacity: 1; transform: none; } }
 .pr-num:hover { transform: translateY(-2px); }
 .pr-num-4d {
-  min-width: 86px; padding: 10px 14px; font-size: 19px; color: #fce7f3;
-  background: linear-gradient(160deg, rgba(244,114,182,0.13), rgba(99,102,241,0.1));
-  border: 1px solid rgba(244,114,182,0.32);
-  text-shadow: 0 0 12px rgba(244,114,182,0.45);
+  min-width: 92px; padding: 11px 15px; font-size: 21px; color: #ffe4f1;
+  background: linear-gradient(165deg, rgba(244,114,182,0.22), rgba(99,102,241,0.14));
+  border: 1.5px solid rgba(244,114,182,0.55);
+  text-shadow: 0 0 8px rgba(244,114,182,0.85), 0 2px 3px rgba(0,0,0,0.5);
 }
-.pr-num-4d:hover { border-color: rgba(244,114,182,0.6); box-shadow: 0 6px 18px rgba(244,114,182,0.15); }
+.pr-num-4d:hover { border-color: rgba(244,114,182,0.9); box-shadow: 0 6px 20px rgba(244,114,182,0.25); }
 .pr-num-3d {
-  min-width: 68px; padding: 9px 13px; font-size: 16px; color: #dbeafe;
-  background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3);
-  text-shadow: 0 0 10px rgba(59,130,246,0.45);
+  min-width: 74px; padding: 10px 14px; font-size: 18px; color: #e4f1ff;
+  background: linear-gradient(165deg, rgba(59,130,246,0.22), rgba(34,211,238,0.1));
+  border: 1.5px solid rgba(59,130,246,0.55);
+  text-shadow: 0 0 8px rgba(96,165,250,0.85), 0 2px 3px rgba(0,0,0,0.5);
 }
 .pr-num-3d:hover { border-color: rgba(59,130,246,0.6); }
 .pr-num-2d {
-  min-width: 48px; padding: 8px 11px; font-size: 14px; color: #d1fae5;
-  background: rgba(52,211,153,0.09); border: 1px solid rgba(52,211,153,0.28);
-  text-shadow: 0 0 10px rgba(52,211,153,0.4);
+  min-width: 54px; padding: 9px 12px; font-size: 16.5px; font-weight: 800; color: #e8fff5;
+  background: linear-gradient(165deg, rgba(52,211,153,0.2), rgba(16,185,129,0.1));
+  border: 1.5px solid rgba(52,211,153,0.5);
+  text-shadow: 0 0 7px rgba(52,211,153,0.85), 0 2px 3px rgba(0,0,0,0.5);
 }
-.pr-num-2d:hover { border-color: rgba(52,211,153,0.55); }
+.pr-num-2d:hover { border-color: rgba(52,211,153,0.85); box-shadow: 0 6px 18px rgba(52,211,153,0.22); }
 
 /* colok + invest (grid 2 kolom) */
 .pr-grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 16px; }
@@ -404,16 +434,18 @@
 .pr-mini:hover { border-color: rgba(34,211,238,0.3); transform: translateY(-2px); }
 .pr-mini .pr-sec-label { margin-bottom: 7px; }
 .pr-val {
-  font-family: var(--font-mono, monospace); font-size: 19px; font-weight: 800;
-  letter-spacing: 0.1em; color: var(--text-primary, #f1f5f9);
-  text-shadow: 0 0 12px rgba(34,211,238,0.3);
+  font-family: var(--font-mono, monospace); font-size: 22px; font-weight: 800;
+  letter-spacing: 0.12em; color: #ffffff;
+  text-shadow: 0 0 10px rgba(34,211,238,0.55), 0 2px 3px rgba(0,0,0,0.5);
 }
 .pr-val-shio { display: flex; gap: 7px; flex-wrap: wrap; }
 .pr-shio {
-  font-family: var(--font-mono, monospace); font-size: 11px; font-weight: 700;
-  letter-spacing: 0.12em; color: #fcd34d;
-  background: rgba(251,191,36,0.09); border: 1px solid rgba(251,191,36,0.3);
-  border-radius: 9px; padding: 5px 10px;
+  font-family: var(--font-mono, monospace); font-size: 12.5px; font-weight: 800;
+  letter-spacing: 0.14em; color: #ffe9a8;
+  background: linear-gradient(165deg, rgba(251,191,36,0.2), rgba(245,158,11,0.1));
+  border: 1.5px solid rgba(251,191,36,0.5);
+  text-shadow: 0 0 8px rgba(251,191,36,0.55);
+  border-radius: 9px; padding: 6px 12px;
   opacity: 0; transform: scale(0.8);
   animation: prNumIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
   animation-delay: calc(var(--i) * 80ms + 300ms);
@@ -459,10 +491,15 @@
   .pr-banner { padding: 18px 16px 14px; }
   .pr-body { padding: 6px 16px 18px; gap: 15px; }
   .pr-cardfoot { padding: 12px 16px 16px; }
-  .pr-tile { width: 38px; height: 47px; font-size: 19px; }
-  .pr-tile-sm { width: 32px; height: 40px; font-size: 16px; }
+  .pr-tile { width: 44px; height: 54px; font-size: 24px; border-radius: 11px; }
+  .pr-tile-sm { width: 36px; height: 44px; font-size: 19px; }
+  .pr-num-4d { min-width: 78px; font-size: 17px; }
+  .pr-num-3d { min-width: 62px; font-size: 15px; }
+  .pr-num-2d { min-width: 47px; font-size: 14.5px; }
+  .pr-val { font-size: 19px; }
   .pr-grid2 { grid-template-columns: 1fr; }
   .pr-clock { order: -1; }
   .pr-chips { width: 100%; }
   .pr-drop-label { font-size: 13px; }
+  .pr-drop-search { font-size: 12.5px; padding: 8px 11px; }
 }
