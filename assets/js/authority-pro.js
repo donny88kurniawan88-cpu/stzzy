@@ -36,7 +36,15 @@
     syair_database: 'prediction_tools', ai_prediction: 'prediction_tools',
     gas_slot_engine: 'prediction_tools',
     my_event: 'event_tools', history_event: 'event_tools',
-    pg_report: 'event_tools'
+    pg_report: 'event_tools',
+    /* v2.5.0 — Livechat Essentials */
+    prediksi_all_pasaran: 'livechat_essentials',
+    jadwal_all_pasaran: 'livechat_essentials',
+    pk_jadwal_pasaran: 'jadwal_all_pasaran',
+    link_alternatif: 'livechat_essentials',
+    perhitungan_parlay: 'livechat_essentials',
+    hadiah_togel: 'livechat_essentials',
+    pk_perhitungan: 'hadiah_togel'
   };
   var ACCESS_TREE = [
     {
@@ -79,6 +87,17 @@
           { key: 'history_event', label: 'History Event', icon: 'fa-clock-rotate-left' },
           { key: 'pg_report',     label: 'PG Report',     icon: 'fa-calculator' }
         ] },
+        { key: 'livechat_essentials', label: 'Livechat Essentials', icon: 'fa-headset', color: 'pink', children: [
+          { key: 'prediksi_all_pasaran', label: 'Prediksi All Pasaran', icon: 'fa-lightbulb' },
+          { key: 'jadwal_all_pasaran',   label: 'Jadwal All Pasaran',   icon: 'fa-clock', children: [
+            { key: 'pk_jadwal_pasaran', label: 'Pk Jadwal Pasaran', icon: 'fa-turn-up' }
+          ] },
+          { key: 'link_alternatif',      label: 'Link Alternatif',      icon: 'fa-link' },
+          { key: 'perhitungan_parlay',   label: 'Perhitungan Parlay',   icon: 'fa-shuffle' },
+          { key: 'hadiah_togel',         label: 'Hadiah Togel',         icon: 'fa-gift', children: [
+            { key: 'pk_perhitungan',    label: 'Pk Perhitungan',    icon: 'fa-turn-up' }
+          ] }
+        ] },
         { key: 'edit_bukti',       label: 'Edit Bukti',       icon: 'fa-pen-to-square' },
         { key: 'keep_memo',        label: 'Keep Memo',        icon: 'fa-clipboard' }
       ]
@@ -98,15 +117,18 @@
     }
   ];
 
-  /* Flat list 32 key (urutan sama dengan VALID_MODULES backend) */
+  /* Flat list 40 key (urutan sama dengan VALID_MODULES backend) */
   var ALL_KEYS = (function () {
     var keys = ['core', 'workspace', 'operational', 'system'];
     ACCESS_TREE.forEach(function (g) {
       keys.push(g.key);
-      g.items.forEach(function (it) {
-        keys.push(it.key);
-        if (it.children) it.children.forEach(function (c) { keys.push(c.key); });
-      });
+      /* v2.5.0 — rekursif: semua level sub-menu masuk daftar key */
+      (function walk(list) {
+        list.forEach(function (n) {
+          keys.push(n.key);
+          if (n.children) walk(n.children);
+        });
+      })(g.items);
     });
     /* dedupe (group keys sudah masuk di awal) */
     var seen = {}, out = [];
@@ -127,7 +149,7 @@
   var usersData = [];
   /* v2.4.0 — versi UI ini ditulis ke badge #uiVer di modal Edit Access.
      Bila badge TIDAK menunjukkan versi ini = browser masih memuat file lama (cache). */
-  var UI_VERSION = '2.4.0';
+  var UI_VERSION = '2.5.0';
   var backendLegacy = false; /* true = backend terdeteksi membuang key sub-menu saat save */
   var editUsername = null;
   var currentPage = 1;
@@ -581,15 +603,16 @@
   function findNode(key) {
     var found = null;
     ACCESS_TREE.forEach(function (g) {
+      if (found) return;
       if (g.key === key) { found = { isGroup: true, node: g, parent: null }; return; }
-      g.items.forEach(function (it) {
-        if (it.key === key) { found = { isGroup: false, node: it, parent: g.key }; return; }
-        if (it.children) {
-          it.children.forEach(function (c) {
-            if (c.key === key) { found = { isGroup: false, node: c, parent: it.key }; return; }
-          });
-        }
-      });
+      /* v2.5.0 — rekursif: mendukung sub-menu bertingkat (mis. pk_jadwal_pasaran) */
+      (function walk(list, parent) {
+        list.forEach(function (n) {
+          if (found) return;
+          if (n.key === key) { found = { isGroup: false, node: n, parent: parent }; return; }
+          if (n.children) walk(n.children, n.key);
+        });
+      })(g.items, g.key);
     });
     return found;
   }
@@ -609,19 +632,21 @@
   }
 
   /* Set checkbox untuk node + seluruh subtree-nya (jika grup).
-     Anak yang berubah state diberi highlight flash agar jelas tercentang. */
+     Anak yang berubah state diberi highlight flash agar jelas tercentang.
+     v2.5.0 — rekursif penuh: menangani sub-menu bertingkat (pk_*). */
   function setSubtree(key, val) {
     var found = findNode(key);
     if (!found) return;
     setChecked(key, val);
-    var items = found.isGroup ? found.node.items : (found.node.children || null);
-    if (items) {
-      items.forEach(function (it) {
-        flashPerm(it.key, val);
-        setChecked(it.key, val);
-        if (it.children) it.children.forEach(function (c) { flashPerm(c.key, val); setChecked(c.key, val); });
+    var roots = found.isGroup ? found.node.items : (found.node.children || null);
+    (function walk(list) {
+      if (!list) return;
+      list.forEach(function (n) {
+        flashPerm(n.key, val);
+        setChecked(n.key, val);
+        if (n.children) walk(n.children);
       });
-    }
+    })(roots);
   }
 
   /* Efek visual singkat pada baris sub-menu ketika ikut tercentang oleh induknya */
