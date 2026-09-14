@@ -1,380 +1,254 @@
 /* ============================================================
-   AURA.OS // LINKALT-PRO.JS v1.0.0
-   Modul Link Alternatif (Pro) — tabel link terklasifikasi,
-   tambah/hapus sederhana, filter kategori, pencarian.
-   UI dirender penuh ke #linkAltView. Exposed: window.LinkAltPro.
+   AURA.OS // LINKALT-PRO.CSS v1.0.0
+   Modul Link Alternatif — minimalis & profesional.
+   Terasa satu keluarga dengan tema dashboard (dark glass,
+   aksen biru/indigo, label mono uppercase, radius konsisten).
    ============================================================ */
 
-(function () {
-  'use strict';
+/* ---------- Kerangka utama ---------- */
+#linkAltView { --la-radius: 16px; }
 
-  /* ============================================================
-     STATE & KONSTANTA
-     ============================================================ */
-  var KEY = 'aura_link_alt_v1';
+.la-card {
+  width: 100%;
+  margin-top: 22px;
+  background: linear-gradient(160deg, #101018 0%, #0e0e15 100%);
+  border: 1px solid var(--border, rgba(255,255,255,0.07));
+  border-radius: 20px;
+  padding: 24px 26px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+  position: relative;
+  overflow: hidden;
+}
+.la-topline {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent-primary, #3b82f6), #8b5cf6);
+  opacity: 0.9;
+}
 
-  var CATS = [
-    { name: 'Link IP Domain',       c: '#38bdf8' },
-    { name: 'Link Domain Kepala 3', c: '#a78bfa' },
-    { name: 'Link Domain Kepala 8', c: '#e879f9' },
-    { name: 'Link AMP',             c: '#34d399' },
-    { name: 'Link Native',          c: '#fbbf24' },
-    { name: 'Link RTP & Blog',      c: '#fb7185' },
-    { name: 'Link DKWL Direct',     c: '#22d3ee' },
-    { name: 'Link Jalur Direct',    c: '#60a5fa' },
-    { name: 'Domain IT',            c: '#94a3b8' },
-    { name: 'Link Fusion X',        c: '#a3e635' }
-  ];
+/* ---------- Header ---------- */
+.la-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.la-head-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.la-icon {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-primary-light, rgba(59,130,246,0.12));
+  border: 1px solid rgba(59,130,246,0.28);
+  color: #93c5fd;
+}
+.la-icon svg { width: 21px; height: 21px; }
+.la-title {
+  margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em;
+  background: linear-gradient(90deg, #e2e8f0, #93c5fd);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.la-sub { margin: 3px 0 0; font-size: 12px; color: var(--text-tertiary, #64748b); }
 
-  var ICON_PLUS =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-  var ICON_TRASH =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
-  var ICON_SEARCH =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
-  var ICON_LINK =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+/* ---------- Tombol ---------- */
+.la-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 16px; border-radius: 10px; cursor: pointer;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 12.5px; font-weight: 700; line-height: 1;
+  border: 1px solid var(--border-focus, rgba(255,255,255,0.14));
+  background: transparent; color: var(--text-secondary, #94a3b8);
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+}
+.la-btn:hover { color: var(--text-primary, #f1f5f9); border-color: rgba(59,130,246,0.45); background: rgba(59,130,246,0.06); }
+.la-btn:active { transform: scale(0.97); }
+.la-btn-primary {
+  background: linear-gradient(135deg, var(--accent-primary, #3b82f6), #6366f1);
+  border-color: transparent; color: #fff;
+  box-shadow: 0 4px 14px rgba(59,130,246,0.28);
+}
+.la-btn-primary:hover { background: linear-gradient(135deg, #2f74ea, #5b5ce0); color: #fff; box-shadow: 0 6px 18px rgba(59,130,246,0.38); }
+.la-btn svg { width: 13px; height: 13px; }
 
-  var state = {
-    items: [],
-    cat: 'all',
-    loaded: false,
-    justAdded: null,
-    armId: null,
-    armTimer: null
-  };
+/* ---------- Statistik ---------- */
+.la-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px; margin-top: 20px;
+}
+.la-stat {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border, rgba(255,255,255,0.07));
+  border-radius: var(--la-radius);
+  padding: 14px 16px;
+  transition: border-color 0.2s ease;
+}
+.la-stat:hover { border-color: rgba(59,130,246,0.30); }
+.la-stat-k {
+  font-family: var(--font-mono, monospace); font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-tertiary, #64748b);
+}
+.la-stat-v { margin-top: 7px; font-size: 24px; font-weight: 800; color: var(--text-primary, #f1f5f9); line-height: 1.1; }
+.la-stat-v .la-unit { font-size: 13px; font-weight: 600; color: var(--text-tertiary, #64748b); }
+.la-stat-s { margin-top: 3px; font-size: 11px; color: var(--text-tertiary, #64748b); }
+.la-stat-v.la-v-sm { font-size: 14px; font-weight: 700; line-height: 1.5; }
 
-  /* ============================================================
-     HELPERS
-     ============================================================ */
-  function q(sel, ctx) { return (ctx || document).querySelector(sel); }
-  function container() { return document.getElementById('linkAltView'); }
+/* ---------- Chips kategori ---------- */
+.la-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+.la-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: 999px; cursor: pointer; user-select: none;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border, rgba(255,255,255,0.07));
+  color: var(--text-secondary, #94a3b8);
+  font-size: 11.5px; font-weight: 600;
+  transition: all 0.18s ease;
+}
+.la-chip:hover { border-color: rgba(59,130,246,0.45); color: var(--text-primary, #f1f5f9); transform: translateY(-1px); }
+.la-chip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.la-chip-n {
+  font-family: var(--font-mono, monospace); font-size: 9.5px;
+  background: rgba(255,255,255,0.06); color: var(--text-tertiary, #64748b);
+  border-radius: 999px; padding: 1px 6px; min-width: 14px; text-align: center;
+}
+.la-chip.active {
+  background: linear-gradient(135deg, var(--accent-primary, #3b82f6), #6366f1);
+  border-color: transparent; color: #fff;
+  box-shadow: 0 3px 12px rgba(59,130,246,0.30);
+}
+.la-chip.active .la-chip-n { background: rgba(255,255,255,0.2); color: #fff; }
+.la-chip.active .la-chip-dot { background: #fff !important; box-shadow: none; }
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
-    });
-  }
+/* ---------- Toolbar ---------- */
+.la-toolbar { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+.la-search {
+  flex: 1; min-width: 200px; display: flex; align-items: center; gap: 9px;
+  height: 38px; padding: 0 13px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border, rgba(255,255,255,0.07));
+  border-radius: 10px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.la-search:focus-within { border-color: rgba(59,130,246,0.5); box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+.la-search svg { width: 14px; height: 14px; color: var(--text-tertiary, #64748b); flex-shrink: 0; }
+.la-search input {
+  flex: 1; height: 100%; background: none; border: none; outline: none;
+  color: var(--text-primary, #f1f5f9); font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+}
+.la-search input::placeholder { color: var(--text-tertiary, #64748b); }
 
-  function catIdx(name) {
-    for (var i = 0; i < CATS.length; i++) if (CATS[i].name === name) return i;
-    return 0;
-  }
+/* ---------- Tabel ---------- */
+.la-twrap {
+  margin-top: 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border, rgba(255,255,255,0.07));
+  border-radius: var(--la-radius);
+  overflow: hidden;
+}
+.la-scroll { overflow-x: auto; }
+.la-table { width: 100%; border-collapse: collapse; min-width: 780px; }
+.la-table thead th {
+  font-family: var(--font-mono, monospace); font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-tertiary, #64748b);
+  text-align: left; padding: 12px 16px;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.07));
+  white-space: nowrap;
+}
+.la-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 12.5px; color: var(--text-secondary, #94a3b8);
+  vertical-align: middle;
+}
+.la-table tbody tr { transition: background 0.15s ease; }
+.la-table tbody tr:hover { background: rgba(59,130,246,0.045); }
+.la-table tbody tr:last-child td { border-bottom: none; }
+.la-dom { font-weight: 600; color: var(--text-primary, #f1f5f9); word-break: break-all; }
+.la-dom-id { font-family: var(--font-mono, monospace); font-size: 9.5px; color: var(--text-tertiary, #64748b); margin-top: 2px; letter-spacing: 0.04em; }
+.la-muted { color: #475569; }
+.la-time { font-size: 11.5px; white-space: nowrap; color: var(--text-secondary, #94a3b8); }
 
-  function fmt(ms) {
-    var d = new Date(ms);
-    var B = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    return d.getDate() + ' ' + B[d.getMonth()] + ' ' + d.getFullYear() + ' | ' +
-      ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
-  }
+/* Pill jenis link — tint halus per kategori */
+.la-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.01em;
+  padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+}
+.la-pill .la-chip-dot { width: 5px; height: 5px; }
 
-  function toast(msg, type) {
-    if (typeof window.showToast === 'function') window.showToast(msg, type);
-  }
+/* Status — minimal: titik + teks */
+.la-status { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; color: #34d399; white-space: nowrap; }
+.la-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent-success, #10b981);
+  box-shadow: 0 0 7px rgba(16,185,129,0.65); flex-shrink: 0;
+}
 
-  /* ============================================================
-     DATA (localStorage — pola sama dgn keepmemo-pro)
-     ============================================================ */
-  function load() {
-    if (state.loaded) return;
-    state.loaded = true;
-    try {
-      var raw = localStorage.getItem(KEY);
-      state.items = raw ? JSON.parse(raw) : null;
-    } catch (e) { state.items = null; }
-    if (!Array.isArray(state.items)) {
-      var now = Date.now();
-      state.items = [
-        { id: 'lex1', domain: '157.230.38.70',            cat: 'Link IP Domain',       redirect: '',               created: now - 86400000 },
-        { id: 'lex2', domain: 'luna86483.com',            cat: 'Link Domain Kepala 8', redirect: '',               created: now - 43200000 },
-        { id: 'lex3', domain: 'jalursitus.com/lunatogel', cat: 'Link Jalur Direct',    redirect: 'jalursitus.com', created: now - 3600000 },
-        { id: 'lex4', domain: 'mwamodels.com',            cat: 'Link Jalur Direct',    redirect: '',               created: now - 1800000 }
-      ];
-      persist();
-    }
-  }
+/* Aksi hapus — ghost icon, arm merah */
+.la-del {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 28px; height: 28px; padding: 0 7px; border-radius: 8px; cursor: pointer;
+  border: 1px solid transparent; background: transparent; color: var(--text-tertiary, #64748b);
+  font-family: var(--font-sans, 'Inter', sans-serif); font-size: 10.5px; font-weight: 700;
+  transition: all 0.18s ease; white-space: nowrap;
+}
+.la-del svg { width: 13px; height: 13px; }
+.la-del:hover { color: #f87171; background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.22); }
+.la-del.arm { color: #fff; background: var(--accent-danger, #ef4444); border-color: transparent; box-shadow: 0 0 12px rgba(239,68,68,0.35); padding: 0 10px; }
+.la-del.arm:hover { color: #fff; background: #dc2626; }
 
-  function persist() {
-    try { localStorage.setItem(KEY, JSON.stringify(state.items)); } catch (e) {}
-  }
+/* Empty state */
+.la-empty { padding: 44px 20px; text-align: center; color: var(--text-tertiary, #64748b); font-size: 12.5px; line-height: 1.8; }
+.la-empty b { color: #93c5fd; font-weight: 700; }
 
-  /* ============================================================
-     MARKUP (dibangun sekali, lalu partial update)
-     ============================================================ */
-  function build() {
-    var v = container();
-    if (!v || v.dataset.built === '1') return;
+/* Baris baru — flash halus */
+@keyframes laFlash { 0% { background: rgba(59,130,246,0.16); } 100% { background: transparent; } }
+.la-table tr.la-new td { animation: laFlash 1.6s ease; }
 
-    var options = CATS.map(function (c) {
-      return '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>';
-    }).join('');
+/* ---------- Modal ---------- */
+.la-modal {
+  position: fixed; inset: 0; z-index: 3000;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(4,4,8,0.70); backdrop-filter: blur(8px);
+  padding: 18px;
+}
+.la-modal.open { display: flex; }
+.la-mbox {
+  width: min(92vw, 440px);
+  background: linear-gradient(165deg, #15151f 0%, #101018 100%);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 18px; padding: 24px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+  position: relative; overflow: hidden;
+  max-height: 90vh; overflow-y: auto;
+  animation: laIn 0.22s ease;
+}
+@keyframes laIn { from { opacity: 0; transform: scale(0.96) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.la-mtop { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent-primary, #3b82f6), #8b5cf6); }
+.la-mtitle { margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary, #f1f5f9); letter-spacing: -0.01em; }
+.la-msub { margin: 4px 0 0; font-size: 11.5px; color: var(--text-tertiary, #64748b); }
+.la-field { margin-top: 15px; }
+.la-label {
+  display: block; margin-bottom: 7px;
+  font-family: var(--font-mono, monospace); font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-tertiary, #64748b);
+}
+.la-label .la-opt { text-transform: none; letter-spacing: 0.02em; color: #475569; }
+.la-input, .la-select {
+  width: 100%; background: rgba(10,10,16,0.8);
+  border: 1px solid var(--border-focus, rgba(255,255,255,0.14));
+  border-radius: 10px; padding: 11px 13px;
+  color: var(--text-primary, #f1f5f9); font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.la-input::placeholder { color: #475569; }
+.la-input:focus, .la-select:focus { border-color: rgba(59,130,246,0.55); box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
+.la-select { cursor: pointer; }
+.la-select option { background: #14141e; color: var(--text-primary, #f1f5f9); }
+.la-mfoot { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
 
-    v.innerHTML =
-      '<div class="la-card">' +
-        '<div class="la-topline"></div>' +
-        '<div class="la-head">' +
-          '<div class="la-head-left">' +
-            '<div class="la-icon">' + ICON_LINK + '</div>' +
-            '<div style="min-width:0;">' +
-              '<h2 class="la-title">Link Alternatif</h2>' +
-              '<p class="la-sub">Kelola daftar link terklasifikasi — tambah &amp; hapus dengan sederhana.</p>' +
-            '</div>' +
-          '</div>' +
-          '<button type="button" class="la-btn la-btn-primary" data-action="add">' + ICON_PLUS + 'Tambah Link</button>' +
-        '</div>' +
-        '<div class="la-stats">' +
-          '<div class="la-stat"><div class="la-stat-k">Total Link</div><div class="la-stat-v" data-la="total">0</div><div class="la-stat-s">seluruh kategori</div></div>' +
-          '<div class="la-stat"><div class="la-stat-k">Kategori Terpakai</div><div class="la-stat-v" data-la="cat">0</div><div class="la-stat-s">jenis link aktif</div></div>' +
-          '<div class="la-stat"><div class="la-stat-k">Link Terakhir</div><div class="la-stat-v la-v-sm" data-la="last">&mdash;</div><div class="la-stat-s">penambahan terbaru</div></div>' +
-        '</div>' +
-        '<div class="la-chips" data-la="chips"></div>' +
-        '<div class="la-toolbar">' +
-          '<div class="la-search">' + ICON_SEARCH +
-            '<input id="laSearch" type="text" placeholder="Cari domain&hellip;" autocomplete="off">' +
-          '</div>' +
-          '<button type="button" class="la-btn" data-action="reset" data-la="reset" style="display:none;">Reset Filter</button>' +
-        '</div>' +
-        '<div class="la-twrap">' +
-          '<div class="la-scroll">' +
-            '<table class="la-table">' +
-              '<thead><tr>' +
-                '<th style="text-align:left;">Domain</th>' +
-                '<th>Redirect</th>' +
-                '<th>Jenis Link</th>' +
-                '<th>Ditambahkan</th>' +
-                '<th>Status</th>' +
-                '<th>Diedit</th>' +
-                '<th style="text-align:right;">Aksi</th>' +
-              '</tr></thead>' +
-              '<tbody data-la="body"></tbody>' +
-            '</table>' +
-          '</div>' +
-          '<div class="la-empty" data-la="empty" style="display:none;"></div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="la-modal" data-la="modal">' +
-        '<div class="la-mbox">' +
-          '<div class="la-mtop"></div>' +
-          '<h3 class="la-mtitle">Tambah Link Baru</h3>' +
-          '<p class="la-msub">Isi domain dan klasifikasinya &mdash; redirect bersifat opsional.</p>' +
-          '<div class="la-field">' +
-            '<label class="la-label" for="laInDom">Domain / Link</label>' +
-            '<input class="la-input" id="laInDom" type="text" placeholder="contoh: jalursitus.com/lunatogel" autocomplete="off">' +
-          '</div>' +
-          '<div class="la-field">' +
-            '<label class="la-label" for="laInCat">Jenis Link</label>' +
-            '<select class="la-select" id="laInCat">' + options + '</select>' +
-          '</div>' +
-          '<div class="la-field">' +
-            '<label class="la-label" for="laInRed">Redirect <span class="la-opt">(opsional)</span></label>' +
-            '<input class="la-input" id="laInRed" type="text" placeholder="contoh: jalursitus.com" autocomplete="off">' +
-          '</div>' +
-          '<div class="la-mfoot">' +
-            '<button type="button" class="la-btn" data-action="close">Batal</button>' +
-            '<button type="button" class="la-btn la-btn-primary" data-action="save">Simpan Link</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-
-    v.dataset.built = '1';
-
-    /* Event delegation sekali pada container */
-    v.addEventListener('click', function (e) {
-      var t = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
-      if (!t || !v.contains(t)) return;
-      var act = t.getAttribute('data-action');
-      if (act === 'add') openAdd();
-      else if (act === 'close') closeAdd();
-      else if (act === 'save') save();
-      else if (act === 'reset') { state.cat = 'all'; var s = q('#laSearch', v); if (s) s.value = ''; render(); }
-      else if (act === 'chip') { state.cat = t.getAttribute('data-cat') || 'all'; render(); }
-      else if (act === 'del') del(t.getAttribute('data-id'), t);
-    });
-
-    var modal = q('[data-la="modal"]', v);
-    if (modal) {
-      modal.addEventListener('click', function (e) { if (e.target === modal) closeAdd(); });
-    }
-
-    var search = q('#laSearch', v);
-    if (search) search.addEventListener('input', function () { render(); });
-  }
-
-  /* ============================================================
-     RENDER (chips, stats, tabel)
-     ============================================================ */
-  function render() {
-    build();
-    load();
-    var v = container();
-    if (!v) return;
-
-    /* Chips kategori */
-    var chipsEl = q('[data-la="chips"]', v);
-    var counts = {};
-    state.items.forEach(function (it) { counts[it.cat] = (counts[it.cat] || 0) + 1; });
-
-    var h = '<button type="button" class="la-chip' + (state.cat === 'all' ? ' active' : '') + '" data-action="chip" data-cat="all">Semua<span class="la-chip-n">' + state.items.length + '</span></button>';
-    CATS.forEach(function (c) {
-      var n = counts[c.name] || 0;
-      h += '<button type="button" class="la-chip' + (state.cat === c.name ? ' active' : '') + '" data-action="chip" data-cat="' + esc(c.name) + '">' +
-        '<span class="la-chip-dot" style="background:' + c.c + ';"></span>' + esc(c.name) +
-        '<span class="la-chip-n">' + n + '</span></button>';
-    });
-    chipsEl.innerHTML = h;
-
-    /* Statistik */
-    var used = {};
-    state.items.forEach(function (it) { used[it.cat] = 1; });
-    var elT = q('[data-la="total"]', v); if (elT) elT.textContent = state.items.length;
-    var elC = q('[data-la="cat"]', v);
-    if (elC) elC.innerHTML = Object.keys(used).length + '<span class="la-unit">/' + CATS.length + '</span>';
-    var elL = q('[data-la="last"]', v);
-    if (elL) {
-      var last = null;
-      state.items.forEach(function (it) { if (!last || it.created > last.created) last = it; });
-      elL.textContent = last ? fmt(last.created) : '\u2014';
-    }
-
-    /* Filter + tabel */
-    var search = q('#laSearch', v);
-    var term = ((search && search.value) || '').trim().toLowerCase();
-    var rows = state.items
-      .filter(function (it) {
-        return (state.cat === 'all' || it.cat === state.cat) &&
-          (!term || it.domain.toLowerCase().indexOf(term) !== -1);
-      })
-      .sort(function (a, b) { return b.created - a.created; });
-
-    var resetBtn = q('[data-la="reset"]', v);
-    if (resetBtn) resetBtn.style.display = (state.cat !== 'all' || term) ? 'inline-flex' : 'none';
-
-    var body = q('[data-la="body"]', v);
-    var empty = q('[data-la="empty"]', v);
-    if (!body) return;
-
-    if (!rows.length) {
-      body.innerHTML = '';
-      if (empty) {
-        empty.style.display = 'block';
-        empty.innerHTML = state.items.length
-          ? 'Tidak ada link yang cocok dengan filter / pencarian saat ini.'
-          : 'Belum ada link tersimpan &mdash; klik <b>Tambah Link</b> untuk menambahkan yang pertama.';
-      }
-      return;
-    }
-    if (empty) empty.style.display = 'none';
-
-    body.innerHTML = rows.map(function (it) {
-      var cc = CATS[catIdx(it.cat)].c;
-      var cls = (it.id === state.justAdded) ? ' class="la-new"' : '';
-      return '<tr' + cls + '>' +
-        '<td><div class="la-dom">' + esc(it.domain) + '</div><div class="la-dom-id">ID: ' + esc(String(it.id || '').slice(-8)) + '</div></td>' +
-        '<td>' + (it.redirect ? esc(it.redirect) : '<span class="la-muted">&mdash;</span>') + '</td>' +
-        '<td><span class="la-pill" style="color:' + cc + '; background:' + cc + '14;"><span class="la-chip-dot" style="background:' + cc + ';"></span>' + esc(it.cat) + '</span></td>' +
-        '<td class="la-time">' + fmt(it.created) + '</td>' +
-        '<td><span class="la-status"><span class="la-dot"></span>AMAN</span></td>' +
-        '<td class="la-time la-muted">&mdash;</td>' +
-        '<td style="text-align:right;"><button type="button" class="la-del" data-action="del" data-id="' + esc(it.id) + '" aria-label="Hapus link">' + ICON_TRASH + '</button></td>' +
-      '</tr>';
-    }).join('');
-
-    state.justAdded = null;
-  }
-
-  /* ============================================================
-     AKSI: tambah (modal), hapus (2-klik)
-     ============================================================ */
-  function openAdd() {
-    build(); load();
-    var v = container();
-    var modal = q('[data-la="modal"]', v);
-    if (!modal) return;
-    var d = q('#laInDom', v);
-    if (d) d.value = '';
-    var r = q('#laInRed', v);
-    if (r) r.value = '';
-    modal.classList.add('open');
-    setTimeout(function () { if (d) d.focus(); }, 60);
-  }
-
-  function closeAdd() {
-    var v = container();
-    var modal = v && q('[data-la="modal"]', v);
-    if (modal) modal.classList.remove('open');
-  }
-
-  function save() {
-    build(); load();
-    var v = container();
-    var domEl = q('#laInDom', v);
-    var catEl = q('#laInCat', v);
-    var redEl = q('#laInRed', v);
-    if (!domEl) return;
-
-    var dom = domEl.value.trim().replace(/^https?:\/\//i, '');
-    var cat = (catEl && catEl.value) || CATS[0].name;
-    var red = redEl ? redEl.value.trim().replace(/^https?:\/\//i, '') : '';
-
-    if (!dom) { toast('Domain tidak boleh kosong', 'warning'); domEl.focus(); return; }
-    var dup = state.items.some(function (it) { return it.domain.toLowerCase() === dom.toLowerCase(); });
-    if (dup) { toast('Link sudah ada di daftar', 'warning'); return; }
-
-    var id = 'l' + Date.now().toString(36) + Math.random().toString(16).slice(2, 6);
-    state.items.push({ id: id, domain: dom, cat: cat, redirect: red, created: Date.now() });
-    persist();
-    closeAdd();
-    if (state.cat !== 'all' && state.cat !== cat) state.cat = 'all';
-    state.justAdded = id;
-    render();
-    toast('Link "' + dom + '" ditambahkan', 'success');
-  }
-
-  function disarm() {
-    if (!state.armId) return;
-    var v = container();
-    var b = v && q('.la-del[data-id="' + state.armId + '"]', v);
-    if (b) {
-      b.classList.remove('arm');
-      b.innerHTML = ICON_TRASH;
-    }
-    state.armId = null;
-  }
-
-  function del(id, btn) {
-    if (state.armId !== id) {
-      disarm();
-      state.armId = id;
-      btn.classList.add('arm');
-      btn.innerHTML = 'Yakin?';
-      if (state.armTimer) clearTimeout(state.armTimer);
-      state.armTimer = setTimeout(disarm, 3000);
-      return;
-    }
-    if (state.armTimer) { clearTimeout(state.armTimer); state.armTimer = null; }
-    state.armId = null;
-    load();
-    var it = null;
-    state.items = state.items.filter(function (x) { if (x.id === id) it = x; return x.id !== id; });
-    persist();
-    render();
-    toast('Link ' + (it ? '"' + it.domain + '" ' : '') + 'dihapus', 'success');
-  }
-
-  /* Escape menutup modal */
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeAdd();
-  });
-
-  /* ============================================================
-     EXPOSE
-     ============================================================ */
-  window.LinkAltPro = {
-    render: render,
-    openAdd: openAdd,
-    closeAdd: closeAdd,
-    save: save,
-    del: del,
-    load: load
-  };
-})();
+/* ---------- Responsif ---------- */
+@media (max-width: 640px) {
+  .la-card { padding: 18px 16px; border-radius: 16px; }
+  .la-stat-v { font-size: 21px; }
+  .la-toolbar { flex-direction: column; align-items: stretch; }
+  .la-search { min-width: 0; }
+  .la-btn, .la-btn-primary { width: 100%; }
+}
