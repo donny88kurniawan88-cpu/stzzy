@@ -1,11 +1,19 @@
 /* ============================================================
-   AURA.OS // PREDIKSI-PRO.CSS v1.1.0 — PREDIKSI ALL PASARAN
+   AURA.OS // PREDIKSI-PRO.CSS v1.2.0 — PREDIKSI ALL PASARAN
    Modul Prediksi: card popup gaya berita (senada Pk Jadwal).
    - Control panel: jam WIB live, chip filter status, copy all
    - Toggle dropdown pasaran (HOKI DRAW = 24 sesi)
    - Card prediksi: banner headline Playfair stagger + sheen,
      ticker BREAKING, digit tiles glow, angka stagger masuk,
      bar UPS emas
+   - v1.2.0 FIX PENTING: semua elemen animasi-masuk kini memakai
+     pola keyframes-from + fill-mode:backwards (TANPA opacity:0
+     pada style dasar) sehingga konten TETAP TERLIHAT saat
+     repaint tanpa animasi (tick menit / ekstensi browser /
+     animation:none). Dulu: kartu hilang sendiri setelah ±1 menit
+     karena .pr-noanim mematikan animasi pd elemen opacity:0.
+   - Baru: chip tanggal bisa diklik (ubah tanggal edisi) + badge
+     MANUAL + chip keterangan geser-otomatis setelah result.
    Satu keluarga dgn pkpasaran-pro.css (var tema AURA.OS).
    ============================================================ */
 
@@ -198,7 +206,7 @@
   background: transparent; color: var(--text-secondary, #cbd5e1);
   cursor: pointer; text-align: left; font-family: var(--font-sans, 'Inter', sans-serif);
   transition: all 0.16s ease;
-  opacity: 0; animation: prOptIn 0.3s ease forwards; animation-delay: calc(var(--i) * 12ms);
+  animation: prOptIn 0.3s ease backwards; animation-delay: calc(var(--i) * 12ms);
 }
 @keyframes prOptIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
 .pr-opt:hover { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.18); }
@@ -293,11 +301,10 @@
 }
 .pr-headline .pr-ch {
   display: inline-block;
-  opacity: 0; transform: translateY(14px) rotate(4deg);
-  animation: prCharIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  animation: prCharIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards;
   animation-delay: calc(var(--ci) * 26ms + 80ms);
 }
-@keyframes prCharIn { to { opacity: 1; transform: none; } }
+@keyframes prCharIn { from { opacity: 0; transform: translateY(14px) rotate(4deg); } to { opacity: 1; transform: none; } }
 .pr-headline::after {
   content: ''; position: absolute; top: 0; left: -60%; width: 45%; height: 100%;
   background: linear-gradient(105deg, transparent, rgba(255,255,255,0.10), transparent);
@@ -330,6 +337,61 @@
 }
 .pr-jadwalchip svg { width: 12px; height: 12px; }
 
+/* chip keterangan geser-otomatis (result sudah keluar -> draw berikutnya) */
+.pr-rollchip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 600; color: #6ee7b7;
+  background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.32);
+  border-radius: 20px; padding: 5px 12px;
+}
+.pr-rollchip svg { width: 12px; height: 12px; flex: 0 0 12px; }
+
+/* chip tanggal = tombol ubah tanggal edisi + popover datepicker */
+.pr-datewrap { position: relative; display: inline-flex; }
+.pr-datechip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono, monospace); font-size: 11px; font-weight: 600;
+  color: var(--text-tertiary, #94a3b8);
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 20px; padding: 5px 12px; cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+.pr-datechip svg { width: 13px; height: 13px; }
+.pr-datechip:hover { color: var(--accent-primary, #22d3ee); border-color: rgba(34,211,238,0.5); background: rgba(34,211,238,0.06); box-shadow: 0 0 0 3px rgba(34,211,238,0.1); }
+.pr-datechip.is-manual { color: #fcd34d; border-color: rgba(251,191,36,0.45); background: rgba(251,191,36,0.08); }
+.pr-datechip.is-manual:hover { color: #fde68a; border-color: rgba(251,191,36,0.7); box-shadow: 0 0 0 3px rgba(251,191,36,0.12); }
+.pr-date-man {
+  font-size: 8.5px; font-weight: 800; letter-spacing: 0.14em; color: #fcd34d;
+  background: rgba(251,191,36,0.16); border: 1px solid rgba(251,191,36,0.4);
+  border-radius: 10px; padding: 1px 7px; margin-left: 2px;
+}
+.pr-datepop {
+  position: absolute; top: calc(100% + 10px); left: 0; z-index: 70;
+  width: 268px; max-width: calc(100vw - 40px); padding: 14px;
+  background: rgba(10,10,15,0.96);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(34,211,238,0.25); border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+  animation: prDropIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  text-align: left;
+}
+.pr-datepop-label {
+  display: block; font-family: var(--font-mono, monospace); font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.18em; color: var(--text-tertiary, #64748b); margin-bottom: 9px;
+}
+.pr-datepop input[type="date"] {
+  width: 100%; color-scheme: dark;
+  font-family: var(--font-mono, monospace); font-size: 13px; font-weight: 600;
+  color: #f1f5f9; background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.14); border-radius: 10px;
+  padding: 9px 11px; outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.pr-datepop input[type="date"]:focus { border-color: rgba(34,211,238,0.65); box-shadow: 0 0 0 3px rgba(34,211,238,0.14); }
+.pr-datepop-actions { display: flex; gap: 8px; margin-top: 11px; }
+.pr-datepop-actions .pr-btn { flex: 1; justify-content: center; padding: 8px 10px; font-size: 11px; }
+.pr-datepop-note { margin-top: 9px; font-size: 10.5px; line-height: 1.55; color: var(--text-tertiary, #64748b); }
+
 /* ticker BREAKING */
 .pr-ticker {
   position: relative; margin-top: 14px; overflow: hidden;
@@ -350,11 +412,10 @@
 .pr-body { padding: 8px 26px 24px; display: flex; flex-direction: column; gap: 18px; }
 
 .pr-sec {
-  opacity: 0; transform: translateY(12px);
-  animation: prSecIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  animation: prSecIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards;
   animation-delay: calc(var(--i) * 90ms + 150ms);
 }
-@keyframes prSecIn { to { opacity: 1; transform: none; } }
+@keyframes prSecIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
 .pr-sec-label {
   display: flex; align-items: center; gap: 8px;
@@ -378,12 +439,11 @@
   border: 1.5px solid rgba(34,211,238,0.55);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -10px 18px rgba(8,47,73,0.45), 0 8px 22px rgba(34,211,238,0.18);
   text-shadow: 0 0 6px rgba(34,211,238,0.9), 0 2px 3px rgba(0,0,0,0.6);
-  opacity: 0; transform: scale(0.5) rotate(-8deg);
-  animation: prTileIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  animation: prTileIn 0.45s cubic-bezier(0.34,1.56,0.64,1) backwards;
   animation-delay: calc(var(--i) * 70ms + 200ms);
 }
 .pr-tile:hover { transform: translateY(-3px); border-color: rgba(34,211,238,0.95); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 10px 26px rgba(34,211,238,0.3); }
-@keyframes prTileIn { to { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes prTileIn { from { opacity: 0; transform: scale(0.5) rotate(-8deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
 .pr-tile-sm { width: 44px; height: 54px; font-size: 24px; border-radius: 11px; color: #f3efff; background: linear-gradient(165deg, rgba(139,92,246,0.32) 0%, rgba(139,92,246,0.14) 50%, rgba(59,130,246,0.14) 100%); border: 1.5px solid rgba(139,92,246,0.6); box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 7px 18px rgba(139,92,246,0.2); text-shadow: 0 0 7px rgba(167,139,250,0.95), 0 2px 3px rgba(0,0,0,0.55); animation-delay: calc(var(--i) * 60ms + 260ms); }
 .pr-tile-sm:hover { border-color: rgba(167,139,250,0.95); }
 .pr-ai { display: flex; gap: 9px; flex-wrap: wrap; }
@@ -394,12 +454,11 @@
   font-family: var(--font-mono, monospace); font-weight: 700;
   display: inline-flex; align-items: center; justify-content: center;
   border-radius: 10px; letter-spacing: 0.08em;
-  opacity: 0; transform: translateY(10px) scale(0.9);
-  animation: prNumIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  animation: prNumIn 0.4s cubic-bezier(0.34,1.56,0.64,1) backwards;
   animation-delay: calc(var(--i) * 45ms + 240ms);
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
-@keyframes prNumIn { to { opacity: 1; transform: none; } }
+@keyframes prNumIn { from { opacity: 0; transform: translateY(10px) scale(0.9); } to { opacity: 1; transform: none; } }
 .pr-num:hover { transform: translateY(-2px); }
 .pr-num-4d {
   min-width: 92px; padding: 11px 15px; font-size: 21px; color: #ffe4f1;
@@ -446,10 +505,10 @@
   border: 1.5px solid rgba(251,191,36,0.5);
   text-shadow: 0 0 8px rgba(251,191,36,0.55);
   border-radius: 9px; padding: 6px 12px;
-  opacity: 0; transform: scale(0.8);
-  animation: prNumIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  animation: prShioIn 0.4s cubic-bezier(0.34,1.56,0.64,1) backwards;
   animation-delay: calc(var(--i) * 80ms + 300ms);
 }
+@keyframes prShioIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: none; } }
 
 /* bar UPS */
 .pr-ups {
@@ -502,4 +561,6 @@
   .pr-chips { width: 100%; }
   .pr-drop-label { font-size: 13px; }
   .pr-drop-search { font-size: 12.5px; padding: 8px 11px; }
+  .pr-datepop { width: 246px; }
+  .pr-rollchip { font-size: 10.5px; }
 }
