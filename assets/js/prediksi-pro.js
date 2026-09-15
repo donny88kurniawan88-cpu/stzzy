@@ -1,13 +1,25 @@
 /* ============================================================
-   AURA.OS // PREDIKSI-PRO.JS v1.1.0 — PREDIKSI ALL PASARAN
+   AURA.OS // PREDIKSI-PRO.JS v1.2.0 — PREDIKSI ALL PASARAN
    Modul Prediksi All Pasaran (Pro):
    - Menarik data pasaran dari menu Jadwal Pasaran (D1 SQLite
      via GET /api/pasaran, fallback localStorage — sumber sama).
-   - Toggle dropdown pilih pasaran + chip filter status:
-     SEMUA / BUKA / TUTUP / RESULT. HOKI DRAW = 24 sesi.
-   - Prediksi dibangkitkan TERDETERMINISTIK (seeded RNG:
-     nama pasaran + sesi + tanggal WIB) sehingga stabil
-     sepanjang hari, berganti otomatis tiap hari / sesi HOKI.
+   - Toggle dropdown pilih pasaran (bisa diketik utk mencari) +
+     chip filter status: SEMUA / BUKA / TUTUP / RESULT. HOKI = 24 sesi.
+   - Prediksi dibangkitkan TERDETERMINISTIK (seeded RNG: nama
+     pasaran + sesi + TANGGAL EDISI) sehingga stabil sepanjang
+     periode, berganti otomatis tiap hari / sesi HOKI.
+   - v1.2.0 (perbaikan + fitur):
+     a) FIX KARTU HILANG: repaint menit-an (pr-noanim) dulu
+        membuat elemen ber-opacity:0 hilang selamanya — kini CSS
+        memakai pola backwards sehingga konten selalu terlihat.
+     b) RESULT -> PREDIKSI OTOMATIS TANGGAL BERIKUTNYA: pasaran
+        yang result-nya sudah keluar otomatis diprediksi untuk
+        draw berikutnya (besok / hari-buka berikutnya; HOKI =
+        sesi jam berikutnya), lengkap dgn chip keterangan.
+     c) PILIHAN UBAH TANGGAL: chip tanggal bisa diklik -> popover
+        datepicker (TERAPKAN / OTOMATIS) — semua prediksi (kartu,
+        copy pasaran, copy all) mengikuti tanggal pilihan + badge
+        MANUAL. Kembali otomatis kapan saja.
    - Card popup animasi gaya berita (senada Pk Jadwal Pasaran),
      format prediksi persis contoh user (BBFS, Angka Ikut, 4D,
      3D, 2D, Colok Bebas/Macau/Shio, Invest Twin, footer UPS).
@@ -42,6 +54,10 @@
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
   var ICON_SEARCH =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>';
+  var ICON_NEXT =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+  var ICON_CALENDAR =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
 
   /* Negara pasaran — acuan tabel 53 pasaran (sama dgn pkpasaran-pro.js) */
   var COUNTRY_REF = [
@@ -101,6 +117,7 @@
     selLocked: false,      // user sudah memilih manual
     filter: 'all',         // all | buka | tutup | result
     dropQuery: '',         // kata kunci pencarian dropdown
+    viewDate: '',          // tanggal edisi manual 'YYYY-MM-DD' ('' = otomatis)
     lastList: [],          // hasil deriveList() (76 entri, HOKI = 24)
     built: false,
     animate: true
@@ -193,8 +210,30 @@
     var d = wibNow().date;
     return {
       label: d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + ' ' + d.getFullYear(),
-      seed: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())
+      seed: dateToSeed(d)
     };
+  }
+
+  function dateToSeed(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  /* '2026-09-15' -> '15 Sep 2026' (invalid -> '') */
+  function seedToLabel(seed) {
+    var p = String(seed || '').split('-');
+    if (p.length !== 3) return '';
+    var y = parseInt(p[0], 10), mi = parseInt(p[1], 10) - 1, dd = parseInt(p[2], 10);
+    if (!(y >= 2000 && y <= 2200) || mi < 0 || mi > 11 || !(dd >= 1 && dd <= 31)) return '';
+    return dd + ' ' + MONTH_SHORT[mi] + ' ' + y;
+  }
+
+  function addDays(d, n) { var x = new Date(d.getTime()); x.setDate(x.getDate() + n); return x; }
+
+  /* Hari-buka berikutnya: mulai n hari dr d, lewati hari tutup */
+  function nextOpenDay(d, closed, n) {
+    var x = addDays(d, n || 1), guard = 0;
+    while (closed && closed.indexOf(x.getDay()) !== -1 && guard < 8) { x = addDays(x, 1); guard++; }
+    return x;
   }
 
   /* ============================================================
@@ -297,13 +336,63 @@
     };
   }
 
+  /* ============================================================
+     EDISI PREDIKSI — tanggal/sesi target sebuah prediksi
+     - Result SUDAH KELUAR -> otomatis geser ke draw BERIKUTNYA:
+       pasaran = besok / hari-buka berikutnya; HOKI = sesi +1 jam
+       (23:00 -> besok 00:00). Disertai chip keterangan.
+     - LIBUR -> draw berikutnya pada hari yang tidak tutup.
+     - Tanggal manual (state.viewDate) -> semua prediksi memakai
+       tanggal tersebut (HOKI tetap sesi terpilih).
+     ============================================================ */
+  function editionOf(it) {
+    var manual = /^\d{4}-\d{2}-\d{2}$/.test(state.viewDate || '');
+    var d = wibNow().date;
+    var slot = it.hoki ? (it.sub >= 0 ? it.sub : 0) : -1;
+    var rolled = false, note = '';
+
+    if (manual) {
+      var p = state.viewDate.split('-');
+      d = new Date(wibNow().date.getTime());
+      d.setFullYear(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+    } else if (it.hoki) {
+      if (it.st === 'result') {
+        slot = (slot + 1) % 24;
+        if (slot === 0) d = addDays(d, 1);
+        rolled = true;
+        note = 'Result sesi ' + it.slot + ' sudah keluar \u2014 prediksi otomatis sesi ' + pad2(slot) + ':00';
+      }
+    } else {
+      var closed = closedDaysOf(it.jadwal) || closedDaysOf(it.tutup);
+      if (it.st === 'result') {
+        d = nextOpenDay(d, closed, 1);
+        rolled = true;
+        note = 'Result sudah keluar \u2014 prediksi otomatis draw berikutnya';
+      } else if (it.st === 'libur' && closed) {
+        d = nextOpenDay(d, closed, 1);
+        rolled = true;
+        note = 'Libur \u2014 prediksi otomatis draw berikutnya';
+      }
+    }
+
+    var seed = dateToSeed(d);
+    return {
+      seed: seed,
+      label: seedToLabel(seed),
+      hokiSlot: it.hoki ? pad2(slot) + ':00' : '',
+      rolled: rolled,
+      note: note,
+      manual: manual
+    };
+  }
+
   /* Prediksi utk 1 entri pasaran — PERSIS format contoh user.
      ATURAN: satu baris TANPA angka kembar (4D/3D/2D/Colok Bebas/Colok
      Macau). Invest Twin wajib angka kembar & tak sama dlm 1 baris
      (11/44/77 — bukan 11/11). Colok Shio = 3 shio beda dr tabel. */
   function genPrediction(it) {
-    var dp = wibDateParts();
-    var r = makeRng(normKey(it.nama) + (it.hoki ? '|' + it.slot : '') + '|' + dp.seed);
+    var ed = editionOf(it);
+    var r = makeRng(normKey(it.nama) + (it.hoki ? '|' + ed.hokiSlot : '') + '|' + ed.seed);
     function dig(n) { var s = ''; for (var i = 0; i < n; i++) s += String(Math.floor(r() * 10)); return s; }
     function dig1() { return String(Math.floor(r() * 10)); }
     function pick(arr) { return arr[Math.floor(r() * arr.length)]; }
@@ -359,14 +448,20 @@
       colokMacau: colokMacau,
       colokShio: colokShio,
       investTwin: investTwin,
-      dateLabel: dp.label,
+      dateLabel: ed.label,
+      seed: ed.seed,
+      hokiSlot: ed.hokiSlot,
+      rolled: ed.rolled,
+      note: ed.note,
+      manual: ed.manual,
       ups: 'Biasakan UPS - UTAMAKAN PREDIKSI SENDIRI'
     };
   }
 
-  /* Teks copy — PERSIS contoh user (spasi sebelum ":" dipertahankan) */
+  /* Teks copy — PERSIS contoh user (spasi sebelum ":" dipertahankan).
+     HOKI memakai slot TARGET (bisa bergeser otomatis setelah result). */
   function buildCopy(it, p) {
-    var nama = it.nama + (it.hoki ? ' ' + it.slot : '');
+    var nama = it.nama + (it.hoki ? ' ' + (p.hokiSlot || it.slot) : '');
     return 'Prediksi ' + nama + '\n' +
       p.dateLabel + '\n' +
       'BBFS KUAT: ' + p.bbfs + '\n' +
@@ -613,7 +708,20 @@
         '</div>';
       return;
     }
+    /* pertahankan popover tanggal saat repaint (mis. tick menitan) */
+    var keepPop = datePopOpen();
+    var keepVal = '';
+    var keepInp = document.getElementById('prDateInput');
+    if (keepPop && keepInp) keepVal = keepInp.value;
     area.innerHTML = cardHTML(sel, noanim);
+    if (keepPop) {
+      var np = document.getElementById('prDatePop');
+      if (np) {
+        np.style.display = 'block';
+        var ni = document.getElementById('prDateInput');
+        if (ni && keepVal) ni.value = keepVal;
+      }
+    }
   }
 
   function setTxt(id, v) { var el = document.getElementById(id); if (el) el.textContent = String(v); }
@@ -690,8 +798,9 @@
   function cardHTML(it, noanim) {
     var p = genPrediction(it);
     var m = ST_META[it.st] || ST_META.khusus;
-    var namaFull = it.nama + (it.hoki ? ' ' + it.slot : '');
-    var jadwalNote = it.hoki ? 'Rolling tiap 1 jam \u2014 tutup :' + it.slot.slice(0, 2) + ':00, result :' + it.slot.slice(0, 2) + ':10 WIB'
+    var hs = p.hokiSlot || it.slot || '';
+    var namaFull = it.nama + (it.hoki ? ' ' + hs : '');
+    var jadwalNote = it.hoki ? 'Rolling tiap 1 jam \u2014 sesi ' + hs + ' WIB (tutup :' + hs.slice(0, 2) + ':00, result :' + hs.slice(0, 2) + ':' + pad2(HOKI_RESULT_OFFSET) + ' WIB)'
       : (it.note ? esc(it.note) : esc(it.jadwal));
 
     /* digit tiles */
@@ -728,8 +837,13 @@
           '<h2 class="pr-headline">Prediksi ' + headChars(namaFull) + '</h2>' +
           '<div class="pr-dateline">' +
             '<span class="pr-flagchip">' + it.flag + ' ' + esc(it.country) + '</span>' +
-            '<span class="pr-datechip">' + ICON_CLOCK + esc(p.dateLabel) + '</span>' +
+            '<span class="pr-datewrap">' +
+              '<button type="button" class="pr-datechip' + (p.manual ? ' is-manual' : '') + '" data-action="dateedit" title="Klik untuk mengubah tanggal edisi prediksi">' +
+                ICON_CALENDAR + esc(p.dateLabel) + (p.manual ? '<span class="pr-date-man">MANUAL</span>' : '') +
+              '</button>' + datePopHTML() +
+            '</span>' +
             '<span class="pr-pill ' + m.cls + '">' + m.label + '</span>' +
+            (p.rolled && p.note ? '<span class="pr-rollchip">' + ICON_NEXT + esc(p.note) + '</span>' : '') +
             '<span class="pr-jadwalchip">' + ICON_BOLT + jadwalNote + '</span>' +
           '</div>' +
           '<div class="pr-ticker"><div class="pr-ticker-inner"><span>' + esc(ticker) + '</span><span>' + esc(ticker) + '</span></div></div>' +
@@ -777,13 +891,70 @@
   }
 
   /* ============================================================
+     POPOVER UBAH TANGGAL EDISI
+     ============================================================ */
+  function datePopHTML() {
+    var val = /^\d{4}-\d{2}-\d{2}$/.test(state.viewDate || '') ? state.viewDate : wibDateParts().seed;
+    return '<div class="pr-datepop" id="prDatePop" style="display:none;" role="dialog" aria-label="Ubah tanggal edisi prediksi">' +
+      '<span class="pr-datepop-label">UBAH TANGGAL EDISI</span>' +
+      '<input type="date" id="prDateInput" value="' + esc(val) + '" />' +
+      '<div class="pr-datepop-actions">' +
+        '<button type="button" class="pr-btn pr-btn-copy" data-action="dateapply">TERAPKAN</button>' +
+        '<button type="button" class="pr-btn" data-action="datereset">OTOMATIS</button>' +
+      '</div>' +
+      '<div class="pr-datepop-note">Prediksi dibuat utk tanggal pilihan &amp; stabil pada tanggal itu. Pilih OTOMATIS agar kembali mengikuti hari ini \u2014 bergeser sendiri ke draw berikutnya setelah result keluar.</div>' +
+    '</div>';
+  }
+
+  function datePopOpen() {
+    var p = document.getElementById('prDatePop');
+    return !!p && p.style.display !== 'none';
+  }
+
+  function openDatePop() {
+    var p = document.getElementById('prDatePop');
+    if (!p) return;
+    p.style.display = 'block';
+    var inp = document.getElementById('prDateInput');
+    if (inp) {
+      inp.value = /^\d{4}-\d{2}-\d{2}$/.test(state.viewDate || '') ? state.viewDate : wibDateParts().seed;
+      setTimeout(function () { try { inp.focus(); } catch (e) { /* noop */ } }, 50);
+    }
+  }
+
+  function closeDatePop() {
+    var p = document.getElementById('prDatePop');
+    if (p) p.style.display = 'none';
+  }
+
+  function applyViewDate() {
+    var inp = document.getElementById('prDateInput');
+    var v = inp ? String(inp.value || '') : '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) { toast('Pilih tanggal dulu sebelum diterapkan', 'error'); return; }
+    state.viewDate = v;
+    closeDatePop();
+    state.animate = false;
+    paint();
+    toast('Prediksi memakai tanggal ' + seedToLabel(v) + ' (MANUAL)');
+  }
+
+  function clearViewDate() {
+    state.viewDate = '';
+    closeDatePop();
+    state.animate = false;
+    paint();
+    toast('Tanggal kembali OTOMATIS \u2014 ikut hari ini / geser setelah result');
+  }
+
+  /* ============================================================
      AKSI COPY
      ============================================================ */
   function copySelected() {
     var it = selectedEntry();
     if (!it) { toast('Pilih pasaran dulu', 'error'); return ''; }
-    var nama = it.nama + (it.hoki ? ' ' + it.slot : '');
-    var txt = buildCopy(it, genPrediction(it));
+    var p = genPrediction(it);
+    var nama = it.nama + (it.hoki ? ' ' + (p.hokiSlot || it.slot) : '');
+    var txt = buildCopy(it, p);
     copyText(txt, 'Prediksi "' + nama + '" tersalin');
     return txt;
   }
@@ -840,6 +1011,9 @@
         if (act === 'refresh') { load(true); return; }
         if (act === 'copy') { copySelected(); return; }
         if (act === 'copyall') { copyAllVisible(); return; }
+        if (act === 'dateedit') { if (datePopOpen()) closeDatePop(); else openDatePop(); return; }
+        if (act === 'dateapply') { applyViewDate(); return; }
+        if (act === 'datereset') { clearViewDate(); return; }
       }
       var chipEl = t.closest ? t.closest('.pr-chip[data-filter]') : null;
       if (chipEl && c.contains(chipEl)) { setFilter(chipEl.getAttribute('data-filter')); return; }
@@ -865,17 +1039,21 @@
       });
     }
 
-    /* klik di luar dropdown (di mana pun pada dokumen) -> tutup */
+    /* klik di luar dropdown / popover tanggal -> tutup */
     if (!document.__prDropOutside) {
       document.__prDropOutside = true;
       document.addEventListener('click', function (ev) {
         var t = ev.target;
         if (dropIsOpen() && !(t.closest && t.closest('#prDropWrap'))) closeDrop();
+        if (datePopOpen() && !(t.closest && t.closest('.pr-datewrap'))) closeDatePop();
       });
     }
 
     document.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Escape' && dropIsOpen()) closeDrop();
+      if (ev.key === 'Escape') {
+        if (dropIsOpen()) closeDrop();
+        if (datePopOpen()) closeDatePop();
+      }
     });
   }
 
@@ -909,6 +1087,15 @@
     closeDrop: closeDrop,
     buildCopy: buildCopy,
     genPrediction: genPrediction,
+    editionOf: editionOf,
+    setViewDate: function (v) {
+      var s = String(v || '');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+      state.viewDate = s; state.animate = false; paint(); return true;
+    },
+    clearViewDate: function () { state.viewDate = ''; state.animate = false; paint(); },
+    repaint: function () { state.animate = false; paint(); },
+    seedToLabel: seedToLabel,
     visibleItems: visibleItems,
     state: state
   };
