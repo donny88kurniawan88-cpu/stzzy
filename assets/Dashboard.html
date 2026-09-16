@@ -506,6 +506,7 @@
   <link rel="stylesheet" href="/css/pasaran-pro.css?v=1.0.0">
   <link rel="stylesheet" href="/css/pkpasaran-pro.css?v=2.0.0">
   <link rel="stylesheet" href="/css/prediksi-pro.css?v=1.2.0">
+  <link rel="stylesheet" href="/css/hadiah-pro.css?v=1.0.0">
 </head>
 <body>
 
@@ -998,9 +999,9 @@
               <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Perhitungan Parlay</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#fbbf24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SEGERA</span></div>
               <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Kalkulator hadiah parlay mix/combination.</p>
             </div>
-            <div class="lc-card" onclick="lcSelect('Hadiah Togel', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Hadiah Togel</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#fbbf24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SEGERA</span></div>
-              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Tabel hadiah 4D/3D/2D semua pasaran.</p>
+            <div class="lc-card" onclick="switchToHadiah()" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(34,211,238,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:14px; font-weight:600; color:#e2e8f0;">Hadiah Togel</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#22d3ee; background:rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); padding:2px 8px; border-radius:20px; white-space:nowrap;">AKTIF</span></div>
+              <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.5;">Kalkulator diskon &amp; hadiah 4D/3D/2D — hitung bayar, menang &amp; total cepat.</p>
             </div>
             <div class="lc-card" onclick="lcSelect('Pk Perhitungan', this)" style="background:rgba(15,15,22,0.7); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 18px; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1); margin-left:18px;" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(59,130,246,0.5)'" onmouseout="if(!this.dataset.sel){this.style.transform=''; this.style.borderColor='rgba(255,255,255,0.06)'}">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><span style="font-size:13px; font-weight:600; color:#cbd5e1;">↳ Pk Perhitungan</span><span style="font-size:9px; font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; color:#60a5fa; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); padding:2px 8px; border-radius:20px; white-space:nowrap;">SUB</span></div>
@@ -1019,6 +1020,8 @@
       <div id="pkPasaranView" style="display:none;"></div>
       <!-- ===== PREDIKSI ALL PASARAN VIEW (Pro - rendered by prediksi-pro.js: dropdown + card prediksi animasi) ===== -->
       <div id="prediksiView" style="display:none;"></div>
+      <!-- ===== HADIAH TOGEL VIEW (Pro - rendered by hadiah-pro.js: kalkulator diskon & hadiah) ===== -->
+      <div id="hadiahView" style="display:none;"></div>
 
       <!-- ===== KEEP MEMO VIEW (Pro - rendered by keepmemo-pro.js) ===== -->
       <div id="keepMemoView" style="display:none;"></div>
@@ -1602,6 +1605,7 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var psV = document.getElementById('pasaranView'); if (psV) psV.style.display = 'none';
       var pkV = document.getElementById('pkPasaranView'); if (pkV) pkV.style.display = 'none';
       var prV = document.getElementById('prediksiView'); if (prV) prV.style.display = 'none';
+      var hdV = document.getElementById('hadiahView'); if (hdV) hdV.style.display = 'none';
     }
 
     /* === LIVECHAT ESSENTIALS (v2.5) === */
@@ -1669,6 +1673,17 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
       if (window.PrediksiPro && typeof window.PrediksiPro.render === 'function') window.PrediksiPro.render();
       addTerminalLog('Switched to Prediksi All Pasaran');
+    }
+
+    /* === HADIAH TOGEL (Pro - rendered by hadiah-pro.js: kalkulator diskon & hadiah) === */
+    function switchToHadiah() {
+      hideAllViews();
+      var v = document.getElementById('hadiahView'); if (v) v.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'Hadiah Togel';
+      currentView = 'hadiah';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      if (window.HadiahPro && typeof window.HadiahPro.render === 'function') window.HadiahPro.render();
+      addTerminalLog('Switched to Hadiah Togel');
     }
 
     /* === P2M ANALYZER === */
@@ -2597,5 +2612,6 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
   <script src="/js/pasaran-pro.js?v=1.1.0"></script>
   <script src="/js/pkpasaran-pro.js?v=2.0.0"></script>
   <script src="/js/prediksi-pro.js?v=1.2.0"></script>
+  <script src="/js/hadiah-pro.js?v=1.0.0"></script>
 </body>
 </html>
