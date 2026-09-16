@@ -1,25 +1,33 @@
 /* ============================================================
-   AURA.OS // HADIAH-PRO.JS v1.0.0 — DISKON & HADIAH PASARAN
-   Modul Hadiah Togel (Pro) — refactor profesional dari script
-   kalkulator "DISKON & HADIAH PASARAN TOGEL" milik user:
-   - Data lengkap 29 pasaran (hadiah x, diskon %, kei %, prize)
-     dipertahankan PERSIS dari script asli.
-   - Dropdown pilih pasaran BISA DIKETIK untuk mencari (senada
-     modul Prediksi/Pk Jadwal), Enter = pilih match pertama,
-     Escape / klik di luar = tutup.
+   AURA.OS // HADIAH-PRO.JS v2.0.0 — HADIAH TOGEL & PERHITUNGAN
+   Refactor profesional dari page "Hadiah Togel & Perhitungan"
+   milik user (hadiah-togel.js v96) ke tema dashboard AURA.OS.
+   ----------------------------------------------------------------
+   Fitur (mengikuti script asli, tema disesuaikan penuh):
+   - Dropdown pilih pasaran BISA DIKETIK untuk mencari (29 pasaran)
    - Tab kategori: SEMUA / DISKON / BET FULL / PRIZE / TEPAT & BB
-     / LAINNYA + divider per kategori pada mode SEMUA.
-   - Kartu hitung: nominal -> BAYAR / MENANG / TOTAL / MIN.
-     Rumus PERSIS script asli (termasuk kei minus/plus,
-     pembulatan ceil/round, min 1.000 vs 100).
-   - Logo pasaran resmi (CDN) + fallback teks bila gagal load.
-   - Pilihan pasaran & tab terakhir diingat (localStorage).
-   - Semua style di hadiah-pro.css — tanpa inline style.
-   Exposed: window.HadiahPro.
+     / LAINNYA (mengikuti section yang tersedia di pasaran)
+   - Kartu hadiah: nama + badge Diskon % / Hadiah x / Kei %
+   - Kategori Prize tampil sebagai 3 kartu grup (PRIZE 1/2/3,
+     baris 4D/3D/2D) — seperti desain asli
+   - Panel KALKULATOR PERHITUNGAN (kiri): chip tipe permainan per
+     pasaran, nominal -> HITUNG, hasil teks lengkap + copy
+   - COPY PASARAN INI / COPY SEMUA HADIAH (gabungan dinamis:
+     pasaran bernilai identik otomatis satu grup) + modal copy
+     manual bila clipboard diblokir browser
+   - EDIT HADIAH (MASTER only): ubah Diskon/Hadiah/Kei per baris,
+     simpan per device (localStorage), sinkron ke tampilan &
+     kalkulator secara langsung
+   - Pilihan pasaran & tab terakhir diingat (localStorage)
+   Data & mesin hitung: hadiah-data.js (window.HadiahData)
+   Semua style di hadiah-pro.css — tanpa inline style.
+   Exposed: window.HadiahPro
    ============================================================ */
 
 (function () {
   'use strict';
+
+  var HD = window.HadiahData;
 
   /* ============================================================
      1. IKON (SVG inline, senada modul pro lain)
@@ -30,239 +38,25 @@
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>';
   var ICON_CHEV =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
-  var ICON_REFRESH =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
+  var ICON_COPY =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  var ICON_EDIT =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
 
   /* ============================================================
-     2. LOGO PASARAN (CDN resmi — sama dgn script asli user)
+     2. STATE & UTIL
      ============================================================ */
-  var MARKET_LOGOS = {
-    'HOKI DRAW': 'https://cdn.areabermain.club/assets/cdn/az4/2024/12/25/20241225/1de5162dbfea7a85f41b654a2c3a4d07/logo-1.png',
-    'JAKARTA': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/57824d39d3564ef0ebad1b4297693dc9/logo-jakarta-pools-jpg.png',
-    'BANGKOK': 'https://bangkokpoolstoday.com/assets/img/bangkokpools_logo.png',
-    'BRUNEI': 'https://bruneipools.com/assets/img/brunei-logo.png',
-    'BULLSEYE': 'https://cdn.areabermain.club/assets/cdn/az4/2024/08/11/20240811/f07d4e2a6517ef1cea9e2a897e4abb98/nz-bullseye.png',
-    'CALIFORNIA': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/c89c3a35f7323e90e2e2c5c255bdb7ae/california-pools-jpg.png',
-    'CAROLINA DAY': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/816329e82e136b1e9faad6d14c8c81bc/carolina-day-pools-jpg.png',
-    'CAROLINA EVE': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/799cce2ab08aca8bfb3a4a9c7484d78e/carolina-eve-jpg.png',
-    'CHELSEA': 'https://chelseapools.co.uk/assets/img/chelseaPools_logo.png',
-    'FLORIDA EVE': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/801479ca02e15020fac8df0024814152/florida-eve-new-2.png',
-    'FLORIDA MID': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/1ffa2459adcc8330fa8874792d59eb1a/florida-mid.png',
-    'HONGKONG': 'https://cdn.animaapp.com/projects/66be29ddeca4d2e95aa7b4ce/releases/66be3e204d8f7eb28bb5de15/img/hongkong-lotto-1.png',
-    'HUAHIN': 'https://huahinlottery.com/assets/img/logo.png',
-    'KENTUCKY EVE': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/ae8e720c8b7d930856cf3f364cc10158/kentucky-eve.png',
-    'KENTUCKY MID': 'https://kentuckymid.com/wp-content/uploads/2022/07/KENTUCKY-MID.png',
-    'MAGNUM4D': 'https://cdn.areabermain.club/assets/cdn/az4/2024/08/11/20240811/8889f1c5fc738b5148145100c08a0ebc/439-4390693-max-pengeluaran-magnum-4d-hari-clipart-removebg-preview.png',
-    'NEVADA': 'https://cdn.areabermain.club/assets/cdn/az5/2025/08/20/20250820/9c934bcc2fc7552398b144d4b7f15203/nevada.png',
-    'NEW YORK EVE': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/1f9a654060201e07442bc78def1bc135/new-york-eve.png',
-    'NEW YORK MID': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/7fb415d09885f1a79bfc30b48803cc4d/new-york-mid.png',
-    'OREGON': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/7715823646164db9d67d280a402dfb51/oregon-jpg.png',
-    'PCSO': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/a67d9fd134f7211cbe08bd89bd64f79d/pcso-2.png',
-    'POIPET': 'https://poipetlottery.com/img/logo.png',
-    'SINGAPORE': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/ae20d56fcb2d0dea6b0ae637c6bed566/singapore-new.png',
-    'SYDNEY': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/1d9ba1f974240b7b5c5e48fa2ef98e0e/sydney-2.png',
-    'TOTOMALI': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/383a30e8a8e65f1d0da9fb7fa850d853/channels4-banner.png',
-    'TOTO MACAU 4D': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/033094b5e73f842fcbcc3b235c029e7c/macau-logo.png',
-    'TOTO MACAU 5D': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/3cbd41c8d7267cad6a5e55a1f08fd72d/macau-5d-removebg-preview.png',
-    'KINGKONG': 'https://cdn.areabermain.club/assets/cdn/az4/2025/08/18/20250818/32f87d6c932b0d2eee9b6e1c9028ab41/logo-2.png',
-    'TOTO CAMBODIA': 'https://totocambodialive.com/assets/img/logo.png'
+  var LS_SEL = 'aura_hadiah_sel_v2';
+
+  var state = {
+    market: '',
+    tab: 'Semua',
+    dropOpen: false,
+    dropQuery: '',
+    isMaster: false,
+    calcType: 'Diskon'
   };
 
-  /* ============================================================
-     3. DATA PASARAN (hadiah/diskon/kei — PERSIS script asli)
-     ============================================================ */
-  var CFG = {};
-
-  function cfg(name, map) { CFG[name] = { map: map || {} }; }
-
-  /* blok PRIZE 1/2/3 (pasaran dgn prize resmi) */
-  function prizeBlock(p14, p13, p12, p24, p23, p22, p34, p33, p32) {
-    return {
-      'PRIZE 1 - 1': { hadiah: p14, diskon: 0 }, 'PRIZE 1 - 2': { hadiah: p13, diskon: 0 }, 'PRIZE 1 - 3': { hadiah: p12, diskon: 0 },
-      'PRIZE 2 - 1': { hadiah: p24, diskon: 0 }, 'PRIZE 2 - 2': { hadiah: p23, diskon: 0 }, 'PRIZE 2 - 3': { hadiah: p22, diskon: 0 },
-      'PRIZE 3 - 1': { hadiah: p34, diskon: 0 }, 'PRIZE 3 - 2': { hadiah: p33, diskon: 0 }, 'PRIZE 3 - 3': { hadiah: p32, diskon: 0 }
-    };
-  }
-
-  cfg('TOTO MACAU 4D', {
-    'DISKON 4D': { hadiah: 6000, diskon: 33 }, 'DISKON 3D': { hadiah: 700, diskon: 24 }, 'DISKON 2D': { hadiah: 80, diskon: 15 },
-    'SUPER DISKON 4D': { hadiah: 3000, diskon: 66 }, 'SUPER DISKON 3D': { hadiah: 400, diskon: 59 }, 'SUPER DISKON 2D': { hadiah: 70, diskon: 29 },
-    'BET FULL 4D': { hadiah: 9000 }, 'BET FULL 3D': { hadiah: 950 }, 'BET FULL 2D': { hadiah: 95 },
-    '4D TEPAT': { hadiah: 4000 }, '4D BB': { hadiah: 200 }, '3D TEPAT': { hadiah: 400 }, '3D BB': { hadiah: 100 }, '2D TEPAT': { hadiah: 70 }, '2D BB': { hadiah: 20 },
-    'COLOK BEBAS': { hadiah: 1.6, diskon: 0 }, 'COLOK BEBAS ( 2 )': { hadiah: 3.2, diskon: 0 }, 'COLOK BEBAS ( 3 )': { hadiah: 4.8, diskon: 0 }, 'COLOK BEBAS ( 4 )': { hadiah: 6.4, diskon: 0 },
-    'COLOK JITU': { hadiah: 8.3 }, 'MACAU SHIO': { hadiah: 110 },
-    'COLOK BEBAS 2D ( 2 )': { hadiah: 7 }, 'COLOK BEBAS 2D ( 3 )': { hadiah: 13 }, 'COLOK BEBAS 2D ( 4 )': { hadiah: 21 },
-    'COLOK NAGA ( 3 )': { hadiah: 27 }, 'COLOK NAGA ( 4 )': { hadiah: 41 },
-    'SHIO': { hadiah: 10 }, '50 - 50': { kei: -5 }, 'TENGAH TEPI': { kei: -2.2 }, 'KOMBINASI': { hadiah: 2.8 }, 'SILANG HOMO': { kei: -2.2 }, 'KEMBANG - KEMPIS - KEMBAR': { kei: -2.2 }, 'DASAR GANJIL - BESAR': { kei: -25 }, 'DASAR GENAP - KECIL': { kei: 10 }
-  });
-
-  cfg('TOTO MACAU 5D', {
-    'DISKON 5D': { hadiah: 50000, diskon: 38 }, 'DISKON 4D': { hadiah: 7000, diskon: 20 }, 'DISKON 3D': { hadiah: 750, diskon: 20 }, 'DISKON 2D': { hadiah: 75, diskon: 20 },
-    'BET FULL 5D': { hadiah: 88000 }, 'BET FULL 4D': { hadiah: 9000 }, 'BET FULL 3D': { hadiah: 950 }, 'BET FULL 2D': { hadiah: 95 },
-    '5D TEPAT': { hadiah: 50000 }, '5D BB': { hadiah: 350 }, '4D TEPAT': { hadiah: 5000 }, '4D BB': { hadiah: 180 }, '3D TEPAT': { hadiah: 500 }, '3D BB': { hadiah: 75 }, '2D TEPAT': { hadiah: 80 }, '2D BB': { hadiah: 15 },
-    'COLOK BEBAS': { hadiah: 0.9, diskon: 0 }, 'COLOK BEBAS ( 2 )': { hadiah: 1.8, diskon: 0 }, 'COLOK BEBAS ( 3 )': { hadiah: 2.7, diskon: 0 }, 'COLOK BEBAS ( 4 )': { hadiah: 3.6, diskon: 0 }, 'COLOK BEBAS ( 5 )': { hadiah: 4.5, diskon: 0 },
-    'COLOK JITU': { hadiah: 8 }, 'COLOK BEBAS 2D ( 2 )': { hadiah: 4 }, 'COLOK BEBAS 2D ( 3 )': { hadiah: 6 }, 'COLOK BEBAS 2D ( 4 )': { hadiah: 20 }, 'COLOK BEBAS 2D ( 5 )': { hadiah: 200 },
-    'COLOK BEBAS 4D ( 4 )': { hadiah: 50 }, 'COLOK BEBAS 4D ( 5 )': { hadiah: 200 }, 'COLOK NAGA ( 3 )': { hadiah: 12 }, 'COLOK NAGA ( 4 )': { hadiah: 30 }, 'COLOK NAGA ( 5 )': { hadiah: 125 },
-    'SHIO': { hadiah: 10 }, '50 - 50': { kei: -2.2 }, 'KOMBINASI': { hadiah: 2.7 }, 'TENGAH TEPI': { kei: -2.2 }, 'DASAR GANJIL - BESAR': { kei: -25 }, 'DASAR GENAP - KECIL': { kei: 10 }
-  });
-
-  cfg('KINGKONG', {
-    'DISKON 4D': { hadiah: 6000, diskon: 33 }, 'DISKON 3D': { hadiah: 700, diskon: 24 }, 'DISKON 2D': { hadiah: 80, diskon: 15 },
-    'BET FULL 4D': { hadiah: 9000 }, 'BET FULL 3D': { hadiah: 950 }, 'BET FULL 2D': { hadiah: 95 },
-    '4D TEPAT': { hadiah: 4000 }, '4D BB': { hadiah: 200 }, '3D TEPAT': { hadiah: 400 }, '3D BB': { hadiah: 100 }, '2D TEPAT': { hadiah: 70 }, '2D BB': { hadiah: 20 },
-    'COLOK BEBAS': { hadiah: 1.6, diskon: 0 }, 'COLOK BEBAS ( 2 )': { hadiah: 3.2, diskon: 0 }, 'COLOK BEBAS ( 3 )': { hadiah: 4.8, diskon: 0 }, 'COLOK BEBAS ( 4 )': { hadiah: 6.4, diskon: 0 },
-    'COLOK JITU': { hadiah: 8.3 }, 'MACAU SHIO': { hadiah: 110 }, 'COLOK BEBAS 2D ( 2 )': { hadiah: 7 }, 'COLOK BEBAS 2D ( 3 )': { hadiah: 13 }, 'COLOK BEBAS 2D ( 4 )': { hadiah: 21 },
-    'COLOK NAGA ( 3 )': { hadiah: 27 }, 'COLOK NAGA ( 4 )': { hadiah: 41 },
-    'SHIO': { hadiah: 10 }, '50 - 50': { kei: -5 }, 'KOMBINASI': { hadiah: 2.8 }, 'SILANG HOMO': { kei: -2.2 }, 'TENGAH TEPI': { kei: -2.2 }, 'KEMBANG - KEMPIS': { kei: -2.2 }, 'KEMBAR': { kei: 50 }, 'DASAR GANJIL - BESAR': { kei: -25 }, 'DASAR GENAP - KECIL': { kei: 10 }
-  });
-
-  /* pasaran standar + prize resmi */
-  ['BANGKOK', 'BRUNEI', 'CHELSEA', 'HONGKONG', 'HUAHIN', 'MAGNUM4D', 'NEVADA', 'POIPET', 'SYDNEY', 'TOTO CAMBODIA', 'TOTOMALI'].forEach(function (name) {
-    var base = {
-      'DISKON 4D': { hadiah: 3000, diskon: 66 }, 'DISKON 3D': { hadiah: 400, diskon: 59 }, 'DISKON 2D': { hadiah: 70, diskon: 29 },
-      'DISKON 2D DEPAN': { hadiah: 65, diskon: 29 }, 'DISKON 2D TENGAH': { hadiah: 65, diskon: 29 },
-      'BET FULL 4D': { hadiah: 10000, diskon: 0 }, 'BET FULL 3D': { hadiah: 1000, diskon: 0 }, 'BET FULL 2D': { hadiah: 100, diskon: 0 },
-      '4D TEPAT': { hadiah: 4000 }, '4D BB': { hadiah: 200 }, '3D TEPAT': { hadiah: 400 }, '3D BB': { hadiah: 100 }, '2D TEPAT': { hadiah: 70 }, '2D BB': { hadiah: 20 },
-      'COLOK BEBAS': { hadiah: 1.5, diskon: 6 }, 'COLOK BEBAS ( 2 )': { hadiah: 3, diskon: 6 }, 'COLOK BEBAS ( 3 )': { hadiah: 4.5, diskon: 6 }, 'COLOK BEBAS ( 4 )': { hadiah: 6, diskon: 6 },
-      'COLOK JITU': { hadiah: 8, diskon: 6 }, 'MACAU SHIO': { hadiah: 110, diskon: 10 },
-      'COLOK BEBAS 2D ( 2 )': { hadiah: 7, diskon: 10 }, 'COLOK BEBAS 2D ( 3 )': { hadiah: 11, diskon: 10 }, 'COLOK BEBAS 2D ( 4 )': { hadiah: 18, diskon: 10 },
-      'COLOK NAGA ( 3 )': { hadiah: 23, diskon: 10 }, 'COLOK NAGA ( 4 )': { hadiah: 35, diskon: 10 },
-      'SHIO': { hadiah: 9.5, diskon: 5 }, '50 - 50': { kei: -3, diskon: 2 }, 'TENGAH TEPI': { kei: -3, diskon: 2 }, 'SILANG HOMO': { kei: -3, diskon: 2 }, 'KEMBANG - KEMPIS - KEMBAR': { kei: -3, diskon: 2 },
-      'KOMBINASI': { hadiah: 2.6, diskon: 8 }, 'DASAR GANJIL - BESAR': { kei: -25, diskon: 2 }, 'DASAR GENAP - KECIL': { kei: 10, diskon: 2 }
-    };
-    if (name === 'HONGKONG' || name === 'SYDNEY') {
-      base['BET FULL 4D'] = { hadiah: 9800, diskon: 0 };
-      base['BET FULL 3D'] = { hadiah: 980, diskon: 0 };
-      base['BET FULL 2D'] = { hadiah: 98, diskon: 0 };
-    }
-    if (name === 'TOTOMALI') {
-      base['DISKON 4D'] = { hadiah: 3000, diskon: 67 }; base['DISKON 3D'] = { hadiah: 400, diskon: 57 }; base['DISKON 2D'] = { hadiah: 70, diskon: 27 };
-      delete base['DISKON 2D DEPAN']; delete base['DISKON 2D TENGAH'];
-      base['COLOK BEBAS'] = { hadiah: 1.6, diskon: 6 }; base['COLOK BEBAS ( 2 )'] = { hadiah: 3.2, diskon: 6 }; base['COLOK BEBAS ( 3 )'] = { hadiah: 4.8, diskon: 6 }; base['COLOK BEBAS ( 4 )'] = { hadiah: 6.4, diskon: 6 };
-      base['COLOK JITU'] = { hadiah: 8.3, diskon: 6 }; base['MACAU SHIO'] = { hadiah: 110, diskon: 10 };
-      base['COLOK BEBAS 2D ( 2 )'] = { hadiah: 7, diskon: 10 }; base['COLOK BEBAS 2D ( 3 )'] = { hadiah: 13, diskon: 10 }; base['COLOK BEBAS 2D ( 4 )'] = { hadiah: 21, diskon: 10 };
-      base['COLOK NAGA ( 3 )'] = { hadiah: 27, diskon: 10 }; base['COLOK NAGA ( 4 )'] = { hadiah: 41, diskon: 10 };
-      base['SHIO'] = { hadiah: 9.5, diskon: 5 }; base['50 - 50'] = { kei: -5, diskon: 2 }; base['TENGAH TEPI'] = { kei: -2.2, diskon: 2 }; base['SILANG HOMO'] = { kei: -2.2, diskon: 2 }; base['KEMBANG - KEMPIS - KEMBAR'] = { kei: -2.2, diskon: 2 };
-      base['KOMBINASI'] = { hadiah: 2.8, diskon: 8 }; base['DASAR GANJIL - BESAR'] = { kei: -25, diskon: 2 }; base['DASAR GENAP - KECIL'] = { kei: 10, diskon: 2 };
-    }
-    cfg(name, Object.assign(base, prizeBlock(6500, 650, 70, 2100, 210, 20, 1100, 110, 8)));
-  });
-
-  /* pasaran tanpa prize (incl. HOKI DRAW & JAKARTA variant) */
-  ['BULLSEYE', 'CALIFORNIA', 'CAROLINA EVE', 'CAROLINA DAY', 'FLORIDA EVE', 'FLORIDA MID', 'KENTUCKY EVE', 'KENTUCKY MID', 'NEW YORK EVE', 'NEW YORK MID', 'OREGON', 'PCSO', 'HOKI DRAW', 'JAKARTA'].forEach(function (name) {
-    var isHoki = name === 'HOKI DRAW', isJak = name === 'JAKARTA';
-    var base = {
-      'DISKON 4D': { hadiah: isHoki ? 7000 : 3000, diskon: isHoki ? 20 : 66 },
-      'DISKON 3D': { hadiah: isHoki ? 750 : 400, diskon: isHoki ? 20 : 59 },
-      'DISKON 2D': { hadiah: isHoki ? 75 : 70, diskon: isHoki ? 20 : 29 },
-      'BET FULL 4D': { hadiah: 10000, diskon: 0 }, 'BET FULL 3D': { hadiah: 1000, diskon: 0 }, 'BET FULL 2D': { hadiah: 100, diskon: 0 },
-      '4D TEPAT': { hadiah: isHoki ? 5000 : 4000 }, '4D BB': { hadiah: isHoki ? 180 : 200 },
-      '3D TEPAT': { hadiah: isHoki ? 500 : 400 }, '3D BB': { hadiah: isHoki ? 75 : 100 },
-      '2D TEPAT': { hadiah: isHoki ? 80 : 70 }, '2D BB': { hadiah: isHoki ? 15 : 20 }
-    };
-    if (!isHoki && !isJak) {
-      base['DISKON 2D DEPAN'] = { hadiah: 65, diskon: 29 };
-      base['DISKON 2D TENGAH'] = { hadiah: 65, diskon: 29 };
-    }
-    var others = isHoki ? {
-      'COLOK BEBAS': { hadiah: 0.9, diskon: 6 }, 'COLOK BEBAS ( 2 )': { hadiah: 1.8, diskon: 6 }, 'COLOK BEBAS ( 3 )': { hadiah: 2.7, diskon: 6 }, 'COLOK BEBAS ( 4 )': { hadiah: 3.6, diskon: 6 },
-      'COLOK JITU': { hadiah: 8, diskon: 6 }, 'MACAU SHIO': { hadiah: 110, diskon: 10 }, 'COLOK BEBAS 2D ( 2 )': { hadiah: 4, diskon: 10 }, 'COLOK BEBAS 2D ( 3 )': { hadiah: 6, diskon: 10 }, 'COLOK BEBAS 2D ( 4 )': { hadiah: 20, diskon: 10 },
-      'COLOK NAGA ( 3 )': { diskon: 10, hadiah: 12 }, 'COLOK NAGA ( 4 )': { diskon: 10, hadiah: 30 },
-      'SHIO': { hadiah: 9.5, diskon: 5 }, '50 - 50': { kei: -2.2, diskon: 2 }, 'TENGAH TEPI': { kei: -2.2, diskon: 2 }, 'SILANG HOMO': { kei: -3, diskon: 2 }, 'KEMBANG - KEMPIS - KEMBAR': { kei: -3, diskon: 2 },
-      'KOMBINASI': { hadiah: 2.7, diskon: 8 }, 'DASAR GANJIL - BESAR': { kei: -25, diskon: 2 }, 'DASAR GENAP - KECIL': { kei: 10, diskon: 2 }
-    } : (isJak ? {
-      'COLOK BEBAS': { hadiah: 1.6, diskon: 6 }, 'COLOK BEBAS ( 2 )': { hadiah: 3.2, diskon: 6 }, 'COLOK BEBAS ( 3 )': { hadiah: 4.8, diskon: 6 }, 'COLOK BEBAS ( 4 )': { hadiah: 6.4, diskon: 6 },
-      'COLOK JITU': { hadiah: 8.3, diskon: 6 }, 'MACAU SHIO': { hadiah: 110, diskon: 10 },
-      'COLOK BEBAS 2D ( 2 )': { hadiah: 7, diskon: 10 }, 'COLOK BEBAS 2D ( 3 )': { hadiah: 13, diskon: 10 }, 'COLOK BEBAS 2D ( 4 )': { hadiah: 21, diskon: 10 },
-      'COLOK NAGA ( 3 )': { hadiah: 27, diskon: 10 }, 'COLOK NAGA ( 4 )': { hadiah: 41, diskon: 10 },
-      'SHIO': { hadiah: 9.5, diskon: 5 }, '50 - 50': { kei: -5, diskon: 2 }, 'TENGAH TEPI': { kei: -2.2, diskon: 2 }, 'SILANG HOMO': { kei: -2.2, diskon: 2 }, 'KEMBANG - KEMPIS - KEMBAR': { kei: -2.2, diskon: 2 },
-      'KOMBINASI': { hadiah: 2.8, diskon: 8 }, 'DASAR GANJIL - BESAR': { kei: -25, diskon: 2 }, 'DASAR GENAP - KECIL': { kei: 10, diskon: 2 }
-    } : {
-      'COLOK BEBAS': { hadiah: 1.5, diskon: 6 }, 'COLOK BEBAS ( 2 )': { hadiah: 3, diskon: 6 }, 'COLOK BEBAS ( 3 )': { hadiah: 4.5, diskon: 6 }, 'COLOK BEBAS ( 4 )': { hadiah: 6, diskon: 6 },
-      'COLOK JITU': { hadiah: 8, diskon: 6 }, 'MACAU SHIO': { hadiah: 110, diskon: 10 },
-      'COLOK BEBAS 2D ( 2 )': { hadiah: 7, diskon: 10 }, 'COLOK BEBAS 2D ( 3 )': { hadiah: 11, diskon: 10 }, 'COLOK BEBAS 2D ( 4 )': { hadiah: 18, diskon: 10 },
-      'COLOK NAGA ( 3 )': { hadiah: 23, diskon: 10 }, 'COLOK NAGA ( 4 )': { hadiah: 35, diskon: 10 },
-      'SHIO': { hadiah: 9.5, diskon: 5 }, '50 - 50': { kei: -3, diskon: 2 }, 'TENGAH TEPI': { kei: -3, diskon: 2 }, 'SILANG HOMO': { kei: -3, diskon: 2 }, 'KEMBANG - KEMPIS - KEMBAR': { kei: -3, diskon: 2 },
-      'KOMBINASI': { hadiah: 2.6, diskon: 8 }, 'DASAR GANJIL - BESAR': { kei: -25, diskon: 2 }, 'DASAR GENAP - KECIL': { kei: 10, diskon: 2 }
-    });
-    cfg(name, Object.assign(base, others));
-  });
-
-  cfg('SINGAPORE', (function () {
-    var base = {
-      'DISKON 4D': { hadiah: 3000, diskon: 66.5 }, 'DISKON 3D': { hadiah: 400, diskon: 59.5 }, 'DISKON 2D': { hadiah: 70, diskon: 29.5 },
-      'DISKON 2D DEPAN': { hadiah: 65, diskon: 29.5 }, 'DISKON 2D TENGAH': { hadiah: 65, diskon: 29.5 },
-      'BET FULL 4D': { hadiah: 10000, diskon: 0 }, 'BET FULL 3D': { hadiah: 1000, diskon: 0 }, 'BET FULL 2D': { hadiah: 100, diskon: 0 },
-      '4D TEPAT': { hadiah: 4000 }, '4D BB': { hadiah: 200 }, '3D TEPAT': { hadiah: 400 }, '3D BB': { hadiah: 100 }, '2D TEPAT': { hadiah: 70 }, '2D BB': { hadiah: 20 },
-      'COLOK BEBAS': { hadiah: 1.5, diskon: 6 }, 'COLOK BEBAS ( 2 )': { hadiah: 3, diskon: 6 }, 'COLOK BEBAS ( 3 )': { hadiah: 4.5, diskon: 6 }, 'COLOK BEBAS ( 4 )': { hadiah: 6, diskon: 6 },
-      'COLOK JITU': { hadiah: 8, diskon: 6 }, 'MACAU SHIO': { hadiah: 110, diskon: 10 },
-      'COLOK BEBAS 2D ( 2 )': { hadiah: 7, diskon: 10 }, 'COLOK BEBAS 2D ( 3 )': { hadiah: 11, diskon: 10 }, 'COLOK BEBAS 2D ( 4 )': { hadiah: 18, diskon: 10 },
-      'COLOK NAGA ( 3 )': { hadiah: 23, diskon: 10 }, 'COLOK NAGA ( 4 )': { hadiah: 35, diskon: 10 },
-      'SHIO': { hadiah: 9.5, diskon: 5 }, '50 - 50': { kei: -3, diskon: 2 }, 'TENGAH TEPI': { kei: -3, diskon: 2 }, 'SILANG HOMO': { kei: -3, diskon: 2 }, 'KEMBANG - KEMPIS - KEMBAR': { kei: -3, diskon: 2 },
-      'KOMBINASI': { hadiah: 2.6, diskon: 8 }, 'DASAR GANJIL - BESAR': { kei: -25, diskon: 2 }, 'DASAR GENAP - KECIL': { kei: 10, diskon: 2 }
-    };
-    return Object.assign(base, prizeBlock(6500, 650, 70, 2100, 210, 20, 1100, 110, 8));
-  })());
-
-  /* ============================================================
-     4. HELPER
-     ============================================================ */
-  var LS_KEY = 'aura_hadiah_sel_v1'; // ingat pasaran + tab terakhir
-
-  function norm(s) { return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(); }
-  function idr(n) { return Number(n || 0).toLocaleString('id-ID'); }
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
-
-  /* pasaran dgn TOTAL ditampilkan (aturan script asli) */
-  function isPlusTotal(title) {
-    var t = norm(title);
-    return /^colok bebas(\s*\(\s*\d+\s*\))?$/.test(t) || /^colok bebas 2d/.test(t) ||
-      /^colok bebas 4d/.test(t) || /^colok jitu/.test(t) || /^colok naga/.test(t) ||
-      /^macau shio/.test(t) || /^shio$/.test(t) || /^kombinasi$/.test(t);
-  }
-
-  /* minimal bet 1.000 (selain itu 100) — aturan script asli */
-  function isMin1000(t) {
-    var keys = {
-      'colok bebas': 1, 'colok bebas 2d': 1, 'colok bebas 4d': 1, 'colok naga': 1,
-      'colok jitu': 1, 'macau shio': 1, 'shio': 1, 'kombinasi': 1, 'silang homo': 1,
-      '50 - 50': 1, 'tengah tepi': 1, 'kembang - kempis - kembar': 1,
-      'dasar ganjil - besar': 1, 'dasar genap - kecil': 1
-    };
-    if (keys[t]) return true;
-    return /^colok bebas\s*\(\s*\d+\s*\)$/.test(t) || /^colok bebas 2d\s*\(\s*\d+\s*\)$/.test(t) ||
-      /^colok bebas 4d\s*\(\s*\d+\s*\)$/.test(t) || /^colok naga\s*\(\s*\d+\s*\)$/.test(t);
-  }
-
-  /* kategori kartu — aturan script asli */
-  function tagOf(title) {
-    var t = norm(title);
-    if (t.indexOf('super diskon') === 0 || t.indexOf('diskon') === 0) return 'diskon';
-    if (t.indexOf('bet full') === 0) return 'betfull';
-    if (t.indexOf('prize') === 0) return 'prize';
-    if (t.indexOf('tepat') > -1 || /\bbb\b/.test(t)) return 'tepatbb';
-    return 'lain';
-  }
-  var TAG_LABEL = { diskon: 'Diskon', betfull: 'Bet Full', prize: 'Prize', tepatbb: 'Tepat & BB', lain: 'Lainnya' };
-  var TAG_ORDER = ['diskon', 'betfull', 'prize', 'tepatbb', 'lain'];
-  var TABS = [['all', 'SEMUA'], ['diskon', 'DISKON'], ['betfull', 'BET FULL'], ['prize', 'PRIZE'], ['tepatbb', 'TEPAT & BB'], ['lain', 'LAINNYA']];
-
-  function marketList() { return Object.keys(CFG).sort(); }
-  function ruleCount(m) { return Object.keys(CFG[m] ? CFG[m].map : {}).length; }
-  function hasPrize(m) {
-    var map = CFG[m] ? CFG[m].map : {};
-    for (var k in map) if (tagOf(k) === 'prize') return true;
-    return false;
-  }
-
-  /* ============================================================
-     5. STATE & ELEMEN
-     ============================================================ */
-  var state = { market: '', filter: 'all', dropOpen: false, dropQuery: '' };
   var el = {};
 
   function h(tag, cls, txt) {
@@ -271,42 +65,138 @@
     if (txt != null) e.textContent = txt;
     return e;
   }
-  function svg(icon) { var d = document.createElement('span'); d.innerHTML = icon; return d.firstChild; }
+  function norm(s) { return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(); }
+
+  function getToken() {
+    try { return localStorage.getItem('aura_auth_token') || ''; } catch (e) { return ''; }
+  }
+  function roleLocal() {
+    try { return (localStorage.getItem('aura_user_role') || 'MEMBER').toUpperCase(); } catch (e) { return 'MEMBER'; }
+  }
+
+  /* MASTER check: localStorage dulu (instan), lalu konfirmasi /api/me */
+  function refreshMasterAccess() {
+    state.isMaster = roleLocal() === 'MASTER';
+    paintEditBtn();
+    var token = getToken();
+    if (!token) return;
+    fetch('/api/me', { headers: { 'x-auth-token': token } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.success) return;
+        var me = data.user || data.data;
+        if (!me || !me.role) return;
+        state.isMaster = String(me.role).toUpperCase() === 'MASTER';
+        paintEditBtn();
+      })
+      .catch(function () { /* silent */ });
+  }
+
+  function requireMaster() {
+    if (state.isMaster) return true;
+    flash(el.btnEdit, 'HANYA MASTER ADMINISTRATOR', 1600);
+    return false;
+  }
+
+  function flash(button, text, ms) {
+    if (!button) return;
+    var original = button.textContent;
+    button.textContent = text;
+    setTimeout(function () { button.textContent = original; }, ms || 1400);
+  }
 
   /* ============================================================
-     6. BANGUN SHELL UI (sekali per render)
+     3. COPY UTIL (clipboard + fallback modal manual)
+     ============================================================ */
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).then(function () { return true; })
+        .catch(function () { return legacyCopy(text); });
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+
+  function legacyCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-99999px';
+    ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    return ok;
+  }
+
+  function openManual(text) {
+    el.manualText.value = text;
+    el.manualModal.classList.add('is-show');
+    setTimeout(function () {
+      try {
+        el.manualText.focus();
+        el.manualText.select();
+        el.manualText.setSelectionRange(0, el.manualText.value.length);
+      } catch (e) { /* noop */ }
+    }, 30);
+  }
+
+  function closeManual() {
+    el.manualModal.classList.remove('is-show');
+  }
+
+  function doCopy(text, btn, okLabel) {
+    return copyText(text).then(function (ok) {
+      if (ok) {
+        flash(btn, okLabel || 'TERSALIN \u2713');
+      } else {
+        openManual(text);
+        flash(btn, 'COPY MANUAL DIBUKA', 1500);
+      }
+    });
+  }
+
+  /* ============================================================
+     4. BANGUN SHELL UI (sekali per render)
      ============================================================ */
   function buildShell(host) {
     host.innerHTML = '';
     var wrap = h('div', 'dh-wrap');
 
-    /* --- header --- */
+    /* --- header panel --- */
     var head = h('section', 'dh-panel dh-head');
-    var body = h('div', 'dh-head-body');
+    var headBody = h('div', 'dh-head-body');
     var eye = h('span', 'dh-eyebrow');
     eye.appendChild(h('i', 'dh-dot'));
-    eye.appendChild(document.createTextNode('KALKULATOR • LIVECHAT ESSENTIALS'));
+    eye.appendChild(document.createTextNode('HADIAH TOGEL \u2022 LIVECHAT ESSENTIALS'));
+    headBody.appendChild(eye);
+
     var title = h('h2', 'dh-title');
-    title.appendChild(document.createTextNode('Diskon & '));
-    var acc = h('span', 'dh-accent', 'Hadiah Pasaran');
-    title.appendChild(acc);
-    body.appendChild(eye);
-    body.appendChild(title);
-    body.appendChild(h('p', 'dh-sub', 'Hitung bayar, hadiah dan total untuk semua pasaran — pilih pasaran, pilih kategori, masukkan nominal taruhan lalu tekan HITUNG.'));
-    head.appendChild(body);
+    title.appendChild(document.createTextNode('Hadiah Togel & '));
+    title.appendChild(h('span', 'dh-accent', 'Perhitungan'));
+    headBody.appendChild(title);
+    headBody.appendChild(h('p', 'dh-sub',
+      'Informasi hadiah, diskon, kei dan prize semua pasaran \u2014 lengkap dengan kalkulator perhitungan, copy cepat, dan edit hadiah khusus Master Administrator.'));
+    head.appendChild(headBody);
+
     var side = h('div', 'dh-head-side');
     var st1 = h('div', 'dh-stat');
-    st1.appendChild(h('b', null, String(marketList().length)));
+    st1.appendChild(h('b', null, String(HD.allMarkets().length)));
     st1.appendChild(h('span', null, 'PASARAN'));
     var st2 = h('div', 'dh-stat');
     st2.id = 'dhStatRules';
     st2.appendChild(h('b', null, '0'));
     st2.appendChild(h('span', null, 'ATURAN'));
-    side.appendChild(st1); side.appendChild(st2);
+    side.appendChild(st1);
+    side.appendChild(st2);
     head.appendChild(side);
     wrap.appendChild(head);
 
-    /* --- kontrol: dropdown + reset --- */
+    /* --- toolbar: dropdown + aksi --- */
     var ctrl = h('section', 'dh-panel');
     var row = h('div', 'dh-control-row');
 
@@ -317,23 +207,25 @@
     btn.id = 'dhDropBtn';
     btn.setAttribute('aria-haspopup', 'listbox');
     var ic = h('span', 'dh-drop-ic');
-    ic.appendChild(svg(ICON_TROPHY));
+    ic.innerHTML = ICON_TROPHY;
     var lbl = h('span', 'dh-drop-label', 'PILIH PASARAN');
     lbl.id = 'dhDropLabel';
     var chev = h('span', 'dh-drop-chev');
-    chev.appendChild(svg(ICON_CHEV));
-    btn.appendChild(ic); btn.appendChild(lbl); btn.appendChild(chev);
+    chev.innerHTML = ICON_CHEV;
+    btn.appendChild(ic);
+    btn.appendChild(lbl);
+    btn.appendChild(chev);
     drop.appendChild(btn);
 
     var panel = h('div', 'dh-drop-panel');
     panel.id = 'dhDropPanel';
     panel.style.display = 'none';
     var srch = h('div', 'dh-drop-search');
-    srch.appendChild(svg(ICON_SEARCH));
+    srch.innerHTML = ICON_SEARCH;
     var inp = h('input');
     inp.type = 'text';
     inp.id = 'dhDropSearch';
-    inp.placeholder = 'Cari pasaran — ketik nama…';
+    inp.placeholder = 'Cari pasaran \u2014 ketik nama\u2026';
     inp.autocomplete = 'off';
     inp.spellcheck = false;
     srch.appendChild(inp);
@@ -344,63 +236,194 @@
     drop.appendChild(panel);
     row.appendChild(drop);
 
-    var sp = h('div', 'dh-spacer');
-    row.appendChild(sp);
-    var resetSel = h('button', 'dh-btn-ghost');
-    resetSel.type = 'button';
-    resetSel.id = 'dhResetSel';
-    resetSel.appendChild(svg(ICON_REFRESH));
-    resetSel.appendChild(document.createTextNode('RESET'));
-    row.appendChild(resetSel);
+    row.appendChild(h('div', 'dh-spacer'));
+
+    var btnCopyCur = h('button', 'dh-btn-ghost');
+    btnCopyCur.type = 'button';
+    btnCopyCur.id = 'dhCopyCurrent';
+    btnCopyCur.innerHTML = ICON_COPY;
+    btnCopyCur.appendChild(document.createTextNode('COPY PASARAN INI'));
+    row.appendChild(btnCopyCur);
+
+    var btnCopyAll = h('button', 'dh-btn-gold');
+    btnCopyAll.type = 'button';
+    btnCopyAll.id = 'dhCopyAll';
+    btnCopyAll.innerHTML = ICON_COPY;
+    btnCopyAll.appendChild(document.createTextNode('COPY SEMUA HADIAH'));
+    row.appendChild(btnCopyAll);
+
+    var btnEdit = h('button', 'dh-btn-edit');
+    btnEdit.type = 'button';
+    btnEdit.id = 'dhEditBtn';
+    btnEdit.hidden = true;
+    btnEdit.innerHTML = ICON_EDIT;
+    btnEdit.appendChild(document.createTextNode('EDIT HADIAH'));
+    row.appendChild(btnEdit);
+
     ctrl.appendChild(row);
 
     /* --- tab kategori --- */
     var tabs = h('div', 'dh-tabs');
     tabs.id = 'dhTabs';
-    TABS.forEach(function (t) {
-      var b = h('button', 'dh-tab' + (t[0] === 'all' ? ' is-on' : ''));
-      b.type = 'button';
-      b.dataset.k = t[0];
-      b.appendChild(document.createTextNode(t[1]));
-      b.appendChild(h('b', null, String(countByTag(t[0]))));
-      tabs.appendChild(b);
-    });
     ctrl.appendChild(tabs);
+    wrap.appendChild(ctrl);
 
-    /* --- kotak pasaran terpilih --- */
+    /* --- kotak pasaran aktif --- */
     var mbox = h('div', 'dh-market-box');
     mbox.id = 'dhMarketBox';
     mbox.style.display = 'none';
-    ctrl.appendChild(mbox);
+    wrap.appendChild(mbox);
 
-    wrap.appendChild(ctrl);
+    /* --- workspace: kalkulator (kiri) + konten (kanan) --- */
+    var workspace = h('div', 'dh-workspace');
 
-    /* --- grid + empty --- */
-    var grid = h('div', 'dh-grid');
-    grid.id = 'dhGrid';
-    wrap.appendChild(grid);
+    var calcPanel = h('section', 'dh-panel dh-calcpanel');
+    var calcHead = h('div', 'dh-calc-head');
+    var calcTitle = h('h3', 'dh-calc-title', 'KALKULATOR PERHITUNGAN');
+    calcTitle.id = 'dhCalcTitle';
+    var calcSub = h('div', 'dh-calc-sub', 'Pilih pasaran untuk memulai perhitungan.');
+    calcSub.id = 'dhCalcSub';
+    calcHead.appendChild(calcTitle);
+    calcHead.appendChild(calcSub);
+    calcPanel.appendChild(calcHead);
+    var calcHost = h('div', 'dh-calc-host');
+    calcHost.id = 'dhCalcHost';
+    calcPanel.appendChild(calcHost);
+    workspace.appendChild(calcPanel);
+
+    var right = h('div', 'dh-right');
+    var marketHead = h('div', 'dh-market-head');
+    var mhLeft = h('div', 'dh-market-head-left');
+    var mTitle = h('div', 'dh-market-title', '-');
+    mTitle.id = 'dhMarketTitle';
+    var mStatus = h('div', 'dh-market-status');
+    mStatus.id = 'dhMarketStatus';
+    mhLeft.appendChild(mTitle);
+    mhLeft.appendChild(mStatus);
+    var mhRight = h('div', 'dh-market-head-side');
+    var mNote = h('div', 'dh-market-note');
+    mNote.id = 'dhMarketNote';
+    mhRight.appendChild(mNote);
+    marketHead.appendChild(mhLeft);
+    marketHead.appendChild(mhRight);
+    right.appendChild(marketHead);
+
+    var content = h('div', 'dh-content');
+    content.id = 'dhContent';
+    right.appendChild(content);
+    workspace.appendChild(right);
+    wrap.appendChild(workspace);
+
     var empty = h('div', 'dh-empty', 'SILAKAN PILIH PASARAN TERLEBIH DAHULU');
     empty.id = 'dhEmpty';
     wrap.appendChild(empty);
 
+    /* --- legend --- */
+    wrap.appendChild(h('div', 'dh-legend',
+      'Keterangan: daftar hadiah gabungan disembunyikan dari tampilan. Gunakan COPY SEMUA HADIAH untuk menyalin seluruh daftar hadiah lengkap, termasuk Prize dan pasaran khusus.'));
+
+    /* --- modal copy manual --- */
+    var manualModal = h('div', 'dh-modal');
+    manualModal.id = 'dhManualModal';
+    var manualCard = h('div', 'dh-modal-card');
+    var manualTop = h('div', 'dh-modal-top');
+    var manualInfo = h('div');
+    manualInfo.appendChild(h('b', null, 'Copy Manual'));
+    manualInfo.appendChild(h('div', 'dh-modal-sub',
+      'Jika copy otomatis diblokir browser, teks sudah dipilih. Tekan Ctrl + C.'));
+    var manualClose = h('button', 'dh-btn-ghost', 'TUTUP');
+    manualClose.type = 'button';
+    manualClose.id = 'dhManualClose';
+    manualTop.appendChild(manualInfo);
+    manualTop.appendChild(manualClose);
+    manualCard.appendChild(manualTop);
+    var manualText = h('textarea', 'dh-modal-textarea');
+    manualText.id = 'dhManualText';
+    manualCard.appendChild(manualText);
+    manualModal.appendChild(manualCard);
+    wrap.appendChild(manualModal);
+
+    /* --- modal edit hadiah (master) --- */
+    var editorModal = h('div', 'dh-modal');
+    editorModal.id = 'dhEditorModal';
+    var editorCard = h('div', 'dh-modal-card dh-editor-card');
+    var editorTop = h('div', 'dh-modal-top');
+    var editorInfo = h('div');
+    editorInfo.appendChild(h('div', 'dh-editor-title', 'Edit Hadiah Pasaran'));
+    editorInfo.appendChild(h('div', 'dh-modal-sub', 'MASTER ADMINISTRATOR ONLY'));
+    var editorLabel = h('div', 'dh-modal-sub');
+    editorLabel.id = 'dhEditorLabel';
+    editorLabel.textContent = 'Pasaran aktif: -';
+    editorInfo.appendChild(editorLabel);
+    editorInfo.appendChild(h('div', 'dh-modal-sub',
+      'Ubah langsung kolom Diskon, Hadiah, atau Kei. Simpan untuk menerapkan perubahan pada pasaran aktif.'));
+    var editorActions = h('div', 'dh-modal-actions');
+    var editorReset = h('button', 'dh-btn-ghost', 'RESET PASARAN INI');
+    editorReset.type = 'button';
+    editorReset.id = 'dhEditorReset';
+    var editorSave = h('button', 'dh-btn-gold', 'SIMPAN PERUBAHAN');
+    editorSave.type = 'button';
+    editorSave.id = 'dhEditorSave';
+    var editorClose = h('button', 'dh-btn-ghost', 'TUTUP');
+    editorClose.type = 'button';
+    editorClose.id = 'dhEditorClose';
+    editorActions.appendChild(editorReset);
+    editorActions.appendChild(editorSave);
+    editorActions.appendChild(editorClose);
+    editorTop.appendChild(editorInfo);
+    editorTop.appendChild(editorActions);
+    editorCard.appendChild(editorTop);
+
+    var editorWrap = h('div', 'dh-editor-wrap');
+    var editorTable = h('table', 'dh-editor-table');
+    var thead = h('thead');
+    var thr = h('tr');
+    ['Section', 'Nama Permainan', 'Diskon (%)', 'Hadiah', 'Kei'].forEach(function (t) {
+      thr.appendChild(h('th', null, t));
+    });
+    thead.appendChild(thr);
+    editorTable.appendChild(thead);
+    var tbody = h('tbody');
+    tbody.id = 'dhEditorBody';
+    editorTable.appendChild(tbody);
+    editorWrap.appendChild(editorTable);
+    editorCard.appendChild(editorWrap);
+    editorCard.appendChild(h('div', 'dh-editor-note',
+      'Catatan: perubahan disimpan di browser pada perangkat ini. Reset pasaran ini akan mengembalikan data hadiah pasaran aktif ke kondisi awal.'));
+    editorModal.appendChild(editorCard);
+    wrap.appendChild(editorModal);
+
     host.appendChild(wrap);
 
     /* simpan referensi */
-    el.wrap = wrap; el.drop = drop; el.dropBtn = btn; el.dropLabel = lbl;
+    el.wrap = wrap;
+    el.drop = drop; el.dropBtn = btn; el.dropLabel = lbl;
     el.dropPanel = panel; el.dropSearch = inp; el.dropList = list;
-    el.tabs = tabs; el.mbox = mbox; el.grid = grid; el.empty = empty;
-    el.statRules = st2;
+    el.tabs = tabs; el.mbox = mbox; el.empty = empty;
+    el.calcTitle = calcTitle; el.calcSub = calcSub; el.calcHost = calcHost;
+    el.mTitle = mTitle; el.mStatus = mStatus; el.mNote = mNote;
+    el.content = content;
+    el.btnCopyCur = btnCopyCur; el.btnCopyAll = btnCopyAll; el.btnEdit = btnEdit;
+    el.manualModal = manualModal; el.manualText = manualText; el.manualClose = manualClose;
+    el.editorModal = editorModal; el.editorLabel = editorLabel; el.editorBody = tbody;
+    el.editorSave = editorSave; el.editorClose = editorClose; el.editorReset = editorReset;
 
-    /* --- events --- */
-    btn.addEventListener('click', function (e) {
+    wireShellEvents();
+  }
+
+  /* ============================================================
+     5. EVENT SHELL
+     ============================================================ */
+  function wireShellEvents() {
+    el.dropBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       state.dropOpen ? closeDrop() : openDrop();
     });
-    inp.addEventListener('input', function () {
-      state.dropQuery = inp.value;
+    el.dropSearch.addEventListener('input', function () {
+      state.dropQuery = el.dropSearch.value;
       paintDropList();
     });
-    inp.addEventListener('keydown', function (e) {
+    el.dropSearch.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
         var first = el.dropList.querySelector('.dh-opt');
         if (first) { selectMarket(first.dataset.m); closeDrop(); }
@@ -408,23 +431,42 @@
         closeDrop();
       }
     });
-    panel.addEventListener('click', function (e) { e.stopPropagation(); });
-    resetSel.addEventListener('click', function () {
-      state.market = ''; state.filter = 'all';
-      saveSel();
-      syncTabs();
-      paintAll();
+    el.dropPanel.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    el.btnCopyCur.addEventListener('click', function () {
+      if (!state.market) return;
+      doCopy(HD.marketText(state.market), el.btnCopyCur, 'PASARAN TERSALIN \u2713');
     });
-    tabs.addEventListener('click', function (e) {
-      var b = e.target.closest ? e.target.closest('.dh-tab') : null;
-      if (!b) return;
-      state.filter = b.dataset.k || 'all';
-      saveSel();
-      syncTabs();
-      paintAll();
+    el.btnCopyAll.addEventListener('click', function () {
+      doCopy(HD.allGroupsText(), el.btnCopyAll, 'SEMUA TERSALIN \u2713');
+    });
+    el.btnEdit.addEventListener('click', function () {
+      if (!requireMaster()) return;
+      openEditor();
     });
 
-    /* tutup dropdown: klik di luar / Escape (document-level, pola prediksi-pro) */
+    el.manualClose.addEventListener('click', closeManual);
+    el.manualModal.addEventListener('click', function (e) {
+      if (e.target === el.manualModal) closeManual();
+    });
+
+    el.editorClose.addEventListener('click', closeEditor);
+    el.editorSave.addEventListener('click', function () {
+      if (!requireMaster()) return;
+      applyEditor();
+    });
+    el.editorReset.addEventListener('click', function () {
+      if (!requireMaster()) return;
+      HD.resetOverride(state.market);
+      closeEditor();
+      paintAll();
+      flash(el.btnEdit, 'PASARAN DI-RESET \u2713', 1500);
+    });
+    el.editorModal.addEventListener('click', function (e) {
+      if (e.target === el.editorModal) closeEditor();
+    });
+
+    /* tutup dropdown global: klik di luar / Escape (anti duplikat listener) */
     if (!window.__dhDropOutside) {
       window.__dhDropOutside = true;
       document.addEventListener('click', function (e) {
@@ -433,30 +475,29 @@
         if (!wrapEl.contains(e.target)) closeDrop();
       });
       document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-          var p = document.getElementById('dhDropPanel');
-          if (p && p.style.display !== 'none') closeDrop();
-        }
+        if (e.key !== 'Escape') return;
+        var dropPanel = document.getElementById('dhDropPanel');
+        if (dropPanel && dropPanel.style.display !== 'none') closeDrop();
+        var em = document.getElementById('dhEditorModal');
+        if (em && em.classList.contains('is-show')) closeEditor();
+        var mm = document.getElementById('dhManualModal');
+        if (mm && mm.classList.contains('is-show')) closeManual();
       });
     }
-  }
 
-  function countByTag(tag) {
-    if (tag === 'all') {
-      var n = 0;
-      marketList().forEach(function (m) { n += ruleCount(m); });
-      return n;
-    }
-    var c = 0;
-    marketList().forEach(function (m) {
-      var map = CFG[m].map;
-      for (var k in map) if (tagOf(k) === tag) c++;
+    /* tab kategori (delegasi) */
+    el.tabs.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('.dh-tab') : null;
+      if (!b || !b.dataset.tab) return;
+      state.tab = b.dataset.tab;
+      saveSel();
+      syncTabs();
+      paintContent();
     });
-    return c;
   }
 
   /* ============================================================
-     7. DROPDOWN (bisa diketik utk mencari)
+     6. DROPDOWN PASARAN (bisa diketik untuk mencari)
      ============================================================ */
   function openDrop() {
     state.dropOpen = true;
@@ -474,10 +515,10 @@
   }
   function paintDropList() {
     var q = norm(state.dropQuery);
-    var names = marketList().filter(function (m) { return !q || norm(m).indexOf(q) !== -1; });
+    var names = HD.allMarkets().filter(function (m) { return !q || norm(m).indexOf(q) !== -1; });
     el.dropList.innerHTML = '';
     if (!names.length) {
-      el.dropList.appendChild(h('div', 'dh-opt-none', 'Tidak ada pasaran yang cocok — "' + state.dropQuery + '"'));
+      el.dropList.appendChild(h('div', 'dh-opt-none', 'Pasaran tidak ditemukan \u2014 "' + state.dropQuery + '"'));
       return;
     }
     names.forEach(function (m) {
@@ -485,7 +526,7 @@
       b.type = 'button';
       b.dataset.m = m;
       b.appendChild(h('span', 'dh-opt-name', m));
-      b.appendChild(h('span', 'dh-opt-chip', ruleCount(m) + ' RULES'));
+      b.appendChild(h('span', 'dh-opt-chip', ruleCount(m) + ' ATURAN'));
       b.addEventListener('click', function () {
         selectMarket(m);
         closeDrop();
@@ -495,45 +536,83 @@
   }
 
   function selectMarket(m) {
-    if (!CFG[m]) return;
+    if (HD.allMarkets().indexOf(m) === -1) return;
     state.market = m;
+    state.tab = 'Semua';
+    state.calcType = 'Diskon';
     saveSel();
     paintAll();
   }
 
   function saveSel() {
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ market: state.market, filter: state.filter }));
+      localStorage.setItem(LS_SEL, JSON.stringify({ market: state.market, tab: state.tab }));
     } catch (e) { /* noop */ }
   }
   function loadSel() {
     try {
-      var raw = localStorage.getItem(LS_KEY);
+      var raw = localStorage.getItem(LS_SEL);
       if (!raw) return;
       var d = JSON.parse(raw);
-      if (d && CFG[d.market]) state.market = d.market;
-      if (d && TABS.some(function (t) { return t[0] === d.filter; })) state.filter = d.filter;
+      if (d && HD.allMarkets().indexOf(d.market) !== -1) state.market = d.market;
+      if (d && d.tab) state.tab = d.tab;
     } catch (e) { /* noop */ }
   }
 
-  function syncTabs() {
-    if (!el.tabs) return;
-    Array.prototype.forEach.call(el.tabs.querySelectorAll('.dh-tab'), function (b) {
-      b.classList.toggle('is-on', (b.dataset.k || 'all') === state.filter);
+  /* ============================================================
+     7. RENDER UTAMA
+     ============================================================ */
+  function ruleCount(m) {
+    var sections = HD.sectionsFor(m);
+    var n = 0;
+    HD.SECTION_ORDER.forEach(function (name) {
+      (sections[name] || []).forEach(function () { n++; });
     });
+    return n;
   }
 
-  /* ============================================================
-     8. RENDER (kotak pasaran + grid kartu)
-     ============================================================ */
   function paintAll() {
     if (!el.wrap) return;
     closeDrop();
-    syncTabs();
     el.dropLabel.textContent = state.market || 'PILIH PASARAN';
     el.drop.classList.toggle('is-picked', !!state.market);
+    paintEditBtn();
+    paintTabs();
     paintMarketBox();
-    paintGrid();
+    paintCalcPanel();
+    paintContent();
+  }
+
+  function paintEditBtn() {
+    if (el.btnEdit) el.btnEdit.hidden = !state.isMaster;
+  }
+
+  function paintTabs() {
+    var tabs = el.tabs;
+    tabs.innerHTML = '';
+    var available = ['Semua'];
+    if (state.market) {
+      var sections = HD.sectionsFor(state.market);
+      HD.SECTION_ORDER.forEach(function (name) {
+        if (sections[name]) available.push(name);
+      });
+    }
+    if (available.indexOf(state.tab) === -1) state.tab = 'Semua';
+    available.forEach(function (name) {
+      var b = h('button', 'dh-tab' + (name === state.tab ? ' is-on' : ''));
+      b.type = 'button';
+      b.dataset.tab = name;
+      b.textContent = name;
+      tabs.appendChild(b);
+    });
+  }
+
+  /* sinkronkan highlight tab dgn state.tab (dipakai handler klik) */
+  function syncTabs() {
+    if (!el.tabs) return;
+    Array.prototype.forEach.call(el.tabs.querySelectorAll('.dh-tab'), function (b) {
+      b.classList.toggle('is-on', (b.dataset.tab || 'Semua') === state.tab);
+    });
   }
 
   function paintMarketBox() {
@@ -542,7 +621,7 @@
     if (!state.market) { box.style.display = 'none'; return; }
     box.style.display = 'flex';
 
-    var logoURL = MARKET_LOGOS[state.market];
+    var logoURL = HD.MARKET_LOGOS[state.market];
     if (logoURL) {
       var img = h('img', 'dh-market-logo');
       img.src = logoURL;
@@ -561,161 +640,314 @@
     var info = h('div', 'dh-market-info');
     info.appendChild(h('b', null, state.market));
     var meta = h('span');
-    meta.appendChild(document.createTextNode(ruleCount(state.market) + ' ATURAN • '));
-    var em = h('em', null, hasPrize(state.market) ? 'PRIZE AKTIF' : 'TANPA PRIZE');
+    meta.appendChild(document.createTextNode(ruleCount(state.market) + ' ATURAN \u2022 '));
+    var hasPrize = !!HD.sectionsFor(state.market)['Prize'];
+    var em = h('em', null, hasPrize ? 'PRIZE AKTIF' : 'TANPA PRIZE');
     meta.appendChild(em);
     info.appendChild(meta);
     box.appendChild(info);
+
+    var stat = el.wrap ? document.getElementById('dhStatRules') : null;
+    if (stat && stat.firstChild) stat.firstChild.textContent = String(ruleCount(state.market));
   }
 
-  function paintGrid() {
-    var grid = el.grid;
-    grid.innerHTML = '';
+  /* --- konten pasaran: section + kartu + prize grouped --- */
+  function badge(label, cls) {
+    var b = h('span', 'dh-badge ' + cls, label);
+    return b;
+  }
+
+  function cardHtml(item) {
+    var card = h('article', 'dh-card');
+    card.appendChild(h('div', 'dh-card-name', HD.copyTitleCase(item.name)));
+    var meta = h('div', 'dh-card-meta');
+    meta.appendChild(badge('Diskon: ' + item.discount + '%', 'dh-badge-diskon'));
+    if (item.reward !== undefined) meta.appendChild(badge('Hadiah: x' + item.reward, 'dh-badge-hadiah'));
+    if (item.kei !== undefined) meta.appendChild(badge('Kei: ' + item.kei, 'dh-badge-kei'));
+    card.appendChild(meta);
+    return card;
+  }
+
+  function prizeSectionHtml(list) {
+    var groups = {
+      '1': { title: 'PRIZE 1', rows: [] },
+      '2': { title: 'PRIZE 2', rows: [] },
+      '3': { title: 'PRIZE 3', rows: [] }
+    };
+    var digitMap = { '1': '4D', '2': '3D', '3': '2D' };
+
+    list.forEach(function (item) {
+      var match = String(item.name || '').match(/PRIZE\s*(\d+)\s*-\s*(\d+)/i);
+      if (!match || !groups[match[1]]) return;
+      groups[match[1]].rows.push({
+        digitLabel: digitMap[match[2]] || (match[2] + 'D'),
+        discount: item.discount,
+        reward: item.reward,
+        kei: item.kei
+      });
+    });
+
+    var sec = h('section', 'dh-section');
+    var st = h('div', 'dh-section-title');
+    st.appendChild(h('h2', null, 'Prize'));
+    sec.appendChild(st);
+
+    var cards = h('div', 'dh-prize-cards');
+    ['1', '2', '3'].forEach(function (key) {
+      var g = groups[key];
+      if (!g.rows.length) return;
+      var pc = h('article', 'dh-prize-card');
+      pc.appendChild(h('h3', null, g.title));
+      g.rows.forEach(function (row) {
+        var r = h('div', 'dh-prize-row');
+        r.appendChild(h('div', 'dh-prize-digit', row.digitLabel));
+        var meta = h('div', 'dh-prize-meta');
+        meta.appendChild(badge('Diskon: ' + row.discount + '%', 'dh-badge-diskon'));
+        if (row.reward !== undefined) meta.appendChild(badge('Hadiah: x' + row.reward, 'dh-badge-hadiah'));
+        if (row.kei !== undefined) meta.appendChild(badge('Kei: ' + row.kei, 'dh-badge-kei'));
+        r.appendChild(meta);
+        pc.appendChild(r);
+      });
+      cards.appendChild(pc);
+    });
+    sec.appendChild(cards);
+    return sec;
+  }
+
+  function paintContent() {
+    var content = el.content;
+    content.innerHTML = '';
     var has = !!state.market;
     el.empty.style.display = has ? 'none' : 'block';
-    if (el.statRules) el.statRules.firstChild.textContent = has ? String(ruleCount(state.market)) : '0';
-    if (!has) return;
 
-    var map = CFG[state.market].map;
-    var items = [];
-    for (var k in map) {
-      var tag = tagOf(k);
-      if (state.filter !== 'all' && tag !== state.filter) continue;
-      var d = map[k];
-      items.push({ title: k, tag: tag, hadiah: d.hadiah, diskon: d.diskon, kei: d.kei });
-    }
-    if (!items.length) {
-      el.empty.style.display = 'block';
-      el.empty.textContent = 'TIDAK ADA ATURAN PADA KATEGORI INI';
+    el.mTitle.textContent = state.market || '-';
+    if (!has) {
+      el.mStatus.textContent = '';
+      el.mStatus.className = 'dh-market-status';
+      el.mNote.textContent = '';
       return;
     }
 
-    var i = 0;
-    if (state.filter === 'all') {
-      TAG_ORDER.forEach(function (tag) {
-        var sub = items.filter(function (x) { return x.tag === tag; });
-        if (!sub.length) return;
-        var div = h('div', 'dh-divider');
-        div.appendChild(h('span', 'dh-divider-label', TAG_LABEL[tag].toUpperCase()));
-        grid.appendChild(div);
-        sub.forEach(function (item) {
-          grid.appendChild(createCard(item, i++));
-        });
-      });
-    } else {
-      items.forEach(function (item) {
-        grid.appendChild(createCard(item, i++));
-      });
+    var sections = HD.sectionsFor(state.market);
+    var hasPrize = !!sections['Prize'];
+    el.mNote.textContent = hasPrize
+      ? 'Pasaran ini memiliki kategori Prize.'
+      : 'Pasaran ini tidak memiliki kategori Prize.';
+    el.mStatus.textContent = 'Kalkulator perhitungan tersedia untuk pasaran ini.';
+    el.mStatus.className = 'dh-market-status is-ok';
+
+    var painted = 0;
+    HD.SECTION_ORDER.forEach(function (sectionName) {
+      if (!sections[sectionName]) return;
+      if (state.tab !== 'Semua' && state.tab !== sectionName) return;
+
+      var items = sections[sectionName];
+      if (!items.length) return;
+
+      if (sectionName === 'Prize') {
+        content.appendChild(prizeSectionHtml(items));
+        painted++;
+        return;
+      }
+
+      var sec = h('section', 'dh-section');
+      var st = h('div', 'dh-section-title');
+      st.appendChild(h('h2', null, sectionName));
+      sec.appendChild(st);
+      var grid = h('div', 'dh-grid');
+      items.forEach(function (item) { grid.appendChild(cardHtml(item)); });
+      sec.appendChild(grid);
+      content.appendChild(sec);
+      painted++;
+    });
+
+    if (!painted) {
+      content.appendChild(h('div', 'dh-empty dh-empty-sm', 'TIDAK ADA DATA PADA KATEGORI INI'));
     }
   }
 
   /* ============================================================
-     9. KARTU HITUNG (rumus PERSIS script asli)
+     8. KALKULATOR PERHITUNGAN (panel kiri)
      ============================================================ */
-  function createCard(item, idx) {
-    var card = h('div', 'dh-card');
-    card.style.setProperty('--i', String(idx));
+  function paintCalcPanel() {
+    var host = el.calcHost;
+    host.innerHTML = '';
 
-    var top = h('div', 'dh-card-top');
-    top.appendChild(h('h3', 'dh-card-title', item.title));
-    top.appendChild(h('span', 'dh-tag dh-tag-' + item.tag, TAG_LABEL[item.tag].toUpperCase()));
-    card.appendChild(top);
-
-    var isKei = item.kei != null;
-    var meta = h('div', 'dh-meta');
-    if (isKei) {
-      meta.appendChild(document.createTextNode('Diskon ' + (item.diskon || 0) + '% \u00A0·\u00A0 '));
-      meta.appendChild(h('span', 'dh-meta-kei', 'Kei ' + item.kei + '%'));
-    } else {
-      meta.appendChild(document.createTextNode('Diskon ' + (item.diskon || 0) + '% \u00A0·\u00A0 '));
-      meta.appendChild(h('b', null, 'Hadiah x' + idr(item.hadiah || 0)));
+    if (!state.market) {
+      el.calcTitle.textContent = 'KALKULATOR PERHITUNGAN';
+      el.calcSub.textContent = 'Pilih pasaran untuk memulai perhitungan.';
+      host.appendChild(h('div', 'dh-calc-hint',
+        'Pilih pasaran pada dropdown di atas, lalu pilih tipe permainan dan masukkan nominal betting.'));
+      return;
     }
-    card.appendChild(meta);
 
-    var row = h('div', 'dh-row');
-    var inp = h('input', 'dh-input');
-    inp.type = 'number';
-    inp.inputMode = 'numeric';
-    inp.min = '0';
-    inp.placeholder = 'NOMINAL TARUHAN';
-    row.appendChild(inp);
-    card.appendChild(row);
+    var types = HD.marketCalcTypes(state.market);
+    if (types.indexOf(state.calcType) === -1) state.calcType = types[0];
 
-    var actions = h('div', 'dh-actions');
-    var bHit = h('button', 'dh-btn', 'HITUNG');
-    bHit.type = 'button';
-    var bRes = h('button', 'dh-btn dh-btn-sec', 'RESET');
-    bRes.type = 'button';
-    actions.appendChild(bHit); actions.appendChild(bRes);
-    card.appendChild(actions);
+    el.calcTitle.textContent = 'KALKULATOR PERHITUNGAN ' + state.market;
+    el.calcSub.textContent = 'Nilai diambil langsung dari daftar hadiah pasaran ini. Pilih tipe, masukkan nominal, lalu tekan HITUNG.';
 
-    var out = h('div', 'dh-out');
-    var pPay = h('div', 'dh-pill dh-pill-pay');
-    var pWin = h('div', 'dh-pill dh-pill-win');
-    var pSum = h('div', 'dh-pill dh-pill-sum');
-    var pMin = h('div', 'dh-pill dh-pill-min');
-    out.appendChild(pPay); out.appendChild(pWin); out.appendChild(pSum); out.appendChild(pMin);
-    card.appendChild(out);
+    var chips = h('div', 'dh-calc-types');
+    types.forEach(function (type) {
+      var b = h('button', 'dh-chip' + (type === state.calcType ? ' is-on' : ''));
+      b.type = 'button';
+      b.textContent = type;
+      b.addEventListener('click', function () {
+        state.calcType = type;
+        chips.querySelectorAll('.dh-chip').forEach(function (x) { x.classList.remove('is-on'); });
+        b.classList.add('is-on');
+      });
+      chips.appendChild(b);
+    });
+    host.appendChild(chips);
 
-    function hitung() {
-      var v = parseFloat(inp.value);
-      var min = isMin1000(norm(item.title)) ? 1000 : 100;
-      if (isNaN(v) || v < min) {
-        out.classList.add('is-show');
-        pMin.style.display = 'block';
-        pMin.textContent = 'MIN : ' + idr(min);
-        pPay.style.display = pWin.style.display = pSum.style.display = 'none';
+    var controls = h('div', 'dh-calc-controls');
+    var input = h('input', 'dh-calc-input');
+    input.type = 'number';
+    input.min = '1';
+    input.step = '1';
+    input.inputMode = 'numeric';
+    input.placeholder = 'Masukkan nominal betting\u2026 contoh 1000';
+    var hit = h('button', 'dh-calc-hit', 'HITUNG');
+    hit.type = 'button';
+    var reset = h('button', 'dh-calc-reset', 'RESET');
+    reset.type = 'button';
+    controls.appendChild(input);
+    controls.appendChild(hit);
+    controls.appendChild(reset);
+    host.appendChild(controls);
+
+    var resultWrap = h('div', 'dh-calc-outwrap');
+    var result = h('pre', 'dh-calc-result');
+    var actions = h('div', 'dh-calc-actions');
+    var copyBtn = h('button', 'dh-btn-gold', 'COPY HASIL PERHITUNGAN');
+    copyBtn.type = 'button';
+    actions.appendChild(copyBtn);
+    resultWrap.appendChild(result);
+    resultWrap.appendChild(actions);
+    host.appendChild(resultWrap);
+
+    function doCalc() {
+      var bet = Number(input.value);
+      if (!Number.isFinite(bet) || bet <= 0) {
+        result.textContent = 'Masukkan nominal betting yang valid terlebih dahulu.';
+        resultWrap.classList.add('is-show');
         return;
       }
-      var bayar, menang, total;
-      if (isKei) {
-        var k = item.kei;
-        if (k < 0) {
-          var pre = v + v * Math.abs(k) / 100;
-          bayar = Math.ceil(pre * (1 - (item.diskon || 0) / 100));
-          menang = Math.round(v);
-        } else {
-          bayar = Math.round(v * (1 - (item.diskon || 0) / 100));
-          menang = Math.round(v + v * (k / 100));
-        }
-        total = bayar + menang;
-      } else {
-        bayar = Math.round(v * (1 - (item.diskon || 0) / 100));
-        menang = Math.round(v * (item.hadiah || 0));
-        total = bayar + menang;
-      }
-      out.classList.add('is-show');
-      pMin.style.display = 'none';
-      pPay.style.display = 'block';
-      pPay.textContent = 'BAYAR : ' + idr(bayar);
-      pWin.style.display = 'block';
-      pWin.textContent = 'MENANG : ' + idr(menang);
-      var showSum = isPlusTotal(item.title) || isKei;
-      pSum.style.display = showSum ? 'block' : 'none';
-      pSum.textContent = 'TOTAL : ' + idr(total);
-    }
-    function reset() {
-      inp.value = '';
-      out.classList.remove('is-show');
+      result.textContent = HD.marketCalcText(state.market, state.calcType, bet);
+      resultWrap.classList.add('is-show');
     }
 
-    bHit.addEventListener('click', hitung);
-    bRes.addEventListener('click', reset);
-    inp.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') hitung();
+    hit.addEventListener('click', doCalc);
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') doCalc(); });
+    reset.addEventListener('click', function () {
+      input.value = '';
+      result.textContent = '';
+      resultWrap.classList.remove('is-show');
+      try { input.focus(); } catch (e) { /* noop */ }
     });
-    return card;
+    copyBtn.addEventListener('click', function () {
+      if (!result.textContent.trim()) {
+        result.textContent = 'Hitung terlebih dahulu sebelum menyalin hasil.';
+        resultWrap.classList.add('is-show');
+        return;
+      }
+      doCopy(result.textContent, copyBtn);
+    });
+  }
+
+  /* ============================================================
+     9. EDITOR HADIAH (MASTER ONLY)
+     ============================================================ */
+  function openEditor() {
+    if (!state.market) return;
+    el.editorLabel.textContent = 'Pasaran aktif: ' + state.market;
+    el.editorBody.innerHTML = '';
+
+    var sections = HD.sectionsFor(state.market);
+    HD.SECTION_ORDER.forEach(function (sectionName) {
+      var items = sections[sectionName] || [];
+      items.forEach(function (item, index) {
+        var tr = h('tr');
+        tr.appendChild(h('td', 'dh-col-section', sectionName));
+        tr.appendChild(h('td', 'dh-col-name', HD.copyTitleCase(item.name)));
+        tr.appendChild(buildEditorCell(sectionName, index, 'discount', item.discount));
+        tr.appendChild(buildEditorCell(sectionName, index, 'reward', item.reward));
+        tr.appendChild(buildEditorCell(sectionName, index, 'kei', item.kei));
+        el.editorBody.appendChild(tr);
+      });
+    });
+
+    el.editorModal.classList.add('is-show');
+  }
+
+  function buildEditorCell(section, index, field, value) {
+    var td = h('td');
+    var input = h('input', 'dh-editor-input');
+    input.type = 'text';
+    input.inputMode = 'text';
+    input.value = value == null ? '' : String(value);
+    input.dataset.section = section;
+    input.dataset.index = String(index);
+    input.dataset.field = field;
+    td.appendChild(input);
+    return td;
+  }
+
+  function closeEditor() {
+    el.editorModal.classList.remove('is-show');
+  }
+
+  function collectEditedSections() {
+    var draft = JSON.parse(JSON.stringify(HD.sectionsFor(state.market)));
+    el.editorBody.querySelectorAll('.dh-editor-input').forEach(function (input) {
+      var section = input.dataset.section;
+      var index = Number(input.dataset.index);
+      var field = input.dataset.field;
+      var raw = input.value.trim();
+
+      if (!draft[section] || !draft[section][index]) return;
+
+      if (field === 'discount') {
+        var n = Number(raw);
+        draft[section][index].discount = raw === '' ? 0 : (Number.isFinite(n) ? n : 0);
+        return;
+      }
+      if (field === 'reward') {
+        if (raw === '') delete draft[section][index].reward;
+        else draft[section][index].reward = raw;
+        return;
+      }
+      if (field === 'kei') {
+        if (raw === '') delete draft[section][index].kei;
+        else draft[section][index].kei = raw;
+      }
+    });
+    return draft;
+  }
+
+  function applyEditor() {
+    HD.applyOverride(state.market, collectEditedSections());
+    closeEditor();
+    paintAll();
+    flash(el.btnEdit, 'TERSIMPAN & KALKULATOR SINKRON \u2713', 1800);
   }
 
   /* ============================================================
      10. ENTRY POINT
      ============================================================ */
   function render() {
+    if (!HD) {
+      var host0 = document.getElementById('hadiahView');
+      if (host0) host0.innerHTML = '<div class="dh-empty">Modul data hadiah (hadiah-data.js) belum dimuat.</div>';
+      return;
+    }
     var host = document.getElementById('hadiahView');
     if (!host) return;
     buildShell(host);
     loadSel();
     paintAll();
+    refreshMasterAccess();
   }
 
   /* expose */
@@ -724,9 +956,10 @@
     selectMarket: selectMarket,
     openDrop: openDrop,
     closeDrop: closeDrop,
-    setFilter: function (f) { state.filter = f; saveSel(); syncTabs(); render(); },
+    setFilter: function (t) { state.tab = t; saveSel(); paintAll(); },
+    openEditor: openEditor,
+    closeEditor: closeEditor,
     state: state,
-    markets: marketList,
-    cfg: CFG
+    markets: function () { return HD.allMarkets(); }
   };
 })();
