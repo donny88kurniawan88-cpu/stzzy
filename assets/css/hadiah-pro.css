@@ -1,14 +1,13 @@
 /* ============================================================
-   AURA.OS // HADIAH-PRO.CSS v1.0.0 — DISKON & HADIAH PASARAN
-   Modul Hadiah Togel (Pro): kalkulator diskon & hadiah.
-   - Header panel + panel kontrol (dropdown cari pasaran, tab
-     kategori, kotak pasaran dgn logo) + grid kartu hitung.
-   - Satu keluarga dgn prediksi-pro.css / pkpasaran-pro.css
-     (var tema AURA.OS: glass dark, cyan/blue/purple, mono).
-   - PENTING (pelajaran v1.2.0 prediksi): TIDAK ADA opacity:0
-     pada style dasar — semua animasi masuk memakai pola
-     keyframes from{} + animation-fill-mode:backwards sehingga
-     konten TETAP TERLIHAT saat repaint tanpa animasi.
+   AURA.OS // HADIAH-PRO.CSS v2.0.0 — HADIAH TOGEL & PERHITUNGAN
+   Style utk dua view: Hadiah Togel (tabel hadiah + kalkulator)
+   dan Pk Perhitungan (kalkulator penuh) — satu keluarga visual
+   dgn prediksi-pro.css / pkpasaran-pro.css (glass dark, cyan/
+   blue/purple, mono eyebrow).
+   PENTING (pelajaran v1.2.0 prediksi): TIDAK ADA opacity:0 pada
+   style dasar — animasi masuk memakai pola keyframes from{} +
+   animation-fill-mode:backwards agar konten TETAP TERLIHAT saat
+   repaint tanpa animasi.
    ============================================================ */
 
 /* ---------- wrapper + token lokal ---------- */
@@ -112,512 +111,791 @@
   color: var(--text-secondary, #94a3b8);
   font-size: 13px;
   line-height: 1.6;
-  max-width: 560px;
+  max-width: 620px;
 }
 
-.dh-head-side { display: flex; gap: 12px; }
+.dh-head-side { display: flex; gap: 12px; flex-wrap: wrap; }
 .dh-stat {
   min-width: 86px;
-  padding: 12px 14px;
-  text-align: center;
+  padding: 10px 14px;
   background: var(--dh-card-bg);
   border: 1px solid var(--dh-border);
-  border-radius: var(--radius-md, 12px);
-  animation: dhFadeInUp 0.5s ease backwards;
-  animation-delay: 0.08s;
+  border-radius: 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .dh-stat b {
-  display: block;
   font-family: var(--font-mono, monospace);
-  font-size: 21px;
-  font-weight: 800;
+  font-size: 18px;
   color: var(--dh-cyan);
-  line-height: 1.15;
+  letter-spacing: 0.02em;
 }
 .dh-stat span {
-  display: block;
-  margin-top: 3px;
   font-family: var(--font-mono, monospace);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  color: var(--text-tertiary, #64748b);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary, #94a3b8);
 }
 
-/* ---------- panel kontrol ---------- */
+/* ---------- control row ---------- */
 .dh-control-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
+  animation: dhFadeInUp 0.45s 0.05s ease backwards;
 }
-.dh-spacer { flex: 1; }
+.dh-spacer { flex: 1; min-width: 0; }
 
-/* tombol dropdown (fake select + panel cari) */
-.dh-drop { position: relative; flex: 1; min-width: 250px; max-width: 420px; }
+/* ---------- dropdown pasaran (bisa diketik) ---------- */
+.dh-drop { position: relative; flex: 1 1 260px; max-width: 420px; min-width: 220px; }
+
 .dh-drop-btn {
   width: 100%;
+  min-height: 46px;
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 46px;
   padding: 0 14px;
-  background: var(--bg-secondary, #111118);
-  border: 1px solid var(--dh-border);
-  border-radius: var(--radius-md, 12px);
+  border-radius: 12px;
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  background: linear-gradient(180deg, rgba(20, 20, 30, 0.9), rgba(10, 10, 15, 0.95));
   color: var(--text-primary, #f1f5f9);
-  font-family: var(--font-mono, monospace);
   font-size: 12.5px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
+  text-align: left;
   cursor: pointer;
-  transition: border-color 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
-.dh-drop-btn:hover { border-color: rgba(34, 211, 238, 0.45); }
-.dh-drop.is-open .dh-drop-btn {
-  border-color: rgba(34, 211, 238, 0.6);
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12), 0 10px 26px rgba(0, 0, 0, 0.35);
+.dh-drop-btn:hover,
+.dh-drop.is-open .dh-drop-btn,
+.dh-drop.is-picked .dh-drop-btn {
+  border-color: rgba(34, 211, 238, 0.55);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
 }
-.dh-drop-ic { display: inline-flex; color: var(--dh-amber); flex: 0 0 auto; }
-.dh-drop-ic svg { width: 17px; height: 17px; }
+.dh-drop-ic { display: inline-flex; width: 17px; height: 17px; color: var(--dh-cyan); flex: 0 0 auto; }
+.dh-drop-ic svg { width: 100%; height: 100%; }
 .dh-drop-label {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-align: left;
 }
 .dh-drop.is-picked .dh-drop-label { color: var(--dh-cyan); }
-.dh-drop-chev { display: inline-flex; color: var(--text-tertiary, #64748b); flex: 0 0 auto; transition: transform 0.25s ease; }
-.dh-drop-chev svg { width: 15px; height: 15px; }
+.dh-drop-chev { display: inline-flex; width: 15px; height: 15px; color: var(--text-secondary, #94a3b8); transition: transform 0.18s ease; flex: 0 0 auto; }
+.dh-drop-chev svg { width: 100%; height: 100%; }
 .dh-drop.is-open .dh-drop-chev { transform: rotate(180deg); }
 
 .dh-drop-panel {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
+  left: 0; right: 0; top: 52px;
   z-index: 60;
-  background: rgba(13, 13, 20, 0.96);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  border-radius: 14px;
   border: 1px solid rgba(34, 211, 238, 0.28);
-  border-radius: var(--radius-md, 12px);
+  background: rgba(12, 12, 18, 0.98);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
   overflow: hidden;
-  animation: dhDropIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  backdrop-filter: blur(14px);
 }
 .dh-drop-search {
-  position: sticky;
-  top: 0;
   display: flex;
   align-items: center;
   gap: 9px;
   padding: 10px 12px;
-  background: rgba(13, 13, 20, 0.98);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--dh-cyan);
 }
-.dh-drop-search svg { width: 15px; height: 15px; color: var(--text-tertiary, #64748b); flex: 0 0 auto; }
 .dh-drop-search input {
   flex: 1;
   min-width: 0;
-  height: 32px;
-  background: transparent;
-  border: 0;
-  outline: 0;
-  color: var(--text-primary, #f1f5f9);
-  font-family: var(--font-mono, monospace);
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-}
-.dh-drop-search input::placeholder { color: var(--text-tertiary, #64748b); }
-
-.dh-drop-list { max-height: 284px; overflow-y: auto; padding: 6px; }
-.dh-opt {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 11px;
-  margin: 2px 0;
-  background: transparent;
-  border: 1px solid transparent;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 9px;
-  color: var(--text-secondary, #cbd5e1);
-  font-family: var(--font-mono, monospace);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-.dh-opt:hover { background: rgba(34, 211, 238, 0.09); color: #fff; border-color: rgba(34, 211, 238, 0.25); }
-.dh-opt.is-sel {
-  background: rgba(34, 211, 238, 0.13);
-  border-color: rgba(34, 211, 238, 0.45);
-  color: #fff;
-}
-.dh-opt-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dh-opt-chip {
-  flex: 0 0 auto;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--text-tertiary, #64748b);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 2px 8px;
-}
-.dh-opt-none {
-  padding: 14px 12px;
-  text-align: center;
-  color: var(--text-tertiary, #64748b);
-  font-size: 12px;
-  font-family: var(--font-mono, monospace);
-}
-
-/* tombol reset pilihan */
-.dh-btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 46px;
-  padding: 0 16px;
-  background: transparent;
-  border: 1px solid var(--dh-border);
-  border-radius: var(--radius-md, 12px);
-  color: var(--text-secondary, #94a3b8);
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  cursor: pointer;
-  transition: all 0.22s ease;
-}
-.dh-btn-ghost svg { width: 14px; height: 14px; }
-.dh-btn-ghost:hover {
-  color: var(--dh-cyan);
-  border-color: rgba(34, 211, 238, 0.45);
-  background: rgba(34, 211, 238, 0.07);
-}
-
-/* ---------- tab kategori ---------- */
-.dh-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
-.dh-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono, monospace);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--text-tertiary, #64748b);
-  background: var(--bg-secondary, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--dh-border);
-  border-radius: 20px;
-  padding: 7px 13px;
-  cursor: pointer;
-  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.dh-tab b {
-  font-weight: 700;
-  font-size: 10px;
-  color: var(--text-secondary, #cbd5e1);
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  padding: 1px 7px;
-}
-.dh-tab:hover { color: var(--text-primary, #f1f5f9); border-color: rgba(255, 255, 255, 0.22); transform: translateY(-1px); }
-.dh-tab.is-on {
-  color: #fff;
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.22), rgba(99, 102, 241, 0.22));
-  border-color: rgba(34, 211, 238, 0.5);
-  box-shadow: 0 4px 14px rgba(34, 211, 238, 0.14);
-}
-.dh-tab.is-on b { color: #fff; background: rgba(255, 255, 255, 0.16); }
-
-/* ---------- kotak pasaran terpilih ---------- */
-.dh-market-box {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 14px;
-  padding: 10px 14px;
-  background: var(--dh-card-bg);
-  border: 1px solid rgba(34, 211, 238, 0.28);
-  border-radius: var(--radius-md, 12px);
-  animation: dhFadeInUp 0.35s ease backwards;
-}
-.dh-market-logo {
-  width: 132px;
-  height: 44px;
-  object-fit: contain;
-  background: rgba(0, 0, 0, 0.45);
-  padding: 4px 8px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  flex: 0 0 auto;
-}
-.dh-market-fallback {
-  width: 132px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  padding: 4px 8px;
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: var(--dh-cyan);
-  flex: 0 0 auto;
-}
-.dh-market-info { min-width: 0; }
-.dh-market-info b {
-  display: block;
-  font-family: var(--font-mono, monospace);
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text-primary, #f1f5f9);
+  padding: 0 11px;
+  font-size: 12.5px;
+  outline: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.dh-market-info span {
-  display: block;
-  margin-top: 3px;
-  font-family: var(--font-mono, monospace);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--text-tertiary, #64748b);
+.dh-drop-search input:focus {
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.07);
 }
-.dh-market-info span em { font-style: normal; color: var(--dh-cyan); }
-
-/* ---------- grid kartu ---------- */
-.dh-grid {
+.dh-drop-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 6px;
 }
-@media (max-width: 1080px) { .dh-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 640px)  { .dh-grid { grid-template-columns: 1fr; } }
-
-.dh-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: var(--dh-card-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--dh-border);
-  border-radius: var(--radius-lg, 16px);
-  padding: 14px;
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.25s ease, box-shadow 0.25s ease;
-  animation: dhCardIn 0.4s ease backwards;
-  animation-delay: calc(var(--i, 0) * 0.035s);
-}
-.dh-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(34, 211, 238, 0.4);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(34, 211, 238, 0.08);
-}
-
-.dh-card-top {
+.dh-opt {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding-bottom: 9px;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
-}
-.dh-card-title {
-  margin: 0;
-  font-family: var(--font-mono, monospace);
-  font-size: 12.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  min-height: 40px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.02);
   color: var(--text-primary, #f1f5f9);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease;
 }
-.dh-tag {
-  flex: 0 0 auto;
+.dh-opt:hover { background: rgba(34, 211, 238, 0.08); border-color: rgba(34, 211, 238, 0.28); }
+.dh-opt.is-sel {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(59, 130, 246, 0.12));
+  border-color: rgba(34, 211, 238, 0.4);
+}
+.dh-opt-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dh-opt-chip {
   font-family: var(--font-mono, monospace);
   font-size: 8.5px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  padding: 3px 9px;
-  border-radius: 20px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--dh-cyan);
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  padding: 2px 7px;
+  border-radius: 100px;
   white-space: nowrap;
 }
-.dh-tag-diskon  { color: #22d3ee; background: rgba(34, 211, 238, 0.1);  border: 1px solid rgba(34, 211, 238, 0.3); }
-.dh-tag-betfull { color: #60a5fa; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); }
-.dh-tag-prize   { color: #fbbf24; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); }
-.dh-tag-tepatbb { color: #a78bfa; background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.32); }
-.dh-tag-lain    { color: #94a3b8; background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.28); }
-
-.dh-meta {
-  font-family: var(--font-mono, monospace);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  color: var(--text-tertiary, #64748b);
+.dh-opt-none {
+  padding: 14px 10px;
   text-align: center;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 12px;
 }
-.dh-meta b { color: var(--dh-cyan); font-weight: 800; }
-.dh-meta .dh-meta-kei { color: var(--dh-amber); font-weight: 800; }
 
-.dh-input {
-  width: 100%;
-  height: 44px;
-  border-radius: 10px;
-  border: 1px solid var(--dh-border);
-  background: rgba(0, 0, 0, 0.35);
-  color: var(--text-primary, #f1f5f9);
-  font-family: var(--font-mono, monospace);
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-align: center;
-  outline: 0;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.dh-input::placeholder { color: var(--text-tertiary, #64748b); font-weight: 600; font-size: 12px; letter-spacing: 0.1em; }
-.dh-input:focus { border-color: rgba(34, 211, 238, 0.55); box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12); }
-.dh-input::-webkit-outer-spin-button,
-.dh-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.dh-input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
-
-.dh-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.dh-btn {
-  height: 42px;
-  border: 0;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--dh-blue), var(--dh-cyan));
-  color: #fff;
-  font-family: var(--font-mono, monospace);
+/* ---------- tombol ---------- */
+.dh-btn-ghost,
+.dh-btn-gold,
+.dh-btn-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 11px;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.14em;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, filter 0.2s ease;
-}
-.dh-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(34, 211, 238, 0.32); filter: brightness(1.06); }
-.dh-btn:active { transform: translateY(0); }
-.dh-btn-sec {
-  background: transparent;
-  border: 1px solid var(--dh-border);
-  color: var(--text-secondary, #94a3b8);
-  box-shadow: none;
-}
-.dh-btn-sec:hover {
-  color: var(--dh-red);
-  border-color: rgba(239, 68, 68, 0.45);
-  background: rgba(239, 68, 68, 0.07);
-  box-shadow: none;
-}
-
-/* ---------- hasil hitung ---------- */
-.dh-out { display: none; grid-template-columns: 1fr; gap: 6px; }
-.dh-out.is-show { display: grid; }
-.dh-pill {
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 9px;
-  padding: 8px 10px;
-  text-align: center;
-  font-family: var(--font-mono, monospace);
-  font-size: 12px;
-  font-weight: 800;
   letter-spacing: 0.07em;
-  background: rgba(255, 255, 255, 0.03);
-  animation: dhPillIn 0.28s ease backwards;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
-.dh-pill-pay  { color: #60a5fa; border-color: rgba(59, 130, 246, 0.35);  background: rgba(59, 130, 246, 0.08); }
-.dh-pill-win  { color: #34d399; border-color: rgba(16, 185, 129, 0.35);  background: rgba(16, 185, 129, 0.08); }
-.dh-pill-sum  { color: #c4b5fd; border-color: rgba(139, 92, 246, 0.38);  background: rgba(139, 92, 246, 0.1); }
-.dh-pill-min  { color: #f87171; border-color: rgba(239, 68, 68, 0.4);    background: rgba(239, 68, 68, 0.08); }
+.dh-btn-ghost svg,
+.dh-btn-gold svg,
+.dh-btn-edit svg { width: 14px; height: 14px; }
 
-/* ---------- divider kategori (mode SEMUA) ---------- */
-.dh-divider {
-  grid-column: 1 / -1;
+.dh-btn-ghost {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary, #f1f5f9);
+}
+.dh-btn-ghost:hover { border-color: rgba(34, 211, 238, 0.45); background: rgba(34, 211, 238, 0.07); }
+
+.dh-btn-gold {
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(245, 158, 11, 0.12));
+  color: var(--dh-amber);
+  box-shadow: 0 6px 18px rgba(251, 191, 36, 0.1);
+}
+.dh-btn-gold:hover { filter: brightness(1.15); }
+
+.dh-btn-edit {
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.16), rgba(236, 72, 153, 0.1));
+  color: #c4b5fd;
+}
+.dh-btn-edit:hover { filter: brightness(1.15); }
+
+.dh-toolbar-note {
+  color: var(--text-secondary, #94a3b8);
+  font-size: 11.5px;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+/* ---------- tab kategori ---------- */
+.dh-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+  animation: dhFadeInUp 0.45s 0.1s ease backwards;
+}
+.dh-tab {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-secondary, #94a3b8);
+  border-radius: 100px;
+  padding: 7px 13px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.dh-tab:hover { border-color: rgba(34, 211, 238, 0.35); color: var(--text-primary, #f1f5f9); }
+.dh-tab.is-on {
+  border-color: rgba(34, 211, 238, 0.5);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(59, 130, 246, 0.12));
+  color: var(--dh-cyan);
+  box-shadow: 0 4px 14px rgba(34, 211, 238, 0.12);
+}
+
+/* ---------- kotak pasaran aktif ---------- */
+.dh-market-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--dh-border);
+  background: var(--dh-card-bg);
+  animation: dhFadeInUp 0.45s 0.12s ease backwards;
+}
+.dh-market-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 5px;
+  flex: 0 0 auto;
+}
+.dh-market-fallback {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px;
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--dh-cyan);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.14), rgba(59, 130, 246, 0.1));
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  flex: 0 0 auto;
+  overflow-wrap: anywhere;
+}
+.dh-market-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dh-market-info b {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.1px;
+  color: var(--text-primary, #f1f5f9);
+}
+.dh-market-info span {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary, #94a3b8);
+}
+.dh-market-info em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--dh-green);
+}
+
+/* ---------- workspace 2 kolom (kalkulator + konten) ---------- */
+.dh-workspace {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.dh-right { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+
+/* ---------- market head (kanan) ---------- */
+.dh-market-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 2px 4px;
+}
+.dh-market-head-left { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.dh-market-title {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.4px;
+  line-height: 1.1;
+  color: var(--text-primary, #f1f5f9);
+}
+.dh-market-status {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #7dd3fc;
+}
+.dh-market-status.is-ok { color: var(--dh-green); }
+.dh-market-head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 300px; }
+.dh-market-note {
+  font-size: 11.5px;
+  color: var(--text-secondary, #94a3b8);
+  text-align: right;
+  line-height: 1.55;
+}
+
+/* ---------- section + kartu hadiah ---------- */
+.dh-content { display: flex; flex-direction: column; gap: 16px; }
+.dh-section { display: flex; flex-direction: column; gap: 10px; }
+.dh-section-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 14px 0 2px;
 }
-.dh-divider::before,
-.dh-divider::after {
+.dh-section-title h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+  white-space: nowrap;
+}
+.dh-section-title::after {
   content: '';
   flex: 1;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  height: 1px;
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.35), transparent);
 }
-.dh-divider-label {
-  padding: 4px 14px;
-  border: 1px solid rgba(34, 211, 238, 0.35);
-  border-radius: 20px;
-  background: rgba(34, 211, 238, 0.07);
+
+.dh-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+.dh-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 13px;
+  border-radius: 13px;
+  border: 1px solid var(--dh-border);
+  background: var(--dh-card-bg);
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+.dh-card:hover {
+  border-color: rgba(34, 211, 238, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+.dh-card-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--text-primary, #f1f5f9);
+  overflow-wrap: anywhere;
+}
+.dh-card-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* badge (Diskon / Hadiah / Kei) */
+.dh-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 9px;
+  border-radius: 100px;
+  border: 1px solid;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.dh-badge-diskon {
+  color: var(--dh-amber);
+  border-color: rgba(251, 191, 36, 0.32);
+  background: rgba(251, 191, 36, 0.08);
+}
+.dh-badge-hadiah {
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.08);
+}
+.dh-badge-kei {
+  color: #f9a8d4;
+  border-color: rgba(236, 72, 153, 0.35);
+  background: rgba(236, 72, 153, 0.08);
+}
+
+/* ---------- kartu prize (PRIZE 1/2/3) ---------- */
+.dh-prize-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.dh-prize-card {
+  padding: 12px 13px;
+  border-radius: 13px;
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.05), rgba(10, 10, 15, 0.5));
+}
+.dh-prize-card h3 {
+  margin: 0 0 9px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--dh-amber);
+}
+.dh-prize-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+.dh-prize-digit {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--text-primary, #f1f5f9);
+}
+.dh-prize-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---------- panel kalkulator ---------- */
+.dh-calcpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 84px;
+}
+.dh-calcpanel-lg { position: static; }
+.dh-calc-head { display: flex; flex-direction: column; gap: 4px; }
+.dh-calc-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text-primary, #f1f5f9);
+  overflow-wrap: anywhere;
+}
+.dh-calc-sub {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-secondary, #94a3b8);
+}
+.dh-calc-hint {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.015);
+  color: var(--text-secondary, #94a3b8);
+  font-size: 12px;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.dh-calc-types { display: flex; flex-wrap: wrap; gap: 6px; }
+.dh-chip {
+  padding: 6px 11px;
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-secondary, #94a3b8);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.dh-chip:hover { border-color: rgba(34, 211, 238, 0.35); color: var(--text-primary, #f1f5f9); }
+.dh-chip.is-on {
+  border-color: rgba(34, 211, 238, 0.5);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(59, 130, 246, 0.12));
   color: var(--dh-cyan);
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.12);
+}
+
+.dh-calc-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 86px 78px;
+  gap: 8px;
+  align-items: stretch;
+}
+.dh-calc-input {
+  width: 100%;
+  height: 44px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary, #f1f5f9);
+  padding: 0 13px;
+  font-size: 13px;
+  font-weight: 700;
+  outline: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.dh-calc-input:focus {
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
+}
+.dh-calc-hit,
+.dh-calc-reset {
+  height: 44px;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: filter 0.15s ease, background 0.15s ease;
+}
+.dh-calc-hit {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.85), rgba(59, 130, 246, 0.8));
+  color: #04121a;
+  box-shadow: 0 8px 18px rgba(34, 211, 238, 0.18);
+}
+.dh-calc-hit:hover { filter: brightness(1.1); }
+.dh-calc-reset {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary, #f1f5f9);
+}
+.dh-calc-reset:hover { background: rgba(255, 255, 255, 0.08); }
+
+.dh-calc-outwrap { display: none; flex-direction: column; gap: 9px; }
+.dh-calc-outwrap.is-show { display: flex; }
+.dh-calc-result {
+  margin: 0;
+  min-height: 150px;
+  max-height: 460px;
+  overflow: auto;
+  white-space: pre-wrap;
+  border-radius: 12px;
+  border: 1px solid rgba(34, 211, 238, 0.16);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 13px 14px;
+  color: #e2e8f0;
+  font-family: var(--font-mono, 'JetBrains Mono', Consolas, monospace);
+  font-size: 11.5px;
+  line-height: 1.75;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.dh-calc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- empty / legend ---------- */
+.dh-empty {
+  display: none;
+  padding: 34px 18px;
+  border-radius: 14px;
+  border: 1px dashed rgba(34, 211, 238, 0.2);
+  background: rgba(255, 255, 255, 0.015);
+  text-align: center;
+  color: var(--text-secondary, #94a3b8);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.dh-empty-sm { display: block; padding: 20px 14px; font-size: 10px; }
+
+.dh-legend {
+  padding: 13px 16px;
+  border-radius: 13px;
+  border: 1px solid var(--dh-border);
+  background: rgba(255, 255, 255, 0.015);
+  color: var(--text-secondary, #94a3b8);
+  font-size: 11.5px;
+  line-height: 1.7;
+}
+
+/* ---------- modal (copy manual + editor hadiah) ---------- */
+.dh-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  padding: 18px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 6, 12, 0.82);
+  backdrop-filter: blur(8px);
+}
+.dh-modal.is-show { display: flex; }
+.dh-modal-card {
+  width: min(760px, 100%);
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  background: linear-gradient(180deg, rgba(17, 18, 26, 0.98), rgba(8, 9, 14, 0.99));
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+}
+.dh-modal-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 15px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.dh-modal-top b { font-size: 14px; color: var(--text-primary, #f1f5f9); }
+.dh-modal-sub {
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-secondary, #94a3b8);
+}
+.dh-modal-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.dh-modal-textarea {
+  width: 100%;
+  height: 52vh;
+  resize: vertical;
+  border: 0;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.3);
+  color: #e2e8f0;
+  padding: 13px 15px;
+  font-family: var(--font-mono, 'JetBrains Mono', Consolas, monospace);
+  font-size: 11.5px;
+  line-height: 1.7;
+  outline: 0;
+}
+
+/* editor card lebih lebar + tabel */
+.dh-editor-card { width: min(1180px, 100%); }
+.dh-editor-title { font-size: 17px; font-weight: 800; color: var(--text-primary, #f1f5f9); }
+.dh-editor-wrap { overflow: auto; padding: 12px 14px; }
+.dh-editor-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 720px;
+}
+.dh-editor-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(34, 211, 238, 0.09);
+  color: #7dd3fc;
+  text-align: left;
   font-family: var(--font-mono, monospace);
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 9px 11px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
 }
-
-/* ---------- state kosong ---------- */
-.dh-empty {
-  padding: 26px 20px;
-  text-align: center;
-  color: var(--dh-cyan);
+.dh-editor-table tbody td {
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--text-primary, #f1f5f9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+}
+.dh-editor-table tbody tr:nth-child(odd) td { background: rgba(255, 255, 255, 0.015); }
+.dh-editor-table .dh-col-section {
+  width: 118px;
   font-family: var(--font-mono, monospace);
-  font-size: 12.5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+  white-space: nowrap;
+}
+.dh-editor-table .dh-col-name {
+  width: 300px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  border: 1px dashed rgba(34, 211, 238, 0.35);
-  border-radius: var(--radius-lg, 16px);
-  background: rgba(34, 211, 238, 0.04);
+  overflow-wrap: anywhere;
+}
+.dh-editor-input {
+  width: 100%;
+  min-width: 96px;
+  height: 36px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary, #f1f5f9);
+  padding: 0 10px;
+  font-size: 12px;
+  outline: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.dh-editor-input:focus {
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.07);
+}
+.dh-editor-note {
+  padding: 12px 16px 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  color: var(--text-secondary, #94a3b8);
+  font-size: 11px;
+  line-height: 1.65;
 }
 
-/* ---------- keyframes (pola backwards — tanpa opacity dasar) ---------- */
+/* ---------- keyframes ---------- */
 @keyframes dhFadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes dhCardIn {
-  from { opacity: 0; transform: translateY(14px) scale(0.985); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes dhPillIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes dhDropIn {
-  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @keyframes dhPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.55; transform: scale(1.2); }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 
-/* ---------- responsif panel ---------- */
+/* ---------- scrollbar ---------- */
+.dh-drop-list::-webkit-scrollbar,
+.dh-calc-result::-webkit-scrollbar,
+.dh-editor-wrap::-webkit-scrollbar { width: 8px; height: 8px; }
+.dh-drop-list::-webkit-scrollbar-thumb,
+.dh-calc-result::-webkit-scrollbar-thumb,
+.dh-editor-wrap::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.25);
+  border-radius: 8px;
+}
+.dh-drop-list::-webkit-scrollbar-track,
+.dh-calc-result::-webkit-scrollbar-track,
+.dh-editor-wrap::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1100px) {
+  .dh-workspace { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); }
+}
+@media (max-width: 960px) {
+  .dh-workspace { grid-template-columns: 1fr; }
+  .dh-calcpanel { position: static; }
+  .dh-market-head-side { max-width: none; align-items: flex-start; }
+  .dh-market-note { text-align: left; }
+}
 @media (max-width: 640px) {
-  .dh-panel { padding: 15px 14px; }
-  .dh-panel::before { left: 14px; right: 14px; }
+  .dh-panel { padding: 15px 14px 13px; }
+  .dh-control-row .dh-btn-ghost,
+  .dh-control-row .dh-btn-gold,
+  .dh-control-row .dh-btn-edit { flex: 1 1 46%; min-width: 0; padding: 0 8px; }
+  .dh-drop { max-width: none; flex-basis: 100%; }
+  .dh-market-title { font-size: 21px; }
+  .dh-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .dh-prize-cards { grid-template-columns: 1fr; }
+  .dh-calc-controls { grid-template-columns: 1fr; }
+  .dh-calc-hit, .dh-calc-reset { height: 42px; }
   .dh-head-side { width: 100%; }
-  .dh-stat { flex: 1; min-width: 0; }
-  .dh-drop { max-width: none; min-width: 0; flex-basis: 100%; }
-  .dh-btn-ghost { flex: 1; justify-content: center; }
-  .dh-market-logo, .dh-market-fallback { width: 104px; height: 40px; }
-  .dh-drop-list { max-height: 240px; }
+  .dh-stat { flex: 1; }
+  .dh-toolbar-note { max-width: none; }
 }
