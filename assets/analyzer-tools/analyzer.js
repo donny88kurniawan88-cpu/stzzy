@@ -1,4 +1,11 @@
-document.getElementById('userEmail').textContent = authToken ? authToken + '@aura.os' : 'user';
+    /* BOOT GUARD — authToken dari localStorage (dulu: variabel tak didefinisikan
+       menyebabkan ReferenceError yang mematikan SELURUH script analyzer) */
+    var authToken = null;
+    try { authToken = localStorage.getItem('aura_auth_token') || null; } catch (e) { authToken = null; }
+    (function () {
+      var ue = document.getElementById('userEmail');
+      if (ue) ue.textContent = (authToken || 'user') + '@aura.os';
+    })();
 
     let p2mData = [], zonaData = [], reportData = [], filteredOutData = [];
 
@@ -62,25 +69,29 @@ document.getElementById('userEmail').textContent = authToken ? authToken + '@aur
 
     function formatRp(n) { return new Intl.NumberFormat('id-ID').format(n || 0); }
 
-    // 3. UI HELPERS
+    // 3. UI HELPERS (guard elemen agar tidak TypeError bila overlay/toast belum ada)
     function showToast(msg, type) {
       const t = document.getElementById('toast');
+      if (!t) return;
       t.className = 'toast show ' + type;
       t.textContent = msg;
       setTimeout(() => t.classList.remove('show'), 3500);
     }
 
     function showLoading(show) {
-      document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+      const ov = document.getElementById('loadingOverlay');
+      const bar = document.getElementById('loadingProgress');
+      if (ov) ov.style.display = show ? 'flex' : 'none';
+      if (!bar) return;
       if (show) {
         let p = 0;
         const iv = setInterval(() => {
           p = Math.min(p + Math.random() * 25, 90);
-          document.getElementById('loadingProgress').style.width = p + '%';
+          bar.style.width = p + '%';
           if (p >= 90) clearInterval(iv);
         }, 200);
       } else {
-        document.getElementById('loadingProgress').style.width = '100%';
+        bar.style.width = '100%';
       }
     }
 
