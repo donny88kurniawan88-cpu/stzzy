@@ -430,7 +430,7 @@
             </div>
             <div class="pred-body">
                 <div class="prediction-grid">
-                    <div class="pred-card"><div class="pred-card-header"><div class="pred-card-icon icon-blue"><i class="fas fa-hashtag"></i></div><h3 class="pred-card-label">4 BBFS Kuat Jitu</h3></div><div class="pred-card-value val-blue" id="bbfs">—</div></div>
+                    <div class="pred-card"><div class="pred-card-header"><div class="pred-card-icon icon-blue"><i class="fas fa-hashtag"></i></div><h3 class="pred-card-label">4 BBS Kuat Jitu</h3></div><div class="pred-card-value val-blue" id="bbfs">—</div></div>
                     <div class="pred-card"><div class="pred-card-header"><div class="pred-card-icon icon-purple"><i class="fas fa-star"></i></div><h3 class="pred-card-label">Angka Ikut</h3></div><div class="pred-card-value val-purple" id="angkaMain">—</div></div>
                 </div>
                 <div class="prediction-grid" style="margin-top: 20px;">
@@ -871,18 +871,112 @@
             }
         };
 
-        /* --- Download Gambar --- */
+        /* --- Download Gambar (FIX MOBILE) ---
+           Dua akar masalah render html2canvas 1.4.1:
+           1) .pred-market memakai background-clip:text (gradient text) ->
+              html2canvas TIDAK support -> dirender jadi kotak gradient putih
+              menutupi nama pasaran. Solusi: patch klon via onclone -> teks
+              solid putih + shadow.
+           2) Logo pasaran = gambar CDN cross-origin -> bila tanpa header CORS,
+              html2canvas melewatkan gambar -> logo hilang. Solusi: konversi
+              logo ke dataURL (img crossOrigin -> canvas, fallback fetch)
+              SEBELUM capture, lalu pasang di klon. */
+        function logoToDataURL(url) {
+            return new Promise(function (resolve) {
+                if (!url) { resolve(''); return; }
+                var settled = false;
+                function finish(v) { if (!settled) { settled = true; resolve(v); } }
+                var img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = function () {
+                    try {
+                        var c = document.createElement('canvas');
+                        c.width = img.naturalWidth || img.width;
+                        c.height = img.naturalHeight || img.height;
+                        c.getContext('2d').drawImage(img, 0, 0);
+                        finish(c.toDataURL('image/png'));
+                    } catch (e) { fetchFallback(); }
+                };
+                img.onerror = fetchFallback;
+                function fetchFallback() {
+                    fetch(url, { mode: 'cors' }).then(function (r) {
+                        return r.ok ? r.blob() : Promise.reject(new Error('http ' + r.status));
+                    }).then(function (b) {
+                        var fr = new FileReader();
+                        fr.onload = function () { finish(fr.result); };
+                        fr.onerror = function () { finish(''); };
+                        fr.readAsDataURL(b);
+                    }).catch(function () { finish(''); });
+                }
+                img.src = url;
+                setTimeout(function () { finish(''); }, 8000);
+            });
+        }
+
         document.getElementById('downloadImgBtn').onclick = function() {
             var btn = document.getElementById('downloadImgBtn');
             btn.classList.add('downloading');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
             var target = document.getElementById('predictionSection');
-            html2canvas(target, {
-                backgroundColor: '#0a0a0f',
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                logging: false
+            var logoSrc = document.getElementById('predLogoImg');
+            var logoUrl = (currentPasaran && PASARAN_LOGOS[currentPasaran]) || (logoSrc ? logoSrc.getAttribute('src') : '') || '';
+            logoToDataURL(logoUrl).then(function(dataUrl) {
+                return html2canvas(target, {
+                    backgroundColor: '#0a0a0f',
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: false,
+                    logging: false,
+                    onclone: function (doc) {
+                        var sec = doc.getElementById('predictionSection');
+                        if (!sec) return;
+                        /* 1) NAMA PASARAN: gradient-clip text -> solid putih (html2canvas tak support) */
+                        var market = sec.querySelector('.pred-market');
+                        if (market) {
+                            market.style.background = 'none';
+                            market.style.backgroundImage = 'none';
+                            market.style.webkitBackgroundClip = 'border-box';
+                            market.style.backgroundClip = 'border-box';
+                            market.style.webkitTextFillColor = '#ffffff';
+                            market.style.color = '#ffffff';
+                            market.style.textShadow = '0 2px 10px rgba(0,0,0,0.85)';
+                        }
+                        /* sweep defensif: elemen lain bertext gradient di dalam section */
+                        try {
+                            var dv = doc.defaultView;
+                            var nodes = sec.querySelectorAll('*');
+                            for (var i = 0; i < nodes.length; i++) {
+                                var el = nodes[i];
+                                if (el.classList.contains('pred-market')) continue;
+                                var cs = dv ? dv.getComputedStyle(el) : null;
+                                if (!cs) continue;
+                                var clipped = cs.backgroundClip === 'text' || cs.webkitBackgroundClip === 'text' ||
+                                              cs.webkitTextFillColor === 'rgba(0, 0, 0, 0)';
+                                if (clipped) {
+                                    el.style.background = 'none';
+                                    el.style.backgroundImage = 'none';
+                                    el.style.webkitBackgroundClip = 'border-box';
+                                    el.style.backgroundClip = 'border-box';
+                                    el.style.webkitTextFillColor = '#ffffff';
+                                    el.style.color = '#ffffff';
+                                }
+                            }
+                        } catch (e) { /* noop */ }
+                        /* 2) LOGO PASARAN: pakai dataURL (bebas CORS) / fallback ikon */
+                        var cImg = sec.querySelector('#predLogoImg');
+                        if (cImg) {
+                            var fb = sec.querySelector('#predLogoFallback');
+                            if (dataUrl) {
+                                cImg.src = dataUrl;
+                                cImg.style.display = '';
+                                if (fb) fb.style.display = 'none';
+                            } else {
+                                cImg.style.display = 'none';
+                                if (fb) fb.style.display = '';
+                            }
+                        }
+                    }
+                });
             }).then(function(canvas) {
                 var link = document.createElement('a');
                 link.download = 'prediksi-' + currentPasaran.replace(/\s+/g, '-').toLowerCase() + '-' + currentPrediction.tanggal + '.png';
