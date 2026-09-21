@@ -1,0 +1,1192 @@
+/* ============================================================
+   AURA.OS // HASIL-PRO.JS v1.0.0
+   Modul Hasil Result (Pro) — di bawah menu Prediction Tools.
+   ============================================================
+   Fitur (permintaan user):
+   1. CHECKLIST STATUS — menarik data pasaran + jadwal buka/tutup/
+      result dari menu Jadwal Pasaran (/api/pasaran). Checklist
+      pasaran: TUTUP, BELUM RESULT, SEDANG RESULT (+ DONE & LIBUR),
+      ceklis manual per tanggal.
+   2. HITUNG WAKTU TUTUP — tabel crosscheck: jam tutup, waktu
+      sekarang (WIB live), jam result, countdown ke result
+      berikutnya, status AMAN (buka) / TIDAK AMAN (tutup/libur).
+   3. KARTU HASIL PENGELUARAN — input result per pasaran (1-3
+      prize), toggle dropdown pilih pasaran, format tampil & copy:
+        Hasil Pengeluaran HONGKONG
+        Hari Senin, 21 Sep 2026
+        Result 1 : 0935, SHIO : Monyet
+        Result 2 : 2507
+        Result 3 : 3338
+        Selamat Kepada Pemenang, Salam JP
+   4. TABEL SHIO — membaca urutan tabel shio (rumus wajib:
+      (N-1) mod 12, 00 = angka ke-100) + menu update tabel shio
+      dari gambar jpg/png (OCR Tesseract.js) dengan validasi
+      rumus anti-asal-asalan (baris melanggar rumus = ditolak).
+   Data: /api/pasaran, /api/hasil, /api/shio (D1) + fallback lokal.
+   Exposed: window.HasilPro
+   ============================================================ */
+
+(function () {
+  'use strict';
+
+  /* ============================================================
+     KONSTANTA & STATE
+     ============================================================ */
+  var LKEY_PS = 'aura_pasaran_local_v1';      // sama dgn pasaran-pro.js
+  var LKEY_HASIL = 'aura_hasil_local_v1';     // fallback hasil saat DB tak terjangkau
+  var LKEY_CEK = 'aura_hasil_ceklis_v1';      // ceklis manual per tanggal
+  var HOKI_OFFSET = 10;                        // result sesi = tutup + 10 menit
+
+  var DAY_UP = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+  var DAY_TITLE = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  var MON_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  var MON_FULL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+  var ST_META = {
+    belum:  { label: 'BELUM RESULT', cls: 'hs-st-belum'  },
+    sedang: { label: 'SEDANG RESULT', cls: 'hs-st-sedang' },
+    tutup:  { label: 'TUTUP',        cls: 'hs-st-tutup'  },
+    done:   { label: 'DONE',         cls: 'hs-st-done'   },
+    libur:  { label: 'LIBUR',        cls: 'hs-st-libur'  },
+    khusus: { label: 'KHUSUS',       cls: 'hs-st-libur'  }
+  };
+
+  var state = {
+    items: [],            // pasaran (sumber sama dgn Jadwal Pasaran)
+    source: null,         // 'db' | 'local'
+    tab: 'status',        // 'status' | 'hasil' | 'shio'
+    tanggal: '',          // YYYY-MM-DD WIB utk simpan/tampil result
+    filter: 'all',        // all|belum|sedang|tutup|done|libur
+    search: '',
+    hasil: [],            // rows /api/hasil utk tanggal terpilih
+    hasilById: {},        // pasaran_id -> row
+    hasilSource: null,
+    cek: {},              // { pasaranId: true } utk tanggal terpilih
+    sel: '',              // pasaran terpilih di tab hasil ('' = semua)
+    dropOpen: false,
+    saving: false,
+    loaded: false,
+    loading: false,
+    armClear: null,       // id kartu yg tombol clear-nya armed
+    shio: {
+      ocrBusy: false,
+      ocrProg: 0,
+      parsed: null,       // hasil parseText
+      rows: null,         // preview editable [{name, numsStr}]
+      err: ''
+    }
+  };
+
+  var tickTimer = null;
+  var lastPaintSec = -1;
+
+  /* ============================================================
+     WAKTU WIB
+     ============================================================ */
+  function pad2(n) { return ('0' + n).slice(-2); }
+
+  /* Bagian tanggal-jam WIB (UTC+7) dari epoch ms */
+  function wibParts(ms) {
+    var d = new Date(ms + 7 * 3600000);
+    return {
+      y: d.getUTCFullYear(), mo: d.getUTCMonth(), d: d.getUTCDate(),
+      h: d.getUTCHours(), mi: d.getUTCMinutes(), s: d.getUTCSeconds(),
+      day: d.getUTCDay(), m: d.getUTCHours() * 60 + d.getUTCMinutes() + d.getUTCSeconds() / 60
+    };
+  }
+
+  function wibMs(y, mo, d, h, mi, s) {
+    return Date.UTC(y, mo, d, h, mi, s || 0) - 7 * 3600000;
+  }
+
+  function wibNow() {
+    var now = Date.now();
+    var p = wibParts(now);
+    p.ms = now;
+    return p;
+  }
+
+  function dateStrOf(p) {
+    return p.y + '-' + pad2(p.mo + 1) + '-' + pad2(p.d);
+  }
+
+  /* 'YYYY-MM-DD' -> parts tampilan (pakai Date lokal, aman utk label) */
+  function partsOfDateStr(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+    if (!m) return null;
+    var dt = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+    return { y: dt.getFullYear(), mo: dt.getMonth(), d: dt.getDate(), day: dt.getDay() };
+  }
+
+  function fmtDateShort(s) {
+    var p = partsOfDateStr(s);
+    return p ? DAY_TITLE[p.day] + ', ' + p.d + ' ' + MON_SHORT[p.mo] + ' ' + p.y : '-';
+  }
+
+  function fmtDateFullUp(s) {
+    var p = partsOfDateStr(s);
+    return p ? DAY_UP[p.day] + ', ' + p.d + ' ' + MON_FULL[p.mo].toUpperCase() + ' ' + p.y : '-';
+  }
+
+  function todayWIB() {
+    return dateStrOf(wibNow());
+  }
+
+  /* ============================================================
+     HELPERS
+     ============================================================ */
+  function q(sel, ctx) { return (ctx || document).querySelector(sel); }
+  function container() { return document.getElementById('hasilView'); }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function toast(msg, type) {
+    if (typeof window.showToast === 'function') window.showToast(msg, type);
+  }
+
+  function token() {
+    return localStorage.getItem('aura_auth_token') || '';
+  }
+
+  function normKey(s) {
+    return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+
+  /* "13:05 WIB" / "13:05:00 WIB" -> menit dari tengah malam, null bila bukan jam */
+  function parseHM(s) {
+    var m = String(s == null ? '' : s).match(/\b(\d{1,2}):(\d{2})(?::\d{2})?\s*WIB\b/i);
+    if (!m) return null;
+    var h = parseInt(m[1], 10), mm = parseInt(m[2], 10);
+    if (h > 23 || mm > 59) return null;
+    return h * 60 + mm;
+  }
+
+  function hmOnly(s) {
+    var m = parseHM(s);
+    if (m == null) return '';
+    return pad2(Math.floor(m / 60)) + ':' + pad2(m % 60) + ' WIB';
+  }
+
+  /* "Selasa & Jumat TUTUP" -> [2,5] */
+  function closedDaysOf(text) {
+    var T = String(text || '').toUpperCase();
+    var idx = T.indexOf('TUTUP');
+    if (idx === -1) return null;
+    var head = T.slice(0, idx);
+    var found = [];
+    for (var i = 0; i < DAY_UP.length; i++) {
+      if (head.indexOf(DAY_UP[i]) !== -1) found.push(i);
+    }
+    return found.length ? found : null;
+  }
+
+  function isHokiRow(it) {
+    var nU = normKey(it.nama);
+    var tU = String(it.tutup || '').toUpperCase();
+    var rU = String(it.result || '').toUpperCase();
+    return nU.indexOf('HOKI') !== -1 && (tU.indexOf('24X') !== -1 || rU.indexOf('1 JAM') !== -1 || normKey(it.nama) === 'HOKIDRAW' || nU.indexOf('HOKIDRAW') !== -1);
+  }
+
+  function sortedPasaran() {
+    return state.items.slice().sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
+  }
+
+  /* ============================================================
+     STATUS & COUNTDOWN (engine sama semangatnya dgn pkpasaran-pro)
+     ============================================================ */
+  /* Status pasaran vs waktu WIB sekarang:
+     buka -> 'belum' | antara tutup-result -> 'sedang' | lewat result -> 'tutup'
+     (DONE dihitung terpisah dari data result yang sudah diinput) */
+  function statusOf(it, now) {
+    var closed = closedDaysOf(it.jadwal) || closedDaysOf(it.tutup);
+    if (closed && closed.indexOf(now.day) !== -1) return 'libur';
+    var tu = parseHM(it.tutup), re = parseHM(it.result);
+    if (tu == null && re == null) return 'khusus';
+    if (tu != null && re != null) {
+      if (now.m < tu) return 'belum';
+      if (now.m < re) return 'sedang';
+      return 'tutup';
+    }
+    if (tu != null) return now.m < tu ? 'belum' : 'sedang';
+    return 'tutup';
+  }
+
+  function hokiSlotStatus(now) {
+    var re = now.h * 60 + HOKI_OFFSET;
+    if (now.m < re) return 'sedang';      // sesi berjalan: tutup :00 -> result :10
+    return 'tutup';                        // result sesi sudah lewat
+  }
+
+  /* ms absolut (epoch) result berikutnya utk pasaran ini */
+  function nextResultMs(it, now) {
+    if (isHokiRow(it)) {
+      var addMin = HOKI_OFFSET - (now.m % 60);
+      if (addMin <= 0) addMin += 60;
+      return now.ms + addMin * 60000;
+    }
+    var closed = closedDaysOf(it.jadwal) || closedDaysOf(it.tutup);
+    var tu = parseHM(it.tutup), re = parseHM(it.result);
+    var target = (re != null) ? re : (tu != null ? tu : null);
+    if (target == null) return null;
+    var k = 0;
+    if (closed) {
+      /* hari ini libur -> mulai besok */
+      if (closed.indexOf(now.day) !== -1) k = 1;
+    } else if (now.m < target) {
+      k = 0;
+    } else {
+      k = 1;
+    }
+    if (closed) {
+      for (var guard = 0; guard < 8 && closed.indexOf((now.day + k) % 7) !== -1; guard++) k++;
+    }
+    return wibMs(now.y, now.mo, now.d + k, Math.floor(target / 60), target % 60, 0);
+  }
+
+  function fmtCountdown(msLeft) {
+    if (msLeft == null) return '&mdash;';
+    if (msLeft < 0) msLeft = 0;
+    var tot = Math.floor(msLeft / 1000);
+    var h = Math.floor(tot / 3600), m = Math.floor((tot % 3600) / 60), s = tot % 60;
+    return pad2(h) + ':' + pad2(m) + ':' + pad2(s);
+  }
+
+  function fmtClock(p) {
+    return pad2(p.h) + ':' + pad2(p.mi) + ':' + pad2(p.s);
+  }
+
+  /* chip status final (memperhitungkan DONE dari hasil terinput) */
+  function chipOf(it, now) {
+    var st = isHokiRow(it) ? hokiSlotStatus(now) : statusOf(it, now);
+    var row = state.hasilById[String(it.id)];
+    if (row && Array.isArray(row.items) && row.items.length) st = 'done';
+    return st;
+  }
+
+  /* ============================================================
+     DATA — pasaran (sumber sama dgn Jadwal Pasaran) + hasil + shio
+     ============================================================ */
+  function fetchPasaran() {
+    state.loading = true;
+    return fetch('/api/pasaran', { headers: { 'x-auth-token': token() } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        state.loading = false;
+        if (j && j.success && Array.isArray(j.pasaran)) {
+          state.items = j.pasaran;
+          state.source = 'db';
+        } else throw new Error('bad payload');
+      })
+      .catch(function () {
+        state.loading = false;
+        state.source = 'local';
+        try {
+          var arr = JSON.parse(localStorage.getItem(LKEY_PS) || '[]');
+          state.items = Array.isArray(arr) ? arr : [];
+        } catch (e) { state.items = []; }
+      });
+  }
+
+  function localHasilAll() {
+    try { return JSON.parse(localStorage.getItem(LKEY_HASIL) || '{}'); } catch (e) { return {}; }
+  }
+
+  function saveLocalHasil(store) {
+    try { localStorage.setItem(LKEY_HASIL, JSON.stringify(store)); } catch (e) {}
+  }
+
+  function fetchHasil() {
+    state.hasil = [];
+    state.hasilById = {};
+    return fetch('/api/hasil?tanggal=' + encodeURIComponent(state.tanggal), { headers: { 'x-auth-token': token() } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.success && Array.isArray(j.hasil)) {
+          state.hasil = j.hasil;
+          state.hasilSource = 'db';
+        } else throw new Error('bad payload');
+        indexHasil();
+      })
+      .catch(function () {
+        var store = localHasilAll();
+        state.hasil = (store[state.tanggal] || []);
+        state.hasilSource = 'local';
+        indexHasil();
+      });
+  }
+
+  function indexHasil() {
+    var map = {};
+    state.hasil.forEach(function (r) { map[String(r.pasaran_id)] = r; });
+    state.hasilById = map;
+  }
+
+  function loadCek() {
+    try {
+      var all = JSON.parse(localStorage.getItem(LKEY_CEK) || '{}');
+      state.cek = all[state.tanggal] || {};
+    } catch (e) { state.cek = {}; }
+  }
+
+  function saveCek() {
+    try {
+      var all = JSON.parse(localStorage.getItem(LKEY_CEK) || '{}');
+      all[state.tanggal] = state.cek;
+      localStorage.setItem(LKEY_CEK, JSON.stringify(all));
+    } catch (e) {}
+  }
+
+  /* ============================================================
+     BUILD SHELL (sekali)
+     ============================================================ */
+  var ICON_REFRESH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
+  var ICON_CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+  var ICON_TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>';
+  var ICON_IMG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+  var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+  function build() {
+    var v = container();
+    if (!v || v.dataset.built === '1') return;
+
+    v.innerHTML =
+      '<div class="hs-wrap">' +
+        '<div class="hs-card">' +
+          '<div class="hs-topline"></div>' +
+          '<div class="hs-head">' +
+            '<div class="hs-head-left">' +
+              '<div class="hs-icon">' + ICON_TROPHY + '</div>' +
+              '<div style="min-width:0;">' +
+                '<h2 class="hs-title">Hasil Result</h2>' +
+                '<p class="hs-sub">Checklist status, hitung waktu tutup &amp; hasil pengeluaran semua pasaran.</p>' +
+              '</div>' +
+            '</div>' +
+            '<div class="hs-head-btns">' +
+              '<span class="hs-src" data-hs="src"><span class="hs-src-dot"></span><span data-hs="src-t">&mdash;</span></span>' +
+              '<button type="button" class="hs-btn" data-action="refresh" title="Muat ulang data">' + ICON_REFRESH + 'Muat Ulang</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="hs-tabs">' +
+            '<button type="button" class="hs-tab" data-action="tab" data-tab="status">Checklist Status</button>' +
+            '<button type="button" class="hs-tab" data-action="tab" data-tab="hasil">Hasil Pengeluaran</button>' +
+            '<button type="button" class="hs-tab" data-action="tab" data-tab="shio">Tabel Shio</button>' +
+          '</div>' +
+          '<div data-hs="clockbar" class="hs-clockbar"></div>' +
+          '<div data-hs="body"></div>' +
+        '</div>' +
+      '</div>';
+
+    v.dataset.built = '1';
+
+    v.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
+      if (!t || !v.contains(t)) return;
+      var act = t.getAttribute('data-action');
+      if (act === 'tab') setTab(t.getAttribute('data-tab'));
+      else if (act === 'refresh') refreshAll(true);
+      else if (act === 'chip') { state.filter = t.getAttribute('data-filter') || 'all'; paintBody(); }
+      else if (act === 'cek') toggleCek(t.getAttribute('data-id'), t);
+      else if (act === 'drop') toggleDrop();
+      else if (act === 'dropitem') pickDrop(t.getAttribute('data-id'));
+      else if (act === 'prize') cyclePrize(t.getAttribute('data-id'));
+      else if (act === 'save') saveCard(t.getAttribute('data-id'));
+      else if (act === 'copy') copyCard(t.getAttribute('data-id'));
+      else if (act === 'clear') clearCard(t.getAttribute('data-id'), t);
+      else if (act === 'ocrpick') pickOcr();
+      else if (act === 'ocrparse') parseOcrText();
+      else if (act === 'shiofix') fixShioFromFormula();
+      else if (act === 'shiostd') useStdShio();
+      else if (act === 'shiosave') saveShio();
+    });
+
+    v.addEventListener('input', function (e) {
+      var el = e.target;
+      if (!el || !v.contains(el)) return;
+      if (el.getAttribute && el.getAttribute('data-hs-search') != null) {
+        state.search = el.value.trim();
+        if (state.tab === 'status') paintStatus();
+        else if (state.tab === 'hasil') paintHasil();
+      } else if (el.getAttribute && el.getAttribute('data-hs-date') != null) {
+        setDate(el.value);
+      } else if (el.classList && el.classList.contains('hs-ocr-text')) {
+        state.shio.ocrText = el.value;
+      }
+    });
+
+    v.addEventListener('change', function (e) {
+      var el = e.target;
+      if (el && el.id === 'hsOcrFile' && el.files && el.files[0]) runOcr(el.files[0]);
+      if (el && el.classList && el.classList.contains('hs-pv-name')) syncShioRow(el);
+      if (el && el.classList && el.classList.contains('hs-pv-nums')) syncShioRow(el);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { state.dropOpen = false; paintDrop(); }
+    });
+    document.addEventListener('click', function (e) {
+      if (!state.dropOpen) return;
+      var w = e.target && e.target.closest ? e.target.closest('[data-hs-ddwrap]') : null;
+      if (!w) { state.dropOpen = false; paintDrop(); }
+    }, true);
+  }
+
+  /* ============================================================
+     TAB
+     ============================================================ */
+  function setTab(tab) {
+    state.tab = (tab === 'hasil' || tab === 'shio') ? tab : 'status';
+    paintBody();
+  }
+
+  function setDate(v) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v || ''))) return;
+    state.tanggal = v;
+    loadCek();
+    fetchHasil().then(function () { paintBody(); });
+  }
+
+  function refreshAll(force) {
+    fetchPasaran().then(function () {
+      return fetchHasil();
+    }).then(function () {
+      state.loaded = true;
+      paintAll();
+      if (force) toast('Data dimuat (' + (state.source === 'db' ? 'database' : 'mode lokal') + ')', 'success');
+    });
+    if (window.ShioData && typeof window.ShioData.load === 'function') window.ShioData.load();
+  }
+
+  function paintAll() {
+    var v = container();
+    if (!v) return;
+    /* sumber */
+    var src = q('[data-hs="src"]', v), srcT = q('[data-hs="src-t"]', v);
+    if (src && srcT) {
+      if (state.source === 'db') { src.classList.remove('local'); srcT.textContent = 'SQLITE \u2022 D1'; }
+      else { src.classList.add('local'); srcT.textContent = 'MODE LOKAL'; }
+    }
+    /* tabs */
+    var tabs = v.querySelectorAll('.hs-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].getAttribute('data-tab') === state.tab) tabs[i].classList.add('active');
+      else tabs[i].classList.remove('active');
+    }
+    paintBody();
+  }
+
+  function paintBody() {
+    var v = container();
+    if (!v) return;
+    var body = q('[data-hs="body"]', v);
+    if (!body) return;
+    if (!state.tanggal) state.tanggal = todayWIB();
+    if (!state.items.length && state.loading && !state.loaded) {
+      body.innerHTML = '<div class="hs-loading"><span class="hs-spin"></span>Memuat data pasaran dari database&hellip;</div>';
+      return;
+    }
+    if (state.tab === 'status') paintStatusInto(body);
+    else if (state.tab === 'hasil') paintHasilInto(body);
+    else paintShioInto(body);
+  }
+
+  function paintStatus() { paintBody(); }
+  function paintHasil() { paintBody(); }
+  function paintDrop() { if (state.tab === 'hasil') paintBody(); }
+
+  /* ============================================================
+     TAB 1+2 — CHECKLIST STATUS & HITUNG WAKTU TUTUP (satu tabel)
+     ============================================================ */
+  function statusFilterOk(st) {
+    if (state.filter === 'all') return true;
+    if (state.filter === 'belum') return st === 'belum';
+    if (state.filter === 'sedang') return st === 'sedang';
+    if (state.filter === 'tutup') return st === 'tutup';
+    if (state.filter === 'done') return st === 'done';
+    if (state.filter === 'libur') return st === 'libur' || st === 'khusus';
+    return true;
+  }
+
+  function matchSearch(it) {
+    if (!state.search) return true;
+    return normKey(it.nama).indexOf(normKey(state.search)) !== -1;
+  }
+
+  function paintStatusInto(body) {
+    var now = wibNow();
+    var list = sortedPasaran();
+    var chips = { all: 0, belum: 0, sedang: 0, tutup: 0, done: 0, libur: 0 };
+    var next = null;
+
+    var rows = list.map(function (it) {
+      var st = chipOf(it, now);
+      chips.all++;
+      chips[st === 'khusus' ? 'libur' : st]++;
+      var nms = nextResultMs(it, now);
+      if (nms != null && (!next || nms < next.at)) next = { at: nms, nama: it.nama };
+      return { it: it, st: st, nms: nms };
+    }).filter(function (r) { return statusFilterOk(r.st) && matchSearch(r.it); });
+
+    var doneCount = chips.done;
+    var belumCount = chips.all - doneCount;
+    var nextLabel = next ? fmtCountdown(next.at - now.ms).slice(0, 5) + ' &bull; ' + esc(next.nama) : '&mdash;';
+
+    var h = [];
+    h.push('<div class="hs-stats">');
+    h.push('<div class="hs-stat"><div class="hs-stat-k">Total Pasaran Aktif</div><div class="hs-stat-v">' + chips.all + '</div><div class="hs-stat-s">dari menu Jadwal Pasaran</div></div>');
+    h.push('<div class="hs-stat"><div class="hs-stat-k">Sudah Done</div><div class="hs-stat-v hs-ok">' + doneCount + '</div><div class="hs-stat-s">result sudah diinput</div></div>');
+    h.push('<div class="hs-stat"><div class="hs-stat-k">Belum Result</div><div class="hs-stat-v hs-warn">' + belumCount + '</div><div class="hs-stat-s">menunggu input result</div></div>');
+    h.push('<div class="hs-stat"><div class="hs-stat-k">Next Result</div><div class="hs-stat-v hs-v-sm">' + nextLabel + '</div><div class="hs-stat-s">result paling dekat</div></div>');
+    h.push('</div>');
+
+    h.push('<div class="hs-toolbar">' +
+      '<label class="hs-datewrap">Tanggal Result <input type="date" data-hs-date value="' + esc(state.tanggal) + '"></label>' +
+      '<div class="hs-searchbox"><input type="text" data-hs-search placeholder="Cari pasaran&hellip;" value="' + esc(state.search) + '"></div>' +
+      '<div class="hs-chips">');
+    var CHIP_DEFS = [['all', 'Semua'], ['belum', 'Belum Result'], ['sedang', 'Sedang Result'], ['tutup', 'Tutup'], ['done', 'Done'], ['libur', 'Libur']];
+    CHIP_DEFS.forEach(function (cd) {
+      h.push('<button type="button" class="hs-chip' + (state.filter === cd[0] ? ' active' : '') + '" data-action="chip" data-filter="' + cd[0] + '">' + cd[1] + ' <b>' + (chips[cd[0]] || 0) + '</b></button>');
+    });
+    h.push('</div></div>');
+
+    /* tabel crosscheck: jam tutup + waktu sekarang + jam result + countdown + status + ceklis */
+    h.push('<div class="hs-tablewrap"><table class="hs-table"><thead><tr>' +
+      '<th>Pasaran</th><th>Jadwal</th><th>Jam Tutup</th><th>Waktu Sekarang</th><th>Jam Result</th><th>Countdown Result</th><th>Status</th><th class="hs-th-cek" title="Centang bila result pasaran ini sudah dicek">Ceklis</th>' +
+      '</tr></thead><tbody>');
+
+    if (!rows.length) {
+      h.push('<tr><td colspan="8" class="hs-empty">' + (state.items.length ? 'Tidak ada pasaran yang cocok dengan filter/pencarian.' : 'Belum ada pasaran — isi dulu di menu Jadwal Pasaran.') + '</td></tr>');
+    }
+
+    rows.forEach(function (r) {
+      var it = r.it;
+      var hoki = isHokiRow(it);
+      var meta = ST_META[r.st] || ST_META.tutup;
+      var cd = r.nms != null ? '<span data-cd-ms="' + r.nms + '">' + fmtCountdown(r.nms - now.ms) + '</span>' : '&mdash;';
+      var cek = !!state.cek[String(it.id)];
+      h.push('<tr class="hs-tr ' + (cek ? 'hs-trcek' : '') + '" data-cekrow="' + esc(it.id) + '">' +
+        '<td class="hs-tdname">' + esc(it.nama) + (hoki ? '<span class="hs-td-sub">result 24x sehari</span>' : '') + '</td>' +
+        '<td class="hs-tdmut">' + esc(it.jadwal || 'SETIAP HARI') + '</td>' +
+        '<td class="hs-tdmut">' + (hoki ? '24x SEHARI' : (esc(hmOnly(it.tutup)) || '&mdash;')) + '</td>' +
+        '<td class="hs-tdnow" data-hs-now>' + fmtClock(now) + '</td>' +
+        '<td class="hs-tdmut">' + (hoki ? 'SETIAP 1 JAM' : (esc(hmOnly(it.result)) || '&mdash;')) + '</td>' +
+        '<td class="hs-tdcd">' + cd + '</td>' +
+        '<td><span class="hs-st ' + meta.cls + '" title="' + meta.title + '">' + meta.label + '</span></td>' +
+        '<td class="hs-tdcek"><button type="button" class="hs-cek' + (cek ? ' on' : '') + '" data-action="cek" data-id="' + esc(it.id) + '" aria-label="Ceklis ' + esc(it.nama) + '">' + (cek ? ICON_CHECK : '') + '</button></td>' +
+        '</tr>');
+    });
+    h.push('</tbody></table></div>');
+
+    h.push('<div class="hs-note">Status dihitung realtime vs jam WIB: <b class="hs-c-b">BELUM RESULT</b> = masih buka &middot; <b class="hs-c-a">SEDANG RESULT</b> = sudah tutup, menunggu result &middot; <b class="hs-c-r">TUTUP</b> = result sudah lewat &middot; <b class="hs-c-g">DONE</b> = result sudah diinput. Countdown menghitung waktu menuju result berikutnya &mdash; pasaran libur dihitung ke hari buka berikutnya.</div>');
+
+    body.innerHTML = h.join('');
+    ST_META.belum.title = 'Masih buka — belum result';
+    ST_META.sedang.title = 'Sudah tutup — sedang menunggu result';
+    ST_META.tutup.title = 'Result sudah lewat — pasaran tutup';
+  }
+
+  function toggleCek(id, btn) {
+    var k = String(id);
+    if (state.cek[k]) delete state.cek[k]; else state.cek[k] = true;
+    saveCek();
+    var tr = btn && btn.closest ? btn.closest('tr') : null;
+    if (tr) {
+      if (state.cek[k]) { tr.classList.add('hs-trcek'); btn.classList.add('on'); btn.innerHTML = ICON_CHECK; }
+      else { tr.classList.remove('hs-trcek'); btn.classList.remove('on'); btn.innerHTML = ''; }
+    }
+  }
+
+  /* ============================================================
+     TAB HASIL — kartu hasil pengeluaran + toggle dropdown pasaran
+     ============================================================ */
+  function dropItems() {
+    var seen = {}, out = [];
+    sortedPasaran().forEach(function (it) {
+      if (seen[String(it.id)]) return;
+      seen[String(it.id)] = 1;
+      out.push(it);
+    });
+    return out;
+  }
+
+  function visibleCards() {
+    var now = wibNow();
+    return sortedPasaran().filter(function (it) {
+      if (state.sel && String(it.id) !== String(state.sel)) return false;
+      return matchSearch(it);
+    }).map(function (it) { return { it: it, st: chipOf(it, now) }; });
+  }
+
+  function paintHasilInto(body) {
+    var now = wibNow();
+    var items = dropItems();
+    var selName = '&mdash; Semua Pasaran &mdash;';
+    if (state.sel) {
+      var s = null;
+      items.forEach(function (it) { if (String(it.id) === String(state.sel)) s = it; });
+      selName = s ? s.nama : selName;
+    }
+
+    var h = [];
+    h.push('<div class="hs-toolbar">' +
+      '<label class="hs-datewrap">Tanggal Result <input type="date" data-hs-date value="' + esc(state.tanggal) + '"></label>' +
+      '<div class="hs-dd" data-hs-ddwrap>' +
+        '<button type="button" class="hs-ddbtn" data-action="drop"><span class="hs-ddlabel">' + esc(selName) + '</span><span class="hs-ddchev">' + ICON_CHEV + '</span></button>' +
+        '<div class="hs-ddlist' + (state.dropOpen ? ' open' : '') + '">');
+    h.push('<button type="button" class="hs-dditem' + (!state.sel ? ' active' : '') + '" data-action="dropitem" data-id="">&mdash; Semua Pasaran &mdash;</button>');
+    items.forEach(function (it) {
+      h.push('<button type="button" class="hs-dditem' + (String(state.sel) === String(it.id) ? ' active' : '') + '" data-action="dropitem" data-id="' + esc(it.id) + '">' + esc(it.nama) + '</button>');
+    });
+    h.push('</div></div>' +
+      '<div class="hs-searchbox"><input type="text" data-hs-search placeholder="Cari pasaran&hellip;" value="' + esc(state.search) + '"></div>' +
+      '</div>');
+
+    var cards = visibleCards();
+    if (!cards.length) {
+      h.push('<div class="hs-empty">' + (state.items.length ? 'Tidak ada pasaran yang cocok dengan pilihan/pencarian.' : 'Belum ada pasaran — isi dulu di menu Jadwal Pasaran.') + '</div>');
+    } else {
+      h.push('<div class="hs-cards">');
+      cards.forEach(function (c) { h.push(cardHtml(c.it, c.st, now)); });
+      h.push('</div>');
+    }
+    body.innerHTML = h.join('');
+  }
+
+  function cardItemsOf(it) {
+    var row = state.hasilById[String(it.id)];
+    var items = (row && Array.isArray(row.items)) ? row.items : [];
+    var prize = row ? Math.min(3, Math.max(1, parseInt(row.prize, 10) || 1)) : 1;
+    return { row: row, items: items, prize: prize };
+  }
+
+  function cardHtml(it, st, now) {
+    var hoki = isHokiRow(it);
+    var meta = ST_META[st] || ST_META.tutup;
+    var cd = cardItemsOf(it);
+    var lastBy = cd.row && cd.row.updated_by ? esc(cd.row.updated_by) : '';
+
+    var h = [];
+    h.push('<article class="hs-card-item" data-card="' + esc(it.id) + '">');
+    h.push('<div class="hs-chead"><div style="min-width:0;"><h3 class="hs-cname">' + esc(it.nama) + '</h3>' +
+      '<div class="hs-cmeta">' + (hoki ? 'SETIAP 1 JAM &bull; 24x SEHARI' : (esc(hmOnly(it.result)) || 'JADWAL KHUSUS')) + ' &bull; <span data-prize-label="' + esc(it.id) + '">' + cd.prize + ' Prize</span></div></div>' +
+      '<span class="hs-st ' + meta.cls + '">' + meta.label + '</span></div>');
+
+    /* input result */
+    h.push('<div class="hs-rinwrap">');
+    for (var n = 1; n <= 3; n++) {
+      var val = '';
+      cd.items.forEach(function (x) { if (parseInt(x.n, 10) === n) val = x.val; });
+      h.push('<div class="hs-rinrow' + (n > cd.prize ? ' hide' : '') + '" data-rin="' + n + '">' +
+        '<label class="hs-rinlab">RESULT ' + n + '</label>' +
+        '<input class="hs-rin" type="text" inputmode="numeric" maxlength="4" placeholder="' + (n === 1 ? 'Input angka&hellip;' : 'Opsional') + '" value="' + esc(val) + '" data-rinin="' + esc(it.id) + '-' + n + '">' +
+        '</div>');
+    }
+    h.push('</div>');
+
+    h.push('<div class="hs-btnrow">' +
+      '<button type="button" class="hs-btn hs-btn-primary" data-action="save" data-id="' + esc(it.id) + '">Simpan Result</button>' +
+      '<button type="button" class="hs-btn" data-action="copy" data-id="' + esc(it.id) + '">Copy</button>' +
+      '<button type="button" class="hs-btn hs-ghost" data-action="prize" data-id="' + esc(it.id) + '" title="Ganti jumlah result/prize (1-3)">&times;' + cd.prize + ' Prize</button>' +
+      '<button type="button" class="hs-btn hs-btn-danger' + (state.armClear === String(it.id) ? ' arm' : '') + '" data-action="clear" data-id="' + esc(it.id) + '">' + (state.armClear === String(it.id) ? 'Yakin? Hapus Result' : 'Clear Result') + '</button>' +
+      '</div>');
+
+    /* panel format hasil */
+    var tgl = state.tanggal;
+    var isToday = tgl === todayWIB();
+    h.push('<div class="hs-resbox">');
+    h.push('<div class="hs-reshead"><span>Hasil Pengeluaran ' + esc(it.nama) + '</span><span class="hs-restag">' + meta.label + '</span></div>');
+    h.push('<div class="hs-resday"><span>' + (isToday ? 'Hari ini' : 'Tanggal') + ' ' + fmtDateFullUp(tgl) + '</span><span>' + esc(it.nama) + '</span></div>');
+    var shown = 0;
+    var sd = ShioSnapshot();
+    cd.items.forEach(function (x) {
+      shown++;
+      var shio = shown === 1 ? shioOfVal(x.val, sd) : '';
+      h.push('<div class="hs-resrow"><span>Result ' + esc(x.n) + ' :</span><b>' + esc(x.val) + (shio ? ', SHIO : ' + esc(shio) : '') + '</b></div>');
+    });
+    if (!shown) h.push('<div class="hs-resrow"><span>Result :</span><b>-</b></div>');
+    h.push('<div class="hs-resfoot"><span>Selamat Kepada Pemenang, Salam JP</span><span>' + (hoki ? 'SETIAP 1 JAM' : (esc(hmOnly(it.result)) || '&mdash;')) + '</span></div>');
+    h.push('</div>');
+
+    if (lastBy) h.push('<div class="hs-cfoot">Terakhir disimpan oleh <b>' + lastBy + '</b></div>');
+    h.push('</article>');
+    return h.join('');
+  }
+
+  /* snapshot urutan shio aktif utk render cepat */
+  function ShioSnapshot() {
+    return (window.ShioData && window.ShioData.order) ? window.ShioData.order() : [];
+  }
+
+  function shioOfVal(val, ord) {
+    if (!window.ShioData || !val) return '';
+    var s = String(val).replace(/\D/g, '');
+    if (!s) return '';
+    var last2 = s.length >= 2 ? s.slice(-2) : ('0' + s).slice(-2);
+    var idx = window.ShioData.indexOfNumber(last2);
+    if (idx < 0 || !ord || !ord.length) return '';
+    return ord[idx] || '';
+  }
+
+  function toggleDrop() { state.dropOpen = !state.dropOpen; paintDrop(); }
+
+  function pickDrop(id) {
+    state.sel = id || '';
+    state.dropOpen = false;
+    paintBody();
+  }
+
+  function cyclePrize(id) {
+    var it = byId(id);
+    if (!it) return;
+    var v = container();
+    var wrap = v.querySelector('[data-card="' + cssEsc(String(it.id)) + '"]');
+    var btn = wrap ? wrap.querySelector('[data-action="prize"]') : null;
+    /* baca prize AKTIF dari tombol (bukan state DB) agar cycle 1->2->3->1 konsisten */
+    var cur = btn ? (parseInt(btn.textContent.replace(/\D/g, ''), 10) || 1) : 1;
+    var next = cur >= 3 ? 1 : cur + 1;
+    if (btn) btn.innerHTML = '&times;' + next + ' Prize';
+    if (wrap) {
+      var rows = wrap.querySelectorAll('[data-rin]');
+      for (var i = 0; i < rows.length; i++) {
+        var n = parseInt(rows[i].getAttribute('data-rin'), 10);
+        if (n <= next) rows[i].classList.remove('hide');
+        else rows[i].classList.add('hide');
+      }
+      var lab = wrap.querySelector('[data-prize-label]');
+      if (lab) lab.textContent = next + ' Prize';
+    }
+    /* simpan prize langsung bila row sudah ada di DB (dgn items terkini) */
+    var row = state.hasilById[String(it.id)];
+    if (row && row.id != null && state.hasilSource === 'db') {
+      fetch('/api/hasil', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token() },
+        body: JSON.stringify({ pasaran_id: it.id, pasaran_nama: it.nama, tanggal: state.tanggal, prize: next, items: readCardInputs(it.id, next) })
+      });
+    }
+  }
+
+  function cssEsc(s) {
+    return (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/["\\\]]/g, '\\$&');
+  }
+
+  function byId(id) {
+    for (var i = 0; i < state.items.length; i++) if (String(state.items[i].id) === String(id)) return state.items[i];
+    return null;
+  }
+
+  function readCardInputs(id, prize) {
+    var v = container();
+    var wrap = v && v.querySelector('[data-card="' + cssEsc(String(id)) + '"]');
+    var items = [];
+    for (var n = 1; n <= 3; n++) {
+      var inp = wrap && wrap.querySelector('[data-rinin="' + cssEsc(String(id) + '-' + n) + '"]');
+      if (!inp) continue;
+      var val = String(inp.value || '').replace(/\D/g, '').slice(0, 4);
+      if (val) items.push({ n: n, val: val });
+    }
+    return items;
+  }
+
+  function saveCard(id) {
+    if (state.saving) return;
+    var it = byId(id);
+    if (!it) return;
+    var v = container();
+    var wrap = v.querySelector('[data-card="' + cssEsc(String(id)) + '"]');
+    var prizeBtn = wrap ? wrap.querySelector('[data-action="prize"]') : null;
+    var prize = prizeBtn ? (parseInt(prizeBtn.textContent.replace(/\D/g, ''), 10) || 1) : 1;
+    var items = readCardInputs(id, prize);
+    var digitOk = items.every(function (x) { return x.val.length >= 2; });
+    if (items.length && !digitOk) { toast('Nomor result minimal 2 digit', 'warning'); return; }
+
+    if (state.hasilSource === 'local' || state.source === 'local') {
+      var store = localHasilAll();
+      var arr = store[state.tanggal] || [];
+      var row = null;
+      arr.forEach(function (r) { if (String(r.pasaran_id) === String(id)) row = r; });
+      if (items.length) {
+        if (row) { row.items = items; row.prize = prize; row.updated_by = 'lokal'; row.updated_at = Date.now(); }
+        else arr.push({ id: 'l' + Date.now().toString(36), pasaran_id: it.id, pasaran_nama: it.nama, tanggal: state.tanggal, prize: prize, items: items, updated_by: 'lokal', updated_at: Date.now() });
+      } else {
+        arr = arr.filter(function (r) { return String(r.pasaran_id) !== String(id); });
+      }
+      store[state.tanggal] = arr;
+      saveLocalHasil(store);
+      return fetchHasil().then(function () { paintBody(); toast(items.length ? 'Result "' + it.nama + '" tersimpan (lokal)' : 'Result "' + it.nama + '" dibersihkan', 'success'); });
+    }
+
+    state.saving = true;
+    fetch('/api/hasil', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-auth-token': token() },
+      body: JSON.stringify({ pasaran_id: it.id, pasaran_nama: it.nama, tanggal: state.tanggal, prize: prize, items: items })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        state.saving = false;
+        if (!res.ok || !res.j.success) throw new Error(res.j.error || 'Gagal menyimpan');
+        return fetchHasil().then(function () {
+          paintBody();
+          toast(res.j.message || 'Result tersimpan', 'success');
+        });
+      })
+      .catch(function (e) {
+        state.saving = false;
+        toast(e.message || 'Gagal menyimpan result', 'error');
+      });
+  }
+
+  function clearCard(id, btn) {
+    var it = byId(id);
+    if (!it) return;
+    var key = String(id);
+    if (state.armClear !== key) {
+      state.armClear = key;
+      if (btn) { btn.classList.add('arm'); btn.textContent = 'Yakin? Hapus Result'; }
+      setTimeout(function () {
+        if (state.armClear === key) {
+          state.armClear = null;
+          var b = container().querySelector('[data-card="' + cssEsc(key) + '"] [data-action="clear"]');
+          if (b) { b.classList.remove('arm'); b.textContent = 'Clear Result'; }
+        }
+      }, 3000);
+      return;
+    }
+    state.armClear = null;
+    var row = state.hasilById[key];
+    if (state.hasilSource === 'local' || state.source === 'local' || !row || row.id == null) {
+      var store = localHasilAll();
+      store[state.tanggal] = (store[state.tanggal] || []).filter(function (r) { return String(r.pasaran_id) !== key; });
+      saveLocalHasil(store);
+      return fetchHasil().then(function () { paintBody(); toast('Result "' + it.nama + '" dihapus', 'success'); });
+    }
+    fetch('/api/hasil?id=' + encodeURIComponent(row.id), { method: 'DELETE', headers: { 'x-auth-token': token() } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.success) throw new Error(j.error || 'Gagal menghapus');
+        return fetchHasil().then(function () { paintBody(); toast('Result "' + it.nama + '" dihapus', 'success'); });
+      })
+      .catch(function (e) { toast(e.message || 'Gagal menghapus result', 'error'); });
+  }
+
+  /* ============================================================
+     FORMAT COPY — persis format user
+     ============================================================ */
+  function buildCopy(it) {
+    var cd = cardItemsOf(it);
+    var ord = ShioSnapshot();
+    var lines = [];
+    lines.push('Hasil Pengeluaran ' + String(it.nama || '').toUpperCase());
+    lines.push('Hari ' + fmtDateShort(state.tanggal));
+    var firstDone = false;
+    cd.items.forEach(function (x) {
+      var shio = '';
+      if (!firstDone) { shio = shioOfVal(x.val, ord); firstDone = true; }
+      lines.push('Result ' + x.n + ' : ' + x.val + (shio ? ', SHIO : ' + shio : ''));
+    });
+    if (!cd.items.length) lines.push('Result : -');
+    lines.push('Selamat Kepada Pemenang, Salam JP');
+    return lines.join('\n');
+  }
+
+  function copyCard(id) {
+    var it = byId(id);
+    if (!it) return;
+    var txt = buildCopy(it);
+    function fallbackCopy() {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = txt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('Format hasil "' + it.nama + '" tersalin', 'success');
+      } catch (e) { toast('Gagal menyalin', 'error'); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function () {
+        toast('Format hasil "' + it.nama + '" tersalin', 'success');
+      }).catch(fallbackCopy);
+    } else fallbackCopy();
+  }
+
+  /* ============================================================
+     TAB SHIO — tabel + update via gambar (OCR) + validasi rumus
+     ============================================================ */
+  function paintShioInto(body) {
+    var sd = window.ShioData && window.ShioData.state ? window.ShioData.state : null;
+    var ord = ShioSnapshot();
+    var h = [];
+
+    h.push('<div class="hs-shiogrid"><div class="hs-shioleft">');
+    h.push('<div class="hs-shiohead"><h3 class="hs-h3">Tabel Shio Aktif</h3>' +
+      '<span class="hs-shiosrc">' + (sd ? (sd.source === 'd1' ? 'SQLITE \u2022 D1' : (sd.source === 'local' ? 'MODE LOKAL' : 'TABEL STANDAR')) : 'TABEL STANDAR') + '</span></div>');
+    h.push('<p class="hs-shiorumus">Rumus wajib: angka 2D <code>n</code> &rarr; shio ke-<code>((n&minus;1) mod 12) + 1</code>; angka <code>00</code> dihitung angka ke-100. Contoh: <b>35 &rarr; (35&minus;1) mod 12 = 10</b> &rarr; shio ke-11 dari urutan.</p>');
+    h.push('<div class="hs-tablewrap hs-tablewrap-sm"><table class="hs-table hs-shiotable"><thead><tr><th>No</th><th>Nama Shio</th><th>Nomor Terkait</th></tr></thead><tbody>');
+    for (var i = 0; i < ord.length; i++) {
+      var nums = window.ShioData ? window.ShioData.numbersFor(i) : [];
+      h.push('<tr><td class="hs-tdno">' + pad2(i + 1) + '</td><td class="hs-tdname">' + esc(ord[i]) + '</td><td class="hs-tdnums">' + nums.join(', ') + '</td></tr>');
+    }
+    h.push('</tbody></table></div>');
+    if (sd && sd.updated_by) {
+      h.push('<div class="hs-cfoot">Terakhir diubah oleh <b>' + esc(sd.updated_by) + '</b></div>');
+    }
+    h.push('</div><div class="hs-shioright">');
+
+    /* panel update */
+    h.push('<div class="hs-shioupdate">');
+    h.push('<h3 class="hs-h3">' + ICON_IMG + ' Update Tabel Shio (Gambar JPG/PNG)</h3>');
+    h.push('<p class="hs-shiorumus">Upload foto/scan tabel shio &mdash; sistem membaca teks (OCR), lalu <b>memvalidasi tiap angka dengan rumus</b>. Baris yang angkanya melanggar rumus ditandai SALAH dan wajib diperbaiki sebelum bisa disimpan.</p>');
+    h.push('<div class="hs-dropzone" id="hsDropzone" data-action="ocrpick" tabindex="0">' +
+      '<input type="file" id="hsOcrFile" accept="image/jpeg,image/png,image/jpg,image/webp" style="display:none;">' +
+      (state.shio.ocrBusy
+        ? '<div class="hs-ocrbusy"><span class="hs-spin"></span>Membaca gambar&hellip; ' + state.shio.ocrProg + '%</div>'
+        : '<b>Klik untuk pilih gambar tabel shio</b><span>JPG / PNG — teks nama shio + nomor terkait</span>') +
+      '</div>');
+
+    h.push('<label class="hs-lab">Teks hasil bacaan (bisa diedit / tempel manual)</label>');
+    h.push('<textarea class="hs-ocr-text" rows="6" placeholder="Contoh format:\nKuda 01, 13, 25, 37, 49, 61, 73, 85, 97\nUlar 02, 14, 26, 38, 50, 62, 74, 86, 98\n...">' + esc(state.shio.ocrText) + '</textarea>');
+    h.push('<div class="hs-btnrow"><button type="button" class="hs-btn hs-btn-primary" data-action="ocrparse">Parse &amp; Validasi</button></div>');
+    if (state.shio.err) h.push('<div class="hs-parseerr">' + esc(state.shio.err) + '</div>');
+
+    if (state.shio.rows) {
+      var p = state.shio.parsed;
+      h.push('<div class="hs-pvmeta' + (p && p.valid ? ' ok' : '') + '">' + (p && p.valid
+        ? ICON_CHECK + ' Tabel valid — 12 shio terbaca &amp; semua angka sesuai rumus.'
+        : 'Terbaca ' + (p ? p.count : 0) + ' dari 12 shio — perbaiki baris bertanda SALAH di bawah.') + '</div>');
+      h.push('<div class="hs-pvgrid">');
+      state.shio.rows.forEach(function (r, i) {
+        var nums = String(r.numsStr || '').split(/\s*,\s*/).filter(Boolean);
+        var bad = [];
+        nums.forEach(function (s) {
+          if (!/^\d{1,2}$/.test(s)) { bad.push(s); return; }
+          var idx = window.ShioData ? window.ShioData.indexOfNumber(s) : -1;
+          if (idx !== i) bad.push(s);
+        });
+        var ok = !bad.length && !!r.name;
+        h.push('<div class="hs-pvrow' + (ok ? ' ok' : ' bad') + '">' +
+          '<span class="hs-pvidx">' + pad2(i + 1) + '</span>' +
+          pvSelect(i, r.name) +
+          '<input class="hs-pv-nums" data-pvrow="' + i + '" type="text" value="' + esc(r.numsStr) + '" placeholder="01, 13, 25, ...">' +
+          '<span class="hs-pvst" title="' + (ok ? 'Sesuai rumus' : 'Melanggar rumus: ' + esc(bad.join(', '))) + '">' + (ok ? '\u2713' : '\u2717') + '</span>' +
+          '</div>');
+      });
+      h.push('</div>');
+      h.push('<div class="hs-btnrow">' +
+        '<button type="button" class="hs-btn" data-action="shiofix">Rapikan dari Rumus</button>' +
+        '<button type="button" class="hs-btn" data-action="shiostd">Tabel Standar</button>' +
+        '<button type="button" class="hs-btn hs-btn-primary" data-action="shiosave">Simpan Shio</button>' +
+        '</div>');
+      h.push('<p class="hs-shiorumus">Petunjuk: kolom nomor WAJIB mengikuti rumus urutan — shio pada baris ke-N memiliki angka N, N+12, N+24, &hellip; (00 selalu baris ke-4). Tombol <b>Rapikan dari Rumus</b> mengisi nomor otomatis dari urutan nama.</p>');
+    }
+    h.push('</div>');
+    h.push('</div>');
+
+    body.innerHTML = h.join('');
+  }
+
+  function pvSelect(i, name) {
+    var ord = window.ShioData ? window.ShioData.DEFAULT_ORDER : [];
+    var out = '<select class="hs-pv-name" data-pvrow="' + i + '">';
+    for (var k = 0; k < ord.length; k++) {
+      out += '<option value="' + esc(ord[k]) + '"' + (ord[k] === name ? ' selected' : '') + '>' + esc(ord[k]) + '</option>';
+    }
+    return out + '</select>';
+  }
+
+  function pickOcr() {
+    var f = document.getElementById('hsOcrFile');
+    if (f) f.click();
+  }
+
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve();
+    return new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+      s.onload = function () { res(); };
+      s.onerror = function () { rej(new Error('Gagal memuat pustaka OCR (CDN) — periksa koneksi atau tempel teks manual')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function runOcr(file) {
+    if (!/image\/(jpeg|jpg|png|webp)/.test(file.type || '')) { toast('Format harus JPG/PNG', 'warning'); return; }
+    state.shio.ocrBusy = true;
+    state.shio.ocrProg = 0;
+    paintBody();
+    var reader = new FileReader();
+    reader.onload = function () {
+      loadTesseract().then(function () {
+        return window.Tesseract.recognize(reader.result, 'eng', {
+          logger: function (m) {
+            if (m && m.status === 'recognizing text' && typeof m.progress === 'number') {
+              state.shio.ocrProg = Math.round(m.progress * 100);
+              var el = container().querySelector('.hs-ocrbusy');
+              if (el) el.innerHTML = '<span class="hs-spin"></span>Membaca gambar&hellip; ' + state.shio.ocrProg + '%';
+            }
+          }
+        });
+      }).then(function (res) {
+        state.shio.ocrBusy = false;
+        state.shio.ocrText = (res && res.data && res.data.text ? res.data.text : '').trim();
+        parseOcrText(true);
+      }).catch(function (e) {
+        state.shio.ocrBusy = false;
+        state.shio.err = e.message || 'OCR gagal';
+        paintBody();
+        toast(state.shio.err, 'error');
+      });
+    };
+    reader.onerror = function () {
+      state.shio.ocrBusy = false;
+      paintBody();
+      toast('Gagal membaca file gambar', 'error');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function parseOcrText(silent) {
+    var v = container();
+    var ta = v && v.querySelector('.hs-ocr-text');
+    var text = ta ? ta.value : state.shio.ocrText;
+    state.shio.ocrText = text;
+    if (!String(text).trim()) {
+      state.shio.err = 'Teks masih kosong — upload gambar atau tempel teks tabel shio dulu.';
+      state.shio.rows = null;
+      state.shio.parsed = null;
+      paintBody();
+      return;
+    }
+    var p = window.ShioData.parseText(text);
+    state.shio.parsed = p;
+    state.shio.rows = p.rows.map(function (r) { return { name: r.name, numsStr: r.nums.join(', ') }; });
+    /* pastikan 12 baris (isi kosong bila kurang) */
+    var def = window.ShioData.DEFAULT_ORDER;
+    while (state.shio.rows.length < 12) {
+      state.shio.rows.push({ name: def[state.shio.rows.length], numsStr: '' });
+    }
+    state.shio.err = '';
+    paintBody();
+    if (!silent) {
+      if (p.valid) toast('Tabel shio terbaca & valid sesuai rumus — silakan Simpan', 'success');
+      else toast(p.count + ' dari 12 shio terbaca — perbaiki baris bertanda SALAH', 'warning');
+    }
+  }
+
+  function syncShioRow(el) {
+    var i = parseInt(el.getAttribute('data-pvrow'), 10);
+    if (isNaN(i) || !state.shio.rows || !state.shio.rows[i]) return;
+    if (el.classList.contains('hs-pv-name')) state.shio.rows[i].name = el.value;
+    else state.shio.rows[i].numsStr = el.value;
+    repaintShioPreviewOnly();
+  }
+
+  /* update ulang hanya tab shio (tanpa kehilangan fokus input) */
+  function repaintShioPreviewOnly() {
+    var v = container();
+    if (!v || state.tab !== 'shio') return;
+    var active = document.activeElement;
+    var activeKey = active && active.getAttribute ? (active.classList.contains('hs-pv-nums') || active.classList.contains('hs-pv-name') ? active.getAttribute('data-pvrow') : null) : null;
+    paintBody();
+    if (activeKey != null) {
+      var el = v.querySelector('.hs-pv-nums[data-pvrow="' + activeKey + '"]');
+      if (el) { el.focus(); try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) {} }
+    }
+  }
+
+  function fixShioFromFormula() {
+    if (!state.shio.rows) return;
+    state.shio.rows = state.shio.rows.map(function (r, i) {
+      return { name: r.name, numsStr: (window.ShioData ? window.ShioData.numbersFor(i) : []).join(', ') };
+    });
+    repaintShioPreviewOnly();
+    toast('Nomor diisi otomatis dari rumus urutan', 'success');
+  }
+
+  function useStdShio() {
+    var def = window.ShioData ? window.ShioData.DEFAULT_ORDER : [];
+    state.shio.rows = def.map(function (name, i) {
+      return { name: name, numsStr: (window.ShioData ? window.ShioData.numbersFor(i) : []).join(', ') };
+    });
+    state.shio.parsed = { valid: true, count: 12, errors: [] };
+    repaintShioPreviewOnly();
+  }
+
+  function saveShio() {
+    if (!state.shio.rows) return;
+    var ord = state.shio.rows.map(function (r) { return r.name; });
+    var struct = window.ShioData.validateStructure(ord);
+    if (!struct.ok) { toast(struct.error, 'error'); return; }
+    for (var i = 0; i < state.shio.rows.length; i++) {
+      var nums = String(state.shio.rows[i].numsStr || '').split(/\s*,\s*/).filter(Boolean);
+      if (!nums.length) { toast('Baris ke-' + (i + 1) + ' (' + ord[i] + ') belum ada nomornya — klik Rapikan dari Rumus', 'warning'); return; }
+      for (var k = 0; k < nums.length; k++) {
+        var s = nums[k];
+        if (!/^\d{1,2}$/.test(s) || (window.ShioData.indexOfNumber(s) !== i)) {
+          toast('Baris ke-' + (i + 1) + ' (' + ord[i] + '): angka ' + s + ' melanggar rumus — tidak boleh asal-asalan', 'error');
+          return;
+        }
+      }
+    }
+    window.ShioData.saveOrder(ord).then(function (res) {
+      if (res.ok) {
+        toast('Tabel shio tersimpan & aktif', 'success');
+        state.shio.rows = null;
+        state.shio.parsed = null;
+        paintBody();
+      } else {
+        toast(res.error || 'Gagal menyimpan shio', 'error');
+      }
+    });
+  }
+
+  /* ============================================================
+     TICK REALTIME — jam + countdown + auto-repaint per 30 detik
+     ============================================================ */
+  function tick() {
+    var v = container();
+    if (!v || container().offsetParent === null) return;
+    var now = wibNow();
+    var clockbar = q('[data-hs="clockbar"]', v);
+    if (clockbar) clockbar.textContent = 'Waktu sekarang (WIB) \u2014 ' + DAY_TITLE[now.day] + ', ' + now.d + ' ' + MON_SHORT[now.mo] + ' ' + now.y + ' \u2022 ' + fmtClock(now);
+    var nowCells = v.querySelectorAll('[data-hs-now]');
+    for (var i = 0; i < nowCells.length; i++) nowCells[i].textContent = fmtClock(now);
+    var cds = v.querySelectorAll('[data-cd-ms]');
+    for (var j = 0; j < cds.length; j++) {
+      var at = parseInt(cds[j].getAttribute('data-cd-ms'), 10);
+      cds[j].textContent = fmtCountdown(at - now.ms);
+    }
+    if (now.s !== lastPaintSec && now.s % 30 === 0 && (state.tab === 'status')) {
+      lastPaintSec = now.s;
+      paintBody();
+    }
+    lastPaintSec = now.s;
+  }
+
+  /* ============================================================
+     EXPOSE
+     ============================================================ */
+  window.HasilPro = {
+    render: function () {
+      build();
+      if (!state.tanggal) state.tanggal = todayWIB();
+      if (!state.loaded && !state.loading) refreshAll(false);
+      else paintAll();
+      if (!tickTimer) tickTimer = setInterval(tick, 1000);
+      tick();
+    },
+    refresh: function () { refreshAll(true); },
+    setTab: setTab,
+    state: state,
+    buildCopy: buildCopy,
+    parseShioText: function (t) { return window.ShioData.parseText(t); }
+  };
+})();
