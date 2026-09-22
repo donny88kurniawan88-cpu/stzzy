@@ -1,13 +1,14 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.CSS v1.1.0
+   AURA.OS // HASIL-PRO.CSS v1.2.0
    Tema modul Hasil Result — elegan, profesional, satu keluarga
    dgn aura.os (glass dark graphite + aksen indigo/cyan premium).
    ATURAN AMAN-ANIMASI (pelajaran Task 20-D): TANPA opacity:0
    pada style dasar — semua entrance pakai keyframes from{} +
    fill-mode:backwards sehingga repaint/noanim tetap terlihat.
-   v1.1.0: resbox kartu hasil pengeluaran didesain ulang —
-   bukan lagi kuning/ungu/hijau, tapi panel glass gelap elegan
-   dgn aksen garis indigo->cyan selaras tema aura.os.
+   v1.2.0 (Task 25): animasi fade-slide body saat ganti tab
+   ([data-hs="body"].hs-anim — re-trigger via JS), style kolom
+   Situs (.hs-web icon link situs resmi pasaran) dgn hover glow
+   indigo selaras tema aura.os.
    ============================================================ */
 
 .hs-wrap { padding: 4px 0 28px; }
@@ -99,10 +100,21 @@
 .hs-tab {
   font-family: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: 0.04em; color: #64748b;
   background: transparent; border: none; border-bottom: 2px solid transparent;
-  padding: 10px 16px; cursor: pointer; transition: all 0.2s ease;
+  padding: 10px 16px; cursor: pointer; transition: color 0.2s ease, border-color 0.25s ease;
+  position: relative;
 }
 .hs-tab:hover { color: #94a3b8; }
 .hs-tab.active { color: #e0e7ff; border-bottom-color: #818cf8; }
+
+/* v1.2 — animasi isi konten saat berpindah tab / masuk menu.
+   Kelas .hs-anim di-toggle oleh paintBody(true) (setTab / render).
+   Aman-animasi: keyframes from{} + fill backwards, TIDAK opacity:0
+   pada style dasar, jadi repaint tanpa animasi tetap tampil. */
+[data-hs="body"].hs-anim { animation: hsBodyIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+@keyframes hsBodyIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  [data-hs="body"].hs-anim { animation: none; }
+}
 
 .hs-clockbar {
   margin-top: 14px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.06em;
@@ -194,6 +206,25 @@
 .hs-tdnums { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #94a3b8; }
 .hs-th-cek { text-align: center !important; }
 .hs-tdcek { text-align: center; }
+
+/* ---------- v1.2 KOLOM SITUS (link situs resmi pasaran) ---------- */
+.hs-th-web { text-align: center !important; }
+.hs-tdweb { text-align: center; white-space: nowrap; }
+.hs-web {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 8px;
+  color: #a5b4fc; background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(129, 140, 248, 0.32);
+  transition: all 0.2s ease;
+}
+.hs-web svg { width: 13px; height: 13px; }
+.hs-web:hover {
+  color: #fff; background: rgba(99, 102, 241, 0.28);
+  border-color: rgba(129, 140, 248, 0.7);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.45);
+  transform: translateY(-1px);
+}
+.hs-web-none { color: #334155; font-size: 11px; }
 
 .hs-trcek td { opacity: 0.55; }
 .hs-trcek .hs-tdname { text-decoration: line-through; text-decoration-color: rgba(148, 163, 184, 0.6); }
