@@ -1,5 +1,5 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.JS v1.2.0
+   AURA.OS // HASIL-PRO.JS v1.3.0
    Modul Hasil Result (Pro) — di bawah menu Prediction Tools.
    ============================================================
    v1.2.0 (Task 25):
@@ -17,6 +17,26 @@
      (dulu "Result 1"), baris tanggal "Hari Selasa, 22 Sep 2026".
    - FITUR BARU: kolom Situs — icon link ke situs resmi pasaran
      (dari data link menu Jadwal Pasaran) di tabel Checklist Status.
+   ============================================================
+   v1.3.0 (Task 26 — permintaan user):
+   - DUA GRUP FORMAT TERPISAH utk tab Hasil Pengeluaran (penugasan
+     grup otomatis dari NAMA pasaran di database jadwal user):
+     * POOLS PRIZE 1 — SATU result per pasaran. Input "RESULT",
+       kartu & copy: "Hari Selasa, 22 September 2026" (bulan penuh)
+       / "Result : 8796" / "SHIO : Kambing" (baris terpisah).
+     * POOLS PRIZE 1 2 3 — TIGA prize per pasaran (default 3 input
+       PRIZE 1/2/3). Kartu & copy: "Hari Selasa, 22 Sep 2026" (bulan
+       pendek) / "Prize 1 : 8551 , SHIO : Naga" / "Prize 2 : ..." /
+       "Prize 3 : ...".
+     Saat "— Semua Pasaran —" kartu dirender DUA seksi terpisah
+     dgn header grup masing-masing.
+   - TAB BARU "BETCLOSED": hitung waktu betclosed dari 3 sisi —
+     (1) waktu sekarang WIB live, (2) jam betclosed pasaran yang
+     diambil dari DATABASE JADWAL PASARAN (field tutup; HOKI DRAW
+     = tutup setiap jam :00, hari libur dilewati otomatis),
+     (3) hitung mundur manual yang diinput sendiri (menit atau
+     H:MM) dgn Mulai/Pause/Lanjut/Reset + chip cepat +1..+30 menit
+     + animasi flash saat waktu habis.
    Fitur (permintaan user):
    1. CHECKLIST STATUS — menarik data pasaran + jadwal buka/tutup/
       result dari menu Jadwal Pasaran (/api/pasaran). Checklist
@@ -79,6 +99,11 @@
     cek: {},              // { pasaranId: true } utk tanggal terpilih
     cekSource: null,      // 'db' | 'local'
     sel: '',              // pasaran terpilih di tab hasil ('' = semua)
+    bc: {                 // v1.3: tab BETCLOSED
+      sel: '',            // pasaran terpilih di tab betclosed ('' = belum)
+      input: '',          // teks durasi manual
+      timer: { endAt: 0, leftMs: 0, total: 0, running: false, paused: false, done: false }
+    },
     dropOpen: false,
     saving: false,
     loaded: false,
@@ -367,6 +392,12 @@
     return p ? DAY_TITLE[p.day] + ', ' + p.d + ' ' + MON_SHORT[p.mo] + ' ' + p.y : '-';
   }
 
+  /* v1.3: "Selasa, 22 September 2026" (bulan penuh — format POOLS PRIZE 1) */
+  function fmtDateFullTitle(s) {
+    var p = partsOfDateStr(s);
+    return p ? DAY_TITLE[p.day] + ', ' + p.d + ' ' + MON_FULL[p.mo] + ' ' + p.y : '-';
+  }
+
   function fmtDateFullUp(s) {
     var p = partsOfDateStr(s);
     return p ? DAY_UP[p.day] + ', ' + p.d + ' ' + MON_FULL[p.mo].toUpperCase() + ' ' + p.y : '-';
@@ -448,6 +479,42 @@
   }
 
   /* ============================================================
+     GRUP FORMAT PRIZE (v1.3.0 — permintaan user)
+     POOLS PRIZE 1     : pasaran cukup SATU result — kartu & copy
+                         "Result : 8796" + "SHIO : Kambing" + tanggal
+                         bulan penuh ("22 September 2026").
+     POOLS PRIZE 1 2 3 : pasaran TIGA prize — "Prize 1 : 8551 ,
+                         SHIO : Naga" dst + tanggal pendek ("22 Sep 2026").
+     Penugasan grup dari NAMA pasaran di database jadwal user
+     (normalisasi tanpa spasi/simbol): fase 1 cocok persis, fase 2
+     kandung dua arah dgn kunci terpanjang (paling spesifik).
+     Pasaran di luar daftar -> default POOLS PRIZE 1 2 3.
+     ============================================================ */
+  var GROUP_P1_KEYS = ['HOKIDRAW', 'TOTOMACAUPAGI', 'KENTUCKYMIDDAY', 'FLORIDAMIDDAY', 'NEWYORKMIDDAY', 'CAROLINADAY', 'OREGON03', 'OREGON06', 'CALIFORNIA', 'FLORIDAEVENING', 'OREGON09', 'NEWYORKEVENING', 'NEWYORKEVE', 'KENTUCKYEVENING', 'KENTUCKYEVE', 'CAROLINAEVENING', 'CAROLINAEVE', 'OREGON12', 'BULLSEYE', 'TOTOMACAUSIANG', 'JAKARTA1400', 'TOTOMACAU5DSORE', 'TOTOMACAUSORE', 'KINGKONG4DSORE', 'SINGAPORE', 'TOTOMACAUMALAMI', 'PCSO', 'TOTOMACAU5DMALAM', 'TOTOMACAUMALAMII', 'TOTOMACAUMALAMIII', 'KINGKONG4DMALAM', 'JAKARTA2330'];
+  var GROUP_P123_KEYS = ['HUAHIN0100', 'BANGKOK0130', 'BRUNEI02', 'BANGKOK0930', 'CHELSEA11', 'TOTOCAMBODIA', 'POIPET12', 'SYDNEY', 'BRUNEI14', 'CHELSEA15', 'POIPET15', 'TOTOMALI1530', 'HUAHIN1630', 'SINGAPORE4D', 'MAGNUM4D', 'CHELSEA19', 'POIPET19', 'TOTOMALI2030', 'HUAHIN2100', 'CHELSEA21', 'NEVADA', 'BRUNEI21', 'POIPET22', 'HONGKONG', 'TOTOMALI2330'];
+  var GROUP_KEYS = { p1: GROUP_P1_KEYS, p123: GROUP_P123_KEYS };
+
+  function groupOf(it) {
+    var n = normKey(it && it.nama);
+    if (!n) return 'p123';
+    if (GROUP_KEYS.p1.indexOf(n) !== -1) return 'p1';
+    if (GROUP_KEYS.p123.indexOf(n) !== -1) return 'p123';
+    var best = '', bl = 0;
+    ['p1', 'p123'].forEach(function (g) {
+      GROUP_KEYS[g].forEach(function (k) {
+        if (k.length <= bl) return;
+        if (n.indexOf(k) !== -1 || k.indexOf(n) !== -1) { best = g; bl = k.length; }
+      });
+    });
+    return best || 'p123';
+  }
+
+  function isP1Group(it) { return groupOf(it) === 'p1'; }
+  function groupLabel(g) { return g === 'p1' ? 'POOLS PRIZE 1' : 'POOLS PRIZE 1 2 3'; }
+  function groupChipLabel(g) { return g === 'p1' ? 'PRIZE 1' : 'PRIZE 1 2 3'; }
+  function maxPrizeOf(it) { return isP1Group(it) ? 1 : 3; }
+
+  /* ============================================================
      STATUS & COUNTDOWN (engine sama semangatnya dgn pkpasaran-pro)
      ============================================================ */
   /* Status pasaran vs waktu WIB sekarang:
@@ -491,6 +558,31 @@
     } else if (now.m < target) {
       k = 0;
     } else {
+      k = 1;
+    }
+    if (closed) {
+      for (var guard = 0; guard < 8 && closed.indexOf((now.day + k) % 7) !== -1; guard++) k++;
+    }
+    return wibMs(now.y, now.mo, now.d + k, Math.floor(target / 60), target % 60, 0);
+  }
+
+  /* v1.3: epoch ms BETCLOSED berikutnya utk pasaran — jam tutup dari
+     database jadwal (field tutup; fallback result). HOKI DRAW = tutup
+     tepat setiap jam :00. Hari libur pasaran dilewati otomatis. */
+  function nextBetclosedMs(it, now) {
+    if (isHokiRow(it)) {
+      var addH = 60 - (now.m % 60);
+      if (addH <= 0) addH = 60;
+      return now.ms + addH * 60000;
+    }
+    var closed = closedDaysOf(it.jadwal) || closedDaysOf(it.tutup);
+    var tu = parseHM(it.tutup), re = parseHM(it.result);
+    var target = (tu != null) ? tu : re;
+    if (target == null) return null;
+    var k = 0;
+    if (closed) {
+      if (closed.indexOf(now.day) !== -1) k = 1;
+    } else if (now.m >= target) {
       k = 1;
     }
     if (closed) {
@@ -673,6 +765,7 @@
           '<div class="hs-tabs">' +
             '<button type="button" class="hs-tab" data-action="tab" data-tab="status">Checklist Status</button>' +
             '<button type="button" class="hs-tab" data-action="tab" data-tab="hasil">Hasil Pengeluaran</button>' +
+            '<button type="button" class="hs-tab" data-action="tab" data-tab="betclosed">Betclosed</button>' +
             '<button type="button" class="hs-tab" data-action="tab" data-tab="shio">Tabel Shio</button>' +
           '</div>' +
           '<div data-hs="clockbar" class="hs-clockbar"></div>' +
@@ -701,6 +794,11 @@
       else if (act === 'shiofix') fixShioFromFormula();
       else if (act === 'shiostd') useStdShio();
       else if (act === 'shiosave') saveShio();
+      /* v1.3: tab betclosed */
+      else if (act === 'bcstart') bcStart();
+      else if (act === 'bcpause') bcPause();
+      else if (act === 'bcreset') bcReset();
+      else if (act === 'bcquick') bcQuick(parseInt(t.getAttribute('data-min'), 10) || 0);
     });
 
     v.addEventListener('input', function (e) {
@@ -714,6 +812,8 @@
         setDate(el.value);
       } else if (el.classList && el.classList.contains('hs-ocr-text')) {
         state.shio.ocrText = el.value;
+      } else if (el.getAttribute && el.getAttribute('data-bc-manual') != null) {
+        state.bc.input = el.value;   /* v1.3: durasi manual betclosed */
       }
     });
 
@@ -750,7 +850,7 @@
      TAB
      ============================================================ */
   function setTab(tab) {
-    state.tab = (tab === 'hasil' || tab === 'shio') ? tab : 'status';
+    state.tab = (tab === 'hasil' || tab === 'shio' || tab === 'betclosed') ? tab : 'status';
     var v = container();
     if (v) syncTabs(v);   /* v1.2 FIX "UI tidak mengikuti": indikator tab wajib pindah */
     paintBody(true);      /* v1.2: + animasi fade-slide body saat ganti tab */
@@ -821,12 +921,13 @@
     }
     if (state.tab === 'status') paintStatusInto(body);
     else if (state.tab === 'hasil') paintHasilInto(body);
+    else if (state.tab === 'betclosed') paintBetclosedInto(body);   /* v1.3 */
     else paintShioInto(body);
   }
 
   function paintStatus() { paintBody(); }
   function paintHasil() { paintBody(); }
-  function paintDrop() { if (state.tab === 'hasil') paintBody(); }
+  function paintDrop() { if (state.tab === 'hasil' || state.tab === 'betclosed') paintBody(); }
 
   /* ============================================================
      TAB 1+2 — CHECKLIST STATUS & HITUNG WAKTU TUTUP (satu tabel)
@@ -994,6 +1095,19 @@
     var cards = visibleCards();
     if (!cards.length) {
       h.push('<div class="hs-empty">' + (state.items.length ? 'Tidak ada pasaran yang cocok dengan pilihan/pencarian.' : 'Belum ada pasaran — isi dulu di menu Jadwal Pasaran.') + '</div>');
+    } else if (!state.sel) {
+      /* v1.3: DUA SEKSI TERPISAH dgn format berbeda — POOLS PRIZE 1
+         (satu result) & POOLS PRIZE 1 2 3 (tiga prize) */
+      var g1 = cards.filter(function (c) { return groupOf(c.it) === 'p1'; });
+      var g3 = cards.filter(function (c) { return groupOf(c.it) === 'p123'; });
+      h.push(groupHeadHtml('p1', g1.length));
+      h.push('<div class="hs-cards">');
+      g1.forEach(function (c) { h.push(cardHtml(c.it, c.st, now)); });
+      h.push('</div>');
+      h.push(groupHeadHtml('p123', g3.length));
+      h.push('<div class="hs-cards">');
+      g3.forEach(function (c) { h.push(cardHtml(c.it, c.st, now)); });
+      h.push('</div>');
     } else {
       h.push('<div class="hs-cards">');
       cards.forEach(function (c) { h.push(cardHtml(c.it, c.st, now)); });
@@ -1005,7 +1119,10 @@
   function cardItemsOf(it) {
     var row = state.hasilById[String(it.id)];
     var items = (row && Array.isArray(row.items)) ? row.items : [];
-    var prize = row ? Math.min(3, Math.max(1, parseInt(row.prize, 10) || 1)) : 1;
+    /* v1.3: jumlah prize default ikut grup — POOLS PRIZE 1 = 1 result,
+       POOLS PRIZE 1 2 3 = 3 prize (dipaksa 1 bila grup p1) */
+    var prize = row ? Math.min(3, Math.max(1, parseInt(row.prize, 10) || 1)) : maxPrizeOf(it);
+    if (maxPrizeOf(it) === 1) prize = 1;
     return { row: row, items: items, prize: prize };
   }
 
@@ -1013,21 +1130,23 @@
     var hoki = isHokiRow(it);
     var meta = ST_META[st] || ST_META.tutup;
     var cd = cardItemsOf(it);
+    var g = groupOf(it);
+    var p1 = g === 'p1';                       /* v1.3: grup POOLS PRIZE 1 */
     var lastBy = cd.row && cd.row.updated_by ? esc(cd.row.updated_by) : '';
 
     var h = [];
-    h.push('<article class="hs-card-item" data-card="' + esc(it.id) + '">');
+    h.push('<article class="hs-card-item' + (p1 ? ' hs-gp1' : '') + '" data-card="' + esc(it.id) + '">');
     h.push('<div class="hs-chead"><div style="min-width:0;"><h3 class="hs-cname">' + esc(it.nama) + '</h3>' +
-      '<div class="hs-cmeta">' + (hoki ? 'SETIAP 1 JAM &bull; 24x SEHARI' : (esc(hmOnly(it.result)) || 'JADWAL KHUSUS')) + ' &bull; <span data-prize-label="' + esc(it.id) + '">' + cd.prize + ' Prize</span></div></div>' +
+      '<div class="hs-cmeta"><span class="hs-gchip' + (p1 ? ' p1' : '') + '" title="Grup format: ' + groupLabel(g) + '">' + groupChipLabel(g) + '</span> &bull; ' + (hoki ? 'SETIAP 1 JAM &bull; 24x SEHARI' : (esc(hmOnly(it.result)) || 'JADWAL KHUSUS')) + ' &bull; <span data-prize-label="' + esc(it.id) + '">' + (p1 ? '1 Result' : cd.prize + ' Prize') + '</span></div></div>' +
       '<span class="hs-st ' + meta.cls + '">' + meta.label + '</span></div>');
 
-    /* input result (v1.2: label PRIZE — format baru permintaan user) */
+    /* input result (v1.3: grup p1 = SATU input "RESULT"; grup p123 = PRIZE 1-3) */
     h.push('<div class="hs-rinwrap">');
     for (var n = 1; n <= 3; n++) {
       var val = '';
       cd.items.forEach(function (x) { if (parseInt(x.n, 10) === n) val = x.val; });
       h.push('<div class="hs-rinrow' + (n > cd.prize ? ' hide' : '') + '" data-rin="' + n + '">' +
-        '<label class="hs-rinlab">PRIZE ' + n + '</label>' +
+        '<label class="hs-rinlab">' + (p1 ? 'RESULT' : 'PRIZE ' + n) + '</label>' +
         '<input class="hs-rin" type="text" inputmode="numeric" maxlength="4" placeholder="' + (n === 1 ? 'Input angka&hellip;' : 'Opsional') + '" value="' + esc(val) + '" data-rinin="' + esc(it.id) + '-' + n + '">' +
         '</div>');
     }
@@ -1036,25 +1155,40 @@
     h.push('<div class="hs-btnrow">' +
       '<button type="button" class="hs-btn hs-btn-primary" data-action="save" data-id="' + esc(it.id) + '">Simpan Result</button>' +
       '<button type="button" class="hs-btn" data-action="copy" data-id="' + esc(it.id) + '">Copy</button>' +
-      '<button type="button" class="hs-btn hs-ghost" data-action="prize" data-id="' + esc(it.id) + '" title="Ganti jumlah result/prize (1-3)">&times;' + cd.prize + ' Prize</button>' +
+      (p1 ? '' : '<button type="button" class="hs-btn hs-ghost" data-action="prize" data-id="' + esc(it.id) + '" title="Ganti jumlah result/prize (1-3)">&times;' + cd.prize + ' Prize</button>') +
       '<button type="button" class="hs-btn hs-btn-danger' + (state.armClear === String(it.id) ? ' arm' : '') + '" data-action="clear" data-id="' + esc(it.id) + '">' + (state.armClear === String(it.id) ? 'Yakin? Hapus Result' : 'Clear Result') + '</button>' +
       '</div>');
 
-    /* panel format hasil (v1.2: format persis permintaan user —
-       "Hasil Pengeluaran BANGKOK 0930 / Hari Selasa, 22 Sep 2026 /
-       Prize 1 : 1234 , SHIO : Monyet / ... / Salam JP") */
+    /* panel format hasil (v1.3: DUA format terpisah sesuai grup pasaran) */
     var tgl = state.tanggal;
     h.push('<div class="hs-resbox">');
     h.push('<div class="hs-reshead"><span>Hasil Pengeluaran ' + esc(it.nama) + '</span><span class="hs-restag">' + meta.label + '</span></div>');
-    h.push('<div class="hs-resday"><span>Hari ' + fmtDateShort(tgl) + '</span><span>' + esc(it.nama) + '</span></div>');
-    var shown = 0;
-    var sd = ShioSnapshot();
-    cd.items.forEach(function (x) {
-      shown++;
-      var shio = shown === 1 ? shioOfVal(x.val, sd) : '';
-      h.push('<div class="hs-resrow"><span>Prize ' + esc(x.n) + ' :</span><b>' + esc(x.val) + (shio ? '<span class="hs-resshio"> , SHIO : ' + esc(shio) + '</span>' : '') + '</b></div>');
-    });
-    if (!shown) h.push('<div class="hs-resrow"><span>Prize :</span><b>-</b></div>');
+    if (p1) {
+      /* POOLS PRIZE 1 — "Hari Selasa, 22 September 2026" (bulan penuh)
+         + "Result : ####" + "SHIO : ..." pada baris terpisah */
+      h.push('<div class="hs-resday"><span>Hari ' + fmtDateFullTitle(tgl) + '</span><span>' + esc(it.nama) + '</span></div>');
+      var v1 = '';
+      cd.items.forEach(function (x) { if (parseInt(x.n, 10) === 1) v1 = x.val; });
+      if (!v1 && cd.items.length) v1 = cd.items[0].val;
+      if (v1) {
+        var sh1 = shioOfVal(v1, ShioSnapshot());
+        h.push('<div class="hs-resrow"><span>Result :</span><b>' + esc(v1) + '</b></div>');
+        h.push('<div class="hs-resrow hs-reshiorow"><span>SHIO :</span><b class="hs-reshio">' + esc(sh1 || '\u2014') + '</b></div>');
+      } else {
+        h.push('<div class="hs-resrow"><span>Result :</span><b>-</b></div>');
+      }
+    } else {
+      /* POOLS PRIZE 1 2 3 — "Hari Selasa, 22 Sep 2026" + Prize 1/2/3 */
+      h.push('<div class="hs-resday"><span>Hari ' + fmtDateShort(tgl) + '</span><span>' + esc(it.nama) + '</span></div>');
+      var shown = 0;
+      var sd = ShioSnapshot();
+      cd.items.forEach(function (x) {
+        shown++;
+        var shio = shown === 1 ? shioOfVal(x.val, sd) : '';
+        h.push('<div class="hs-resrow"><span>Prize ' + esc(x.n) + ' :</span><b>' + esc(x.val) + (shio ? '<span class="hs-resshio"> , SHIO : ' + esc(shio) + '</span>' : '') + '</b></div>');
+      });
+      if (!shown) h.push('<div class="hs-resrow"><span>Prize :</span><b>-</b></div>');
+    }
     h.push('<div class="hs-resfoot"><span>Selamat Kepada Pemenang, Salam JP</span><span>' + (hoki ? 'SETIAP 1 JAM' : (esc(hmOnly(it.result)) || '&mdash;')) + '</span></div>');
     h.push('</div>');
 
@@ -1081,7 +1215,9 @@
   function toggleDrop() { state.dropOpen = !state.dropOpen; paintDrop(); }
 
   function pickDrop(id) {
-    state.sel = id || '';
+    /* v1.3: dropdown dipakai tab hasil & tab betclosed (state terpisah) */
+    if (state.tab === 'betclosed') state.bc.sel = id || '';
+    else state.sel = id || '';
     state.dropOpen = false;
     paintBody();
   }
@@ -1089,6 +1225,7 @@
   function cyclePrize(id) {
     var it = byId(id);
     if (!it) return;
+    if (isP1Group(it)) return;   /* v1.3: POOLS PRIZE 1 selalu 1 result */
     var v = container();
     var wrap = v.querySelector('[data-card="' + cssEsc(String(it.id)) + '"]');
     var btn = wrap ? wrap.querySelector('[data-action="prize"]') : null;
@@ -1146,7 +1283,8 @@
     var v = container();
     var wrap = v.querySelector('[data-card="' + cssEsc(String(id)) + '"]');
     var prizeBtn = wrap ? wrap.querySelector('[data-action="prize"]') : null;
-    var prize = prizeBtn ? (parseInt(prizeBtn.textContent.replace(/\D/g, ''), 10) || 1) : 1;
+    /* v1.3: POOLS PRIZE 1 selalu simpan prize=1 */
+    var prize = isP1Group(it) ? 1 : (prizeBtn ? (parseInt(prizeBtn.textContent.replace(/\D/g, ''), 10) || 1) : maxPrizeOf(it));
     var items = readCardInputs(id, prize);
     var digitOk = items.every(function (x) { return x.val.length >= 2; });
     if (items.length && !digitOk) { toast('Nomor result minimal 2 digit', 'warning'); return; }
@@ -1229,14 +1367,31 @@
     var ord = ShioSnapshot();
     var lines = [];
     lines.push('Hasil Pengeluaran ' + String(it.nama || '').toUpperCase());
-    lines.push('Hari ' + fmtDateShort(state.tanggal));
-    var firstDone = false;
-    cd.items.forEach(function (x) {
-      var shio = '';
-      if (!firstDone) { shio = shioOfVal(x.val, ord); firstDone = true; }
-      lines.push('Prize ' + x.n + ' : ' + x.val + (shio ? ' , SHIO : ' + shio : ''));
-    });
-    if (!cd.items.length) lines.push('Prize : -');
+    if (isP1Group(it)) {
+      /* v1.3 — POOLS PRIZE 1 (format persis permintaan user):
+         "Hari Selasa, 22 September 2026 / Result : 8796 / SHIO : Kambing" */
+      lines.push('Hari ' + fmtDateFullTitle(state.tanggal));
+      var v1 = '';
+      cd.items.forEach(function (x) { if (parseInt(x.n, 10) === 1) v1 = x.val; });
+      if (!v1 && cd.items.length) v1 = cd.items[0].val;
+      if (v1) {
+        lines.push('Result : ' + v1);
+        var sh = shioOfVal(v1, ord);
+        if (sh) lines.push('SHIO : ' + sh);
+      } else {
+        lines.push('Result : -');
+      }
+    } else {
+      /* POOLS PRIZE 1 2 3 — "Hari Selasa, 22 Sep 2026 / Prize 1 : 8551 , SHIO : Naga" */
+      lines.push('Hari ' + fmtDateShort(state.tanggal));
+      var firstDone = false;
+      cd.items.forEach(function (x) {
+        var shio = '';
+        if (!firstDone) { shio = shioOfVal(x.val, ord); firstDone = true; }
+        lines.push('Prize ' + x.n + ' : ' + x.val + (shio ? ' , SHIO : ' + shio : ''));
+      });
+      if (!cd.items.length) lines.push('Prize : -');
+    }
     lines.push('Selamat Kepada Pemenang, Salam JP');
     return lines.join('\n');
   }
@@ -1263,6 +1418,162 @@
         toast('Format hasil "' + it.nama + '" tersalin', 'success');
       }).catch(fallbackCopy);
     } else fallbackCopy();
+  }
+
+  /* ============================================================
+     TAB BETCLOSED (v1.3) — hitung waktu betclosed dari 3 sisi:
+     (1) waktu sekarang WIB live, (2) jam betclosed pasaran yang
+     diambil dari DATABASE JADWAL PASARAN (field tutup; HOKI DRAW =
+     setiap jam :00; libur dilewati), (3) hitung mundur manual yang
+     diinput sendiri (menit atau H:MM).
+     ============================================================ */
+  function groupHeadHtml(g, n) {
+    var p1 = g === 'p1';
+    return '<div class="hs-grouphead' + (p1 ? ' p1' : '') + '">' +
+      '<span class="hs-grouptag">' + groupLabel(g) + '</span>' +
+      '<span class="hs-groupdesc">' + (p1 ? 'satu result per pasaran \u2014 format "Result : ####" + SHIO' : 'tiga prize per pasaran \u2014 format "Prize 1 / 2 / 3"') + '</span>' +
+      '<span class="hs-groupcount">' + n + ' pasaran</span>' +
+      '</div>';
+  }
+
+  function paintBetclosedInto(body) {
+    var now = wibNow();
+    var items = dropItems();
+    var selId = state.bc.sel;
+    var selName = '\u2014 Pilih Pasaran \u2014';
+    var it = null;
+    if (selId) {
+      items.forEach(function (x) { if (String(x.id) === String(selId)) it = x; });
+      if (it) selName = it.nama;
+    }
+
+    var h = [];
+    h.push('<div class="hs-toolbar">' +
+      '<div class="hs-dd" data-hs-ddwrap>' +
+        '<button type="button" class="hs-ddbtn" data-action="drop"><span class="hs-ddlabel">' + esc(selName) + '</span><span class="hs-ddchev">' + ICON_CHEV + '</span></button>' +
+        '<div class="hs-ddlist' + (state.dropOpen ? ' open' : '') + '">');
+    h.push('<button type="button" class="hs-dditem' + (!selId ? ' active' : '') + '" data-action="dropitem" data-id="">\u2014 Pilih Pasaran \u2014</button>');
+    items.forEach(function (x) {
+      h.push('<button type="button" class="hs-dditem' + (String(selId) === String(x.id) ? ' active' : '') + '" data-action="dropitem" data-id="' + esc(x.id) + '">' + esc(x.nama) + '</button>');
+    });
+    h.push('</div></div></div>');
+
+    if (!it) {
+      h.push('<div class="hs-empty">Pilih pasaran dulu &mdash; jenis pasaran &amp; jam betclosed diambil dari database <b>Jadwal Pasaran</b>, lalu dibandingkan dengan waktu sekarang (WIB) + hitung mundur manual.</div>');
+      body.innerHTML = h.join('');
+      return;
+    }
+
+    var hoki = isHokiRow(it);
+    var g = groupOf(it);
+    var bcLabel = hoki ? 'SETIAP JAM :00' : (hmOnly(it.tutup) || hmOnly(it.result) || '\u2014');
+    var reLabel = hoki ? 'SETIAP 1 JAM' : (hmOnly(it.result) || '\u2014');
+    var nbc = nextBetclosedMs(it, now);
+    var open = false;
+    if (hoki) {
+      open = (now.m % 60) >= HOKI_OFFSET;
+    } else {
+      var tu = parseHM(it.tutup);
+      var closedDays = closedDaysOf(it.jadwal) || closedDaysOf(it.tutup);
+      open = tu != null && now.m < tu && !(closedDays && closedDays.indexOf(now.day) !== -1);
+    }
+
+    h.push('<div class="hs-bcgrid">');
+
+    /* panel kiri — OTOMATIS (jam betclosed dari database jadwal) */
+    h.push('<div class="hs-bccard">' +
+      '<div class="hs-bck">OTOMATIS \u2014 BETCLOSED PASARAN</div>' +
+      '<div class="hs-bcname">' + esc(it.nama) + '<span class="hs-gchip' + (g === 'p1' ? ' p1' : '') + '">' + groupChipLabel(g) + '</span></div>' +
+      '<div class="hs-bcmeta">Jenis: ' + esc(it.jadwal || 'SETIAP HARI') + (hoki ? ' &bull; result 24x sehari' : '') + '</div>' +
+      '<div class="hs-bcrows">' +
+        '<div class="hs-bcrow"><span>Waktu Sekarang</span><b class="hs-bcnow" data-hs-now>' + fmtClock(now) + '</b></div>' +
+        '<div class="hs-bcrow"><span>Jam Betclosed</span><b>' + bcLabel + '</b></div>' +
+        '<div class="hs-bcrow"><span>Jam Result</span><b>' + reLabel + '</b></div>' +
+        '<div class="hs-bcrow"><span>Status</span><b><span class="hs-st ' + (open ? 'hs-st-belum' : 'hs-st-tutup') + '">' + (open ? 'BUKA \u2014 AMAN' : 'BET DITUTUP') + '</span></b></div>' +
+      '</div>' +
+      '<div class="hs-bclabel">Countdown ke betclosed berikutnya</div>' +
+      '<div class="hs-bcdisplay">' + (nbc != null ? '<span data-cd-ms="' + nbc + '">' + fmtCountdown(nbc - now.ms) + '</span>' : '\u2014') + '</div>' +
+      '<div class="hs-bctarget">' + (nbc != null ? 'target ' + hmOfMs(nbc) + ' &bull; ' + DAY_TITLE[wibParts(nbc).day] : 'jam betclosed tidak terbaca \u2014 cek menu Jadwal Pasaran') + '</div>' +
+      '<div class="hs-bcnote">Jam betclosed &amp; jenis pasaran dibaca dari database jadwal; hari libur pasaran dilewati otomatis.</div>' +
+      '</div>');
+
+    /* panel kanan — MANUAL (durasi diinput sendiri) */
+    var tm = state.bc.timer;
+    var manLeft = tm.running ? (tm.endAt - now.ms) : tm.leftMs;
+    h.push('<div class="hs-bccard manual">' +
+      '<div class="hs-bck">MANUAL \u2014 HITUNG MUNDUR</div>' +
+      '<div class="hs-bcmeta">Durasi diinput manual \u2014 cocok untuk sesi bet tanpa mengubah jadwal.</div>' +
+      '<div class="hs-bcinputrow">' +
+        '<input class="hs-bcinput" data-bc-manual type="text" placeholder="30 (menit) atau 1:30 (1 jam 30 mnt)" value="' + esc(state.bc.input || '') + '">' +
+        '<div class="hs-bcquick">' +
+          [1, 5, 10, 15, 30].map(function (m) { return '<button type="button" class="hs-chip" data-action="bcquick" data-min="' + m + '">+' + m + 'm</button>'; }).join('') +
+        '</div>' +
+      '</div>' +
+      '<div class="hs-btnrow hs-bcbtnrow">' +
+        '<button type="button" class="hs-btn hs-btn-primary" data-action="bcstart">' + (tm.paused ? 'Lanjut' : (tm.running ? 'Berjalan\u2026' : 'Mulai')) + '</button>' +
+        '<button type="button" class="hs-btn" data-action="bcpause"' + (tm.running ? '' : ' disabled') + '>Pause</button>' +
+        '<button type="button" class="hs-btn hs-ghost" data-action="bcreset">Reset</button>' +
+      '</div>' +
+      '<div class="hs-bcdisplay manual' + (tm.done ? ' flash' : '') + '"><span data-bc-display>' + fmtCountdown(manLeft) + '</span></div>' +
+      '<div class="hs-bctarget" data-bc-status>' + (tm.running ? 'berjalan \u2014 berakhir ' + hmOfMs(tm.endAt) : (tm.done ? 'WAKTU HABIS' : (tm.paused ? 'dijeda \u2014 klik Lanjut untuk meneruskan' : 'isi durasi lalu klik Mulai'))) + '</div>' +
+      '<div class="hs-bcnote">Hitungan mundur manual berjalan realtime; Pause/Reset kapan saja. Tambah durasi cepat dengan chip +m.</div>' +
+      '</div>');
+
+    h.push('</div>');
+    body.innerHTML = h.join('');
+  }
+
+  /* --- kontrol timer hitung mundur manual (v1.3) --- */
+  function bcParseInput() {
+    var raw = String(state.bc.input || '').trim();
+    if (!raw) return null;
+    var m = raw.match(/^(\d{1,2})\s*[:.,]\s*(\d{1,2})$/);   /* H:MM */
+    if (m) {
+      var hh = parseInt(m[1], 10), mm = parseInt(m[2], 10);
+      if (mm > 59 || hh > 23) return null;
+      return (hh * 60 + mm) * 60000;
+    }
+    if (/^\d{1,4}$/.test(raw)) return parseInt(raw, 10) * 60000;   /* menit */
+    return null;
+  }
+
+  function bcStart() {
+    var tm = state.bc.timer;
+    if (tm.running) return;
+    var ms = (tm.paused && tm.leftMs > 0) ? tm.leftMs : bcParseInput();
+    if (ms == null || ms <= 0) { toast('Isi durasi dulu \u2014 contoh: 30 (menit) atau 1:30 (1 jam 30 menit)', 'warning'); return; }
+    if (ms > 24 * 3600000) ms = 24 * 3600000;
+    tm.endAt = Date.now() + ms;
+    tm.total = ms;
+    tm.running = true; tm.paused = false; tm.done = false;
+    paintBody();
+    toast('Hitung mundur manual dimulai', 'success');
+  }
+
+  function bcPause() {
+    var tm = state.bc.timer;
+    if (!tm.running) return;
+    tm.leftMs = Math.max(0, tm.endAt - Date.now());
+    tm.running = false; tm.paused = true;
+    paintBody();
+  }
+
+  function bcReset() {
+    state.bc.timer = { endAt: 0, leftMs: 0, total: 0, running: false, paused: false, done: false };
+    state.bc.input = '';
+    paintBody();
+  }
+
+  function bcQuick(mins) {
+    if (!(mins > 0)) return;
+    var tm = state.bc.timer;
+    var base = tm.running ? Math.max(0, tm.endAt - Date.now()) : (tm.paused ? tm.leftMs : 0);
+    var ms = Math.min(24 * 3600000, base + mins * 60000);
+    tm.endAt = Date.now() + ms;
+    tm.total = ms;
+    tm.running = true; tm.paused = false; tm.done = false;
+    state.bc.input = String(Math.round(ms / 60000));
+    paintBody();
   }
 
   /* ============================================================
@@ -1620,7 +1931,22 @@
       var at = parseInt(cds[j].getAttribute('data-cd-ms'), 10);
       cds[j].textContent = fmtCountdown(at - now.ms);
     }
-    if (now.s !== lastPaintSec && now.s % 30 === 0 && (state.tab === 'status')) {
+    /* v1.3: timer hitung mundur manual (tab betclosed) — selesai -> flash + toast */
+    var tm = state.bc.timer;
+    if (tm.running && now.ms >= tm.endAt) {
+      tm.running = false; tm.leftMs = 0; tm.done = true;
+      paintBody();
+      toast('Waktu hitung mundur manual habis', 'warning');
+    }
+    var bcD = v.querySelector('[data-bc-display]');
+    if (bcD) bcD.textContent = fmtCountdown(tm.running ? (tm.endAt - now.ms) : tm.leftMs);
+    /* v1.3: target betclosed otomatis terlewati -> hitung ulang target */
+    if (state.tab === 'betclosed') {
+      var el0 = v.querySelector('[data-cd-ms]');
+      if (el0 && now.ms > parseInt(el0.getAttribute('data-cd-ms'), 10)) paintBody();
+    }
+    var typing = (function () { var ae = document.activeElement; return !!(ae && ae.getAttribute && ae.getAttribute('data-bc-manual') != null); })();
+    if (now.s !== lastPaintSec && now.s % 30 === 0 && (state.tab === 'status' || state.tab === 'betclosed') && !typing) {
       lastPaintSec = now.s;
       paintBody();
     }
