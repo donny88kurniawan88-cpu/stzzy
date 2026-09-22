@@ -796,10 +796,10 @@ export default {
       'core', 'workspace', 'operational', 'system',
       // Sub-menu keys (2) — Authority Panel
       'user_management', 'registration_control',
-      // Module item keys (15) — match Dashboard data-access-item attributes
+      // Module item keys (16) — match Dashboard data-access-item attributes
       'dashboard', 'profil', 'banking_tools', 'rek_validator', 'bank_processor',
       'saldo_pencairan', 'qris_tools', 'prediction_tools', 'event_tools',
-      'edit_bukti', 'keep_memo', 'api_key', 'setting', 'ip_whitelist', 'authority_panel',
+      'edit_bukti', 'keep_memo', 'hasil_result', 'api_key', 'setting', 'ip_whitelist', 'authority_panel',
       // Sub-menu item keys (11) — level menu > sub-menu (v2.3)
       'p2m_analyzer', 'xpay_analyzer', 'xpay_settlement', 'settlement_checker', 'mnpay_analyzer',
       'syair_database', 'ai_prediction', 'gas_slot_engine',
@@ -1618,6 +1618,235 @@ export default {
         return Response.json({ success: true, cached: false, data: psData });
       } catch (psErr) {
         return Response.json({ success: false, error: 'Gagal mengambil data: ' + psErr.message }, { status: 502 });
+      }
+    }
+
+    // ============================================
+    // 13i. API HASIL RESULT + TABEL SHIO (v3.6.0 — data D1 SQLite, menu Hasil Result)
+    //      Hasil pengeluaran per pasaran per tanggal:
+    //      GET    /api/hasil?tanggal=YYYY-MM-DD     -> daftar result tanggal tsb
+    //      POST   /api/hasil                        -> upsert result satu pasaran
+    //      DELETE /api/hasil?id=N | ?tanggal=...    -> hapus satu / semua result tanggal
+    //      Tabel shio (urutan 12 shio, acuan rumus (N-1) mod 12):
+    //      GET    /api/shio                         -> urutan aktif
+    //      PUT    /api/shio                         -> simpan urutan baru
+    // ============================================
+
+    const SHIO_DEFAULT = ["Kuda", "Ular", "Naga", "Kelinci", "Harimau", "Kerbau", "Tikus", "Babi", "Anjing", "Ayam", "Monyet", "Kambing"];
+
+    async function ensureHasilTables() {
+      try {
+        await env.DB.prepare("SELECT id FROM hasil_result LIMIT 1").first();
+      } catch (e) {
+        await env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS hasil_result (id INTEGER PRIMARY KEY AUTOINCREMENT, pasaran_id INTEGER NOT NULL, pasaran_nama TEXT NOT NULL, tanggal TEXT NOT NULL, prize INTEGER NOT NULL DEFAULT 1, items TEXT NOT NULL DEFAULT '[]', updated_by TEXT, updated_at INTEGER)"
+        ).run();
+        try { await env.DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_hasil_uniq ON hasil_result(pasaran_id, tanggal)").run(); } catch (e2) {}
+      }
+      try {
+        await env.DB.prepare("SELECT id FROM shio_config LIMIT 1").first();
+      } catch (e) {
+        await env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS shio_config (id INTEGER PRIMARY KEY AUTOINCREMENT, ord TEXT NOT NULL, updated_by TEXT, updated_at INTEGER)"
+        ).run();
+      }
+      // v3.6.1: ceklis pasaran (tanda result sudah dicek/diapprove) — persist D1, sinkron antar device
+      try {
+        await env.DB.prepare("SELECT id FROM hasil_ceklis LIMIT 1").first();
+      } catch (e) {
+        await env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS hasil_ceklis (id INTEGER PRIMARY KEY AUTOINCREMENT, pasaran_id INTEGER NOT NULL, tanggal TEXT NOT NULL, done_by TEXT, updated_at INTEGER)"
+        ).run();
+        try { await env.DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_ceklis_uniq ON hasil_ceklis(pasaran_id, tanggal)").run(); } catch (e2) {}
+      }
+    }
+
+    /* Normalisasi item result: hanya angka, maksimal 4 digit, urut per nomor */
+    function normHasilItems(items) {
+      const out = [];
+      if (Array.isArray(items)) {
+        items.forEach((it, i) => {
+          const val = String((it && it.val) != null ? it.val : '').replace(/\D/g, '').slice(0, 4);
+          if (!val) return;
+          const n = parseInt(it && it.n, 10);
+          out.push({ n: (n >= 1 && n <= 9) ? n : (i + 1), val });
+        });
+        out.sort((a, b) => a.n - b.n);
+      }
+      return out;
+    }
+
+    // 13i-1. GET /api/hasil?tanggal= — daftar result (default: semua terakhir)
+    if (path === '/api/hasil' && request.method === 'GET') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureHasilTables();
+        const tgl = (new URL(request.url).searchParams.get('tanggal') || '').trim();
+        let rows;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(tgl)) {
+          const q = await env.DB.prepare("SELECT id, pasaran_id, pasaran_nama, tanggal, prize, items, updated_by, updated_at FROM hasil_result WHERE tanggal = ? ORDER BY id ASC").bind(tgl).all();
+          rows = q.results || [];
+        } else {
+          const q = await env.DB.prepare("SELECT id, pasaran_id, pasaran_nama, tanggal, prize, items, updated_by, updated_at FROM hasil_result ORDER BY tanggal DESC, id ASC LIMIT 500").all();
+          rows = q.results || [];
+        }
+        const hasil = rows.map((r) => {
+          let it = [];
+          try { it = JSON.parse(r.items || '[]'); } catch (e) { it = []; }
+          return Object.assign({}, r, { items: it });
+        });
+        return Response.json({ success: true, source: 'd1', hasil });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal mengambil hasil: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // 13i-2. POST /api/hasil — upsert result satu pasaran (unik per pasaran_id+tanggal)
+    if (path === '/api/hasil' && request.method === 'POST') {
+      if (!await isAdmin(request)) return Response.json({ success: false, error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        await ensureHasilTables();
+        const body = await request.json();
+        const pid = parseInt(body.pasaran_id, 10);
+        const nama = String(body.pasaran_nama || '').trim().toUpperCase();
+        const tgl = String(body.tanggal || '').trim();
+        if (!pid || !nama || !/^\d{4}-\d{2}-\d{2}$/.test(tgl)) {
+          return Response.json({ success: false, error: 'Data tidak lengkap (pasaran_id, pasaran_nama, tanggal YYYY-MM-DD)' }, { status: 400 });
+        }
+        const prize = Math.min(3, Math.max(1, parseInt(body.prize, 10) || 1));
+        const items = normHasilItems(body.items);
+        const by = request.headers.get('x-auth-token');
+        const ex = await env.DB.prepare("SELECT id FROM hasil_result WHERE pasaran_id = ? AND tanggal = ?").bind(pid, tgl).first();
+        let rowId;
+        if (ex) {
+          await env.DB.prepare("UPDATE hasil_result SET pasaran_nama = ?, prize = ?, items = ?, updated_by = ?, updated_at = ? WHERE id = ?")
+            .bind(nama, prize, JSON.stringify(items), by, Date.now(), ex.id).run();
+          rowId = ex.id;
+        } else {
+          const ins = await env.DB.prepare("INSERT INTO hasil_result (pasaran_id, pasaran_nama, tanggal, prize, items, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+            .bind(pid, nama, tgl, prize, JSON.stringify(items), by, Date.now()).run();
+          rowId = (ins.meta && ins.meta.last_row_id) || null;
+        }
+        const row = await env.DB.prepare("SELECT id, pasaran_id, pasaran_nama, tanggal, prize, items, updated_by, updated_at FROM hasil_result WHERE id = ?").bind(rowId).first();
+        let itemsOut = [];
+        try { itemsOut = JSON.parse(row.items || '[]'); } catch (e) { itemsOut = []; }
+        return Response.json({ success: true, message: 'Result "' + nama + '" tersimpan', hasil: Object.assign({}, row, { items: itemsOut }) });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal menyimpan hasil: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // 13i-3. DELETE /api/hasil?id= | ?tanggal= — hapus satu row / semua row satu tanggal
+    if (path === '/api/hasil' && request.method === 'DELETE') {
+      if (!await isAdmin(request)) return Response.json({ success: false, error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        await ensureHasilTables();
+        const sp = new URL(request.url).searchParams;
+        const id = parseInt(sp.get('id'), 10);
+        const tgl = (sp.get('tanggal') || '').trim();
+        if (id) {
+          const del = await env.DB.prepare("DELETE FROM hasil_result WHERE id = ?").bind(id).run();
+          return Response.json({ success: true, message: 'Result dihapus', removed: (del.meta && del.meta.changes) || 1 });
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(tgl)) {
+          const del = await env.DB.prepare("DELETE FROM hasil_result WHERE tanggal = ?").bind(tgl).run();
+          return Response.json({ success: true, message: 'Semua result tanggal ' + tgl + ' dihapus', removed: (del.meta && del.meta.changes) || 0 });
+        }
+        return Response.json({ success: false, error: 'Sertakan ?id= atau ?tanggal=YYYY-MM-DD' }, { status: 400 });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal menghapus hasil: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // 13i-4. GET /api/shio — urutan 12 shio aktif (kosong -> tabel standar)
+    if (path === '/api/shio' && request.method === 'GET') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureHasilTables();
+        const row = await env.DB.prepare("SELECT id, ord, updated_by, updated_at FROM shio_config ORDER BY id DESC LIMIT 1").first();
+        if (!row) return Response.json({ success: true, source: 'default', shio: { ord: SHIO_DEFAULT, updated_by: null, updated_at: null } });
+        let ord = null;
+        try { ord = JSON.parse(row.ord); } catch (e) { ord = null; }
+        if (!Array.isArray(ord) || ord.length !== 12) {
+          return Response.json({ success: true, source: 'default', shio: { ord: SHIO_DEFAULT, updated_by: row.updated_by, updated_at: row.updated_at } });
+        }
+        return Response.json({ success: true, source: 'd1', shio: { ord, updated_by: row.updated_by, updated_at: row.updated_at } });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal mengambil shio: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // 13i-5. PUT /api/shio — simpan urutan 12 shio (validasi: 12 nama unik)
+    if (path === '/api/shio' && request.method === 'PUT') {
+      if (!await isAdmin(request)) return Response.json({ success: false, error: 'Akses Ditolak! Hanya Admin.' }, { status: 403 });
+      try {
+        await ensureHasilTables();
+        const body = await request.json();
+        if (!Array.isArray(body.ord) || body.ord.length !== 12) {
+          return Response.json({ success: false, error: 'Urutan shio harus tepat 12 nama' }, { status: 400 });
+        }
+        const ord = body.ord.map((s) => String(s == null ? '' : s).trim()).filter(Boolean);
+        const uniq = {};
+        ord.forEach((s) => { uniq[s.toUpperCase()] = 1; });
+        if (ord.length !== 12 || Object.keys(uniq).length !== 12) {
+          return Response.json({ success: false, error: 'Nama shio tidak valid / ada duplikat' }, { status: 400 });
+        }
+        const by = request.headers.get('x-auth-token');
+        const ex = await env.DB.prepare("SELECT id FROM shio_config ORDER BY id DESC LIMIT 1").first();
+        if (ex) {
+          await env.DB.prepare("UPDATE shio_config SET ord = ?, updated_by = ?, updated_at = ? WHERE id = ?").bind(JSON.stringify(ord), by, Date.now(), ex.id).run();
+        } else {
+          await env.DB.prepare("INSERT INTO shio_config (ord, updated_by, updated_at) VALUES (?, ?, ?)").bind(JSON.stringify(ord), by, Date.now()).run();
+        }
+        const row = await env.DB.prepare("SELECT id, ord, updated_by, updated_at FROM shio_config ORDER BY id DESC LIMIT 1").first();
+        return Response.json({ success: true, message: 'Tabel shio tersimpan', shio: { ord: JSON.parse(row.ord), updated_by: row.updated_by, updated_at: row.updated_at } });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal menyimpan shio: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // 13i-6. GET /api/hasil/ceklis?tanggal= — daftar pasaran yg dicentang (v3.6.1)
+    if (path === '/api/hasil/ceklis' && request.method === 'GET') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureHasilTables();
+        const tgl = (new URL(request.url).searchParams.get('tanggal') || '').trim();
+        let rows = [];
+        if (/^\d{4}-\d{2}-\d{2}$/.test(tgl)) {
+          const q = await env.DB.prepare("SELECT pasaran_id, done_by, updated_at FROM hasil_ceklis WHERE tanggal = ?").bind(tgl).all();
+          rows = q.results || [];
+        }
+        return Response.json({ success: true, source: 'd1', ceklis: rows });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal mengambil ceklis: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // 13i-7. POST /api/hasil/ceklis — set/unset centang satu pasaran (v3.6.1)
+    //        body: { pasaran_id, tanggal: 'YYYY-MM-DD', on: true|false }
+    if (path === '/api/hasil/ceklis' && request.method === 'POST') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureHasilTables();
+        const body = await request.json();
+        const pid = parseInt(body.pasaran_id, 10);
+        const tgl = String(body.tanggal || '').trim();
+        const on = !!body.on;
+        if (!pid || !/^\d{4}-\d{2}-\d{2}$/.test(tgl)) {
+          return Response.json({ success: false, error: 'Data tidak lengkap (pasaran_id, tanggal YYYY-MM-DD)' }, { status: 400 });
+        }
+        const by = request.headers.get('x-auth-token');
+        if (on) {
+          const ex = await env.DB.prepare("SELECT id FROM hasil_ceklis WHERE pasaran_id = ? AND tanggal = ?").bind(pid, tgl).first();
+          if (!ex) {
+            await env.DB.prepare("INSERT INTO hasil_ceklis (pasaran_id, tanggal, done_by, updated_at) VALUES (?, ?, ?, ?)").bind(pid, tgl, by, Date.now()).run();
+          }
+        } else {
+          await env.DB.prepare("DELETE FROM hasil_ceklis WHERE pasaran_id = ? AND tanggal = ?").bind(pid, tgl).run();
+        }
+        return Response.json({ success: true, message: on ? 'Ceklis tersimpan' : 'Ceklis dihapus', pasaran_id: pid, tanggal: tgl, on });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal menyimpan ceklis: ' + err.message }, { status: 500 });
       }
     }
 
