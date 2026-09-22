@@ -507,7 +507,7 @@
   <link rel="stylesheet" href="/css/pkpasaran-pro.css?v=2.0.0">
   <link rel="stylesheet" href="/css/prediksi-pro.css?v=1.2.0">
   <link rel="stylesheet" href="/css/hadiah-pro.css?v=2.0.0">
-  <link rel="stylesheet" href="/css/hasil-pro.css?v=1.2.0">
+  <link rel="stylesheet" href="/css/hasil-pro.css?v=1.3.0">
 </head>
 <body>
 
@@ -594,7 +594,7 @@
           </div>
         </div>
 
-        <!-- v3.7.0 — Hasil Result (checklist status + hitung waktu tutup + hasil pengeluaran + tabel shio) -->
+        <!-- v3.8.0 — Hasil Result (checklist status + hitung waktu tutup/betclosed + hasil pengeluaran 2 grup format + tabel shio) -->
         <div class="nav-item" data-access-item="hasil_result" onclick="switchToHasil()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
           Hasil Result
@@ -1031,7 +1031,7 @@
       <div id="hadiahView" style="display:none;"></div>
       <!-- ===== PK PERHITUNGAN VIEW (Pro - rendered by pkperhitungan-pro.js: kalkulator perhitungan hadiah per pasaran) ===== -->
       <div id="pkPerhitunganView" style="display:none;"></div>
-      <!-- ===== HASIL RESULT VIEW (Pro v3.7.0 - rendered by hasil-pro.js: checklist status + hitung waktu tutup + hasil pengeluaran + tabel shio) ===== -->
+      <!-- ===== HASIL RESULT VIEW (Pro v3.8.0 - rendered by hasil-pro.js: checklist status + hitung waktu tutup + hasil pengeluaran + tabel shio) ===== -->
       <div id="hasilView" style="display:none;"></div>
 
       <!-- ===== KEEP MEMO VIEW (Pro - rendered by keepmemo-pro.js) ===== -->
@@ -1712,7 +1712,7 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       addTerminalLog('Switched to Pk Perhitungan');
     }
 
-    /* === HASIL RESULT (Pro v3.7.0 - rendered by hasil-pro.js: checklist + countdown + kartu hasil + shio) === */
+    /* === HASIL RESULT (Pro v3.8.0 - rendered by hasil-pro.js: checklist + countdown + kartu hasil + shio) === */
     function switchToHasil() {
       hideAllViews();
       var v = document.getElementById('hasilView'); if (v) v.style.display = 'block';
@@ -2654,6 +2654,6 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
   <script src="/js/hadiah-pro.js?v=2.0.0"></script>
   <script src="/js/pkperhitungan-pro.js?v=1.0.0"></script>
   <script src="/js/shio-data.js?v=1.0.0"></script>
-  <script src="/js/hasil-pro.js?v=1.2.0"></script>
+  <script src="/js/hasil-pro.js?v=1.3.0"></script>
 </body>
 </html>
