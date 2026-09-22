@@ -1,5 +1,5 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.CSS v1.4.0
+   AURA.OS // HASIL-PRO.CSS v1.4.1
    Tema modul Hasil Result — elegan, profesional, satu keluarga
    dgn aura.os (glass dark graphite + aksen indigo/cyan premium).
    ATURAN AMAN-ANIMASI (pelajaran Task 20-D): TANPA opacity:0
@@ -20,6 +20,12 @@
    tab glow underline, stagger row/kartu, stat hover lift, breathing
    countdown, tombol/chip taktil, heading grup sheen — semua tetap
    glass dark indigo/cyan khas aura.os + guard prefers-reduced-motion.
+   v1.4.1 (Task 28): FIX dropdown pasaran terpotong — .hs-card tidak
+   lagi overflow:hidden (dulu memotong .hs-ddlist absolute tepat di
+   tepi kartu saat konten body pendek, mis. tab Betclosed belum ada
+   pasaran dipilih); .hs-topline kini membawa border-radius sendiri;
+   rule .hs-ddlist.up utk arah buka ke atas (viewport sempit) + list
+   max-height 60vh di mobile.
    ============================================================ */
 
 .hs-wrap { padding: 4px 0 28px; }
@@ -31,7 +37,9 @@
   border-radius: 20px;
   padding: 24px 26px 26px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  overflow: hidden;
+  /* v1.4.1: overflow:hidden DIHAPUS — sebelumnya memotong dropdown pasaran
+     (.hs-ddlist) saat konten body pendek (belum ada pasaran dipilih);
+     .hs-topline kini membawa border-radius sendiri agar tetap rapi */
   animation: hsCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
@@ -39,9 +47,11 @@
 
 .hs-topline {
   position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  border-radius: 20px 20px 0 0;   /* v1.4.1: kompensasi .hs-card tanpa overflow hidden */
   background: linear-gradient(90deg, #6366f1, #8b5cf6, #22d3ee, #6366f1);
   background-size: 200% 100%;
   animation: hsTopline 7s linear infinite;
+  pointer-events: none;
 }
 @keyframes hsTopline { 0% { background-position: 0% 0; } 100% { background-position: 200% 0; } }
 
@@ -298,6 +308,9 @@
   max-height: 320px; overflow: auto; padding: 6px;
 }
 .hs-ddlist.open { display: block; animation: hsFade 0.18s ease backwards; }
+/* v1.4.1: arah buka ke ATAS — dipakai bila ruang bawah viewport sempit
+   (state.dropUp dihitung di toggleDrop()), list tetap penuh terlihat */
+.hs-ddlist.up { top: auto; bottom: calc(100% + 6px); }
 .hs-dditem {
   display: block; width: 100%; text-align: left; font-family: inherit; font-size: 12.5px; font-weight: 600;
   color: #cbd5e1; background: transparent; border: none; border-radius: 8px;
@@ -495,14 +508,16 @@
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 1080px) {
   .hs-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hs-shiogrid { grid-template-columns: 1fr; }
+  .hs-shiogrid { grid-template-columns: minmax(0, 1fr); }   /* v1.4.1: minmax(0,..) agar tabel 780px di-scroll tablewrap, tidak meluberkartu */
 }
 
 @media (max-width: 768px) {
   .hs-card { padding: 18px 15px 20px; border-radius: 16px; }
+  .hs-topline { border-radius: 16px 16px 0 0; }   /* v1.4.1: ikut radius mobile */
   .hs-toolbar { flex-direction: column; align-items: stretch; }
   .hs-datewrap { justify-content: space-between; }
   .hs-dd { min-width: 0; }
+  .hs-ddlist { max-height: 60vh; }   /* v1.4.1: list lega di mobile */
   .hs-cards { grid-template-columns: 1fr; }
   .hs-tablewrap { max-height: 58vh; }
   .hs-table { min-width: 780px; }
@@ -510,7 +525,7 @@
 }
 
 @media (max-width: 480px) {
-  .hs-stats { grid-template-columns: 1fr 1fr; gap: 9px; }
+  .hs-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
   .hs-stat { padding: 11px 12px; }
   .hs-stat-v { font-size: 19px; }
   .hs-stat-v.hs-v-sm { font-size: 12.5px; }
@@ -565,7 +580,7 @@
 .hs-reshiorow .hs-reshio { color: #67e8f9; letter-spacing: 0.14em; }
 
 /* ---------- BETCLOSED ---------- */
-.hs-bcgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+.hs-bcgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 16px; }
 .hs-bccard {
   background: linear-gradient(170deg, rgba(26, 31, 48, 0.92), rgba(17, 20, 32, 0.94));
   border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 16px; padding: 18px 20px 20px;
@@ -622,7 +637,7 @@
 .hs-bcbtnrow { margin-top: 12px; }
 
 @media (max-width: 900px) {
-  .hs-bcgrid { grid-template-columns: 1fr; }
+  .hs-bcgrid { grid-template-columns: minmax(0, 1fr); }
   .hs-bcdisplay { font-size: 36px; }
 }
 @media (max-width: 480px) {
