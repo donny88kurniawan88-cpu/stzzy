@@ -1,5 +1,5 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.CSS v1.3.0
+   AURA.OS // HASIL-PRO.CSS v1.4.0
    Tema modul Hasil Result — elegan, profesional, satu keluarga
    dgn aura.os (glass dark graphite + aksen indigo/cyan premium).
    ATURAN AMAN-ANIMASI (pelajaran Task 20-D): TANPA opacity:0
@@ -14,6 +14,12 @@
    panel otomatis & manual, .hs-bcdisplay mono besar, flash merah saat
    waktu habis) — tetap satu keluarga glass dark + aksen indigo/cyan,
    grup PRIZE 1 beraksen emerald.
+   v1.4.0 (Task 27): STATUS BARU (chip .hs-st-buka emerald utk BUKA,
+   .hs-st-tutup BETCLOSED ber-pulse), panel CROSSCHECK (.hs-bccmp +
+   .hs-bcverdict secure/danger dgn shake-in), UI polish premium —
+   tab glow underline, stagger row/kartu, stat hover lift, breathing
+   countdown, tombol/chip taktil, heading grup sheen — semua tetap
+   glass dark indigo/cyan khas aura.os + guard prefers-reduced-motion.
    ============================================================ */
 
 .hs-wrap { padding: 4px 0 28px; }
@@ -110,6 +116,14 @@
 }
 .hs-tab:hover { color: #94a3b8; }
 .hs-tab.active { color: #e0e7ff; border-bottom-color: #818cf8; }
+/* v1.4: underline glow beranimasi saat tab aktif */
+.hs-tab.active::after {
+  content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px;
+  background: linear-gradient(90deg, transparent, #818cf8 30%, #22d3ee 70%, transparent);
+  border-radius: 2px; box-shadow: 0 0 12px rgba(129, 140, 248, 0.75);
+  animation: hsTabGlow 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@keyframes hsTabGlow { from { transform: scaleX(0.15); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
 
 /* v1.2 — animasi isi konten saat berpindah tab / masuk menu.
    Kelas .hs-anim di-toggle oleh paintBody(true) (setTab / render).
@@ -199,7 +213,7 @@
   padding: 11px 14px; text-align: left; white-space: nowrap;
 }
 .hs-table tbody td { padding: 10px 14px; border-bottom: 1px solid rgba(148, 163, 184, 0.07); font-size: 12.5px; color: #cbd5e1; vertical-align: middle; }
-.hs-table tbody tr { transition: background 0.15s ease; animation: hsRowIn 0.3s ease backwards; }
+.hs-table tbody tr { transition: background 0.15s ease; animation: hsRowIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards; animation-delay: calc(var(--i, 0) * 26ms); }
 @keyframes hsRowIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .hs-table tbody tr:hover { background: rgba(99, 102, 241, 0.05); }
 .hs-tdname { font-weight: 700; color: #e2e8f0; white-space: nowrap; }
@@ -254,6 +268,14 @@
 .hs-st-tutup  { color: #fca5a5; background: rgba(239, 68, 68, 0.1);  border: 1px solid rgba(239, 68, 68, 0.45); }
 .hs-st-done   { color: #6ee7b7; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.45); }
 .hs-st-libur  { color: #94a3b8; background: rgba(148, 163, 184, 0.08); border: 1px solid rgba(148, 163, 184, 0.3); }
+/* v1.4: BUKA = emerald (pasaran menerima pasang); BETCLOSED ber-pulse
+   lembut menandai window kritis tutup->result */
+.hs-st-buka   { color: #6ee7b7; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.45); }
+.hs-st-tutup  { animation: hsStPulse 2.4s ease-in-out infinite; }
+@keyframes hsStPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.13), 0 0 14px rgba(239, 68, 68, 0.28); }
+}
 
 .hs-note { margin-top: 12px; font-size: 11px; color: #64748b; line-height: 1.7; }
 .hs-c-b { color: #93c5fd; } .hs-c-a { color: #fcd34d; } .hs-c-r { color: #fca5a5; } .hs-c-g { color: #6ee7b7; }
@@ -295,6 +317,7 @@
   border-radius: 16px; padding: 15px 16px 16px; position: relative; overflow: hidden;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.25s ease, box-shadow 0.25s ease;
   animation: hsFade 0.35s ease backwards;
+  animation-delay: calc(var(--i, 0) * 40ms);   /* v1.4: stagger entrance */
 }
 .hs-card-item::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
@@ -607,4 +630,98 @@
   .hs-bcrow b { font-size: 11.5px; }
   .hs-grouphead { margin-top: 16px; }
   .hs-groupdesc { width: 100%; order: 3; }
+}
+
+/* ============================================================
+   v1.4.0 — UI POLISH PREMIUM (Task 27)
+   Animasi & detail profesional tetap satu keluarga aura.os:
+   glass dark + indigo/cyan, emerald utk keadaan aman/terbuka,
+   merah lembut utk keadaan kritis (betclosed / selisih).
+   ============================================================ */
+
+/* ---------- STAT: hover lift + warna "Status Buka" ---------- */
+.hs-stat { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.25s ease, box-shadow 0.25s ease; }
+.hs-stat:hover { transform: translateY(-2px); border-color: rgba(129, 140, 248, 0.38); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35); }
+.hs-stat:hover::after { opacity: 1; }
+.hs-stat-v.hs-bk { color: #67e8f9; }
+
+/* ---------- TOMBOL & CHIP TAKTIL ---------- */
+.hs-btn:active { transform: scale(0.96); }
+.hs-chip { transition: all 0.16s ease; }
+.hs-chip:active { transform: scale(0.93); }
+.hs-dditem:active { transform: translateX(2px); }
+
+/* ---------- HEADING GRUP: garis sheen mengembang ---------- */
+.hs-grouphead { position: relative; overflow: hidden; }
+.hs-grouphead::after {
+  content: ''; position: absolute; left: 0; bottom: 0; height: 1px; width: 100%;
+  background: linear-gradient(90deg, rgba(129, 140, 248, 0.55), rgba(34, 211, 238, 0.4), transparent 70%);
+  transform-origin: left; animation: hsSheen 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@keyframes hsSheen { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ---------- COUNTDOWN BREATHING (glow bernafas halus) ---------- */
+.hs-bcdisplay { animation: hsBcGlow 3.2s ease-in-out infinite; }
+@keyframes hsBcGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0), inset 0 0 18px rgba(99, 102, 241, 0.05); }
+  50% { box-shadow: 0 0 26px 0 rgba(99, 102, 241, 0.14), inset 0 0 22px rgba(99, 102, 241, 0.1); }
+}
+.hs-bcdisplay.manual { animation-name: hsBcGlowMan; }
+@keyframes hsBcGlowMan {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0), inset 0 0 18px rgba(16, 185, 129, 0.04); }
+  50% { box-shadow: 0 0 26px 0 rgba(16, 185, 129, 0.12), inset 0 0 22px rgba(16, 185, 129, 0.09); }
+}
+
+/* ---------- CROSSCHECK: blok pembanding manual vs database ---------- */
+.hs-bccmp { margin-top: 14px; display: grid; gap: 7px; }
+.hs-bccmp .hs-bcrow b { color: #c7d2fe; }
+.hs-bccmp .hs-bcrow b[data-bc-dbcd] { color: #a5b4fc; }
+
+/* ---------- CROSSCHECK: verdict badge SESUAI / SELISIH ---------- */
+.hs-bcverdict {
+  margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 9px; flex-wrap: wrap;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; letter-spacing: 0.14em;
+  border-radius: 12px; padding: 11px 14px; text-align: center;
+  animation: hsVerdictIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.hs-bcverdict svg { width: 16px; height: 16px; flex: 0 0 auto; }
+.hs-bcverdict .hs-bcvs {
+  flex-basis: 100%; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: none;
+  opacity: 0.85; line-height: 1.5;
+}
+.hs-bcverdict.idle {
+  color: #64748b; background: rgba(148, 163, 184, 0.06);
+  border: 1px dashed rgba(148, 163, 184, 0.25); animation: none;
+}
+.hs-bcverdict.secure {
+  color: #6ee7b7; background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 22px rgba(16, 185, 129, 0.16), inset 0 0 18px rgba(16, 185, 129, 0.06);
+  text-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
+}
+.hs-bcverdict.danger {
+  color: #fca5a5; background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  box-shadow: 0 0 22px rgba(239, 68, 68, 0.18), inset 0 0 18px rgba(239, 68, 68, 0.07);
+  text-shadow: 0 0 14px rgba(248, 113, 113, 0.45);
+  animation: hsVerdictIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) backwards, hsShake 0.5s ease 0.05s;
+}
+@keyframes hsVerdictIn { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes hsShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); } 40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
+}
+
+/* ---------- REDUCED MOTION ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .hs-st-tutup, .hs-bcdisplay, .hs-bcverdict, .hs-grouphead::after { animation: none !important; }
+  .hs-table tbody tr, .hs-card-item, .hs-tab.active::after { animation-delay: 0s !important; }
+}
+
+/* ---------- RESPONSIVE v1.4 ---------- */
+@media (max-width: 480px) {
+  .hs-bcverdict { font-size: 11.5px; padding: 10px 10px; letter-spacing: 0.1em; }
+  .hs-bccmp .hs-bcrow b { font-size: 11px; }
+  .hs-stat-v.hs-bk { font-size: 19px; }
 }
