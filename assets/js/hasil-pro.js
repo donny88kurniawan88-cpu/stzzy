@@ -1,7 +1,19 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.JS v1.4.1
+   AURA.OS // HASIL-PRO.JS v1.5.0
    Modul Hasil Result (Pro) — di bawah menu Prediction Tools.
    ============================================================
+   v1.5.0 (Task 29 — dua perbaikan logika cacat):
+   - HASIL PENGELOUARAN 5 DIGIT (pasaran "...5D", mis. TOTOMACAU
+     5D SORE/MALAM): input kini menerima 5 angka (maxlength
+     dinamis via digitMaxOf()) — dulu terkunci 4 digit di input, readCardInputs(), WORKER normHasilItems() & mock server.
+     Pola generik: /\d\s*D/ pada nama pasaran (5D/6D), lainnya 4.
+   - KOLOM CARI PASARAN TIDAK LAGI TERPUTUS TIAP HURUF: dulu
+     setiap ketikan me-rebuild seluruh body (input ikut dihapus
+     -> fokus + caret hilang). Kini body dipecah dua ZONA
+     (zonea = stats+toolbar, zoneb = hasil) dan ketikan hanya
+     repaint zoneb — fokus & caret dipertahankan native.
+     Trim dipindah ke matchSearch(); guard tick() 30-detik
+     diperluas ke SEMUA input yang sedang difokus.
    v1.4.1 (Task 28 — fix dropdown terpotong):
    - Dropdown pasaran TERPOTONG saat body pendek (tab Betclosed belum
      pilih pasaran / hasil search kosong): akar masalah = .hs-card
@@ -852,9 +864,10 @@
       var el = e.target;
       if (!el || !v.contains(el)) return;
       if (el.getAttribute && el.getAttribute('data-hs-search') != null) {
-        state.search = el.value.trim();
-        if (state.tab === 'status') paintStatus();
-        else if (state.tab === 'hasil') paintHasil();
+        /* v1.5: jangan trim di sini (mengetik spasi jadi hilang) — trim dilakukan
+           di matchSearch(); repaint HANYA zona hasil agar fokus input utuh */
+        state.search = el.value;
+        paintSearchOnly();
       } else if (el.getAttribute && el.getAttribute('data-hs-date') != null) {
         setDate(el.value);
       } else if (el.classList && el.classList.contains('hs-ocr-text')) {
@@ -974,6 +987,17 @@
 
   function paintStatus() { paintBody(); }
   function paintHasil() { paintBody(); }
+  /* v1.5: repaint HANYA zona hasil (stats+toolbar tidak disentuh) —
+     mengetik di kolom cari pasaran tidak lagi kehilangan fokus/caret */
+  function paintSearchOnly() {
+    var v = container();
+    var body = v ? q('[data-hs="body"]', v) : null;
+    var zb = body ? q('[data-hs="zoneb"]', body) : null;
+    if (!zb) { paintBody(); return; }   /* struktur lama/edge-case -> repaint penuh */
+    if (state.tab === 'status') paintStatusInto(body, zb);
+    else if (state.tab === 'hasil') paintHasilInto(body, zb);
+    else paintBody();
+  }
   function paintDrop() { if (state.tab === 'hasil' || state.tab === 'betclosed') paintBody(); }
 
   /* ============================================================
@@ -989,11 +1013,24 @@
   }
 
   function matchSearch(it) {
-    if (!state.search) return true;
-    return normKey(it.nama).indexOf(normKey(state.search)) !== -1;
+    var q = String(state.search || '').trim();   /* v1.5: trim saat match, state menyimpan raw */
+    if (!q) return true;
+    return normKey(it.nama).indexOf(normKey(q)) !== -1;
   }
 
-  function paintStatusInto(body) {
+  /* ============================================================
+     v1.5 — BATAS DIGIT RESULT PER PASARAN
+     Pasaran dgn penanda ND pada nama (mis. TOTOMACAU 5D SORE /
+     TOTO MACAU 5D MALAM) mengeluarkan N angka — input & validasi
+     mengikuti. Pasaran lain tetap 4 angka.
+     ============================================================ */
+  function digitMaxOf(it) {
+    var m = String((it && it.nama) || '').toUpperCase().match(/(\d)\s*D/);
+    var d = m ? parseInt(m[1], 10) : 0;
+    return (d >= 3 && d <= 6) ? d : 4;
+  }
+
+  function paintStatusInto(body, zb) {
     var now = wibNow();
     var list = sortedPasaran();
     var chips = { all: 0, buka: 0, tutup: 0, done: 0, libur: 0 };   /* v1.4 */
@@ -1044,12 +1081,15 @@
     h.push('</div></div>');
 
     /* tabel crosscheck: jam tutup + waktu sekarang + jam result + countdown + status + situs resmi + ceklis */
-    h.push('<div class="hs-tablewrap"><table class="hs-table"><thead><tr>' +
+    /* v1.5: hasil (tabel+note) masuk zona terpisah — ketikan di kolom cari
+       hanya repaint zona ini, toolbar & stats tidak disentuh (fokus aman) */
+    var hb = [];
+    hb.push('<div class="hs-tablewrap"><table class="hs-table"><thead><tr>' +
       '<th>Pasaran</th><th>Jadwal</th><th>Jam Tutup</th><th>Waktu Sekarang</th><th>Jam Result</th><th>Countdown Result</th><th>Status</th><th class="hs-th-web" title="Link situs resmi pasaran (dari Jadwal Pasaran)">Situs</th><th class="hs-th-cek" title="Centang bila result pasaran ini sudah dicek">Ceklis</th>' +
       '</tr></thead><tbody>');
 
     if (!rows.length) {
-      h.push('<tr><td colspan="9" class="hs-empty">' + (state.items.length ? 'Tidak ada pasaran yang cocok dengan filter/pencarian.' : 'Belum ada pasaran — isi dulu di menu Jadwal Pasaran.') + '</td></tr>');
+      hb.push('<tr><td colspan="9" class="hs-empty">' + (state.items.length ? 'Tidak ada pasaran yang cocok dengan filter/pencarian.' : 'Belum ada pasaran — isi dulu di menu Jadwal Pasaran.') + '</td></tr>');
     }
 
     rows.forEach(function (r, ridx) {
@@ -1058,7 +1098,7 @@
       var meta = ST_META[r.st] || ST_META.tutup;
       var cd = r.nms != null ? '<span data-cd-ms="' + r.nms + '">' + fmtCountdown(r.nms - now.ms) + '</span>' : '&mdash;';
       var cek = !!state.cek[String(it.id)];
-      h.push('<tr class="hs-tr ' + (cek ? 'hs-trcek' : '') + '" style="--i:' + Math.min(ridx, 14) + '" data-cekrow="' + esc(it.id) + '">' +
+      hb.push('<tr class="hs-tr ' + (cek ? 'hs-trcek' : '') + '" style="--i:' + Math.min(ridx, 14) + '" data-cekrow="' + esc(it.id) + '">' +
         '<td class="hs-tdname">' + esc(it.nama) + (hoki ? '<span class="hs-td-sub">result 24x sehari</span>' : '') + '</td>' +
         '<td class="hs-tdmut">' + esc(it.jadwal || 'SETIAP HARI') + '</td>' +
         '<td class="hs-tdmut">' + (hoki ? '24x SEHARI' : (esc(hmOnly(it.tutup)) || '&mdash;')) + '</td>' +
@@ -1070,11 +1110,13 @@
         '<td class="hs-tdcek"><button type="button" class="hs-cek' + (cek ? ' on' : '') + '" data-action="cek" data-id="' + esc(it.id) + '" aria-label="Ceklis ' + esc(it.nama) + '">' + (cek ? ICON_CHECK : '') + '</button></td>' +
         '</tr>');
     });
-    h.push('</tbody></table></div>');
+    hb.push('</tbody></table></div>');
 
-    h.push('<div class="hs-note">Status dihitung realtime vs jam WIB (v1.4): <b class="hs-c-g">BUKA</b> = pasaran menerima pasang &mdash; sebelum betclosed <i>atau</i> sudah melewati jam result (putaran berikutnya dibuka) &middot; <b class="hs-c-r">BETCLOSED</b> = antara jam tutup dan jam result, pasang ditutup menunggu result &middot; <b class="hs-c-b">DONE</b> = result sudah diinput &middot; <b class="hs-c-a">LIBUR</b> = hari libur pasaran. Countdown menghitung waktu menuju result berikutnya &mdash; pasaran libur dihitung ke hari buka berikutnya.</div>');
+    hb.push('<div class="hs-note">Status dihitung realtime vs jam WIB (v1.4): <b class="hs-c-g">BUKA</b> = pasaran menerima pasang &mdash; sebelum betclosed <i>atau</i> sudah melewati jam result (putaran berikutnya dibuka) &middot; <b class="hs-c-r">BETCLOSED</b> = antara jam tutup dan jam result, pasang ditutup menunggu result &middot; <b class="hs-c-b">DONE</b> = result sudah diinput &middot; <b class="hs-c-a">LIBUR</b> = hari libur pasaran. Countdown menghitung waktu menuju result berikutnya &mdash; pasaran libur dihitung ke hari buka berikutnya.</div>');
 
-    body.innerHTML = h.join('');
+    /* v1.5: mode search-only — isi zona hasil saja (zb), stats+toolbar utuh */
+    if (zb) { zb.innerHTML = hb.join(''); return; }
+    body.innerHTML = '<div data-hs="zonea">' + h.join('') + '</div><div data-hs="zoneb">' + hb.join('') + '</div>';
   }
 
   function toggleCek(id, btn) {
@@ -1109,7 +1151,7 @@
     }).map(function (it) { return { it: it, st: chipOf(it, now) }; });
   }
 
-  function paintHasilInto(body) {
+  function paintHasilInto(body, zb) {
     var now = wibNow();
     var items = dropItems();
     /* v1.2 FIX: label "— Semua Pasaran —" pakai karakter em-dash ASLI.
@@ -1135,28 +1177,33 @@
       '<div class="hs-searchbox"><input type="text" data-hs-search placeholder="Cari pasaran&hellip;" value="' + esc(state.search) + '"></div>' +
       '</div>');
 
+    /* v1.5: kartu hasil masuk zona terpisah — ketikan di kolom cari hanya
+       repaint zona ini, toolbar (search+dropdown+date) tetap utuh */
+    var hb = [];
     var cards = visibleCards();
     if (!cards.length) {
-      h.push('<div class="hs-empty">' + (state.items.length ? 'Tidak ada pasaran yang cocok dengan pilihan/pencarian.' : 'Belum ada pasaran — isi dulu di menu Jadwal Pasaran.') + '</div>');
+      hb.push('<div class="hs-empty">' + (state.items.length ? 'Tidak ada pasaran yang cocok dengan pilihan/pencarian.' : 'Belum ada pasaran — isi dulu di menu Jadwal Pasaran.') + '</div>');
     } else if (!state.sel) {
       /* v1.3: DUA SEKSI TERPISAH dgn format berbeda — POOLS PRIZE 1
          (satu result) & POOLS PRIZE 1 2 3 (tiga prize) */
       var g1 = cards.filter(function (c) { return groupOf(c.it) === 'p1'; });
       var g3 = cards.filter(function (c) { return groupOf(c.it) === 'p123'; });
-      h.push(groupHeadHtml('p1', g1.length));
-      h.push('<div class="hs-cards">');
-      g1.forEach(function (c, ci) { h.push(cardHtml(c.it, c.st, now, ci)); });
-      h.push('</div>');
-      h.push(groupHeadHtml('p123', g3.length));
-      h.push('<div class="hs-cards">');
-      g3.forEach(function (c, ci) { h.push(cardHtml(c.it, c.st, now, ci)); });
-      h.push('</div>');
+      hb.push(groupHeadHtml('p1', g1.length));
+      hb.push('<div class="hs-cards">');
+      g1.forEach(function (c, ci) { hb.push(cardHtml(c.it, c.st, now, ci)); });
+      hb.push('</div>');
+      hb.push(groupHeadHtml('p123', g3.length));
+      hb.push('<div class="hs-cards">');
+      g3.forEach(function (c, ci) { hb.push(cardHtml(c.it, c.st, now, ci)); });
+      hb.push('</div>');
     } else {
-      h.push('<div class="hs-cards">');
-      cards.forEach(function (c, ci) { h.push(cardHtml(c.it, c.st, now, ci)); });
-      h.push('</div>');
+      hb.push('<div class="hs-cards">');
+      cards.forEach(function (c, ci) { hb.push(cardHtml(c.it, c.st, now, ci)); });
+      hb.push('</div>');
     }
-    body.innerHTML = h.join('');
+    /* v1.5: mode search-only — isi zona hasil saja (zb), toolbar utuh */
+    if (zb) { zb.innerHTML = hb.join(''); return; }
+    body.innerHTML = '<div data-hs="zonea">' + h.join('') + '</div><div data-hs="zoneb">' + hb.join('') + '</div>';
   }
 
   function cardItemsOf(it) {
@@ -1183,14 +1230,16 @@
       '<div class="hs-cmeta"><span class="hs-gchip' + (p1 ? ' p1' : '') + '" title="Grup format: ' + groupLabel(g) + '">' + groupChipLabel(g) + '</span> &bull; ' + (hoki ? 'SETIAP 1 JAM &bull; 24x SEHARI' : (esc(hmOnly(it.result)) || 'JADWAL KHUSUS')) + ' &bull; <span data-prize-label="' + esc(it.id) + '">' + (p1 ? '1 Result' : cd.prize + ' Prize') + '</span></div></div>' +
       '<span class="hs-st ' + meta.cls + '">' + meta.label + '</span></div>');
 
-    /* input result (v1.3: grup p1 = SATU input "RESULT"; grup p123 = PRIZE 1-3) */
+    /* input result (v1.3: grup p1 = SATU input "RESULT"; grup p123 = PRIZE 1-3)
+       v1.5: maxlength dinamis — pasaran "...5D" menerima 5 angka */
+    var dmax = digitMaxOf(it);
     h.push('<div class="hs-rinwrap">');
     for (var n = 1; n <= 3; n++) {
       var val = '';
       cd.items.forEach(function (x) { if (parseInt(x.n, 10) === n) val = x.val; });
       h.push('<div class="hs-rinrow' + (n > cd.prize ? ' hide' : '') + '" data-rin="' + n + '">' +
         '<label class="hs-rinlab">' + (p1 ? 'RESULT' : 'PRIZE ' + n) + '</label>' +
-        '<input class="hs-rin" type="text" inputmode="numeric" maxlength="4" placeholder="' + (n === 1 ? 'Input angka&hellip;' : 'Opsional') + '" value="' + esc(val) + '" data-rinin="' + esc(it.id) + '-' + n + '">' +
+        '<input class="hs-rin" type="text" inputmode="numeric" maxlength="' + dmax + '" placeholder="' + (n === 1 ? (dmax > 4 ? 'Input ' + dmax + ' angka&hellip;' : 'Input angka&hellip;') : 'Opsional') + '" value="' + esc(val) + '" data-rinin="' + esc(it.id) + '-' + n + '">' +
         '</div>');
     }
     h.push('</div>');
@@ -1332,11 +1381,12 @@
   function readCardInputs(id, prize) {
     var v = container();
     var wrap = v && v.querySelector('[data-card="' + cssEsc(String(id)) + '"]');
+    var dmax = digitMaxOf(byId(id));   /* v1.5: 5 angka utk pasaran ...5D */
     var items = [];
     for (var n = 1; n <= 3; n++) {
       var inp = wrap && wrap.querySelector('[data-rinin="' + cssEsc(String(id) + '-' + n) + '"]');
       if (!inp) continue;
-      var val = String(inp.value || '').replace(/\D/g, '').slice(0, 4);
+      var val = String(inp.value || '').replace(/\D/g, '').slice(0, dmax);
       if (val) items.push({ n: n, val: val });
     }
     return items;
@@ -2099,7 +2149,15 @@
       var el0 = v.querySelector('[data-cd-ms]');
       if (el0 && now.ms > parseInt(el0.getAttribute('data-cd-ms'), 10)) paintBody();
     }
-    var typing = (function () { var ae = document.activeElement; return !!(ae && ae.getAttribute && ae.getAttribute('data-bc-manual') != null); })();
+    /* v1.5: guard diperluas — SEMUA input yang sedang difokus di view
+       (search, date, input result, bc-manual) menunda repaint periodik
+       agar tidak memutus mengetik pengguna */
+    var typing = (function () {
+      var ae = document.activeElement;
+      if (!ae) return false;
+      var tg = ae.tagName;
+      return (tg === 'INPUT' || tg === 'TEXTAREA') && v.contains(ae);
+    })();
     if (now.s !== lastPaintSec && now.s % 30 === 0 && (state.tab === 'status' || state.tab === 'betclosed') && !typing) {
       lastPaintSec = now.s;
       paintBody();
@@ -2132,6 +2190,8 @@
     ensureShioData: ensureShioData,
     /* v1.4 helper test/E2E: nextBetclosedMs dr epoch ms bebas */
     _bcTestNext: function (it, ms) { var p = wibParts(ms); p.ms = ms; return nextBetclosedMs(it, p); },
+    /* v1.5 helper test/E2E: batas digit pasaran */
+    _digitMaxOf: function (nama) { return digitMaxOf({ nama: nama }); },
     parseShioText: function (t) { return ensureShioData().then(function () { return window.ShioData.parseText(t); }); }
   };
 })();
