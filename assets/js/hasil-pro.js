@@ -1,7 +1,17 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.JS v1.4.0
+   AURA.OS // HASIL-PRO.JS v1.4.1
    Modul Hasil Result (Pro) — di bawah menu Prediction Tools.
    ============================================================
+   v1.4.1 (Task 28 — fix dropdown terpotong):
+   - Dropdown pasaran TERPOTONG saat body pendek (tab Betclosed belum
+     pilih pasaran / hasil search kosong): akar masalah = .hs-card
+     overflow:hidden memotong .hs-ddlist absolute tepat di tepi kartu.
+     FIX di CSS (overflow hidden dihapus + topline radius sendiri).
+   - PENANGANAN RUANG VIEWPORT PENUH (JS): toggleDrop() mengukur ruang
+     bawah & atas tombol — list membuka ke sisi terluas (.hs-ddlist.up)
+     dan max-height di-clamp ke ruang tersedia (state.dropMax) sehingga
+     tidak pernah terpotong viewport walau layar pendek/toolbar di
+     posisi mana pun.
    v1.4.0 (Task 27 — permintaan user):
    - STATUS ENGINE BARU (fix "logikanya salah"):
      * sebelum jam betclosed                -> BUKA (menerima pasang)
@@ -125,6 +135,8 @@
       timer: { endAt: 0, leftMs: 0, total: 0, running: false, paused: false, done: false, dbTarget: 0 }
     },
     dropOpen: false,
+    dropUp: false,        // v1.4.1: dropdown buka ke atas bila ruang bawah sempit
+    dropMax: 0,           // v1.4.1: max-height list di-clamp ke ruang viewport (0 = default 320)
     saving: false,
     loaded: false,
     loading: false,
@@ -1114,7 +1126,7 @@
       '<label class="hs-datewrap">Tanggal Result <input type="date" data-hs-date value="' + esc(state.tanggal) + '"></label>' +
       '<div class="hs-dd" data-hs-ddwrap>' +
         '<button type="button" class="hs-ddbtn" data-action="drop"><span class="hs-ddlabel">' + esc(selName) + '</span><span class="hs-ddchev">' + ICON_CHEV + '</span></button>' +
-        '<div class="hs-ddlist' + (state.dropOpen ? ' open' : '') + '">');
+        '<div class="hs-ddlist' + (state.dropOpen ? ' open' : '') + (state.dropUp ? ' up' : '') + '"' + (state.dropMax ? ' style="max-height:' + state.dropMax + 'px"' : '') + '>');
     h.push('<button type="button" class="hs-dditem' + (!state.sel ? ' active' : '') + '" data-action="dropitem" data-id="">\u2014 Semua Pasaran \u2014</button>');
     items.forEach(function (it) {
       h.push('<button type="button" class="hs-dditem' + (String(state.sel) === String(it.id) ? ' active' : '') + '" data-action="dropitem" data-id="' + esc(it.id) + '">' + esc(it.nama) + '</button>');
@@ -1243,7 +1255,26 @@
     return ord[idx] || '';
   }
 
-  function toggleDrop() { state.dropOpen = !state.dropOpen; paintDrop(); }
+  /* v1.4.1: arah buka dropdown CERDAS + clamp tinggi — list memilih sisi
+     dgn ruang terluas (bawah/atas), lalu max-height mengikuti ruang yang
+     benar-benar tersedia sehingga TIDAK PERNAH terpotong viewport. */
+  function toggleDrop() {
+    state.dropOpen = !state.dropOpen;
+    if (state.dropOpen) {
+      var v = container();
+      var btn = v ? v.querySelector('.hs-ddbtn') : null;
+      if (btn) {
+        var r = btn.getBoundingClientRect();
+        var below = window.innerHeight - r.bottom - 14;   /* ruang di bawah tombol */
+        var above = r.top - 14;                           /* ruang di atas tombol */
+        /* buka ke ATAS hanya bila ruang bawah tak memadai utk list layak
+           (min 220px) dan sisi atas lebih longgar — selain itu tetap ke bawah */
+        state.dropUp = below < 220 && above > below;
+        state.dropMax = Math.round(Math.min(320, Math.max(state.dropUp ? above : below, 140)));
+      } else { state.dropUp = false; state.dropMax = 320; }
+    }
+    paintDrop();
+  }
 
   function pickDrop(id) {
     /* v1.3: dropdown dipakai tab hasil & tab betclosed (state terpisah) */
@@ -1486,7 +1517,7 @@
     h.push('<div class="hs-toolbar">' +
       '<div class="hs-dd" data-hs-ddwrap>' +
         '<button type="button" class="hs-ddbtn" data-action="drop"><span class="hs-ddlabel">' + esc(selName) + '</span><span class="hs-ddchev">' + ICON_CHEV + '</span></button>' +
-        '<div class="hs-ddlist' + (state.dropOpen ? ' open' : '') + '">');
+        '<div class="hs-ddlist' + (state.dropOpen ? ' open' : '') + (state.dropUp ? ' up' : '') + '"' + (state.dropMax ? ' style="max-height:' + state.dropMax + 'px"' : '') + '>');
     h.push('<button type="button" class="hs-dditem' + (!selId ? ' active' : '') + '" data-action="dropitem" data-id="">\u2014 Pilih Pasaran \u2014</button>');
     items.forEach(function (x) {
       h.push('<button type="button" class="hs-dditem' + (String(selId) === String(x.id) ? ' active' : '') + '" data-action="dropitem" data-id="' + esc(x.id) + '">' + esc(x.nama) + '</button>');
