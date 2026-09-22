@@ -1,7 +1,22 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.JS v1.1.0
+   AURA.OS // HASIL-PRO.JS v1.2.0
    Modul Hasil Result (Pro) — di bawah menu Prediction Tools.
    ============================================================
+   v1.2.0 (Task 25):
+   - TAB IKUT BERGERAK: setTab() kini sinkron class .active (dulu
+     indikator tab mentok di tab lama walau isi sudah pindah) +
+     animasi fade-slide body tiap ganti tab / masuk menu.
+   - DROPDOWN FIX: label "— Semua Pasaran —" pakai karakter em-dash
+     asli; dulu "&mdash;" ter-escape dobel & tampil literal.
+   - SHIO BULLETPROOF: window.ShioData hilang di deployment tertentu
+     ("Cannot read properties of undefined (reading 'parseText')")
+     -> ensureShioData() auto-load /js/shio-data.js + FALLBACK ENGINE
+     built-in (rumus & parser sama persis) sehingga tabel shio + OCR
+     tetap berfungsi apa pun kondisi deployment.
+   - FORMAT BARU (permintaan user): "Prize 1 : 1234 , SHIO : Monyet"
+     (dulu "Result 1"), baris tanggal "Hari Selasa, 22 Sep 2026".
+   - FITUR BARU: kolom Situs — icon link ke situs resmi pasaran
+     (dari data link menu Jadwal Pasaran) di tabel Checklist Status.
    Fitur (permintaan user):
    1. CHECKLIST STATUS — menarik data pasaran + jadwal buka/tutup/
       result dari menu Jadwal Pasaran (/api/pasaran). Checklist
@@ -80,6 +95,234 @@
 
   var tickTimer = null;
   var lastPaintSec = -1;
+
+  /* ============================================================
+     SHIO FALLBACK ENGINE (v1.2.0 — bulletproof)
+     Kenapa ada: sebagian deployment tidak memuat /js/shio-data.js
+     (Dashboard lama / aset 404) sehingga tab shio kosong dan OCR
+     crash dgn "Cannot read properties of undefined (reading
+     'parseText')". Engine di bawah = salinan semangat shio-data.js:
+     rumus (N-1) mod 12, 00 = angka ke-100, parser OCR + validasi.
+     Dipasang HANYA bila window.ShioData benar-benar tak tersedia.
+     ============================================================ */
+  function installShioFallback() {
+    if (window.ShioData && typeof window.ShioData.parseText === 'function') return;
+    var LKEY = 'aura_shio_order_v1';
+    var DEF = ['Kuda', 'Ular', 'Naga', 'Kelinci', 'Harimau', 'Kerbau', 'Tikus', 'Babi', 'Anjing', 'Ayam', 'Monyet', 'Kambing'];
+    var st = { ord: DEF.slice(), source: 'default', updated_by: null, updated_at: null, loaded: false };
+    try {
+      var raw = localStorage.getItem(LKEY);
+      if (raw) {
+        var j = JSON.parse(raw);
+        if (j && Array.isArray(j.ord) && j.ord.length === 12) {
+          st.ord = j.ord.map(String); st.source = 'local';
+          st.updated_by = j.updated_by || null; st.updated_at = j.updated_at || null;
+        }
+      }
+    } catch (e) {}
+    function pad2(n) { return ('0' + n).slice(-2); }
+    function normName(s) { return String(s == null ? '' : s).toLowerCase().replace(/[^a-z]/g, ''); }
+    function normKey(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+    function lev(a, b) {
+      if (a === b) return 0;
+      var m = a.length, n = b.length;
+      if (!m) return n; if (!n) return m;
+      var prev = new Array(n + 1), cur = new Array(n + 1), i, j;
+      for (j = 0; j <= n; j++) prev[j] = j;
+      for (i = 1; i <= m; i++) {
+        cur[0] = i;
+        for (j = 1; j <= n; j++) {
+          var cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+          cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+        }
+        var t = prev; prev = cur; cur = t;
+      }
+      return prev[n];
+    }
+    function matchShioName(rawS) {
+      var t = normName(rawS);
+      if (!t) return null;
+      var best = null, bestD = 99;
+      for (var i = 0; i < DEF.length; i++) {
+        var c = normName(DEF[i]);
+        var d = lev(t, c);
+        if (t.indexOf(c) !== -1 || c.indexOf(t) !== -1) {
+          if (Math.min(t.length, c.length) >= 4) d = 0;
+        }
+        if (d < bestD) { bestD = d; best = DEF[i]; }
+      }
+      return bestD <= 2 ? best : null;
+    }
+    function indexOfNumber(n) {
+      var v = parseInt(n, 10);
+      if (isNaN(v)) return -1;
+      v = ((v % 100) + 100) % 100;
+      if (v === 0) v = 100;
+      return (v - 1) % 12;
+    }
+    function shioOf(two) {
+      var s = String(two == null ? '' : two).trim();
+      if (!/^\d{1,4}$/.test(s)) return '';
+      var last2 = s.length >= 2 ? s.slice(-2) : pad2(parseInt(s, 10));
+      var idx = indexOfNumber(last2);
+      return idx < 0 ? '' : (st.ord[idx] || '');
+    }
+    function numbersFor(i) {
+      var out = [];
+      for (var n = i + 1; n <= 99; n += 12) out.push(pad2(n));
+      if (i === 3) out.push('00');
+      return out;
+    }
+    function validateStructure(ord) {
+      if (!Array.isArray(ord) || ord.length !== 12) return { ok: false, error: 'Urutan shio harus tepat 12 nama (sekarang: ' + (ord ? ord.length : 0) + ')' };
+      var seen = {};
+      for (var i = 0; i < ord.length; i++) {
+        var m = matchShioName(ord[i]);
+        if (!m) return { ok: false, error: 'Nama shio tidak dikenali pada urutan ke-' + (i + 1) + ': "' + ord[i] + '"' };
+        var k = normKey(m);
+        if (seen[k]) return { ok: false, error: 'Shio "' + m + '" muncul dua kali' };
+        seen[k] = 1;
+      }
+      return { ok: true, ord: ord.map(matchShioName) };
+    }
+    function parseText(text) {
+      var lines = String(text == null ? '' : text).split(/\r?\n/);
+      var found = {}, orderSeen = [], errors = [];
+      function addNums(name, seg) {
+        var f = found[name], seen = {};
+        f.nums.forEach(function (s) { seen[s] = 1; });
+        var re = /\d{1,3}/g, m;
+        while ((m = re.exec(seg)) !== null) {
+          var v = parseInt(m[0], 10);
+          if (isNaN(v) || v < 0 || v > 100) continue;
+          var two = v === 100 ? '00' : pad2(v % 100);
+          if (v <= 99 && !seen[two]) { f.nums.push(two); seen[two] = 1; }
+        }
+      }
+      var pendingName = null;
+      for (var li = 0; li < lines.length; li++) {
+        var line = lines[li];
+        if (!line || !line.trim()) continue;
+        var clean = line.replace(/([A-Za-z])\d+/g, '$1').replace(/\d+([A-Za-z])/g, '$1');
+        var numOnly = /^\W*\d[\d\s,.:;|-]*\W*$/.test(clean.trim());
+        if (numOnly && pendingName) { addNums(pendingName, clean); pendingName = null; continue; }
+        var tokRe = /[A-Za-z]+/g, tm, toks = [];
+        while ((tm = tokRe.exec(clean)) !== null) toks.push({ w: tm[0], i: tm.index });
+        var marks = [];
+        for (var ti = 0; ti < toks.length; ti++) {
+          var m1 = matchShioName(toks[ti].w);
+          if (m1) marks.push({ name: m1, start: toks[ti].i, end: toks[ti].i + toks[ti].w.length });
+          else if (ti + 1 < toks.length) {
+            var m2 = matchShioName(toks[ti].w + toks[ti + 1].w);
+            if (m2) { marks.push({ name: m2, start: toks[ti].i, end: toks[ti + 1].i + toks[ti + 1].w.length }); ti++; }
+          }
+        }
+        if (marks.length) {
+          marks.sort(function (a, b) { return a.start - b.start; });
+          var lastMark = null;
+          for (var mi = 0; mi < marks.length; mi++) {
+            var mk = marks[mi];
+            if (!found[mk.name]) { found[mk.name] = { name: mk.name, nums: [] }; orderSeen.push(mk.name); }
+            var segEnd = (mi + 1 < marks.length) ? marks[mi + 1].start : clean.length;
+            var seg = clean.slice(mk.end, segEnd);
+            if (/\d/.test(seg)) addNums(mk.name, seg);
+            lastMark = mk;
+          }
+          pendingName = /\d/.test(clean) ? null : (lastMark ? lastMark.name : null);
+        } else {
+          if (!numOnly) pendingName = null;
+        }
+      }
+      Object.keys(found).forEach(function (k) { if (!found[k].nums.length) delete found[k]; });
+      var names = orderSeen.filter(function (n) { return found[n]; });
+      var rows = names.map(function (n) {
+        var f = found[n], minV = 101;
+        f.nums.forEach(function (s) { var v = s === '00' ? 100 : parseInt(s, 10); if (v < minV) minV = v; });
+        return { name: n, nums: f.nums.slice(), minV: minV };
+      }).sort(function (a, b) { return a.minV - b.minV; });
+      var order = rows.map(function (r) { return r.name; });
+      var struct = validateStructure(order);
+      if (!struct.ok) errors.push(struct.error);
+      rows.forEach(function (r, idx) {
+        r.idx = idx; r.bad = [];
+        r.nums.forEach(function (s) { if (indexOfNumber(s) !== idx) r.bad.push(s); });
+        r.ok = r.bad.length === 0;
+        if (!r.ok) errors.push(r.name + ': angka ' + r.bad.join(', ') + ' tidak sesuai rumus');
+      });
+      var complete = names.length === 12;
+      if (!complete && text && text.trim()) errors.push('Hanya ' + names.length + ' dari 12 shio terbaca — perbaiki manual pada grid preview');
+      return { rows: rows, order: order, valid: complete && rows.every(function (r) { return r.ok; }) && struct.ok, errors: errors, count: names.length };
+    }
+    function saveLocal() {
+      try { localStorage.setItem(LKEY, JSON.stringify({ ord: st.ord, source: st.source, updated_by: st.updated_by, updated_at: st.updated_at })); } catch (e) {}
+    }
+    function load() {
+      return fetch('/api/shio', { headers: { 'x-auth-token': (localStorage.getItem('aura_auth_token') || '') } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.success && j.shio && Array.isArray(j.shio.ord) && j.shio.ord.length === 12) {
+            st.ord = j.shio.ord.map(String);
+            st.source = j.source === 'd1' ? 'd1' : 'default';
+            st.updated_by = j.shio.updated_by || null;
+            st.updated_at = j.shio.updated_at || null;
+            saveLocal();
+          }
+          st.loaded = true;
+          return st;
+        })
+        .catch(function () { st.loaded = true; return st; });
+    }
+    function saveOrder(ord) {
+      var chk = validateStructure(ord);
+      if (!chk.ok) return Promise.resolve({ ok: false, error: chk.error });
+      return fetch('/api/shio', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': (localStorage.getItem('aura_auth_token') || '') },
+        body: JSON.stringify({ ord: ord })
+      })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j && j.success, j: j }; }); })
+        .then(function (res) {
+          if (res.ok) { st.ord = ord.map(String); st.source = 'd1'; st.updated_at = Date.now(); saveLocal(); return { ok: true, j: res.j }; }
+          return { ok: false, error: (res.j && (res.j.error || res.j.message)) || 'Gagal menyimpan shio' };
+        })
+        .catch(function (e) { return { ok: false, error: 'Database tidak terjangkau — shio tidak tersimpan (' + (e.message || 'network') + ')' }; });
+    }
+    window.ShioData = {
+      DEFAULT_ORDER: DEF.slice(),
+      load: load,
+      saveOrder: saveOrder,
+      shioOf: shioOf,
+      numbersFor: numbersFor,
+      indexOfNumber: indexOfNumber,
+      parseText: parseText,
+      validateStructure: validateStructure,
+      matchShioName: matchShioName,
+      state: st,
+      order: function () { return st.ord.slice(); }
+    };
+  }
+
+  /* Pastikan engine shio tersedia: sudah ada -> langsung; belum ->
+     coba muat /js/shio-data.js dinamis; gagal juga -> pasang fallback. */
+  var shioEnsuring = null;
+  function ensureShioData() {
+    if (window.ShioData && typeof window.ShioData.parseText === 'function') return Promise.resolve(true);
+    if (shioEnsuring) return shioEnsuring;
+    shioEnsuring = new Promise(function (res) {
+      try {
+        var s = document.createElement('script');
+        s.src = '/js/shio-data.js?v=1.0.1';
+        s.onload = function () { res(!!(window.ShioData && typeof window.ShioData.parseText === 'function')); };
+        s.onerror = function () { res(false); };
+        document.head.appendChild(s);
+      } catch (e) { res(false); }
+    }).then(function (ok) {
+      if (!ok) installShioFallback();
+      shioEnsuring = null;
+      return true;
+    });
+    return shioEnsuring;
+  }
 
   /* ============================================================
      WAKTU WIB
@@ -395,6 +638,16 @@
   var ICON_TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>';
   var ICON_IMG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
   var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  var ICON_EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+
+  /* v1.2 FITUR (permintaan user): icon direct-link situs resmi pasaran.
+     Sumber link = field `link` di data pasaran (menu Jadwal Pasaran). */
+  function webCell(it) {
+    var link = String(it.link || '').trim();
+    if (!link || link === '#') return '<span class="hs-web-none" title="Tidak ada link situs resmi">\u2014</span>';
+    var href = /^https?:\/\//i.test(link) ? link : 'https://' + link;
+    return '<a class="hs-web" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" title="Situs resmi ' + esc(it.nama) + '" aria-label="Situs resmi ' + esc(it.nama) + '">' + ICON_EXT + '</a>';
+  }
 
   function build() {
     var v = container();
@@ -498,7 +751,20 @@
      ============================================================ */
   function setTab(tab) {
     state.tab = (tab === 'hasil' || tab === 'shio') ? tab : 'status';
-    paintBody();
+    var v = container();
+    if (v) syncTabs(v);   /* v1.2 FIX "UI tidak mengikuti": indikator tab wajib pindah */
+    paintBody(true);      /* v1.2: + animasi fade-slide body saat ganti tab */
+  }
+
+  /* v1.2 — sinkronkan class .active pada tab bar ke state.tab.
+     Dulu hanya paintAll() yang meng-update tab; setTab() tidak, sehingga
+     user sudah di tab Hasil Pengeluaran tapi underline mentok di tab lama. */
+  function syncTabs(v) {
+    var tabs = v.querySelectorAll('.hs-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].getAttribute('data-tab') === state.tab) tabs[i].classList.add('active');
+      else tabs[i].classList.remove('active');
+    }
   }
 
   function setDate(v) {
@@ -515,13 +781,14 @@
       return fetchCeklis();
     }).then(function () {
       state.loaded = true;
-      paintAll();
+      paintAll(state._enterAnim === true);   /* v1.2: animasi entrance saat buka menu */
+      state._enterAnim = false;
       if (force) toast('Data dimuat (' + (state.source === 'db' ? 'database' : 'mode lokal') + ')', 'success');
     });
     if (window.ShioData && typeof window.ShioData.load === 'function') window.ShioData.load();
   }
 
-  function paintAll() {
+  function paintAll(anim) {
     var v = container();
     if (!v) return;
     /* sumber */
@@ -530,20 +797,23 @@
       if (state.source === 'db') { src.classList.remove('local'); srcT.textContent = 'SQLITE \u2022 D1'; }
       else { src.classList.add('local'); srcT.textContent = 'MODE LOKAL'; }
     }
-    /* tabs */
-    var tabs = v.querySelectorAll('.hs-tab');
-    for (var i = 0; i < tabs.length; i++) {
-      if (tabs[i].getAttribute('data-tab') === state.tab) tabs[i].classList.add('active');
-      else tabs[i].classList.remove('active');
-    }
-    paintBody();
+    /* tabs (v1.2: helper bersama dgn setTab) */
+    syncTabs(v);
+    paintBody(anim === true);
   }
 
-  function paintBody() {
+  function paintBody(anim) {
     var v = container();
     if (!v) return;
     var body = q('[data-hs="body"]', v);
     if (!body) return;
+    /* v1.2: animasi entrance body — HANYA saat pindah tab / masuk menu,
+       bukan pada repaint data biasa (aman-animasi: keyframes + backwards) */
+    if (anim === true) {
+      body.classList.remove('hs-anim');
+      void body.offsetWidth;   /* paksa reflow agar animasi re-trigger */
+      body.classList.add('hs-anim');
+    }
     if (!state.tanggal) state.tanggal = todayWIB();
     if (!state.items.length && state.loading && !state.loaded) {
       body.innerHTML = '<div class="hs-loading"><span class="hs-spin"></span>Memuat data pasaran dari database&hellip;</div>';
@@ -626,13 +896,13 @@
     });
     h.push('</div></div>');
 
-    /* tabel crosscheck: jam tutup + waktu sekarang + jam result + countdown + status + ceklis */
+    /* tabel crosscheck: jam tutup + waktu sekarang + jam result + countdown + status + situs resmi + ceklis */
     h.push('<div class="hs-tablewrap"><table class="hs-table"><thead><tr>' +
-      '<th>Pasaran</th><th>Jadwal</th><th>Jam Tutup</th><th>Waktu Sekarang</th><th>Jam Result</th><th>Countdown Result</th><th>Status</th><th class="hs-th-cek" title="Centang bila result pasaran ini sudah dicek">Ceklis</th>' +
+      '<th>Pasaran</th><th>Jadwal</th><th>Jam Tutup</th><th>Waktu Sekarang</th><th>Jam Result</th><th>Countdown Result</th><th>Status</th><th class="hs-th-web" title="Link situs resmi pasaran (dari Jadwal Pasaran)">Situs</th><th class="hs-th-cek" title="Centang bila result pasaran ini sudah dicek">Ceklis</th>' +
       '</tr></thead><tbody>');
 
     if (!rows.length) {
-      h.push('<tr><td colspan="8" class="hs-empty">' + (state.items.length ? 'Tidak ada pasaran yang cocok dengan filter/pencarian.' : 'Belum ada pasaran — isi dulu di menu Jadwal Pasaran.') + '</td></tr>');
+      h.push('<tr><td colspan="9" class="hs-empty">' + (state.items.length ? 'Tidak ada pasaran yang cocok dengan filter/pencarian.' : 'Belum ada pasaran — isi dulu di menu Jadwal Pasaran.') + '</td></tr>');
     }
 
     rows.forEach(function (r) {
@@ -649,6 +919,7 @@
         '<td class="hs-tdmut">' + (hoki ? 'SETIAP 1 JAM' : (esc(hmOnly(it.result)) || '&mdash;')) + '</td>' +
         '<td class="hs-tdcd">' + cd + '</td>' +
         '<td><span class="hs-st ' + meta.cls + '" title="' + meta.title + '">' + meta.label + '</span></td>' +
+        '<td class="hs-tdweb">' + webCell(it) + '</td>' +
         '<td class="hs-tdcek"><button type="button" class="hs-cek' + (cek ? ' on' : '') + '" data-action="cek" data-id="' + esc(it.id) + '" aria-label="Ceklis ' + esc(it.nama) + '">' + (cek ? ICON_CHECK : '') + '</button></td>' +
         '</tr>');
     });
@@ -697,7 +968,9 @@
   function paintHasilInto(body) {
     var now = wibNow();
     var items = dropItems();
-    var selName = '&mdash; Semua Pasaran &mdash;';
+    /* v1.2 FIX: label "— Semua Pasaran —" pakai karakter em-dash ASLI.
+       Dulu '&mdash;' lalu di-esc() -> '&amp;mdash;' -> tampil literal. */
+    var selName = '\u2014 Semua Pasaran \u2014';
     if (state.sel) {
       var s = null;
       items.forEach(function (it) { if (String(it.id) === String(state.sel)) s = it; });
@@ -710,7 +983,7 @@
       '<div class="hs-dd" data-hs-ddwrap>' +
         '<button type="button" class="hs-ddbtn" data-action="drop"><span class="hs-ddlabel">' + esc(selName) + '</span><span class="hs-ddchev">' + ICON_CHEV + '</span></button>' +
         '<div class="hs-ddlist' + (state.dropOpen ? ' open' : '') + '">');
-    h.push('<button type="button" class="hs-dditem' + (!state.sel ? ' active' : '') + '" data-action="dropitem" data-id="">&mdash; Semua Pasaran &mdash;</button>');
+    h.push('<button type="button" class="hs-dditem' + (!state.sel ? ' active' : '') + '" data-action="dropitem" data-id="">\u2014 Semua Pasaran \u2014</button>');
     items.forEach(function (it) {
       h.push('<button type="button" class="hs-dditem' + (String(state.sel) === String(it.id) ? ' active' : '') + '" data-action="dropitem" data-id="' + esc(it.id) + '">' + esc(it.nama) + '</button>');
     });
@@ -748,13 +1021,13 @@
       '<div class="hs-cmeta">' + (hoki ? 'SETIAP 1 JAM &bull; 24x SEHARI' : (esc(hmOnly(it.result)) || 'JADWAL KHUSUS')) + ' &bull; <span data-prize-label="' + esc(it.id) + '">' + cd.prize + ' Prize</span></div></div>' +
       '<span class="hs-st ' + meta.cls + '">' + meta.label + '</span></div>');
 
-    /* input result */
+    /* input result (v1.2: label PRIZE — format baru permintaan user) */
     h.push('<div class="hs-rinwrap">');
     for (var n = 1; n <= 3; n++) {
       var val = '';
       cd.items.forEach(function (x) { if (parseInt(x.n, 10) === n) val = x.val; });
       h.push('<div class="hs-rinrow' + (n > cd.prize ? ' hide' : '') + '" data-rin="' + n + '">' +
-        '<label class="hs-rinlab">RESULT ' + n + '</label>' +
+        '<label class="hs-rinlab">PRIZE ' + n + '</label>' +
         '<input class="hs-rin" type="text" inputmode="numeric" maxlength="4" placeholder="' + (n === 1 ? 'Input angka&hellip;' : 'Opsional') + '" value="' + esc(val) + '" data-rinin="' + esc(it.id) + '-' + n + '">' +
         '</div>');
     }
@@ -767,20 +1040,21 @@
       '<button type="button" class="hs-btn hs-btn-danger' + (state.armClear === String(it.id) ? ' arm' : '') + '" data-action="clear" data-id="' + esc(it.id) + '">' + (state.armClear === String(it.id) ? 'Yakin? Hapus Result' : 'Clear Result') + '</button>' +
       '</div>');
 
-    /* panel format hasil */
+    /* panel format hasil (v1.2: format persis permintaan user —
+       "Hasil Pengeluaran BANGKOK 0930 / Hari Selasa, 22 Sep 2026 /
+       Prize 1 : 1234 , SHIO : Monyet / ... / Salam JP") */
     var tgl = state.tanggal;
-    var isToday = tgl === todayWIB();
     h.push('<div class="hs-resbox">');
     h.push('<div class="hs-reshead"><span>Hasil Pengeluaran ' + esc(it.nama) + '</span><span class="hs-restag">' + meta.label + '</span></div>');
-    h.push('<div class="hs-resday"><span>' + (isToday ? 'Hari ini' : 'Tanggal') + ' ' + fmtDateFullUp(tgl) + '</span><span>' + esc(it.nama) + '</span></div>');
+    h.push('<div class="hs-resday"><span>Hari ' + fmtDateShort(tgl) + '</span><span>' + esc(it.nama) + '</span></div>');
     var shown = 0;
     var sd = ShioSnapshot();
     cd.items.forEach(function (x) {
       shown++;
       var shio = shown === 1 ? shioOfVal(x.val, sd) : '';
-      h.push('<div class="hs-resrow"><span>Result ' + esc(x.n) + ' :</span><b>' + esc(x.val) + (shio ? '<span class="hs-resshio">, SHIO : ' + esc(shio) + '</span>' : '') + '</b></div>');
+      h.push('<div class="hs-resrow"><span>Prize ' + esc(x.n) + ' :</span><b>' + esc(x.val) + (shio ? '<span class="hs-resshio"> , SHIO : ' + esc(shio) + '</span>' : '') + '</b></div>');
     });
-    if (!shown) h.push('<div class="hs-resrow"><span>Result :</span><b>-</b></div>');
+    if (!shown) h.push('<div class="hs-resrow"><span>Prize :</span><b>-</b></div>');
     h.push('<div class="hs-resfoot"><span>Selamat Kepada Pemenang, Salam JP</span><span>' + (hoki ? 'SETIAP 1 JAM' : (esc(hmOnly(it.result)) || '&mdash;')) + '</span></div>');
     h.push('</div>');
 
@@ -960,9 +1234,9 @@
     cd.items.forEach(function (x) {
       var shio = '';
       if (!firstDone) { shio = shioOfVal(x.val, ord); firstDone = true; }
-      lines.push('Result ' + x.n + ' : ' + x.val + (shio ? ', SHIO : ' + shio : ''));
+      lines.push('Prize ' + x.n + ' : ' + x.val + (shio ? ' , SHIO : ' + shio : ''));
     });
-    if (!cd.items.length) lines.push('Result : -');
+    if (!cd.items.length) lines.push('Prize : -');
     lines.push('Selamat Kepada Pemenang, Salam JP');
     return lines.join('\n');
   }
@@ -998,6 +1272,20 @@
     var sd = window.ShioData && window.ShioData.state ? window.ShioData.state : null;
     var ord = ShioSnapshot();
     var h = [];
+
+    /* v1.2 FIX "tabel shio tidak dapat membaca": bila engine shio belum
+       ada (window.ShioData undefined — penyebab error lama "Cannot read
+       properties of undefined (reading 'parseText')" + tabel kosong),
+       muat sekarang (auto-load / fallback engine), repaint saat siap. */
+    if (!window.ShioData || !ord.length) {
+      h.push('<div class="hs-loading"><span class="hs-spin"></span>Menyiapkan modul tabel shio&hellip;</div>');
+      body.innerHTML = h.join('');
+      ensureShioData().then(function () {
+        if (window.ShioData && typeof window.ShioData.load === 'function') return window.ShioData.load();
+        return null;
+      }).then(function () { if (state.tab === 'shio') paintBody(); });
+      return;
+    }
 
     h.push('<div class="hs-shiogrid"><div class="hs-shioleft">');
     h.push('<div class="hs-shiohead"><h3 class="hs-h3">Tabel Shio Aktif</h3>' +
@@ -1223,7 +1511,14 @@
       paintBody();
       return;
     }
-    var p = window.ShioData.parseText(text);
+    var p = null;
+    if (!window.ShioData || typeof window.ShioData.parseText !== 'function') {
+      /* v1.2: engine belum ada -> muat dulu, BARU parse (dulu: crash
+         "Cannot read properties of undefined (reading 'parseText')") */
+      ensureShioData().then(function () { parseOcrText(silent); });
+      return;
+    }
+    p = window.ShioData.parseText(text);
     state.shio.parsed = p;
     state.shio.rows = p.rows.map(function (r) { return { name: r.name, numsStr: r.nums.join(', ') }; });
     /* pastikan 12 baris (isi kosong bila kurang) */
@@ -1262,6 +1557,7 @@
 
   function fixShioFromFormula() {
     if (!state.shio.rows) return;
+    if (!window.ShioData || typeof window.ShioData.numbersFor !== 'function') { ensureShioData().then(fixShioFromFormula); return; }
     state.shio.rows = state.shio.rows.map(function (r, i) {
       return { name: r.name, numsStr: (window.ShioData ? window.ShioData.numbersFor(i) : []).join(', ') };
     });
@@ -1270,6 +1566,7 @@
   }
 
   function useStdShio() {
+    if (!window.ShioData) { ensureShioData().then(useStdShio); return; }
     var def = window.ShioData ? window.ShioData.DEFAULT_ORDER : [];
     state.shio.rows = def.map(function (name, i) {
       return { name: name, numsStr: (window.ShioData ? window.ShioData.numbersFor(i) : []).join(', ') };
@@ -1280,6 +1577,7 @@
 
   function saveShio() {
     if (!state.shio.rows) return;
+    if (!window.ShioData || typeof window.ShioData.validateStructure !== 'function') { ensureShioData().then(saveShio); return; }
     var ord = state.shio.rows.map(function (r) { return r.name; });
     var struct = window.ShioData.validateStructure(ord);
     if (!struct.ok) { toast(struct.error, 'error'); return; }
@@ -1336,8 +1634,14 @@
     render: function () {
       build();
       if (!state.tanggal) state.tanggal = todayWIB();
-      if (!state.loaded && !state.loading) refreshAll(false);
-      else paintAll();
+      /* v1.2: pastikan engine shio siap SEBELUM dipakai (auto-load /
+         fallback) — akar perbaikan "tabel shio tidak dapat membaca" */
+      ensureShioData().then(function () {
+        if (window.ShioData && typeof window.ShioData.load === 'function' && !window.ShioData.state.loaded) return window.ShioData.load();
+        return null;
+      });
+      if (!state.loaded && !state.loading) { state._enterAnim = true; refreshAll(false); }
+      else paintAll(true);
       if (!tickTimer) tickTimer = setInterval(tick, 1000);
       tick();
     },
@@ -1345,6 +1649,7 @@
     setTab: setTab,
     state: state,
     buildCopy: buildCopy,
-    parseShioText: function (t) { return window.ShioData.parseText(t); }
+    ensureShioData: ensureShioData,
+    parseShioText: function (t) { return ensureShioData().then(function () { return window.ShioData.parseText(t); }); }
   };
 })();
