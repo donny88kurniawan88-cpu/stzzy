@@ -1,5 +1,5 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.JS v1.0.0
+   AURA.OS // HASIL-PRO.JS v1.1.0
    Modul Hasil Result (Pro) — di bawah menu Prediction Tools.
    ============================================================
    Fitur (permintaan user):
@@ -34,7 +34,7 @@
      ============================================================ */
   var LKEY_PS = 'aura_pasaran_local_v1';      // sama dgn pasaran-pro.js
   var LKEY_HASIL = 'aura_hasil_local_v1';     // fallback hasil saat DB tak terjangkau
-  var LKEY_CEK = 'aura_hasil_ceklis_v1';      // ceklis manual per tanggal
+  var LKEY_CEK = 'aura_hasil_ceklis_v1';      // ceklis manual per tanggal (cache/fallback D1)
   var HOKI_OFFSET = 10;                        // result sesi = tutup + 10 menit
 
   var DAY_UP = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
@@ -62,6 +62,7 @@
     hasilById: {},        // pasaran_id -> row
     hasilSource: null,
     cek: {},              // { pasaranId: true } utk tanggal terpilih
+    cekSource: null,      // 'db' | 'local'
     sel: '',              // pasaran terpilih di tab hasil ('' = semua)
     dropOpen: false,
     saving: false,
@@ -156,9 +157,11 @@
     return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   }
 
-  /* "13:05 WIB" / "13:05:00 WIB" -> menit dari tengah malam, null bila bukan jam */
+  /* "13:05 WIB" / "13:05:00 WIB" / "13:05" / "13.05" -> menit dari tengah malam.
+     v1.1: suffix WIB TIDAK wajib — data produksi bisa disimpan tanpa WIB
+     (dulu format tanpa WIB membuat jadwal tak terbaca & Next Result salah). */
   function parseHM(s) {
-    var m = String(s == null ? '' : s).match(/\b(\d{1,2}):(\d{2})(?::\d{2})?\s*WIB\b/i);
+    var m = String(s == null ? '' : s).match(/\b(\d{1,2})[:.](\d{2})(?::\d{2})?(\s*WIB)?\b/i);
     if (!m) return null;
     var h = parseInt(m[1], 10), mm = parseInt(m[2], 10);
     if (h > 23 || mm > 59) return null;
@@ -169,6 +172,12 @@
     var m = parseHM(s);
     if (m == null) return '';
     return pad2(Math.floor(m / 60)) + ':' + pad2(m % 60) + ' WIB';
+  }
+
+  /* epoch ms -> "HH:MM WIB" (utk label jam target next result) */
+  function hmOfMs(ms) {
+    var p = wibParts(ms);
+    return pad2(p.h) + ':' + pad2(p.mi) + ' WIB';
   }
 
   /* "Selasa & Jumat TUTUP" -> [2,5] */
@@ -325,19 +334,57 @@
     state.hasilById = map;
   }
 
-  function loadCek() {
+  function localCekOf(tgl) {
     try {
       var all = JSON.parse(localStorage.getItem(LKEY_CEK) || '{}');
-      state.cek = all[state.tanggal] || {};
-    } catch (e) { state.cek = {}; }
+      return all[tgl] || {};
+    } catch (e) { return {}; }
   }
 
-  function saveCek() {
+  function saveLocalCek(tgl, map) {
     try {
       var all = JSON.parse(localStorage.getItem(LKEY_CEK) || '{}');
-      all[state.tanggal] = state.cek;
+      all[tgl] = map;
       localStorage.setItem(LKEY_CEK, JSON.stringify(all));
     } catch (e) {}
+  }
+
+  /* v1.1 FIX "ceklis tidak tersimpan":
+     (1) dulu loadCek() TIDAK dipanggil saat render awal -> state.cek = {}
+         dan centang pertama MENIMPA semua centang lama utk tanggal tsb;
+     (2) dulu hanya localStorage (per device). Sekarang ceklis persist
+         ke D1 via /api/hasil/ceklis (sinkron antar device), localStorage
+         hanya cache/fallback offline. */
+  function fetchCeklis() {
+    state.cek = localCekOf(state.tanggal);   // optimistic dari cache
+    return fetch('/api/hasil/ceklis?tanggal=' + encodeURIComponent(state.tanggal), { headers: { 'x-auth-token': token() } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.success && Array.isArray(j.ceklis)) {
+          var map = {};
+          j.ceklis.forEach(function (r) { if (r && r.pasaran_id != null) map[String(r.pasaran_id)] = true; });
+          state.cek = map;
+          saveLocalCek(state.tanggal, map);
+          state.cekSource = 'db';
+        } else throw new Error('bad payload');
+      })
+      .catch(function () { state.cekSource = 'local'; })
+      .then(function () { if (state.tab === 'status' && state.loaded) paintBody(); });
+  }
+
+  /* dipakai setDate() — alias agar seluruh titik muat ceklis konsisten */
+  function loadCek() { fetchCeklis(); }
+
+  /* set/unset satu centang + persist (D1 dulu, selalu cache lokal) */
+  function setCek(id, on) {
+    var k = String(id);
+    if (on) state.cek[k] = true; else delete state.cek[k];
+    saveLocalCek(state.tanggal, state.cek);
+    fetch('/api/hasil/ceklis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-auth-token': token() },
+      body: JSON.stringify({ pasaran_id: isNaN(parseInt(id, 10)) ? id : parseInt(id, 10), tanggal: state.tanggal, on: !!on })
+    }).catch(function () {});
   }
 
   /* ============================================================
@@ -432,6 +479,18 @@
       var w = e.target && e.target.closest ? e.target.closest('[data-hs-ddwrap]') : null;
       if (!w) { state.dropOpen = false; paintDrop(); }
     }, true);
+
+    /* v1.1: drag & drop gambar shio langsung ke dropzone */
+    v.addEventListener('dragover', function (e) {
+      if (e.target && e.target.closest && e.target.closest('#hsDropzone')) e.preventDefault();
+    });
+    v.addEventListener('drop', function (e) {
+      var z = e.target && e.target.closest ? e.target.closest('#hsDropzone') : null;
+      if (!z) return;
+      e.preventDefault();
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) runOcr(f);
+    });
   }
 
   /* ============================================================
@@ -452,6 +511,8 @@
   function refreshAll(force) {
     fetchPasaran().then(function () {
       return fetchHasil();
+    }).then(function () {
+      return fetchCeklis();
     }).then(function () {
       state.loaded = true;
       paintAll();
@@ -519,27 +580,40 @@
     var now = wibNow();
     var list = sortedPasaran();
     var chips = { all: 0, belum: 0, sedang: 0, tutup: 0, done: 0, libur: 0 };
-    var next = null;
+    var nextPend = null;   // result berikutnya yg BELUM diinput (v1.1)
+    var nextAny = null;    // fallback: result terdekat apa pun
+    var isToday = state.tanggal === todayWIB();
 
     var rows = list.map(function (it) {
       var st = chipOf(it, now);
       chips.all++;
       chips[st === 'khusus' ? 'libur' : st]++;
       var nms = nextResultMs(it, now);
-      if (nms != null && (!next || nms < next.at)) next = { at: nms, nama: it.nama };
+      if (nms != null) {
+        if (!nextAny || nms < nextAny.at) nextAny = { at: nms, nama: it.nama };
+        /* v1.1 FIX "next result" — pasaran yang resultnya SUDAH diinput (done)
+           hari ini tidak lagi jadi kandidat next result; ambil jadwal pasaran
+           berikutnya yang masih menunggu input. */
+        if (!(isToday && st === 'done') && (!nextPend || nms < nextPend.at)) {
+          nextPend = { at: nms, nama: it.nama };
+        }
+      }
       return { it: it, st: st, nms: nms };
     }).filter(function (r) { return statusFilterOk(r.st) && matchSearch(r.it); });
 
     var doneCount = chips.done;
     var belumCount = chips.all - doneCount;
-    var nextLabel = next ? fmtCountdown(next.at - now.ms).slice(0, 5) + ' &bull; ' + esc(next.nama) : '&mdash;';
+    var nextShow = nextPend || nextAny;
+    var nextLabel = nextShow
+      ? '<b class="hs-next-jam">' + hmOfMs(nextShow.at) + '</b> <span class="hs-next-cd">' + fmtCountdown(nextShow.at - now.ms).slice(0, 5) + '</span> &bull; ' + esc(nextShow.nama)
+      : '&mdash;';
 
     var h = [];
     h.push('<div class="hs-stats">');
     h.push('<div class="hs-stat"><div class="hs-stat-k">Total Pasaran Aktif</div><div class="hs-stat-v">' + chips.all + '</div><div class="hs-stat-s">dari menu Jadwal Pasaran</div></div>');
     h.push('<div class="hs-stat"><div class="hs-stat-k">Sudah Done</div><div class="hs-stat-v hs-ok">' + doneCount + '</div><div class="hs-stat-s">result sudah diinput</div></div>');
     h.push('<div class="hs-stat"><div class="hs-stat-k">Belum Result</div><div class="hs-stat-v hs-warn">' + belumCount + '</div><div class="hs-stat-s">menunggu input result</div></div>');
-    h.push('<div class="hs-stat"><div class="hs-stat-k">Next Result</div><div class="hs-stat-v hs-v-sm">' + nextLabel + '</div><div class="hs-stat-s">result paling dekat</div></div>');
+    h.push('<div class="hs-stat"><div class="hs-stat-k">Next Result</div><div class="hs-stat-v hs-v-sm">' + nextLabel + '</div><div class="hs-stat-s">jadwal berikutnya yang belum diinput</div></div>');
     h.push('</div>');
 
     h.push('<div class="hs-toolbar">' +
@@ -590,11 +664,11 @@
 
   function toggleCek(id, btn) {
     var k = String(id);
-    if (state.cek[k]) delete state.cek[k]; else state.cek[k] = true;
-    saveCek();
+    var on = !state.cek[k];
+    setCek(id, on);   // v1.1: persist D1 + cache lokal (dulu saveCek() menimpa centang lama)
     var tr = btn && btn.closest ? btn.closest('tr') : null;
     if (tr) {
-      if (state.cek[k]) { tr.classList.add('hs-trcek'); btn.classList.add('on'); btn.innerHTML = ICON_CHECK; }
+      if (on) { tr.classList.add('hs-trcek'); btn.classList.add('on'); btn.innerHTML = ICON_CHECK; }
       else { tr.classList.remove('hs-trcek'); btn.classList.remove('on'); btn.innerHTML = ''; }
     }
   }
@@ -704,7 +778,7 @@
     cd.items.forEach(function (x) {
       shown++;
       var shio = shown === 1 ? shioOfVal(x.val, sd) : '';
-      h.push('<div class="hs-resrow"><span>Result ' + esc(x.n) + ' :</span><b>' + esc(x.val) + (shio ? ', SHIO : ' + esc(shio) : '') + '</b></div>');
+      h.push('<div class="hs-resrow"><span>Result ' + esc(x.n) + ' :</span><b>' + esc(x.val) + (shio ? '<span class="hs-resshio">, SHIO : ' + esc(shio) + '</span>' : '') + '</b></div>');
     });
     if (!shown) h.push('<div class="hs-resrow"><span>Result :</span><b>-</b></div>');
     h.push('<div class="hs-resfoot"><span>Selamat Kepada Pemenang, Salam JP</span><span>' + (hoki ? 'SETIAP 1 JAM' : (esc(hmOnly(it.result)) || '&mdash;')) + '</span></div>');
@@ -1006,43 +1080,123 @@
     if (f) f.click();
   }
 
-  function loadTesseract() {
-    if (window.Tesseract) return Promise.resolve();
+  /* v1.1 — Tesseract multi-CDN (jsdelivr -> unpkg) + fallback versi
+     Dulu: satu URL jsdelivr; kalau CDN diblokir/lambat, upload "tidak berfungsi". */
+  var TESS_CDNS = [
+    { js: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js', worker: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js', core: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0' },
+    { js: 'https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js', worker: 'https://unpkg.com/tesseract.js@5.1.1/dist/worker.min.js', core: 'https://unpkg.com/tesseract.js-core@5.1.0' },
+    { js: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js', worker: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js', core: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5' }
+  ];
+  var tessCdnIdx = -1;
+
+  function loadTesseract(idx) {
+    if (window.Tesseract && tessCdnIdx >= 0) return Promise.resolve(tessCdnIdx);
+    if (idx == null) idx = 0;
+    if (idx >= TESS_CDNS.length) {
+      return Promise.reject(new Error('Gagal memuat pustaka OCR dari semua CDN — periksa koneksi, atau tempel teks manual di kotak bawah'));
+    }
     return new Promise(function (res, rej) {
       var s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
-      s.onload = function () { res(); };
-      s.onerror = function () { rej(new Error('Gagal memuat pustaka OCR (CDN) — periksa koneksi atau tempel teks manual')); };
+      s.src = TESS_CDNS[idx].js;
+      s.onload = function () { tessCdnIdx = idx; res(idx); };
+      s.onerror = function () { rej(idx + 1); };
       document.head.appendChild(s);
-    });
+    }).catch(function (next) { return loadTesseract(next); });
+  }
+
+  /* Pra-proses gambar utk akurasi OCR: skala ke sisi-panjang ~1600px,
+     grayscale + peregangan kontras (foto HP gelap/kabur jauh lebih terbaca).
+     Gagal apa pun -> kembalikan dataURL asli. */
+  function prepImage(dataUrl, cb) {
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        if (!w || !h) { cb(dataUrl); return; }
+        var long = Math.max(w, h);
+        var scale = long < 700 ? (1600 / long) : (long > 2400 ? (1600 / long) : 1);
+        var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+        var c = document.createElement('canvas'); c.width = cw; c.height = ch;
+        var ctx = c.getContext('2d');
+        if (!ctx) { cb(dataUrl); return; }
+        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cw, ch);
+        ctx.drawImage(img, 0, 0, cw, ch);
+        var d = ctx.getImageData(0, 0, cw, ch), px = d.data;
+        var n = cw * ch, gray = new Uint8ClampedArray(n), i, r, g, b, v;
+        var mn = 255, mx = 0;
+        for (i = 0; i < n; i++) {
+          r = px[i * 4]; g = px[i * 4 + 1]; b = px[i * 4 + 2];
+          v = (r * 299 + g * 587 + b * 114) / 1000;
+          gray[i] = v;
+          if (v < mn) mn = v; if (v > mx) mx = v;
+        }
+        var range = Math.max(1, mx - mn);
+        for (i = 0; i < n; i++) {
+          v = Math.max(0, Math.min(255, (gray[i] - mn) * 255 / range));
+          px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = v; px[i * 4 + 3] = 255;
+        }
+        ctx.putImageData(d, 0, 0);
+        cb(c.toDataURL('image/jpeg', 0.92));
+      } catch (e) { cb(dataUrl); }
+    };
+    img.onerror = function () { cb(dataUrl); };
+    img.src = dataUrl;
   }
 
   function runOcr(file) {
     if (!/image\/(jpeg|jpg|png|webp)/.test(file.type || '')) { toast('Format harus JPG/PNG', 'warning'); return; }
+    if (state.shio.ocrBusy) return;
     state.shio.ocrBusy = true;
     state.shio.ocrProg = 0;
+    state.shio.err = '';
     paintBody();
     var reader = new FileReader();
     reader.onload = function () {
-      loadTesseract().then(function () {
-        return window.Tesseract.recognize(reader.result, 'eng', {
-          logger: function (m) {
-            if (m && m.status === 'recognizing text' && typeof m.progress === 'number') {
-              state.shio.ocrProg = Math.round(m.progress * 100);
-              var el = container().querySelector('.hs-ocrbusy');
-              if (el) el.innerHTML = '<span class="hs-spin"></span>Membaca gambar&hellip; ' + state.shio.ocrProg + '%';
+      prepImage(reader.result, function (imgUrl) {
+        loadTesseract(0).then(function (cdnIdx) {
+          var cdn = TESS_CDNS[cdnIdx] || TESS_CDNS[0];
+          var worker = null;
+          return window.Tesseract.createWorker('eng', 1, {
+            workerPath: cdn.worker,
+            corePath: cdn.core,
+            logger: function (m) {
+              if (m && typeof m.progress === 'number') {
+                state.shio.ocrProg = Math.round(m.progress * 100);
+                var el = container().querySelector('.hs-ocrbusy');
+                if (el) {
+                  var stTxt = (m.status === 'recognizing text') ? 'Membaca gambar' : 'Menyiapkan OCR';
+                  el.innerHTML = '<span class="hs-spin"></span>' + stTxt + '\u2026 ' + state.shio.ocrProg + '%';
+                }
+              }
             }
+          }).then(function (w) { worker = w; return w.recognize(imgUrl); })
+            .then(function (res) {
+              try { if (worker) worker.terminate(); } catch (e2) {}
+              return res;
+            });
+        }).then(function (res) {
+          state.shio.ocrBusy = false;
+          var txt = (res && res.data && res.data.text ? res.data.text : '').trim();
+          if (!txt) {
+            state.shio.err = 'Teks tidak terbaca dari gambar — coba foto lebih tajam/terang (tegak lurus), atau tempel teks manual di kotak bawah.';
+            paintBody();
+            toast(state.shio.err, 'warning');
+            return;
           }
+          /* v1.1 FIX "upload shio tidak berfungsi": dulu parseOcrText()
+             membaca DOM textarea yang BELUM dirender ulang (masih kosong)
+             sehingga selalu gagal "Teks masih kosong". Sekarang teks OCR
+             disimpan ke state dulu, DOM dirender, baru parse dari STATE. */
+          state.shio.ocrText = txt;
+          paintBody();
+          parseOcrText(true);
+        }).catch(function (e) {
+          state.shio.ocrBusy = false;
+          state.shio.err = (e && e.message) ? e.message : 'OCR gagal — coba lagi atau tempel teks manual';
+          paintBody();
+          toast(state.shio.err, 'error');
         });
-      }).then(function (res) {
-        state.shio.ocrBusy = false;
-        state.shio.ocrText = (res && res.data && res.data.text ? res.data.text : '').trim();
-        parseOcrText(true);
-      }).catch(function (e) {
-        state.shio.ocrBusy = false;
-        state.shio.err = e.message || 'OCR gagal';
-        paintBody();
-        toast(state.shio.err, 'error');
       });
     };
     reader.onerror = function () {
@@ -1056,7 +1210,11 @@
   function parseOcrText(silent) {
     var v = container();
     var ta = v && v.querySelector('.hs-ocr-text');
-    var text = ta ? ta.value : state.shio.ocrText;
+    /* v1.1: STATE jadi sumber utama — DOM textarea bisa belum dirender ulang
+       setelah OCR selesai (dulu selalu terbaca kosong). Event 'input' tetap
+       menyinkronkan edit manual user ke state, jadi aman dua arah. */
+    var domText = ta ? ta.value : '';
+    var text = (state.shio.ocrText != null && state.shio.ocrText !== '') ? state.shio.ocrText : domText;
     state.shio.ocrText = text;
     if (!String(text).trim()) {
       state.shio.err = 'Teks masih kosong — upload gambar atau tempel teks tabel shio dulu.';
