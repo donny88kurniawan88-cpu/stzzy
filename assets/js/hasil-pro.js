@@ -1,7 +1,24 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.JS v1.3.0
+   AURA.OS // HASIL-PRO.JS v1.4.0
    Modul Hasil Result (Pro) — di bawah menu Prediction Tools.
    ============================================================
+   v1.4.0 (Task 27 — permintaan user):
+   - STATUS ENGINE BARU (fix "logikanya salah"):
+     * sebelum jam betclosed                -> BUKA (menerima pasang)
+     * antara betclosed -> jam result       -> TUTUP/BETCLOSED (menunggu
+       result — bukan lagi "SEDANG RESULT")
+     * sudah melewati jam result            -> BUKA kembali (putaran
+       berikutnya langsung dibuka — dulu salah tampil TUTUP)
+     * DONE tetap = result sudah diinput; LIBUR = hari libur pasaran.
+   - BETCLOSED CROSSCHECK (panel MANUAL kini panel crosscheck):
+     hitungan mundur manual diinput user -> dibandingkan dengan jam
+     betclosed dari DATABASE JADWAL PASARAN. Cocok (toleransi ±1
+     menit) = badge SESUAI (secure/emerald); beda = badge SELISIH
+     (danger/merah) + besar selisih + arahnya (manual lebih
+     lambat/cepat) — untuk mendeteksi perubahan jadwal.
+   - UI/ANIMASI PREMIUM: tab glow, stagger row/card, pulse chip
+     betclosed, breathing countdown, verdict shake-in, hover lift —
+     tetap satu keluarga tema aura.os (glass dark indigo/cyan).
    v1.2.0 (Task 25):
    - TAB IKUT BERGERAK: setTab() kini sinkron class .active (dulu
      indikator tab mentok di tab lama walau isi sudah pindah) +
@@ -77,13 +94,16 @@
   var MON_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   var MON_FULL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
+  /* v1.4 — status BARU sesuai logika user:
+     buka  = menerima pasang (sebelum betclosed ATAU sudah lewat result)
+     tutup = BETCLOSED — antara jam tutup dan jam result (menunggu result)
+     done  = result sudah diinput (override) */
   var ST_META = {
-    belum:  { label: 'BELUM RESULT', cls: 'hs-st-belum'  },
-    sedang: { label: 'SEDANG RESULT', cls: 'hs-st-sedang' },
-    tutup:  { label: 'TUTUP',        cls: 'hs-st-tutup'  },
-    done:   { label: 'DONE',         cls: 'hs-st-done'   },
-    libur:  { label: 'LIBUR',        cls: 'hs-st-libur'  },
-    khusus: { label: 'KHUSUS',       cls: 'hs-st-libur'  }
+    buka:   { label: 'BUKA',      cls: 'hs-st-buka',  title: 'Buka — menerima pasang' },
+    tutup:  { label: 'BETCLOSED', cls: 'hs-st-tutup', title: 'Betclosed — sudah tutup, menunggu result' },
+    done:   { label: 'DONE',      cls: 'hs-st-done',  title: 'Result sudah diinput' },
+    libur:  { label: 'LIBUR',     cls: 'hs-st-libur', title: 'Hari libur pasaran' },
+    khusus: { label: 'KHUSUS',    cls: 'hs-st-libur', title: 'Jadwal khusus — cek menu Jadwal Pasaran' }
   };
 
   var state = {
@@ -91,7 +111,7 @@
     source: null,         // 'db' | 'local'
     tab: 'status',        // 'status' | 'hasil' | 'shio'
     tanggal: '',          // YYYY-MM-DD WIB utk simpan/tampil result
-    filter: 'all',        // all|belum|sedang|tutup|done|libur
+    filter: 'all',        // all|buka|tutup|done|libur   (v1.4)
     search: '',
     hasil: [],            // rows /api/hasil utk tanggal terpilih
     hasilById: {},        // pasaran_id -> row
@@ -99,10 +119,10 @@
     cek: {},              // { pasaranId: true } utk tanggal terpilih
     cekSource: null,      // 'db' | 'local'
     sel: '',              // pasaran terpilih di tab hasil ('' = semua)
-    bc: {                 // v1.3: tab BETCLOSED
+    bc: {                 // v1.3: tab BETCLOSED — v1.4: + crosscheck
       sel: '',            // pasaran terpilih di tab betclosed ('' = belum)
       input: '',          // teks durasi manual
-      timer: { endAt: 0, leftMs: 0, total: 0, running: false, paused: false, done: false }
+      timer: { endAt: 0, leftMs: 0, total: 0, running: false, paused: false, done: false, dbTarget: 0 }
     },
     dropOpen: false,
     saving: false,
@@ -515,29 +535,42 @@
   function maxPrizeOf(it) { return isP1Group(it) ? 1 : 3; }
 
   /* ============================================================
-     STATUS & COUNTDOWN (engine sama semangatnya dgn pkpasaran-pro)
+     STATUS & COUNTDOWN
      ============================================================ */
-  /* Status pasaran vs waktu WIB sekarang:
-     buka -> 'belum' | antara tutup-result -> 'sedang' | lewat result -> 'tutup'
-     (DONE dihitung terpisah dari data result yang sudah diinput) */
+  /* v1.4 STATUS ENGINE BARU (fix permintaan user "logikanya salah"):
+     - sebelum jam tutup (betclosed)          -> 'buka'  (masih menerima pasang)
+     - antara betclosed s/d jam result        -> 'tutup' (BETCLOSED, menunggu
+       result — window inilah satu-satunya waktu pasaran dianggap tutup)
+     - SUDAH MELEWATI jam result              -> 'buka'  kembali (putaran
+       berikutnya langsung dibuka — dulu salah tampil TUTUP terus)
+     - result yang melewati tengah malam (re < tu) didukung.
+     DONE dihitung terpisah (dari result yang sudah diinput). */
   function statusOf(it, now) {
     var closed = closedDaysOf(it.jadwal) || closedDaysOf(it.tutup);
     if (closed && closed.indexOf(now.day) !== -1) return 'libur';
     var tu = parseHM(it.tutup), re = parseHM(it.result);
     if (tu == null && re == null) return 'khusus';
     if (tu != null && re != null) {
-      if (now.m < tu) return 'belum';
-      if (now.m < re) return 'sedang';
-      return 'tutup';
+      if (re < tu) {
+        /* result lewat tengah malam — window tutup: [tu .. 24:00) + [0 .. re) */
+        if (now.m >= tu || now.m < re) return 'tutup';
+        return 'buka';
+      }
+      if (now.m < tu) return 'buka';    // sebelum betclosed -> BUKA
+      if (now.m < re) return 'tutup';   // betclosed -> result : TUTUP/BETCLOSED
+      return 'buka';                    // lewat jam result -> BUKA lagi
     }
-    if (tu != null) return now.m < tu ? 'belum' : 'sedang';
-    return 'tutup';
+    if (tu != null) return now.m < tu ? 'buka' : 'tutup';
+    return 'buka';   // tanpa jam tutup -> tidak bisa ditentukan window tutup
   }
 
+  /* HOKI DRAW: betclosed tepat :00, result :10.
+     :00–:10 -> 'tutup' (BETCLOSED, menunggu result)
+     :10–:60 -> 'buka'  (result sesi sudah lewat — pasang sesi berikutnya dibuka) */
   function hokiSlotStatus(now) {
-    var re = now.h * 60 + HOKI_OFFSET;
-    if (now.m < re) return 'sedang';      // sesi berjalan: tutup :00 -> result :10
-    return 'tutup';                        // result sesi sudah lewat
+    var mHour = now.m % 60;
+    if (mHour < HOKI_OFFSET) return 'tutup';
+    return 'buka';
   }
 
   /* ms absolut (epoch) result berikutnya utk pasaran ini */
@@ -731,6 +764,8 @@
   var ICON_IMG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
   var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   var ICON_EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+  var ICON_SHIELD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>';
+  var ICON_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 
   /* v1.2 FITUR (permintaan user): icon direct-link situs resmi pasaran.
      Sumber link = field `link` di data pasaran (menu Jadwal Pasaran). */
@@ -934,8 +969,7 @@
      ============================================================ */
   function statusFilterOk(st) {
     if (state.filter === 'all') return true;
-    if (state.filter === 'belum') return st === 'belum';
-    if (state.filter === 'sedang') return st === 'sedang';
+    if (state.filter === 'buka') return st === 'buka';
     if (state.filter === 'tutup') return st === 'tutup';
     if (state.filter === 'done') return st === 'done';
     if (state.filter === 'libur') return st === 'libur' || st === 'khusus';
@@ -950,7 +984,7 @@
   function paintStatusInto(body) {
     var now = wibNow();
     var list = sortedPasaran();
-    var chips = { all: 0, belum: 0, sedang: 0, tutup: 0, done: 0, libur: 0 };
+    var chips = { all: 0, buka: 0, tutup: 0, done: 0, libur: 0 };   /* v1.4 */
     var nextPend = null;   // result berikutnya yg BELUM diinput (v1.1)
     var nextAny = null;    // fallback: result terdekat apa pun
     var isToday = state.tanggal === todayWIB();
@@ -973,7 +1007,7 @@
     }).filter(function (r) { return statusFilterOk(r.st) && matchSearch(r.it); });
 
     var doneCount = chips.done;
-    var belumCount = chips.all - doneCount;
+    var bukaCount = chips.buka;   /* v1.4: stat "Status Buka" realtime */
     var nextShow = nextPend || nextAny;
     var nextLabel = nextShow
       ? '<b class="hs-next-jam">' + hmOfMs(nextShow.at) + '</b> <span class="hs-next-cd">' + fmtCountdown(nextShow.at - now.ms).slice(0, 5) + '</span> &bull; ' + esc(nextShow.nama)
@@ -983,7 +1017,7 @@
     h.push('<div class="hs-stats">');
     h.push('<div class="hs-stat"><div class="hs-stat-k">Total Pasaran Aktif</div><div class="hs-stat-v">' + chips.all + '</div><div class="hs-stat-s">dari menu Jadwal Pasaran</div></div>');
     h.push('<div class="hs-stat"><div class="hs-stat-k">Sudah Done</div><div class="hs-stat-v hs-ok">' + doneCount + '</div><div class="hs-stat-s">result sudah diinput</div></div>');
-    h.push('<div class="hs-stat"><div class="hs-stat-k">Belum Result</div><div class="hs-stat-v hs-warn">' + belumCount + '</div><div class="hs-stat-s">menunggu input result</div></div>');
+    h.push('<div class="hs-stat"><div class="hs-stat-k">Status Buka</div><div class="hs-stat-v hs-bk">' + bukaCount + '</div><div class="hs-stat-s">menerima pasang sekarang</div></div>');
     h.push('<div class="hs-stat"><div class="hs-stat-k">Next Result</div><div class="hs-stat-v hs-v-sm">' + nextLabel + '</div><div class="hs-stat-s">jadwal berikutnya yang belum diinput</div></div>');
     h.push('</div>');
 
@@ -991,7 +1025,7 @@
       '<label class="hs-datewrap">Tanggal Result <input type="date" data-hs-date value="' + esc(state.tanggal) + '"></label>' +
       '<div class="hs-searchbox"><input type="text" data-hs-search placeholder="Cari pasaran&hellip;" value="' + esc(state.search) + '"></div>' +
       '<div class="hs-chips">');
-    var CHIP_DEFS = [['all', 'Semua'], ['belum', 'Belum Result'], ['sedang', 'Sedang Result'], ['tutup', 'Tutup'], ['done', 'Done'], ['libur', 'Libur']];
+    var CHIP_DEFS = [['all', 'Semua'], ['buka', 'Buka'], ['tutup', 'Betclosed'], ['done', 'Done'], ['libur', 'Libur']];   /* v1.4 */
     CHIP_DEFS.forEach(function (cd) {
       h.push('<button type="button" class="hs-chip' + (state.filter === cd[0] ? ' active' : '') + '" data-action="chip" data-filter="' + cd[0] + '">' + cd[1] + ' <b>' + (chips[cd[0]] || 0) + '</b></button>');
     });
@@ -1006,13 +1040,13 @@
       h.push('<tr><td colspan="9" class="hs-empty">' + (state.items.length ? 'Tidak ada pasaran yang cocok dengan filter/pencarian.' : 'Belum ada pasaran — isi dulu di menu Jadwal Pasaran.') + '</td></tr>');
     }
 
-    rows.forEach(function (r) {
+    rows.forEach(function (r, ridx) {
       var it = r.it;
       var hoki = isHokiRow(it);
       var meta = ST_META[r.st] || ST_META.tutup;
       var cd = r.nms != null ? '<span data-cd-ms="' + r.nms + '">' + fmtCountdown(r.nms - now.ms) + '</span>' : '&mdash;';
       var cek = !!state.cek[String(it.id)];
-      h.push('<tr class="hs-tr ' + (cek ? 'hs-trcek' : '') + '" data-cekrow="' + esc(it.id) + '">' +
+      h.push('<tr class="hs-tr ' + (cek ? 'hs-trcek' : '') + '" style="--i:' + Math.min(ridx, 14) + '" data-cekrow="' + esc(it.id) + '">' +
         '<td class="hs-tdname">' + esc(it.nama) + (hoki ? '<span class="hs-td-sub">result 24x sehari</span>' : '') + '</td>' +
         '<td class="hs-tdmut">' + esc(it.jadwal || 'SETIAP HARI') + '</td>' +
         '<td class="hs-tdmut">' + (hoki ? '24x SEHARI' : (esc(hmOnly(it.tutup)) || '&mdash;')) + '</td>' +
@@ -1026,12 +1060,9 @@
     });
     h.push('</tbody></table></div>');
 
-    h.push('<div class="hs-note">Status dihitung realtime vs jam WIB: <b class="hs-c-b">BELUM RESULT</b> = masih buka &middot; <b class="hs-c-a">SEDANG RESULT</b> = sudah tutup, menunggu result &middot; <b class="hs-c-r">TUTUP</b> = result sudah lewat &middot; <b class="hs-c-g">DONE</b> = result sudah diinput. Countdown menghitung waktu menuju result berikutnya &mdash; pasaran libur dihitung ke hari buka berikutnya.</div>');
+    h.push('<div class="hs-note">Status dihitung realtime vs jam WIB (v1.4): <b class="hs-c-g">BUKA</b> = pasaran menerima pasang &mdash; sebelum betclosed <i>atau</i> sudah melewati jam result (putaran berikutnya dibuka) &middot; <b class="hs-c-r">BETCLOSED</b> = antara jam tutup dan jam result, pasang ditutup menunggu result &middot; <b class="hs-c-b">DONE</b> = result sudah diinput &middot; <b class="hs-c-a">LIBUR</b> = hari libur pasaran. Countdown menghitung waktu menuju result berikutnya &mdash; pasaran libur dihitung ke hari buka berikutnya.</div>');
 
     body.innerHTML = h.join('');
-    ST_META.belum.title = 'Masih buka — belum result';
-    ST_META.sedang.title = 'Sudah tutup — sedang menunggu result';
-    ST_META.tutup.title = 'Result sudah lewat — pasaran tutup';
   }
 
   function toggleCek(id, btn) {
@@ -1102,15 +1133,15 @@
       var g3 = cards.filter(function (c) { return groupOf(c.it) === 'p123'; });
       h.push(groupHeadHtml('p1', g1.length));
       h.push('<div class="hs-cards">');
-      g1.forEach(function (c) { h.push(cardHtml(c.it, c.st, now)); });
+      g1.forEach(function (c, ci) { h.push(cardHtml(c.it, c.st, now, ci)); });
       h.push('</div>');
       h.push(groupHeadHtml('p123', g3.length));
       h.push('<div class="hs-cards">');
-      g3.forEach(function (c) { h.push(cardHtml(c.it, c.st, now)); });
+      g3.forEach(function (c, ci) { h.push(cardHtml(c.it, c.st, now, ci)); });
       h.push('</div>');
     } else {
       h.push('<div class="hs-cards">');
-      cards.forEach(function (c) { h.push(cardHtml(c.it, c.st, now)); });
+      cards.forEach(function (c, ci) { h.push(cardHtml(c.it, c.st, now, ci)); });
       h.push('</div>');
     }
     body.innerHTML = h.join('');
@@ -1126,7 +1157,7 @@
     return { row: row, items: items, prize: prize };
   }
 
-  function cardHtml(it, st, now) {
+  function cardHtml(it, st, now, idx) {
     var hoki = isHokiRow(it);
     var meta = ST_META[st] || ST_META.tutup;
     var cd = cardItemsOf(it);
@@ -1135,7 +1166,7 @@
     var lastBy = cd.row && cd.row.updated_by ? esc(cd.row.updated_by) : '';
 
     var h = [];
-    h.push('<article class="hs-card-item' + (p1 ? ' hs-gp1' : '') + '" data-card="' + esc(it.id) + '">');
+    h.push('<article class="hs-card-item' + (p1 ? ' hs-gp1' : '') + '"' + (idx != null ? ' style="--i:' + Math.min(idx, 11) + '"' : '') + ' data-card="' + esc(it.id) + '">');
     h.push('<div class="hs-chead"><div style="min-width:0;"><h3 class="hs-cname">' + esc(it.nama) + '</h3>' +
       '<div class="hs-cmeta"><span class="hs-gchip' + (p1 ? ' p1' : '') + '" title="Grup format: ' + groupLabel(g) + '">' + groupChipLabel(g) + '</span> &bull; ' + (hoki ? 'SETIAP 1 JAM &bull; 24x SEHARI' : (esc(hmOnly(it.result)) || 'JADWAL KHUSUS')) + ' &bull; <span data-prize-label="' + esc(it.id) + '">' + (p1 ? '1 Result' : cd.prize + ' Prize') + '</span></div></div>' +
       '<span class="hs-st ' + meta.cls + '">' + meta.label + '</span></div>');
@@ -1216,7 +1247,11 @@
 
   function pickDrop(id) {
     /* v1.3: dropdown dipakai tab hasil & tab betclosed (state terpisah) */
-    if (state.tab === 'betclosed') state.bc.sel = id || '';
+    if (state.tab === 'betclosed') {
+      /* v1.4: ganti pasaran -> target database crosscheck di-freeze ulang */
+      if (String(state.bc.sel) !== String(id || '')) state.bc.timer.dbTarget = 0;
+      state.bc.sel = id || '';
+    }
     else state.sel = id || '';
     state.dropOpen = false;
     paintBody();
@@ -1469,14 +1504,14 @@
     var bcLabel = hoki ? 'SETIAP JAM :00' : (hmOnly(it.tutup) || hmOnly(it.result) || '\u2014');
     var reLabel = hoki ? 'SETIAP 1 JAM' : (hmOnly(it.result) || '\u2014');
     var nbc = nextBetclosedMs(it, now);
-    var open = false;
-    if (hoki) {
-      open = (now.m % 60) >= HOKI_OFFSET;
-    } else {
-      var tu = parseHM(it.tutup);
-      var closedDays = closedDaysOf(it.jadwal) || closedDaysOf(it.tutup);
-      open = tu != null && now.m < tu && !(closedDays && closedDays.indexOf(now.day) !== -1);
-    }
+    /* v1.4: status otomatis pakai ENGINE BARU — lewat jam result -> BUKA;
+       hanya window betclosed->result yang dianggap BET DITUTUP */
+    var stNow = hoki ? hokiSlotStatus(now) : statusOf(it, now);
+    var stDisp =
+      stNow === 'buka'  ? ['BUKA \u2014 AMAN', 'hs-st-buka'] :
+      stNow === 'libur' ? ['LIBUR', 'hs-st-libur'] :
+      stNow === 'khusus'? ['KHUSUS', 'hs-st-libur'] :
+                          ['BET DITUTUP', 'hs-st-tutup'];
 
     h.push('<div class="hs-bcgrid">');
 
@@ -1489,7 +1524,7 @@
         '<div class="hs-bcrow"><span>Waktu Sekarang</span><b class="hs-bcnow" data-hs-now>' + fmtClock(now) + '</b></div>' +
         '<div class="hs-bcrow"><span>Jam Betclosed</span><b>' + bcLabel + '</b></div>' +
         '<div class="hs-bcrow"><span>Jam Result</span><b>' + reLabel + '</b></div>' +
-        '<div class="hs-bcrow"><span>Status</span><b><span class="hs-st ' + (open ? 'hs-st-belum' : 'hs-st-tutup') + '">' + (open ? 'BUKA \u2014 AMAN' : 'BET DITUTUP') + '</span></b></div>' +
+        '<div class="hs-bcrow"><span>Status</span><b><span class="hs-st ' + stDisp[1] + '">' + stDisp[0] + '</span></b></div>' +
       '</div>' +
       '<div class="hs-bclabel">Countdown ke betclosed berikutnya</div>' +
       '<div class="hs-bcdisplay">' + (nbc != null ? '<span data-cd-ms="' + nbc + '">' + fmtCountdown(nbc - now.ms) + '</span>' : '\u2014') + '</div>' +
@@ -1497,12 +1532,14 @@
       '<div class="hs-bcnote">Jam betclosed &amp; jenis pasaran dibaca dari database jadwal; hari libur pasaran dilewati otomatis.</div>' +
       '</div>');
 
-    /* panel kanan — MANUAL (durasi diinput sendiri) */
+    /* panel kanan — MANUAL CROSSCHECK (v1.4, permintaan user):
+       hitungan mundur manual diinput -> dibandingkan dgn betclosed
+       database jadwal -> badge SESUAI (secure) / SELISIH (danger) */
     var tm = state.bc.timer;
     var manLeft = tm.running ? (tm.endAt - now.ms) : tm.leftMs;
     h.push('<div class="hs-bccard manual">' +
-      '<div class="hs-bck">MANUAL \u2014 HITUNG MUNDUR</div>' +
-      '<div class="hs-bcmeta">Durasi diinput manual \u2014 cocok untuk sesi bet tanpa mengubah jadwal.</div>' +
+      '<div class="hs-bck">MANUAL \u2014 CROSSCHECK BETCLOSED</div>' +
+      '<div class="hs-bcmeta">Hitungan mundur diinput manual, lalu disilangkan dengan jam betclosed dari database jadwal \u2014 deteksi perubahan jadwal dalam sekali lihat.</div>' +
       '<div class="hs-bcinputrow">' +
         '<input class="hs-bcinput" data-bc-manual type="text" placeholder="30 (menit) atau 1:30 (1 jam 30 mnt)" value="' + esc(state.bc.input || '') + '">' +
         '<div class="hs-bcquick">' +
@@ -1516,11 +1553,93 @@
       '</div>' +
       '<div class="hs-bcdisplay manual' + (tm.done ? ' flash' : '') + '"><span data-bc-display>' + fmtCountdown(manLeft) + '</span></div>' +
       '<div class="hs-bctarget" data-bc-status>' + (tm.running ? 'berjalan \u2014 berakhir ' + hmOfMs(tm.endAt) : (tm.done ? 'WAKTU HABIS' : (tm.paused ? 'dijeda \u2014 klik Lanjut untuk meneruskan' : 'isi durasi lalu klik Mulai'))) + '</div>' +
-      '<div class="hs-bcnote">Hitungan mundur manual berjalan realtime; Pause/Reset kapan saja. Tambah durasi cepat dengan chip +m.</div>' +
+      '<div class="hs-bccmp">' +
+        '<div class="hs-bcrow"><span>Target Manual</span><b data-bc-man-target>\u2014</b></div>' +
+        '<div class="hs-bcrow"><span>Betclosed Database</span><b data-bc-db-target>\u2014</b></div>' +
+        '<div class="hs-bcrow"><span>Countdown Database</span><b data-bc-dbcd>\u2014</b></div>' +
+      '</div>' +
+      '<div data-bc-verdictwrap data-sig="init"></div>' +
+      '<div class="hs-bcnote">Crosscheck: hitungan manual cocok dengan betclosed database (toleransi \u00b11 menit) \u2192 badge <b class="hs-c-g">SESUAI</b>; bila beda \u2192 badge <b class="hs-c-r">SELISIH</b> + besar &amp; arah selisihnya \u2014 indikasi jadwal pasaran berubah. Pause/Reset kapan saja; chip +m menambah durasi cepat.</div>' +
       '</div>');
 
     h.push('</div>');
     body.innerHTML = h.join('');
+    paintBcTargets(now);   /* v1.4: isi target + verdict pertama */
+  }
+
+  /* ============================================================
+     v1.4 — CROSSCHECK BETCLOSED (manual vs database jadwal)
+     Hitungan mundur manual di-input user, lalu dibandingkan dengan
+     jam betclosed pasaran dari DATABASE JADWAL. Sesuai (±1 menit)
+     = badge SESUAI (secure); beda = badge SELISIH (danger) + besar
+     & arah selisih — untuk mendeteksi perubahan jadwal.
+     ============================================================ */
+  var BC_TOL_MS = 60000;   /* toleransi "sesuai": ±1 menit */
+
+  function bcSelItem() {
+    var sel = state.bc.sel;
+    if (!sel) return null;
+    var items = dropItems();
+    for (var i = 0; i < items.length; i++) if (String(items[i].id) === String(sel)) return items[i];
+    return null;
+  }
+
+  function fmtDelta(ms) {
+    var sign = ms >= 0 ? '+' : '\u2212';
+    var tot = Math.floor(Math.abs(ms) / 1000);
+    var h = Math.floor(tot / 3600), m = Math.floor((tot % 3600) / 60), s = tot % 60;
+    return sign + pad2(h) + ':' + pad2(m) + ':' + pad2(s);
+  }
+
+  function bcVerdictData(now) {
+    var tm = state.bc.timer;
+    var armed = tm.running || tm.done || tm.endAt > 0;
+    if (!armed) return { kind: 'idle' };
+    var it = bcSelItem();
+    if (!it) return { kind: 'nopasaran' };
+    /* freeze target betclosed database (saat timer mulai / pertama tampil) */
+    if (!tm.dbTarget) tm.dbTarget = nextBetclosedMs(it, now) || 0;
+    if (!tm.dbTarget) return { kind: 'noread' };
+    var diff = tm.endAt - tm.dbTarget;   /* >0 = manual berakhir lebih lambat dari betclosed db */
+    return { kind: (Math.abs(diff) <= BC_TOL_MS) ? 'ok' : 'diff', diff: diff, db: tm.dbTarget };
+  }
+
+  function bcVerdictHtml(d) {
+    if (!d || d.kind === 'idle') return '<div class="hs-bcverdict idle" data-bc-verdict>ISI DURASI LALU MULAI UNTUK CROSSCHECK</div>';
+    if (d.kind === 'nopasaran') return '<div class="hs-bcverdict idle" data-bc-verdict>PILIH PASARAN DULU</div>';
+    if (d.kind === 'noread') return '<div class="hs-bcverdict danger" data-bc-verdict>' + ICON_WARN + ' JADWAL BETCLOSED TIDAK TERBACA</div>';
+    if (d.kind === 'ok') return '<div class="hs-bcverdict secure" data-bc-verdict>' + ICON_SHIELD + ' SESUAI<span class="hs-bcvs">hitungan manual = betclosed database (toleransi \u00b11 menit)</span></div>';
+    return '<div class="hs-bcverdict danger" data-bc-verdict>' + ICON_WARN + ' SELISIH ' + fmtDelta(d.diff) + '<span class="hs-bcvs">' + (d.diff > 0 ? 'manual lebih LAMBAT dari database' : 'manual lebih CEPAT dari database') + ' \u2014 indikasi perubahan jadwal</span></div>';
+  }
+
+  /* update ringan panel crosscheck per detik — TANPA repaint penuh
+     (fokus input manual & animasi verdict tidak terganggu) */
+  function paintBcTargets(now) {
+    var v = container(); if (!v || state.tab !== 'betclosed') return;
+    var tm = state.bc.timer;
+    var it = bcSelItem();
+    var db = tm.dbTarget || (it ? nextBetclosedMs(it, now) : null);
+    var man = q('[data-bc-man-target]', v);
+    var dbt = q('[data-bc-db-target]', v);
+    var dbc = q('[data-bc-dbcd]', v);
+    if (man) man.textContent = tm.endAt > 0 ? hmOfMs(tm.endAt) : '\u2014';
+    if (dbt) dbt.textContent = db != null ? hmOfMs(db) : '\u2014';
+    if (dbc) {
+      if (db == null) dbc.textContent = '\u2014';
+      else {
+        var left = db - now.ms;
+        dbc.textContent = left >= 0 ? fmtCountdown(left) : ('LEWAT ' + fmtCountdown(-left));
+      }
+    }
+    var vw = q('[data-bc-verdictwrap]', v);
+    if (vw) {
+      var d = bcVerdictData(now);
+      var sig = d.kind + ':' + (d.kind === 'diff' ? fmtDelta(d.diff) : '');
+      if (vw.getAttribute('data-sig') !== sig) {
+        vw.setAttribute('data-sig', sig);
+        vw.innerHTML = bcVerdictHtml(d);
+      }
+    }
   }
 
   /* --- kontrol timer hitung mundur manual (v1.3) --- */
@@ -1546,8 +1665,11 @@
     tm.endAt = Date.now() + ms;
     tm.total = ms;
     tm.running = true; tm.paused = false; tm.done = false;
+    /* v1.4: freeze target betclosed database SAAT timer mulai -> verdict stabil */
+    var it = bcSelItem();
+    if (it && !tm.dbTarget) tm.dbTarget = nextBetclosedMs(it, wibNow()) || 0;
     paintBody();
-    toast('Hitung mundur manual dimulai', 'success');
+    toast('Hitung mundur manual dimulai \u2014 crosscheck vs betclosed database aktif', 'success');
   }
 
   function bcPause() {
@@ -1559,7 +1681,7 @@
   }
 
   function bcReset() {
-    state.bc.timer = { endAt: 0, leftMs: 0, total: 0, running: false, paused: false, done: false };
+    state.bc.timer = { endAt: 0, leftMs: 0, total: 0, running: false, paused: false, done: false, dbTarget: 0 };
     state.bc.input = '';
     paintBody();
   }
@@ -1942,6 +2064,7 @@
     if (bcD) bcD.textContent = fmtCountdown(tm.running ? (tm.endAt - now.ms) : tm.leftMs);
     /* v1.3: target betclosed otomatis terlewati -> hitung ulang target */
     if (state.tab === 'betclosed') {
+      paintBcTargets(now);   /* v1.4: countdown db + target + verdict live */
       var el0 = v.querySelector('[data-cd-ms]');
       if (el0 && now.ms > parseInt(el0.getAttribute('data-cd-ms'), 10)) paintBody();
     }
@@ -1976,6 +2099,8 @@
     state: state,
     buildCopy: buildCopy,
     ensureShioData: ensureShioData,
+    /* v1.4 helper test/E2E: nextBetclosedMs dr epoch ms bebas */
+    _bcTestNext: function (it, ms) { var p = wibParts(ms); p.ms = ms; return nextBetclosedMs(it, p); },
     parseShioText: function (t) { return ensureShioData().then(function () { return window.ShioData.parseText(t); }); }
   };
 })();
