@@ -112,6 +112,7 @@
       { cat: 'workspace', color: 'blue',   icon: 'fa-building-columns',  name: 'Bank Processor', desc: 'Formatter & validator rekening bank',  badge: 'live',  badgeText: 'v2.0.0',   access: 'bank_processor',    href: '/Bank.html' },
       // OPERATIONAL
       { cat: 'operational', color: 'orange', icon: 'fa-money-bill-trend-up', name: 'Saldo Pencairan', desc: 'Monitor rekening & pencairan saldo', badge: 'live',    badgeText: 'v1.0.0',   access: 'saldo_pencairan',   action: 'loadPencairan' },
+      { cat: 'operational', color: 'green',  icon: 'fa-wallet',              name: 'Saldo QRIS',      desc: 'Saldo QRIS 4 provider + kalkulator saldo bersih', badge: 'live', badgeText: 'v1.0.0', access: 'saldo_qris', action: 'loadSaldoQris' },
       { cat: 'operational', color: 'pink',   icon: 'fa-magnifying-glass-chart', name: 'P2M Analyzer', desc: 'P2M vs Zonamain vs Report analysis',  badge: 'live',    badgeText: 'v2.0.0',   access: 'p2m_analyzer',      action: 'analyzer' },
       { cat: 'operational', color: 'purple', icon: 'fa-satellite-dish',  name: 'XPAY Analyzer',      desc: 'XPAY transaction analyzer engine',     badge: 'live',       badgeText: 'v2.0.0',   access: 'xpay_analyzer',     action: 'xpayChecker' },
       { cat: 'operational', color: 'orange', icon: 'fa-file-invoice-dollar', name: 'XPAY Settlement', desc: 'XPAY settlement reconciliation',     badge: 'live',    badgeText: 'v2.0.0',   access: 'xpay_settlement',   action: 'xpayFull' },
@@ -180,6 +181,7 @@
     triggerAction: function (action) {
       var map = {
         loadPencairan:            'switchToPencairan',
+        loadSaldoQris:            'switchToSaldoQris',
         analyzer:                 'switchToAnalyzer',
         xpayChecker:              'switchToXpayChecker',
         xpayFull:                 'switchToXpayFull',

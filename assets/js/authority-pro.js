@@ -17,7 +17,7 @@
        core, workspace, operational, system,
        user_management, registration_control,
        dashboard, profil, banking_tools, rek_validator,
-       bank_processor, saldo_pencairan, qris_tools,
+       bank_processor, saldo_pencairan, saldo_qris, qris_tools,
        p2m_analyzer, xpay_analyzer, xpay_settlement,
        settlement_checker, mnpay_analyzer,
        prediction_tools, syair_database, ai_prediction,
@@ -70,6 +70,7 @@
       desc: 'Operasional harian, QRIS, prediksi & event',
       items: [
         { key: 'saldo_pencairan',  label: 'Saldo Pencairan',  icon: 'fa-layer-group' },
+        { key: 'saldo_qris',       label: 'Saldo QRIS',       icon: 'fa-wallet' },
         { key: 'qris_tools',       label: 'QRIS Tools',       icon: 'fa-qrcode', children: [
           { key: 'p2m_analyzer',       label: 'P2M Analyzer',       icon: 'fa-magnifying-glass-chart' },
           { key: 'xpay_analyzer',      label: 'XPAY Analyzer',      icon: 'fa-satellite-dish' },
@@ -82,6 +83,7 @@
           { key: 'ai_prediction',   label: 'AI Prediction',   icon: 'fa-brain' },
           { key: 'gas_slot_engine', label: 'Gas Slot Engine', icon: 'fa-fire-flame-curved' }
         ] },
+        { key: 'hasil_result',     label: 'Hasil Result',     icon: 'fa-trophy' },
         { key: 'event_tools',      label: 'Event Tools',      icon: 'fa-calendar-days', children: [
           { key: 'my_event',      label: 'My Event',      icon: 'fa-calendar-day' },
           { key: 'history_event', label: 'History Event', icon: 'fa-clock-rotate-left' },
