@@ -1,7 +1,22 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.JS v1.6.0
+   AURA.OS // HASIL-PRO.JS v1.7.0
    Modul Hasil Result (Pro) — di bawah menu Prediction Tools.
    ============================================================
+   v1.7.0 (Task 31 — checklist status: shift + berita + tabel tegas):
+   - FILTER SHIFT DI CHECKLIST STATUS: toggle Semua/Pagi/Malam kini
+     juga ada di toolbar tab status — baris tabel, chip counter &
+     stat card dihitung dari scope shift aktif (pagi 07:45-19:45 /
+     malam 19:45-07:45 H+1); tag shift tampil di tiap baris.
+   - BERITA PASARAN TERPILIH DI STATUS: dropdown pilih pasaran
+     (bergrup shift) + KLIK BARIS TABEL = pilih -> tampil ticker
+     berita berjalan + panel INFO PASARAN premium (jam tutup/result,
+     countdown result & betclosed berikutnya LIVE per detik, shift,
+     situs resmi, status result hari ini). Klik baris yang sama /
+     tombol × utk hapus pilihan; klik ceklis/link situs tidak
+     mengubah pilihan.
+   - TABEL LEBIH TEGAS: header gradient + garis aksen, zebra rows,
+     hover inset accent, baris terpilih menyala, chip status lebih
+     tegas — lihat hasil-pro.css v1.6.0.
    v1.6.0 (Task 30 — shift pasaran + berita berjalan + guard 5D):
    - TOGGLE SHIFT PASARAN (permintaan user): pasaran dibagi 2 shift
      dari JAM RESULT — SHIFT PAGI 07:45-19:45 & SHIFT MALAM
@@ -168,6 +183,7 @@
     dropUp: false,        // v1.4.1: dropdown buka ke atas bila ruang bawah sempit
     dropMax: 0,           // v1.4.1: max-height list di-clamp ke ruang viewport (0 = default 320)
     shift: 'all',         // v1.6: 'all' | 'pagi' | 'malam' — filter shift pasaran
+    statSel: '',          // v1.7: pasaran terpilih di tab Checklist Status (berita + info panel)
     saving: false,
     loaded: false,
     loading: false,
@@ -991,6 +1007,12 @@
       else if (act === 'refresh') refreshAll(true);
       else if (act === 'chip') { state.filter = t.getAttribute('data-filter') || 'all'; paintBody(); }
       else if (act === 'cek') toggleCek(t.getAttribute('data-id'), t);
+      /* v1.7: klik baris tabel status = pilih pasaran (berita + info panel).
+         Klik link situs di dalam baris TIDAK mengubah pilihan. */
+      else if (act === 'statrow') {
+        if (!(e.target && e.target.closest && e.target.closest('a'))) pickStat(t.getAttribute('data-id'));
+      }
+      else if (act === 'statclear') { state.statSel = ''; paintBody(); }
       else if (act === 'drop') toggleDrop();
       else if (act === 'dropitem') pickDrop(t.getAttribute('data-id'));
       else if (act === 'shift') setShift(t.getAttribute('data-shift'));   /* v1.6 */
@@ -1154,7 +1176,7 @@
     else if (state.tab === 'hasil') paintHasilInto(body, zb);
     else paintBody();
   }
-  function paintDrop() { if (state.tab === 'hasil' || state.tab === 'betclosed') paintBody(); }
+  function paintDrop() { if (state.tab === 'hasil' || state.tab === 'betclosed' || state.tab === 'status') paintBody(); }
 
   /* ============================================================
      TAB 1+2 — CHECKLIST STATUS & HITUNG WAKTU TUTUP (satu tabel)
@@ -1194,7 +1216,12 @@
     var nextAny = null;    // fallback: result terdekat apa pun
     var isToday = state.tanggal === todayWIB();
 
-    var rows = list.map(function (it) {
+    /* v1.7: FILTER SHIFT juga berlaku di Checklist Status — chips,
+       stats & baris hanya menghitung pasaran dalam scope shift aktif
+       (pagi 07:45-19:45 / malam 19:45-07:45 H+1; pasaran 'both' selalu
+       ikut). Stats & chips = seluruh scope; baris = scope+filter+search. */
+    list.forEach(function (it) {
+      if (!shiftOk(it)) return;
       var st = chipOf(it, now);
       chips.all++;
       chips[st === 'khusus' ? 'libur' : st]++;
@@ -1208,8 +1235,11 @@
           nextPend = { at: nms, nama: it.nama };
         }
       }
-      return { it: it, st: st, nms: nms };
-    }).filter(function (r) { return statusFilterOk(r.st) && matchSearch(r.it); });
+    });
+
+    var rows = list.map(function (it) {
+      return { it: it, st: chipOf(it, now), nms: nextResultMs(it, now) };
+    }).filter(function (r) { return shiftOk(r.it) && statusFilterOk(r.st) && matchSearch(r.it); });
 
     var doneCount = chips.done;
     var bukaCount = chips.buka;   /* v1.4: stat "Status Buka" realtime */
@@ -1217,19 +1247,47 @@
     var nextLabel = nextShow
       ? '<b class="hs-next-jam">' + hmOfMs(nextShow.at) + '</b> <span class="hs-next-cd">' + fmtCountdown(nextShow.at - now.ms).slice(0, 5) + '</span> &bull; ' + esc(nextShow.nama)
       : '&mdash;';
+    /* v1.7: sub-label stat Total menunjukkan scope shift aktif */
+    var scopeSub = state.shift === 'all' ? 'dari menu Jadwal Pasaran' : SHIFT_LABEL[state.shift];
 
     var h = [];
     h.push('<div class="hs-stats">');
-    h.push('<div class="hs-stat"><div class="hs-stat-k">Total Pasaran Aktif</div><div class="hs-stat-v">' + chips.all + '</div><div class="hs-stat-s">dari menu Jadwal Pasaran</div></div>');
+    h.push('<div class="hs-stat"><div class="hs-stat-k">Total Pasaran Aktif</div><div class="hs-stat-v">' + chips.all + '</div><div class="hs-stat-s">' + esc(scopeSub) + '</div></div>');
     h.push('<div class="hs-stat"><div class="hs-stat-k">Sudah Done</div><div class="hs-stat-v hs-ok">' + doneCount + '</div><div class="hs-stat-s">result sudah diinput</div></div>');
     h.push('<div class="hs-stat"><div class="hs-stat-k">Status Buka</div><div class="hs-stat-v hs-bk">' + bukaCount + '</div><div class="hs-stat-s">menerima pasang sekarang</div></div>');
     h.push('<div class="hs-stat"><div class="hs-stat-k">Next Result</div><div class="hs-stat-v hs-v-sm">' + nextLabel + '</div><div class="hs-stat-s">jadwal berikutnya yang belum diinput</div></div>');
     h.push('</div>');
 
+    /* v1.7: toolbar status kini lengkap — dropdown pilih pasaran (bergrup
+       shift, sumber berita/info panel) + toggle shift + chips ter-scope.
+       shiftseg & chips diletakkan di SUBBAR terpisah agar rapi. */
+    var selName = '\u2014 Pilih Pasaran \u2014';
+    if (state.statSel) {
+      var sIt = null;
+      list.forEach(function (x) { if (String(x.id) === String(state.statSel)) sIt = x; });
+      if (sIt) selName = sIt.nama;
+    }
     h.push('<div class="hs-toolbar">' +
       '<label class="hs-datewrap">Tanggal Result <input type="date" data-hs-date value="' + esc(state.tanggal) + '"></label>' +
+      '<div class="hs-dd" data-hs-ddwrap>' +
+        '<button type="button" class="hs-ddbtn" data-action="drop" title="Pilih pasaran untuk berita & info detail"><span class="hs-ddlabel">' + esc(selName) + '</span><span class="hs-ddchev">' + ICON_CHEV + '</span></button>' +
+        '<div class="hs-ddlist' + (state.dropOpen ? ' open' : '') + (state.dropUp ? ' up' : '') + '"' + (state.dropMax ? ' style="max-height:' + state.dropMax + 'px"' : '') + '>');
+    h.push('<button type="button" class="hs-dditem' + (!state.statSel ? ' active' : '') + '" data-action="dropitem" data-id="">\u2014 Pilih Pasaran \u2014</button>');
+    var gr = dropItemsGrouped();
+    function ddBtnSt(x) {
+      h.push('<button type="button" class="hs-dditem' + (String(state.statSel) === String(x.id) ? ' active' : '') + '" data-action="dropitem" data-id="' + esc(x.id) + '">' + esc(x.nama) + '</button>');
+    }
+    if (state.shift === 'all') {
+      if (gr.pagi.length) { h.push(ddShiftHead('pagi')); gr.pagi.forEach(ddBtnSt); }
+      if (gr.malam.length) { h.push(ddShiftHead('malam')); gr.malam.forEach(ddBtnSt); }
+    } else {
+      var listS = state.shift === 'pagi' ? gr.pagi : gr.malam;
+      if (listS.length) { h.push(ddShiftHead(state.shift)); listS.forEach(ddBtnSt); }
+    }
+    h.push('</div></div>' +
       '<div class="hs-searchbox"><input type="text" data-hs-search placeholder="Cari pasaran&hellip;" value="' + esc(state.search) + '"></div>' +
-      '<div class="hs-chips">');
+      '</div>');
+    h.push('<div class="hs-subbar">' + shiftSegHtml() + '<div class="hs-chips">');
     var CHIP_DEFS = [['all', 'Semua'], ['buka', 'Buka'], ['tutup', 'Betclosed'], ['done', 'Done'], ['libur', 'Libur']];   /* v1.4 */
     CHIP_DEFS.forEach(function (cd) {
       h.push('<button type="button" class="hs-chip' + (state.filter === cd[0] ? ' active' : '') + '" data-action="chip" data-filter="' + cd[0] + '">' + cd[1] + ' <b>' + (chips[cd[0]] || 0) + '</b></button>');
@@ -1240,7 +1298,14 @@
     /* v1.5: hasil (tabel+note) masuk zona terpisah — ketikan di kolom cari
        hanya repaint zona ini, toolbar & stats tidak disentuh (fokus aman) */
     var hb = [];
-    hb.push('<div class="hs-tablewrap"><table class="hs-table"><thead><tr>' +
+    /* v1.7: BERITA PASARAN TERPILIH — ticker + panel INFO PASARAN tampil
+       saat pasaran dipilih (dropdown / klik baris), di atas tabel */
+    if (state.statSel) {
+      var selIt2 = null;
+      list.forEach(function (x) { if (String(x.id) === String(state.statSel)) selIt2 = x; });
+      if (selIt2) { hb.push(tickerHtml(selIt2)); hb.push(infoPanelHtml(selIt2, now)); }
+    }
+    hb.push('<div class="hs-tablewrap"><table class="hs-table hs-click"><thead><tr>' +
       '<th>Pasaran</th><th>Jadwal</th><th>Jam Tutup</th><th>Waktu Sekarang</th><th>Jam Result</th><th>Countdown Result</th><th>Status</th><th class="hs-th-web" title="Link situs resmi pasaran (dari Jadwal Pasaran)">Situs</th><th class="hs-th-cek" title="Centang bila result pasaran ini sudah dicek">Ceklis</th>' +
       '</tr></thead><tbody>');
 
@@ -1254,8 +1319,11 @@
       var meta = ST_META[r.st] || ST_META.tutup;
       var cd = r.nms != null ? '<span data-cd-ms="' + r.nms + '">' + fmtCountdown(r.nms - now.ms) + '</span>' : '&mdash;';
       var cek = !!state.cek[String(it.id)];
-      hb.push('<tr class="hs-tr ' + (cek ? 'hs-trcek' : '') + '" style="--i:' + Math.min(ridx, 14) + '" data-cekrow="' + esc(it.id) + '">' +
-        '<td class="hs-tdname">' + esc(it.nama) + (hoki ? '<span class="hs-td-sub">result 24x sehari</span>' : '') + '</td>' +
+      var selCls = String(state.statSel) === String(it.id) ? ' hs-trsel' : '';   /* v1.7 */
+      var sh = shiftOf(it);   /* v1.7: tag shift per baris */
+      var shTag = '<span class="hs-shifttag ' + (sh === 'pagi' ? 'pagi' : (sh === 'malam' ? 'malam' : 'both')) + '" title="' + esc(SHIFT_LABEL[sh === 'both' ? 'pagi' : sh] || '') + (sh === 'both' ? ' + ' + esc(SHIFT_LABEL.malam) : '') + '">' + (sh === 'pagi' ? 'PAGI' : (sh === 'malam' ? 'MALAM' : 'PAGI+MALAM')) + '</span>';
+      hb.push('<tr class="hs-tr' + selCls + (cek ? ' hs-trcek' : '') + '" style="--i:' + Math.min(ridx, 14) + '" data-cekrow="' + esc(it.id) + '" data-action="statrow" data-id="' + esc(it.id) + '" title="Klik baris untuk berita & info pasaran">' +
+        '<td class="hs-tdname"><span class="hs-tdnxt">' + esc(it.nama) + '</span>' + shTag + (hoki ? '<span class="hs-td-sub">result 24x sehari</span>' : '') + '</td>' +
         '<td class="hs-tdmut">' + esc(it.jadwal || 'SETIAP HARI') + '</td>' +
         '<td class="hs-tdmut">' + (hoki ? '24x SEHARI' : (esc(hmOnly(it.tutup)) || '&mdash;')) + '</td>' +
         '<td class="hs-tdnow" data-hs-now>' + fmtClock(now) + '</td>' +
@@ -1268,11 +1336,78 @@
     });
     hb.push('</tbody></table></div>');
 
-    hb.push('<div class="hs-note">Status dihitung realtime vs jam WIB (v1.4): <b class="hs-c-g">BUKA</b> = pasaran menerima pasang &mdash; sebelum betclosed <i>atau</i> sudah melewati jam result (putaran berikutnya dibuka) &middot; <b class="hs-c-r">BETCLOSED</b> = antara jam tutup dan jam result, pasang ditutup menunggu result &middot; <b class="hs-c-b">DONE</b> = result sudah diinput &middot; <b class="hs-c-a">LIBUR</b> = hari libur pasaran. Countdown menghitung waktu menuju result berikutnya &mdash; pasaran libur dihitung ke hari buka berikutnya.</div>');
+    hb.push('<div class="hs-note">Status dihitung realtime vs jam WIB (v1.4): <b class="hs-c-g">BUKA</b> = pasaran menerima pasang &mdash; sebelum betclosed <i>atau</i> sudah melewati jam result (putaran berikutnya dibuka) &middot; <b class="hs-c-r">BETCLOSED</b> = antara jam tutup dan jam result, pasang ditutup menunggu result &middot; <b class="hs-c-b">DONE</b> = result sudah diinput &middot; <b class="hs-c-a">LIBUR</b> = hari libur pasaran. Countdown menghitung waktu menuju result berikutnya &mdash; pasaran libur dihitung ke hari buka berikutnya. <b class="hs-c-b">Klik baris pasaran</b> untuk melihat berita &amp; informasi detail pasaran tersebut.</div>');
 
     /* v1.5: mode search-only — isi zona hasil saja (zb), stats+toolbar utuh */
     if (zb) { zb.innerHTML = hb.join(''); return; }
     body.innerHTML = '<div data-hs="zonea">' + h.join('') + '</div><div data-hs="zoneb">' + hb.join('') + '</div>';
+  }
+
+  /* ============================================================
+     v1.7 — PANEL INFO PASARAN TERPILIH (tab Checklist Status)
+     Tampil bersama ticker berita saat pasaran dipilih (dropdown /
+     klik baris). Isi: status live, jenis, jam betclosed & result,
+     countdown result & betclosed berikutnya (LIVE per detik via
+     data-cd-ms — di-update tick() yang sudah ada), shift, situs
+     resmi, status result hari ini. Animasi slide-in + stagger tile.
+     ============================================================ */
+  function infoPanelHtml(it, now) {
+    var hoki = isHokiRow(it);
+    var st = chipOf(it, now);
+    var meta = ST_META[st] || ST_META.tutup;
+    var sh = shiftOf(it);
+    var shTxt = sh === 'pagi' ? 'SHIFT PAGI (07:45\u201319:45)'
+      : sh === 'malam' ? 'SHIFT MALAM (19:45\u201307:45 H+1)'
+      : 'PAGI (07:45\u201319:45) & MALAM (19:45\u201307:45 H+1)';
+    var nre = nextResultMs(it, now);
+    var nbc = nextBetclosedMs(it, now);
+    var isToday = state.tanggal === todayWIB();
+    var doneRow = state.hasilById[String(it.id)];
+    var doneToday = isToday && doneRow && Array.isArray(doneRow.items) && doneRow.items.length;
+
+    function tile(k, v, extra) {
+      return '<div class="hs-iptile' + (extra ? ' ' + extra : '') + '">' +
+        '<div class="hs-iptilek">' + k + '</div>' +
+        '<div class="hs-iptilev">' + v + '</div></div>';
+    }
+
+    var h = [];
+    h.push('<div class="hs-infopanel" data-hs="infopanel">');
+    h.push('<div class="hs-ipglow"></div>');
+    h.push('<div class="hs-iphead">' +
+      '<div style="min-width:0;">' +
+        '<div class="hs-iptag">' + ICON_BULLHORN + 'INFO PASARAN TERPILIH</div>' +
+        '<h3 class="hs-ipname">' + esc(it.nama) + '</h3>' +
+        '<div class="hs-ipchips">' +
+          '<span class="hs-st ' + meta.cls + '" title="' + meta.title + '">' + meta.label + '</span>' +
+          '<span class="hs-shifttag ' + (sh === 'pagi' ? 'pagi' : (sh === 'malam' ? 'malam' : 'both')) + '">' + (sh === 'pagi' ? 'SHIFT PAGI' : (sh === 'malam' ? 'SHIFT MALAM' : 'PAGI+MALAM')) + '</span>' +
+          '<span class="hs-gchip' + (isP1Group(it) ? ' p1' : '') + '">' + groupChipLabel(groupOf(it)) + '</span>' +
+          (doneToday ? '<span class="hs-st hs-st-done">RESULT HARI INI: DONE</span>' : '<span class="hs-st hs-st-belum">RESULT HARI INI: BELUM</span>') +
+        '</div>' +
+      '</div>' +
+      '<button type="button" class="hs-ipclose" data-action="statclear" title="Hapus pilihan pasaran" aria-label="Hapus pilihan pasaran">&times;</button>' +
+      '</div>');
+
+    h.push('<div class="hs-ipgrid">');
+    h.push(tile('JENIS PASARAN', esc(it.jadwal || 'SETIAP HARI') + (hoki ? ' &bull; result 24x sehari' : '')));
+    h.push(tile('JAM BETCLOSED', hoki ? 'SETIAP JAM :00' : (esc(hmOnly(it.tutup)) || '\u2014'), 'mono'));
+    h.push(tile('JAM RESULT', hoki ? 'SETIAP 1 JAM (:10)' : (esc(hmOnly(it.result)) || '\u2014'), 'mono'));
+    h.push(tile('RESULT BERIKUTNYA', nre != null ? '<b class="hs-ipcd">' + hmOfMs(nre) + '</b> <span class="hs-iptick" data-cd-ms="' + nre + '">' + fmtCountdown(nre - now.ms) + '</span>' : '\u2014', 'cd'));
+    h.push(tile('BETCLOSED BERIKUTNYA', nbc != null ? '<b class="hs-ipcd">' + hmOfMs(nbc) + '</b> <span class="hs-iptick" data-cd-ms="' + nbc + '">' + fmtCountdown(nbc - now.ms) + '</span>' : '\u2014', 'cd'));
+    h.push(tile('SHIFT', shTxt));
+    var link = String(it.link || '').trim();
+    if (link && link !== '#') {
+      var href = /^https?:\/\//i.test(link) ? link : 'https://' + link;
+      h.push(tile('SITUS RESMI', '<a class="hs-iplink" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + ICON_EXT + esc(String(link).replace(/^https?:\/\//i, '')) + '</a>'));
+    } else {
+      h.push(tile('SITUS RESMI', '<span class="hs-web-none">\u2014 tidak tercatat \u2014</span>'));
+    }
+    h.push(tile('STATUS SAAT INI', '<span class="hs-st ' + meta.cls + '">' + meta.label + '</span> <span class="hs-ipsttxt">' + (st === 'buka' ? 'menerima pasang' : st === 'tutup' ? 'menunggu result' : st === 'done' ? 'sudah diinput' : 'hari libur pasaran') + '</span>'));
+    h.push('</div>');
+
+    h.push('<div class="hs-ipfoot">Berita berjalan di atas &amp; panel ini mengikuti pasaran terpilih \u2014 klik baris lain di tabel atau pilih dari dropdown untuk mengganti, klik <b>&times;</b> untuk menutup.</div>');
+    h.push('</div>');
+    return h.join('');
   }
 
   function toggleCek(id, btn) {
@@ -1504,15 +1639,33 @@
   }
 
   function pickDrop(id) {
-    /* v1.3: dropdown dipakai tab hasil & tab betclosed (state terpisah) */
+    /* v1.3: dropdown dipakai tab hasil & tab betclosed (state terpisah);
+       v1.7: + tab status (state.statSel utk berita & info panel) */
     if (state.tab === 'betclosed') {
       /* v1.4: ganti pasaran -> target database crosscheck di-freeze ulang */
       if (String(state.bc.sel) !== String(id || '')) state.bc.timer.dbTarget = 0;
       state.bc.sel = id || '';
     }
+    else if (state.tab === 'status') state.statSel = id || '';
     else state.sel = id || '';
     state.dropOpen = false;
     paintBody();
+  }
+
+  /* v1.7: pilih pasaran dr KLIK BARIS tabel status (toggle: klik baris
+     yg sama = batal). Panel info di-scroll ke pandangan secara halus. */
+  function pickStat(id) {
+    var k = String(id || '');
+    state.statSel = (state.statSel === k) ? '' : k;
+    paintBody();
+    if (state.statSel) {
+      var v = container();
+      var pn = v ? v.querySelector('[data-hs="infopanel"]') : null;
+      if (pn && pn.scrollIntoView) {
+        try { pn.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+        catch (e) { try { pn.scrollIntoView(false); } catch (e2) {} }
+      }
+    }
   }
 
   function cyclePrize(id) {
