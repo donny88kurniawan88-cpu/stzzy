@@ -1661,12 +1661,21 @@ export default {
       }
     }
 
-    /* Normalisasi item result: hanya angka, maksimal 4 digit, urut per nomor */
-    function normHasilItems(items) {
+    /* Normalisasi item result: hanya angka, maks digit ikut pasaran (4D default, ND utk nama ...ND), urut per nomor */
+    // v1.5 (Task 29): batas digit per pasaran — nama dgn penanda ND
+    // (mis. TOTOMACAU 5D SORE / TOTO MACAU 5D MALAM) mengeluarkan N angka;
+    // pasaran lain tetap 4 angka. Pola generik: /\d\s*D/ (3D..6D).
+    function digitMaxOfName(nama) {
+      const m = String(nama || '').toUpperCase().match(/(\d)\s*D/);
+      const d = m ? parseInt(m[1], 10) : 0;
+      return (d >= 3 && d <= 6) ? d : 4;
+    }
+    function normHasilItems(items, nama) {
+      const dmax = digitMaxOfName(nama);
       const out = [];
       if (Array.isArray(items)) {
         items.forEach((it, i) => {
-          const val = String((it && it.val) != null ? it.val : '').replace(/\D/g, '').slice(0, 4);
+          const val = String((it && it.val) != null ? it.val : '').replace(/\D/g, '').slice(0, dmax);
           if (!val) return;
           const n = parseInt(it && it.n, 10);
           out.push({ n: (n >= 1 && n <= 9) ? n : (i + 1), val });
@@ -1714,7 +1723,7 @@ export default {
           return Response.json({ success: false, error: 'Data tidak lengkap (pasaran_id, pasaran_nama, tanggal YYYY-MM-DD)' }, { status: 400 });
         }
         const prize = Math.min(3, Math.max(1, parseInt(body.prize, 10) || 1));
-        const items = normHasilItems(body.items);
+        const items = normHasilItems(body.items, nama);   /* v1.5: limit digit ikut nama pasaran */
         const by = request.headers.get('x-auth-token');
         const ex = await env.DB.prepare("SELECT id FROM hasil_result WHERE pasaran_id = ? AND tanggal = ?").bind(pid, tgl).first();
         let rowId;
