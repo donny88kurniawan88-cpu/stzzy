@@ -1,7 +1,24 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.JS v1.5.0
+   AURA.OS // HASIL-PRO.JS v1.6.0
    Modul Hasil Result (Pro) — di bawah menu Prediction Tools.
    ============================================================
+   v1.6.0 (Task 30 — shift pasaran + berita berjalan + guard 5D):
+   - TOGGLE SHIFT PASARAN (permintaan user): pasaran dibagi 2 shift
+     dari JAM RESULT — SHIFT PAGI 07:45-19:45 & SHIFT MALAM
+     19:45-07:45 H+1. Toggle segmented (Semua/Pagi/Malam) di toolbar
+     tab Hasil Pengeluaran & Betclosed; dropdown dibagi 2 grup
+     ber-header; kartu hasil ikut terfilter (pilihan eksplisit
+     pasaran tetap menang). Pilihan shift persist di localStorage.
+   - BERITA INFORMASI PASARAN BERJALAN (ticker): saat pasaran dipilih
+     di menu cari pasaran (dropdown), tampil strip berita berjalan
+     berisi nama, jam result, jam betclosed, jadwal, status live,
+     countdown result & betclosed berikutnya, shift, situs resmi.
+     Marquee seamless (duplikasi segmen) + pause on hover + hormati
+     prefers-reduced-motion; countdown di dalam ticker tetap live.
+   - GUARD 5D ANTI-TRUNCATION: setelah simpan, nilai yang dikirim
+     dibandingkan dgn nilai yang tersimpan di server — bila server
+     memotong digit (worker lama belum di-deploy), muncul peringatan
+     JELAS (bukan diam-diam kembali 4 digit).
    v1.5.0 (Task 29 — dua perbaikan logika cacat):
    - HASIL PENGELOUARAN 5 DIGIT (pasaran "...5D", mis. TOTOMACAU
      5D SORE/MALAM): input kini menerima 5 angka (maxlength
@@ -109,6 +126,7 @@
   var LKEY_PS = 'aura_pasaran_local_v1';      // sama dgn pasaran-pro.js
   var LKEY_HASIL = 'aura_hasil_local_v1';     // fallback hasil saat DB tak terjangkau
   var LKEY_CEK = 'aura_hasil_ceklis_v1';      // ceklis manual per tanggal (cache/fallback D1)
+  var LKEY_SHIFT = 'aura_hasil_shift_v1';     // v1.6: shift terpilih (pagi/malam/all)
   var HOKI_OFFSET = 10;                        // result sesi = tutup + 10 menit
 
   var DAY_UP = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
@@ -149,6 +167,7 @@
     dropOpen: false,
     dropUp: false,        // v1.4.1: dropdown buka ke atas bila ruang bawah sempit
     dropMax: 0,           // v1.4.1: max-height list di-clamp ke ruang viewport (0 = default 320)
+    shift: 'all',         // v1.6: 'all' | 'pagi' | 'malam' — filter shift pasaran
     saving: false,
     loaded: false,
     loading: false,
@@ -559,6 +578,135 @@
   function maxPrizeOf(it) { return isP1Group(it) ? 1 : 3; }
 
   /* ============================================================
+     v1.6 — SHIFT PASARAN (permintaan user)
+     Pasaran dibagi 2 shift berdasarkan JAM RESULT-nya:
+       SHIFT PAGI  : 07:45 - 19:45        (inclusive awal, eksklusif akhir)
+       SHIFT MALAM : 19:45 - 07:45 H+1    (menyeberang tengah malam)
+     Pasaran yang jam resultnya tepat 19:45 masuk SHIFT MALAM;
+     tepat 07:45 masuk SHIFT PAGI. HOKI DRAW (result tiap jam) &
+     pasaran tanpa jam terbaca dianggap menjalankan KEDUA shift.
+     ============================================================ */
+  var SHIFT_PAGI_START = 7 * 60 + 45;    /* 07:45 -> menit 465 */
+  var SHIFT_PAGI_END = 19 * 60 + 45;     /* 19:45 -> menit 1185 */
+  var SHIFT_LABEL = {
+    pagi:  'SHIFT PAGI \u2014 07:45 s/d 19:45 WIB',
+    malam: 'SHIFT MALAM \u2014 19:45 s/d 07:45 WIB (H+1)'
+  };
+
+  function shiftOf(it) {
+    if (isHokiRow(it)) return 'both';
+    var m = parseHM(it.result);
+    if (m == null) m = parseHM(it.tutup);
+    if (m == null) return 'both';
+    return (m >= SHIFT_PAGI_START && m < SHIFT_PAGI_END) ? 'pagi' : 'malam';
+  }
+
+  function shiftShortOf(it) {
+    var s = shiftOf(it);
+    return s === 'both' ? 'PAGI & MALAM' : ('SHIFT ' + s.toUpperCase());
+  }
+
+  /* apakah pasaran tampil pada shift filter aktif?
+     state.shift 'all' -> semua; pilihan eksplisit pasaran (state.sel /
+     state.bc.sel) TIDAK difilter shift (dipilih langsung -> tampil). */
+  function shiftOk(it) {
+    if (state.shift === 'all') return true;
+    var s = shiftOf(it);
+    return s === 'both' || s === state.shift;
+  }
+
+  function loadShift() {
+    try {
+      var v = localStorage.getItem(LKEY_SHIFT);
+      state.shift = (v === 'pagi' || v === 'malam' || v === 'all') ? v : 'all';
+    } catch (e) { state.shift = 'all'; }
+    return state.shift;
+  }
+
+  function setShift(v) {
+    state.shift = (v === 'pagi' || v === 'malam') ? v : 'all';
+    try { localStorage.setItem(LKEY_SHIFT, state.shift); } catch (e) {}
+    paintBody();
+  }
+
+  /* toggle segmented shift di toolbar (Semua | Shift Pagi | Shift Malam) */
+  function shiftSegHtml() {
+    var defs = [['all', 'Semua'], ['pagi', 'Shift Pagi'], ['malam', 'Shift Malam']];
+    var h = ['<div class="hs-shiftseg" data-hs-shift role="group" aria-label="Filter shift pasaran">'];
+    defs.forEach(function (d) {
+      h.push('<button type="button" class="hs-shiftbtn' + (state.shift === d[0] ? ' active' : '') + '" data-action="shift" data-shift="' + d[0] + '" title="' + (d[0] === 'all' ? 'Tampilkan semua pasaran (2 shift)' : SHIFT_LABEL[d[0]]) + '">' + d[1] + '</button>');
+    });
+    h.push('</div>');
+    return h.join('');
+  }
+
+  /* header grup shift utk dropdown ("SHIFT PAGI 07:45-19:45 WIB") */
+  function ddShiftHead(sh) {
+    return '<div class="hs-ddgroup' + (sh === 'pagi' ? ' pagi' : ' malam') + '"><span class="hs-ddgrouptag">' + (sh === 'pagi' ? 'SHIFT PAGI' : 'SHIFT MALAM') + '</span><span class="hs-ddgrouphm">' + (sh === 'pagi' ? '07:45\u201319:45' : '19:45\u201307:45 H+1') + '</span></div>';
+  }
+
+  /* daftar item dropdown per shift dgn header grup — dipakai tab hasil
+     & betclosed. mode 'all' -> dua grup ber-header; mode shift -> satu
+     daftar pasaran shift itu saja (+ pasaran 'both'). */
+  function dropItemsGrouped() {
+    var all = dropItems();
+    var pagi = [], malam = [];
+    all.forEach(function (it) {
+      var s = shiftOf(it);
+      if (s === 'pagi' || s === 'both') pagi.push(it);
+      if (s === 'malam' || s === 'both') malam.push(it);
+    });
+    return { pagi: pagi, malam: malam };
+  }
+
+  /* ============================================================
+     v1.6 — BERITA INFORMASI PASARAN BERJALAN (ticker)
+     Muncul saat pasaran dipilih di menu cari pasaran (dropdown).
+     Isi: nama, jam result, jam betclosed, jadwal, status live,
+     result & betclosed berikutnya (countdown live per detik via
+     data-cd-ms), shift pasaran, situs resmi. Marquee seamless:
+     segmen di-render DUA KALI, track dianimasikan -50%.
+     ============================================================ */
+  function tickerSeg(it, now) {
+    var hoki = isHokiRow(it);
+    var isToday = state.tanggal === todayWIB();
+    var done = isToday && !!state.hasilById[String(it.id)];
+    var st = done ? 'done' : (hoki ? hokiSlotStatus(now) : statusOf(it, now));
+    var stTxt = st === 'buka' ? 'BUKA \u2014 MENERIMA PASANG'
+      : st === 'tutup' ? 'BETCLOSED \u2014 MENUNGGU RESULT'
+      : st === 'done' ? 'DONE \u2014 RESULT SUDAH DIINPUT'
+      : st === 'libur' ? 'LIBUR \u2014 HARI LIBUR PASARAN'
+      : 'KHUSUS \u2014 CEK MENU JADWAL PASARAN';
+    var sep = '<span class="hs-ticksep">\u2726</span>';
+    var parts = [];
+    parts.push('<b class="hs-tickname">' + esc(it.nama) + '</b>');
+    parts.push('RESULT ' + (hoki ? 'SETIAP JAM :10' : (esc(hmOnly(it.result)) || '\u2014')));
+    parts.push('BETCLOSED ' + (hoki ? 'SETIAP JAM :00' : (esc(hmOnly(it.tutup)) || '\u2014')));
+    parts.push('JADWAL ' + esc(it.jadwal || 'SETIAP HARI'));
+    parts.push('STATUS: ' + stTxt);
+    var nre = nextResultMs(it, now);
+    if (nre != null) parts.push('RESULT BERIKUTNYA <span class="hs-tickhl">' + hmOfMs(nre) + ' <span data-cd-ms="' + nre + '">' + fmtCountdown(nre - now.ms) + '</span></span>');
+    var nbc = nextBetclosedMs(it, now);
+    if (nbc != null) parts.push('BETCLOSED BERIKUTNYA <span class="hs-tickhl">' + hmOfMs(nbc) + ' <span data-cd-ms="' + nbc + '">' + fmtCountdown(nbc - now.ms) + '</span></span>');
+    var sh = shiftOf(it);
+    parts.push('<b class="hs-tickshift">' + esc(shiftShortOf(it)) + '</b> (' + (sh === 'pagi' ? '07:45\u201319:45' : (sh === 'malam' ? '19:45\u201307:45 H+1' : '07:45\u201319:45 & 19:45\u201307:45')) + ')');
+    var link = String(it.link || '').trim();
+    if (link && link !== '#') parts.push('SITUS: ' + esc(String(link).replace(/^https?:\/\//i, '')));
+    parts.push('Selamat Kepada Pemenang, Salam JP');
+    return parts.join(sep);
+  }
+
+  function tickerHtml(it) {
+    var seg = tickerSeg(it, wibNow());
+    return '<div class="hs-ticker" data-hs-ticker title="Berita informasi pasaran \u2014 arahkan kursor untuk jeda sementara">' +
+      '<span class="hs-ticktag">' + ICON_BULLHORN + 'INFO PASARAN</span>' +
+      '<div class="hs-tickview"><div class="hs-ticktrack">' +
+      '<span class="hs-tickseg">' + seg + '</span>' +
+      '<span class="hs-tickseg" aria-hidden="true">' + seg + '</span>' +
+      '</div></div></div>';
+  }
+
+  /* ============================================================
      STATUS & COUNTDOWN
      ============================================================ */
   /* v1.4 STATUS ENGINE BARU (fix permintaan user "logikanya salah"):
@@ -787,6 +935,7 @@
   var ICON_TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>';
   var ICON_IMG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
   var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  var ICON_BULLHORN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-7-4 16-6-4-3 4-1-6z"/><path d="M3 11l8 5"/></svg>';
   var ICON_EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
   var ICON_SHIELD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>';
   var ICON_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
@@ -844,6 +993,7 @@
       else if (act === 'cek') toggleCek(t.getAttribute('data-id'), t);
       else if (act === 'drop') toggleDrop();
       else if (act === 'dropitem') pickDrop(t.getAttribute('data-id'));
+      else if (act === 'shift') setShift(t.getAttribute('data-shift'));   /* v1.6 */
       else if (act === 'prize') cyclePrize(t.getAttribute('data-id'));
       else if (act === 'save') saveCard(t.getAttribute('data-id'));
       else if (act === 'copy') copyCard(t.getAttribute('data-id'));
@@ -889,7 +1039,13 @@
     });
     document.addEventListener('click', function (e) {
       if (!state.dropOpen) return;
-      var w = e.target && e.target.closest ? e.target.closest('[data-hs-ddwrap]') : null;
+      var t = e.target;
+      /* v1.6: klik pada toggle shift TIDAK menutup dropdown — daftar
+         pasaran langsung mengikuti shift (repaint via setShift). Dulu
+         capture "klik di luar" menutup + repaint lebih dulu sehingga
+         klik toggle ditelan (handler delegated melihat node detached). */
+      if (t && t.closest && t.closest('.hs-shiftseg')) return;
+      var w = t && t.closest ? t.closest('[data-hs-ddwrap]') : null;
       if (!w) { state.dropOpen = false; paintDrop(); }
     }, true);
 
@@ -1147,6 +1303,9 @@
     var now = wibNow();
     return sortedPasaran().filter(function (it) {
       if (state.sel && String(it.id) !== String(state.sel)) return false;
+      /* v1.6: filter shift aktif — KECUALI bila pasaran dipilih eksplisit
+         lewat dropdown (pilihan langsung selalu tampil) */
+      if (!state.sel && !shiftOk(it)) return false;
       return matchSearch(it);
     }).map(function (it) { return { it: it, st: chipOf(it, now) }; });
   }
@@ -1170,10 +1329,20 @@
         '<button type="button" class="hs-ddbtn" data-action="drop"><span class="hs-ddlabel">' + esc(selName) + '</span><span class="hs-ddchev">' + ICON_CHEV + '</span></button>' +
         '<div class="hs-ddlist' + (state.dropOpen ? ' open' : '') + (state.dropUp ? ' up' : '') + '"' + (state.dropMax ? ' style="max-height:' + state.dropMax + 'px"' : '') + '>');
     h.push('<button type="button" class="hs-dditem' + (!state.sel ? ' active' : '') + '" data-action="dropitem" data-id="">\u2014 Semua Pasaran \u2014</button>');
-    items.forEach(function (it) {
+    /* v1.6: dropdown dibagi 2 shift (header grup) + filter shift aktif */
+    var gr = dropItemsGrouped();
+    function ddBtn(it) {
       h.push('<button type="button" class="hs-dditem' + (String(state.sel) === String(it.id) ? ' active' : '') + '" data-action="dropitem" data-id="' + esc(it.id) + '">' + esc(it.nama) + '</button>');
-    });
+    }
+    if (state.shift === 'all') {
+      if (gr.pagi.length) { h.push(ddShiftHead('pagi')); gr.pagi.forEach(ddBtn); }
+      if (gr.malam.length) { h.push(ddShiftHead('malam')); gr.malam.forEach(ddBtn); }
+    } else {
+      var listS = state.shift === 'pagi' ? gr.pagi : gr.malam;
+      if (listS.length) { h.push(ddShiftHead(state.shift)); listS.forEach(ddBtn); }
+    }
     h.push('</div></div>' +
+      shiftSegHtml() +
       '<div class="hs-searchbox"><input type="text" data-hs-search placeholder="Cari pasaran&hellip;" value="' + esc(state.search) + '"></div>' +
       '</div>');
 
@@ -1181,6 +1350,13 @@
        repaint zona ini, toolbar (search+dropdown+date) tetap utuh */
     var hb = [];
     var cards = visibleCards();
+    /* v1.6: BERITA INFORMASI PASARAN BERJALAN — muncul saat pasaran
+       dipilih di menu cari pasaran (dropdown), di atas kartu */
+    if (state.sel) {
+      var selIt = null;
+      items.forEach(function (x) { if (String(x.id) === String(state.sel)) selIt = x; });
+      if (selIt) hb.push(tickerHtml(selIt));
+    }
     if (!cards.length) {
       hb.push('<div class="hs-empty">' + (state.items.length ? 'Tidak ada pasaran yang cocok dengan pilihan/pencarian.' : 'Belum ada pasaran — isi dulu di menu Jadwal Pasaran.') + '</div>');
     } else if (!state.sel) {
@@ -1319,7 +1495,9 @@
         /* buka ke ATAS hanya bila ruang bawah tak memadai utk list layak
            (min 220px) dan sisi atas lebih longgar — selain itu tetap ke bawah */
         state.dropUp = below < 220 && above > below;
-        state.dropMax = Math.round(Math.min(320, Math.max(state.dropUp ? above : below, 140)));
+        /* v1.6: FLOOR (bukan round) — pembulatan ke ATAS bisa membuat
+           list 1px lebih tinggi dari ruang tersedia (mh=271 > 270) */
+        state.dropMax = Math.floor(Math.min(320, Math.max(state.dropUp ? above : below, 140)));
       } else { state.dropUp = false; state.dropMax = 320; }
     }
     paintDrop();
@@ -1431,9 +1609,26 @@
       .then(function (res) {
         state.saving = false;
         if (!res.ok || !res.j.success) throw new Error(res.j.error || 'Gagal menyimpan');
+        /* v1.6 GUARD 5D ANTI-TRUNCATION: bandingkan nilai yang DIKIRIM
+           dgn yang TERSIMPAN di server — bila server memotong digit,
+           berarti worker lama (sebelum v1.5) masih aktif. Dulu potongan
+           ini DIAM-DIAM: user mengira input 5 digit tidak berfungsi. */
+        var got = (res.j.hasil && res.j.hasil.items) || [];
+        var trunc = 0;
+        items.forEach(function (x) {
+          for (var i = 0; i < got.length; i++) {
+            if (parseInt(got[i].n, 10) === parseInt(x.n, 10)) {
+              if (String(got[i].val).length < String(x.val).length) {
+                trunc = Math.max(trunc, String(x.val).length - String(got[i].val).length);
+              }
+              break;
+            }
+          }
+        });
         return fetchHasil().then(function () {
           paintBody();
-          toast(res.j.message || 'Result tersimpan', 'success');
+          if (trunc) toast('Server memotong ' + trunc + ' digit result \u2014 WORKER LAMA masih aktif! Deploy src/index.js v1.5+ lalu jalankan "wrangler deploy".', 'warning');
+          else toast(res.j.message || 'Result tersimpan', 'success');
         });
       })
       .catch(function (e) {
@@ -1569,10 +1764,22 @@
         '<button type="button" class="hs-ddbtn" data-action="drop"><span class="hs-ddlabel">' + esc(selName) + '</span><span class="hs-ddchev">' + ICON_CHEV + '</span></button>' +
         '<div class="hs-ddlist' + (state.dropOpen ? ' open' : '') + (state.dropUp ? ' up' : '') + '"' + (state.dropMax ? ' style="max-height:' + state.dropMax + 'px"' : '') + '>');
     h.push('<button type="button" class="hs-dditem' + (!selId ? ' active' : '') + '" data-action="dropitem" data-id="">\u2014 Pilih Pasaran \u2014</button>');
-    items.forEach(function (x) {
+    /* v1.6: dropdown dibagi 2 shift (header grup) + filter shift aktif */
+    var gr = dropItemsGrouped();
+    function ddBtnBc(x) {
       h.push('<button type="button" class="hs-dditem' + (String(selId) === String(x.id) ? ' active' : '') + '" data-action="dropitem" data-id="' + esc(x.id) + '">' + esc(x.nama) + '</button>');
-    });
-    h.push('</div></div></div>');
+    }
+    if (state.shift === 'all') {
+      if (gr.pagi.length) { h.push(ddShiftHead('pagi')); gr.pagi.forEach(ddBtnBc); }
+      if (gr.malam.length) { h.push(ddShiftHead('malam')); gr.malam.forEach(ddBtnBc); }
+    } else {
+      var listS = state.shift === 'pagi' ? gr.pagi : gr.malam;
+      if (listS.length) { h.push(ddShiftHead(state.shift)); listS.forEach(ddBtnBc); }
+    }
+    h.push('</div></div>' + shiftSegHtml() + '</div>');
+
+    /* v1.6: berita informasi pasaran berjalan — pasaran sudah dipilih */
+    if (it) h.push(tickerHtml(it));
 
     if (!it) {
       h.push('<div class="hs-empty">Pilih pasaran dulu &mdash; jenis pasaran &amp; jam betclosed diambil dari database <b>Jadwal Pasaran</b>, lalu dibandingkan dengan waktu sekarang (WIB) + hitung mundur manual.</div>');
@@ -2172,6 +2379,7 @@
     render: function () {
       build();
       if (!state.tanggal) state.tanggal = todayWIB();
+      loadShift();   /* v1.6: pulihkan shift terpilih (localStorage) */
       /* v1.2: pastikan engine shio siap SEBELUM dipakai (auto-load /
          fallback) — akar perbaikan "tabel shio tidak dapat membaca" */
       ensureShioData().then(function () {
@@ -2192,6 +2400,9 @@
     _bcTestNext: function (it, ms) { var p = wibParts(ms); p.ms = ms; return nextBetclosedMs(it, p); },
     /* v1.5 helper test/E2E: batas digit pasaran */
     _digitMaxOf: function (nama) { return digitMaxOf({ nama: nama }); },
+    /* v1.6 helper test/E2E: shift pasaran dari nama+jam result/tutup */
+    _shiftOf: function (nama, result, tutup) { return shiftOf({ nama: nama, result: result, tutup: tutup }); },
+    _setShift: function (v) { setShift(v); },
     parseShioText: function (t) { return ensureShioData().then(function () { return window.ShioData.parseText(t); }); }
   };
 })();
