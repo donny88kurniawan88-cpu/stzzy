@@ -798,7 +798,7 @@ export default {
       'user_management', 'registration_control',
       // Module item keys (16) — match Dashboard data-access-item attributes
       'dashboard', 'profil', 'banking_tools', 'rek_validator', 'bank_processor',
-      'saldo_pencairan', 'qris_tools', 'prediction_tools', 'event_tools',
+      'saldo_pencairan', 'saldo_qris', 'qris_tools', 'prediction_tools', 'event_tools',
       'edit_bukti', 'keep_memo', 'hasil_result', 'api_key', 'setting', 'ip_whitelist', 'authority_panel',
       // Sub-menu item keys (11) — level menu > sub-menu (v2.3)
       'p2m_analyzer', 'xpay_analyzer', 'xpay_settlement', 'settlement_checker', 'mnpay_analyzer',
@@ -845,7 +845,7 @@ export default {
           dashboard: true, profil: true,
           // Workspace items
           banking_tools: true, rek_validator: true, bank_processor: true,
-          saldo_pencairan: true, qris_tools: true,
+          saldo_pencairan: true, saldo_qris: true, qris_tools: true,
           p2m_analyzer: true, xpay_analyzer: true, xpay_settlement: true,
           settlement_checker: true, mnpay_analyzer: true,
           prediction_tools: true, syair_database: true, ai_prediction: true,
@@ -868,7 +868,7 @@ export default {
           user_management: true, registration_control: true,
           dashboard: true, profil: true,
           banking_tools: true, rek_validator: true, bank_processor: true,
-          saldo_pencairan: true, qris_tools: true,
+          saldo_pencairan: true, saldo_qris: true, qris_tools: true,
           p2m_analyzer: true, xpay_analyzer: true, xpay_settlement: true,
           settlement_checker: true, mnpay_analyzer: true,
           prediction_tools: true, syair_database: true, ai_prediction: true,
@@ -889,7 +889,7 @@ export default {
         user_management: false, registration_control: false,
         dashboard: true, profil: true,
         banking_tools: false, rek_validator: false, bank_processor: false,
-        saldo_pencairan: false, qris_tools: false,
+        saldo_pencairan: false, saldo_qris: false, qris_tools: false,
         p2m_analyzer: false, xpay_analyzer: false, xpay_settlement: false,
         settlement_checker: false, mnpay_analyzer: false,
         prediction_tools: false, syair_database: false, ai_prediction: false,
@@ -1685,6 +1685,124 @@ export default {
       return out;
     }
 
+    /* ===================================================================
+       v3.13.0 (Task 32) — SALDO QRIS: parser CSV Google Sheet saldo QRIS.
+       Sheet publik: 1r6EgJuTN2PL_hQGaU-dtMa4SctG-AeIYHJzs2RmeefI,
+       tab gid=1954827544 ("ALL QRIS ..."). Label metrik di kolom B
+       (mis. SALDO >>>, TOTAL BIAYA ALL >>>), nilai gate tersusun rata
+       mulai kolom pertama terisi sesudah label.
+       =================================================================== */
+    function sqParseCsv(text) {
+      const rows = []; let row = [], field = '', inQ = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQ) {
+          if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else { inQ = false; } }
+          else field += c;
+        } else if (c === '"') inQ = true;
+        else if (c === ',') { row.push(field); field = ''; }
+        else if (c === '\r') { /* skip */ }
+        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+        else field += c;
+      }
+      if (field !== '' || row.length) { row.push(field); rows.push(row); }
+      return rows;
+    }
+    function sqNum(v) {
+      if (v == null) return 0;
+      let s = String(v).trim();
+      if (!s) return 0;
+      let neg = false;
+      if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.slice(1, -1); }
+      if (s.startsWith('-')) { neg = true; s = s.slice(1); }
+      s = s.replace(/[^\d.,]/g, '');
+      if (!s) return 0;
+      if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+      else s = s.replace(/\./g, '');
+      const n = parseFloat(s);
+      if (!isFinite(n)) return 0;
+      return neg ? -n : n;
+    }
+    function sqParseQrisCsv(csv) {
+      const rows = sqParseCsv(csv);
+      const cellOf = (r, i) => String((r && r[i]) != null ? r[i] : '').trim();
+      const labOf = (r) => cellOf(r, 1).toUpperCase();
+      // judul periode: sel teks pertama yang menyebut QRIS pada 8 baris awal
+      let period = '';
+      for (let i = 0; i < Math.min(rows.length, 8) && !period; i++) {
+        for (let c = 0; c < (rows[i] || []).length; c++) {
+          const t = cellOf(rows[i], c);
+          if (/QRIS/i.test(t)) { period = t.replace(/[♛♦★✦*]/g, '').trim(); break; }
+        }
+      }
+      let gi = -1;
+      for (let i = 0; i < rows.length; i++) { if (labOf(rows[i]) === 'GATE >>>') { gi = i; break; } }
+      if (gi < 0) return { ok: false, error: 'Baris GATE >>> tidak ditemukan di sheet' };
+      const gates = []; let start = -1;
+      for (let c = 2; c < rows[gi].length; c++) {
+        const v = cellOf(rows[gi], c);
+        if (v) { if (start < 0) start = c; gates.push(v.toUpperCase()); }
+      }
+      if (!gates.length || start < 0) return { ok: false, error: 'Tidak ada nama gate di baris GATE' };
+      const nCols = gates.length;
+      const findRow = (label, skip) => {
+        let n = skip || 1;
+        for (let i = 0; i < rows.length; i++) {
+          if (i === gi) continue;
+          if (labOf(rows[i]) !== label) continue;
+          n--; if (n > 0) continue;
+          return rows[i];
+        }
+        return null;
+      };
+      const grabNum = (label, skip) => {
+        const r = findRow(label, skip);
+        const out = [];
+        for (let k = 0; k < nCols; k++) out.push(r ? sqNum(r[start + k]) : 0);
+        return out;
+      };
+      const grabTxt = (label, skip) => {
+        const r = findRow(label, skip);
+        const out = [];
+        for (let k = 0; k < nCols; k++) out.push(r ? cellOf(r, start + k) : '');
+        return out;
+      };
+      const data = {
+        saldoAwal: grabNum('SALDO AWAL >>>'),
+        jenisBank: grabTxt('JENIS BANK >>>'),
+        saldo: grabNum('SALDO >>>'),
+        limitHarian: grabNum('LIMIT HARIAN >>>'),
+        adjustSaldo: grabNum('ADJUST SALDO >>>'),
+        approvedDocs: grabNum('TOTAL APPROVED DOCS >>>'),
+        pendinganDocs: grabNum('TOTAL PENDINGAN DOCS >>>'),
+        biayaHarianKas1: grabNum('TOTAL BIAYA HARIAN KAS1 >>>'),
+        biayaHarian: grabNum('TOTAL BIAYA HARIAN >>>'),
+        ketHarian: grabTxt('KETERANGAN >>>', 1),
+        biayaAllKas1: grabNum('TOTAL BIAYA ALL KAS1 >>>'),
+        biayaAll: grabNum('TOTAL BIAYA ALL >>>'),
+        ketAll: grabTxt('KETERANGAN >>>', 2)
+      };
+      // agregat seksi bawah: PENDINGAN DOCS / APPROVED DOCS (angka pertama setelah header seksi)
+      const agg = { pendinganDocsQris: 0, approvedDocsQris: 0 };
+      let sec = null;
+      for (let i = 0; i < rows.length; i++) {
+        const cells = (rows[i] || []).map((c) => String(c || '').trim().toUpperCase());
+        if (cells.indexOf('PENDINGAN DOCS') >= 0) { sec = 'pending'; continue; }
+        if (cells.indexOf('APPROVED DOCS') >= 0) { sec = 'approved'; continue; }
+        if (!sec) continue;
+        for (let c = 0; c < cells.length; c++) {
+          const t = cells[c];
+          if (t && /^-?[\d.,]+$/.test(t)) {
+            if (sec === 'pending') agg.pendinganDocsQris = sqNum(t);
+            else agg.approvedDocsQris = sqNum(t);
+            sec = null;
+            break;
+          }
+        }
+      }
+      return Object.assign({ ok: true, period, gates, agg }, data);
+    }
+
     // 13i-1. GET /api/hasil?tanggal= — daftar result (default: semua terakhir)
     if (path === '/api/hasil' && request.method === 'GET') {
       if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
@@ -1764,6 +1882,25 @@ export default {
         return Response.json({ success: false, error: 'Sertakan ?id= atau ?tanggal=YYYY-MM-DD' }, { status: 400 });
       } catch (err) {
         return Response.json({ success: false, error: 'Gagal menghapus hasil: ' + err.message }, { status: 500 });
+      }
+    }
+
+    // 13i-3b. GET /api/qris-saldo — v3.13.0 (Task 32): proxy pembacaan Google Sheet saldo QRIS
+    // Sheet harus dibagikan publik (viewer). Query: ?gid=... (default tab ALL QRIS 1954827544).
+    if (path === '/api/qris-saldo' && request.method === 'GET') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        const sp = new URL(request.url).searchParams;
+        const gid = (sp.get('gid') || '1954827544').replace(/\D/g, '') || '1954827544';
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/1r6EgJuTN2PL_hQGaU-dtMa4SctG-AeIYHJzs2RmeefI/export?format=csv&gid=' + gid;
+        const resp = await fetch(csvUrl, { cf: { cacheTtl: 120, cacheEverything: true } });
+        if (!resp.ok) return Response.json({ success: false, error: 'Sheet tidak dapat diakses (HTTP ' + resp.status + '). Pastikan sheet dibagikan publik.' }, { status: 502 });
+        const csv = await resp.text();
+        const parsed = sqParseQrisCsv(csv);
+        if (!parsed.ok) return Response.json({ success: false, error: parsed.error || 'Format sheet tidak dikenali' }, { status: 422 });
+        return Response.json({ success: true, source: 'google-sheet', gid, fetchedAt: new Date().toISOString(), sheet: parsed });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal membaca sheet: ' + err.message }, { status: 500 });
       }
     }
 
