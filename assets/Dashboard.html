@@ -508,6 +508,7 @@
   <link rel="stylesheet" href="/css/prediksi-pro.css?v=1.2.0">
   <link rel="stylesheet" href="/css/hadiah-pro.css?v=2.0.0">
   <link rel="stylesheet" href="/css/hasil-pro.css?v=1.6.0">
+  <link rel="stylesheet" href="/css/saldo-qris.css?v=1.0.0">
 </head>
 <body>
 
@@ -564,6 +565,12 @@
         <div class="nav-item" data-action="loadPencairan" data-access-item="saldo_pencairan">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
           Saldo Pencairan
+        </div>
+
+        <!-- v3.13.0 — Saldo QRIS (4 provider V2HIM/XPAY/MINERAPAY/ORION + kalkulator saldo dari Google Sheet) -->
+        <div class="nav-item" data-action="loadSaldoQris" data-access-item="saldo_qris">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 9h20"/><path d="M6 14h5"/><path d="M15 14h3"/></svg>
+          Saldo QRIS
         </div>
 
         <div class="nav-submenu-wrap click-toggle" data-access-item="qris_tools">
@@ -754,6 +761,11 @@
         </div>
       </div>
 
+      <!-- ===== SALDO QRIS VIEW (v3.13.0 — Pro, rendered by saldo-qris.js) ===== -->
+      <div id="saldoQrisView" style="display:none;">
+        <div style="text-align:center;padding:60px 20px;color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;"><i class="fas fa-spinner" style="animation:spin 1s linear infinite;margin-right:8px;"></i> Loading Saldo QRIS...</div>
+      </div>
+
     </div>
       <!-- ===== MY EVENT VIEW (Pro - rendered with myevent-pro.js) ===== -->
       <div id="myEventView" style="display:none;">
@@ -833,6 +845,7 @@
                   <option value="qris_tools">QRIS Tools</option>
                   <option value="prediction_tools">Prediction Tools</option>
                   <option value="saldo_pencairan">Saldo Pencairan</option>
+                  <option value="saldo_qris">Saldo QRIS</option>
                   <option value="authority_panel">Authority Panel</option>
                   <option value="ip_whitelist">IP Whitelist</option>
                   <option value="edit_bukti">Edit Bukti</option>
@@ -1346,6 +1359,7 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       'qris_tools': { label: 'QRIS Tools', icon: 'fa-qrcode', color: '#ec4899' },
       'prediction_tools': { label: 'Prediction Tools', icon: 'fa-chart-line', color: '#8b5cf6' },
       'saldo_pencairan': { label: 'Saldo Pencairan', icon: 'fa-layer-group', color: '#f59e0b' },
+      'saldo_qris': { label: 'Saldo QRIS', icon: 'fa-wallet', color: '#10b981' },
       'authority_panel': { label: 'Authority Panel', icon: 'fa-shield-halved', color: '#ef4444' },
       'ip_whitelist': { label: 'IP Whitelist', icon: 'fa-shield-virus', color: '#06b6d4' },
       'edit_bukti': { label: 'Edit Bukti', icon: 'fa-pen', color: '#ec4899' },
@@ -1576,6 +1590,9 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
         case 'loadPencairan':
           switchToPencairan();
           break;
+        case 'loadSaldoQris':
+          switchToSaldoQris();
+          break;
         case 'ipWhitelist':
           switchToIpWhitelist();
           break;
@@ -1619,6 +1636,7 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var hdV = document.getElementById('hadiahView'); if (hdV) hdV.style.display = 'none';
       var pkhV = document.getElementById('pkPerhitunganView'); if (pkhV) pkhV.style.display = 'none';
       var hsV = document.getElementById('hasilView'); if (hsV) hsV.style.display = 'none';
+      var sqV = document.getElementById('saldoQrisView'); if (sqV) sqV.style.display = 'none';
     }
 
     /* === LIVECHAT ESSENTIALS (v2.5) === */
@@ -1854,6 +1872,22 @@ document.getElementById('breadcrumbPage').textContent = 'saldo pencairan';
         var mm = String(today.getMonth()+1).padStart(2,'0');
         dateInput.value = today.getFullYear() + '-' + mm + '-' + dd;
       }
+    }
+
+    /* ===================================================================
+       SALDO QRIS MANAGEMENT
+       =================================================================== */
+    /* v3.13.0 — Saldo QRIS (Task 32): 4 toggle pages + kalkulator, render oleh saldo-qris.js */
+    function switchToSaldoQris() {
+      hideAllViews();
+      var sqV = document.getElementById('saldoQrisView'); if (sqV) sqV.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'Saldo QRIS';
+      currentView = 'saldoQris';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      var sqNav = document.querySelector('.nav-item[data-action="loadSaldoQris"]');
+      if (sqNav) sqNav.classList.add('active');
+      if (window.SaldoQris && typeof window.SaldoQris.render === 'function') window.SaldoQris.render();
+      addTerminalLog('Switched to Saldo QRIS view');
     }
 
     /* ===================================================================
@@ -2413,7 +2447,7 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
       // Must match backend VALID_MODULES (40 keys) exactly
       var keys = ['core','workspace','operational','system','user_management','registration_control',
         'dashboard','profil','banking_tools','rek_validator','bank_processor',
-        'saldo_pencairan','qris_tools','p2m_analyzer','xpay_analyzer','xpay_settlement','settlement_checker','mnpay_analyzer',
+        'saldo_pencairan','saldo_qris','qris_tools','p2m_analyzer','xpay_analyzer','xpay_settlement','settlement_checker','mnpay_analyzer',
         'prediction_tools','syair_database','ai_prediction','gas_slot_engine',
         'event_tools','my_event','history_event','pg_report',
         'livechat_essentials','prediksi_all_pasaran','jadwal_all_pasaran','pk_jadwal_pasaran',
@@ -2642,7 +2676,7 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
     // Also check immediately on page load
     setTimeout(_checkUserExistsInDatabase, 2000);
   </script>
-  <script src="/js/dashboard-pro.js?v=3.2.0"></script>
+  <script src="/js/dashboard-pro.js?v=3.3.0"></script>
   <script src="/js/myevent-pro.js?v=1.2.0"></script>
   <script src="/js/setting-pro.js?v=1.0.0"></script>
   <script src="/js/keepmemo-pro.js?v=2.0.0"></script>
@@ -2655,5 +2689,6 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
   <script src="/js/pkperhitungan-pro.js?v=1.0.0"></script>
   <script src="/js/shio-data.js?v=1.0.0"></script>
   <script src="/js/hasil-pro.js?v=1.7.0"></script>
+  <script src="/js/saldo-qris.js?v=1.0.0"></script>
 </body>
 </html>
