@@ -1,5 +1,5 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.CSS v1.4.1
+   AURA.OS // HASIL-PRO.CSS v1.5.0
    Tema modul Hasil Result — elegan, profesional, satu keluarga
    dgn aura.os (glass dark graphite + aksen indigo/cyan premium).
    ATURAN AMAN-ANIMASI (pelajaran Task 20-D): TANPA opacity:0
@@ -26,6 +26,12 @@
    pasaran dipilih); .hs-topline kini membawa border-radius sendiri;
    rule .hs-ddlist.up utk arah buka ke atas (viewport sempit) + list
    max-height 60vh di mobile.
+   v1.5.0 (Task 30): TOGGLE SHIFT PASARAN (.hs-shiftseg segmented
+   Semua/Pagi/Malam — pagi cyan, malam indigo, sesuai tema) + header
+   grup shift di dalam dropdown (.hs-ddgroup pagi/malam) + BERITA
+   INFORMASI PASARAN BERJALAN (.hs-ticker marquee seamless: segmen
+   diduplikasi, track dianimasikan -50%, pause on hover, countdown
+   live di dalam ticker, hormati prefers-reduced-motion).
    ============================================================ */
 
 .hs-wrap { padding: 4px 0 28px; }
@@ -728,9 +734,73 @@
   60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
 }
 
+/* ---------- v1.6: TOGGLE SHIFT PASARAN (segmented toolbar) ---------- */
+.hs-shiftseg {
+  display: inline-flex; align-items: stretch; flex: 0 0 auto;
+  background: rgba(13, 16, 26, 0.6); border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px; padding: 3px; gap: 2px;
+}
+.hs-shiftbtn {
+  appearance: none; border: 0; background: transparent; color: #94a3b8; cursor: pointer;
+  font: 700 11.5px/1 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing: 0.05em;
+  padding: 8px 14px; border-radius: 9px; white-space: nowrap;
+  transition: color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+.hs-shiftbtn:hover { color: #e2e8f0; background: rgba(148, 163, 184, 0.1); }
+.hs-shiftbtn:active { transform: scale(0.97); }
+.hs-shiftbtn.active { color: #fff; background: linear-gradient(135deg, #4f46e5, #6366f1); box-shadow: 0 2px 12px rgba(79, 70, 229, 0.35); }
+.hs-shiftbtn.active[data-shift="pagi"] { background: linear-gradient(135deg, #0891b2, #22d3ee); box-shadow: 0 2px 12px rgba(34, 211, 238, 0.3); }
+.hs-shiftbtn.active[data-shift="all"] { background: rgba(148, 163, 184, 0.16); color: #e2e8f0; box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25); }
+
+/* ---------- v1.6: header grup shift di dalam dropdown ---------- */
+.hs-ddgroup {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 10px 6px; margin-top: 2px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+.hs-ddlist .hs-ddgroup:first-of-type { border-top: 0; margin-top: 0; }
+.hs-ddgrouptag {
+  font: 800 9.5px/1 'JetBrains Mono', monospace; letter-spacing: 0.16em;
+  padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+}
+.hs-ddgroup.pagi .hs-ddgrouptag { color: #67e8f9; background: rgba(34, 211, 238, 0.1); box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.35); }
+.hs-ddgroup.malam .hs-ddgrouptag { color: #a5b4fc; background: rgba(99, 102, 241, 0.13); box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.4); }
+.hs-ddgrouphm { font: 600 10px/1 'JetBrains Mono', monospace; color: #64748b; letter-spacing: 0.05em; }
+
+/* ---------- v1.6: BERITA INFORMASI PASARAN BERJALAN (ticker) ---------- */
+.hs-ticker {
+  display: flex; align-items: stretch; margin: 0 0 14px;
+  border: 1px solid rgba(99, 102, 241, 0.32); border-radius: 14px;
+  background: linear-gradient(90deg, rgba(30, 41, 59, 0.72), rgba(15, 23, 42, 0.55));
+  overflow: hidden; position: relative;
+  box-shadow: 0 4px 18px rgba(2, 6, 23, 0.35), inset 0 1px 0 rgba(148, 163, 184, 0.08);
+}
+.hs-ticktag {
+  display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto;
+  padding: 10px 14px; font: 800 10.5px/1 'JetBrains Mono', monospace; letter-spacing: 0.13em;
+  color: #c7d2fe; text-transform: uppercase; white-space: nowrap;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.3), rgba(14, 165, 233, 0.16));
+  border-right: 1px solid rgba(99, 102, 241, 0.3);
+}
+.hs-ticktag svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.hs-tickview { flex: 1 1 auto; min-width: 0; overflow: hidden; display: flex; align-items: center; }
+.hs-ticktrack {
+  display: inline-flex; align-items: center; white-space: nowrap; will-change: transform;
+  font: 600 12px/1.6 'Plus Jakarta Sans', system-ui, sans-serif; color: #cbd5e1;
+  padding-left: 16px; animation: hsTickRun 34s linear infinite;
+}
+.hs-ticker:hover .hs-ticktrack { animation-play-state: paused; }
+.hs-tickseg { display: inline-flex; align-items: center; white-space: nowrap; padding-right: 40px; }
+.hs-tickname { color: #fff; font-weight: 800; letter-spacing: 0.05em; }
+.hs-ticksep { color: rgba(129, 140, 248, 0.55); font-size: 10px; margin: 0 13px; }
+.hs-tickhl { color: #67e8f9; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+.hs-tickhl [data-cd-ms] { color: #a5f3fc; }
+.hs-tickshift { color: #a5b4fc; }
+@keyframes hsTickRun { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
 /* ---------- REDUCED MOTION ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .hs-st-tutup, .hs-bcdisplay, .hs-bcverdict, .hs-grouphead::after { animation: none !important; }
+  .hs-st-tutup, .hs-bcdisplay, .hs-bcverdict, .hs-grouphead::after, .hs-ticktrack { animation: none !important; }
   .hs-table tbody tr, .hs-card-item, .hs-tab.active::after { animation-delay: 0s !important; }
 }
 
@@ -739,4 +809,17 @@
   .hs-bcverdict { font-size: 11.5px; padding: 10px 10px; letter-spacing: 0.1em; }
   .hs-bccmp .hs-bcrow b { font-size: 11px; }
   .hs-stat-v.hs-bk { font-size: 19px; }
+}
+
+/* ---------- RESPONSIVE v1.6 (shift + ticker) ---------- */
+@media (max-width: 480px) {
+  .hs-shiftseg { width: 100%; }
+  .hs-shiftbtn { flex: 1 1 auto; text-align: center; padding: 8px 8px; font-size: 11px; }
+  .hs-ticker { border-radius: 12px; }
+  .hs-ticktag { padding: 8px 10px; font-size: 9px; letter-spacing: 0.09em; }
+  .hs-ticktag svg { width: 12px; height: 12px; }
+  .hs-ticktrack { font-size: 11px; animation-duration: 24s; }
+  .hs-ticksep { margin: 0 9px; }
+  .hs-tickseg { padding-right: 28px; }
+  .hs-ddgroup { padding: 8px 8px 6px; }
 }
