@@ -1,7 +1,9 @@
 /* ============================================================
-   SALDO QRIS — v1.0.0 (v3.13.0 / Task 32)
+   SALDO QRIS — v1.1.0 (v3.13.1 / Task 32b)
    Style profesional & aesthetic untuk menu Saldo QRIS:
    4 toggle pages (V2HIM/XPAY/MINERAPAY/ORION) + kalkulator saldo.
+   v1.1.0: chip konversi trx→fee (.sq-trxcalc) utk mode count
+   (V2HIM ×1.600, XPAY ×1.500).
    Namespace: sq-  (tidak menyentuh style modul lain)
    ============================================================ */
 
@@ -191,6 +193,16 @@
 }
 .sq-num:hover { border-color: rgba(148, 163, 184, 0.45); }
 .sq-num:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18); }
+/* chip konversi jumlah trx → fee (Fee Transaksi Pending, mode count) */
+.sq-trxcalc {
+  grid-column: 4; justify-self: end; align-self: center;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.14); border: 1px solid rgba(99, 102, 241, 0.32);
+  padding: 3px 9px; border-radius: 8px; white-space: nowrap;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.sq-trxcalc:hover { background: rgba(99, 102, 241, 0.24); color: #c7d2fe; }
+.sq-step.has-trx .sq-num { min-width: 96px; }
 .sq-formula {
   margin-top: 10px; padding: 10px 12px; border-radius: 12px;
   display: flex; gap: 9px; align-items: flex-start;
@@ -413,6 +425,7 @@
   .sq-step { grid-template-columns: 26px minmax(0, 1fr) minmax(120px, 150px); }
   .sq-op { width: 26px; height: 26px; font-size: 13px; }
   .sq-src { display: none; }
+  .sq-trxcalc { grid-column: 2 / -1; justify-self: end; margin-top: 2px; }
   .sq-title { font-size: 21px; }
   .sq-card-val { font-size: 17px; }
 }
