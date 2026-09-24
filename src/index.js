@@ -1661,6 +1661,20 @@ export default {
       }
     }
 
+    /* v3.14.0 (Task 35): tabel nilai kalkulator Saldo QRIS — per-user di D1
+       (menggantikan localStorage aura_sq_calc_v1). Snapshot per (username, page). */
+    async function ensureSaldoQrisCalcTable() {
+      try {
+        await env.DB.prepare("SELECT username FROM saldo_qris_calc LIMIT 1").first();
+      } catch (e) {
+        await env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS saldo_qris_calc (username TEXT NOT NULL, page TEXT NOT NULL, field_key TEXT NOT NULL, value REAL NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (username, page, field_key))"
+        ).run();
+      }
+    }
+    const SQ_CALC_PAGES = ['v2him', 'xpay', 'minerapay', 'orion'];
+    const SQ_CALC_FIELDS = ['feePending', 'unsettled', 'cutoff', 'approvedToday', 'withdrawFailed', 'pendingDeposit', 'saldoDashboard'];
+
     /* Normalisasi item result: hanya angka, maks digit ikut pasaran (4D default, ND utk nama ...ND), urut per nomor */
     // v1.5 (Task 29): batas digit per pasaran — nama dgn penanda ND
     // (mis. TOTOMACAU 5D SORE / TOTO MACAU 5D MALAM) mengeluarkan N angka;
@@ -1901,6 +1915,54 @@ export default {
         return Response.json({ success: true, source: 'google-sheet', gid, fetchedAt: new Date().toISOString(), sheet: parsed });
       } catch (err) {
         return Response.json({ success: false, error: 'Gagal membaca sheet: ' + err.message }, { status: 500 });
+      }
+    }
+
+    /* 13i-3c. /api/qris-saldo-calc — v3.14.0 (Task 35): nilai input kalkulator
+       Saldo QRIS tersimpan di D1 SQLite (bukan localStorage), per-user via
+       x-auth-token. GET = semua nilai user (grup per page); POST = snapshot
+       replace satu page { page, values:{fieldKey:number} } — values kosong = reset. */
+    if (path === '/api/qris-saldo-calc' && request.method === 'GET') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureSaldoQrisCalcTable();
+        const username = request.headers.get('x-auth-token');
+        const rows = await env.DB.prepare("SELECT page, field_key, value FROM saldo_qris_calc WHERE username = ?").bind(username).all();
+        const values = {};
+        (rows.results || []).forEach((r) => {
+          if (SQ_CALC_PAGES.indexOf(r.page) === -1) return;
+          if (!values[r.page]) values[r.page] = {};
+          values[r.page][r.field_key] = Number(r.value) || 0;
+        });
+        return Response.json({ success: true, source: 'd1', username, values });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal mengambil data kalkulator: ' + err.message }, { status: 500 });
+      }
+    }
+    if (path === '/api/qris-saldo-calc' && request.method === 'POST') {
+      if (!await isUser(request)) return Response.json({ success: false, error: 'Akses Ditolak! Login dulu.' }, { status: 403 });
+      try {
+        await ensureSaldoQrisCalcTable();
+        const username = request.headers.get('x-auth-token');
+        const body = await request.json().catch(() => ({}));
+        const page = String(body.page || '');
+        if (SQ_CALC_PAGES.indexOf(page) === -1) return Response.json({ success: false, error: 'Page tidak valid' }, { status: 400 });
+        const raw = body.values && typeof body.values === 'object' ? body.values : {};
+        const clean = [];
+        Object.keys(raw).forEach((k) => {
+          if (SQ_CALC_FIELDS.indexOf(k) === -1) return;
+          const v = Number(raw[k]);
+          if (!isFinite(v)) return;
+          clean.push(k);
+        });
+        const stmts = [env.DB.prepare("DELETE FROM saldo_qris_calc WHERE username = ? AND page = ?").bind(username, page)];
+        clean.forEach((k) => {
+          stmts.push(env.DB.prepare("INSERT INTO saldo_qris_calc (username, page, field_key, value, updated_at) VALUES (?, ?, ?, ?, datetime('now'))").bind(username, page, k, Number(raw[k])));
+        });
+        await env.DB.batch(stmts);
+        return Response.json({ success: true, page, saved: clean.length });
+      } catch (err) {
+        return Response.json({ success: false, error: 'Gagal menyimpan kalkulator: ' + err.message }, { status: 500 });
       }
     }
 
