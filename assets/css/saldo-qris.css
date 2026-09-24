@@ -1,9 +1,11 @@
 /* ============================================================
-   SALDO QRIS — v1.1.0 (v3.13.1 / Task 32b)
+   SALDO QRIS — v1.2.0 (v3.13.2 / Task 34)
    Style profesional & aesthetic untuk menu Saldo QRIS:
    4 toggle pages (V2HIM/XPAY/MINERAPAY/ORION) + kalkulator saldo.
    v1.1.0: chip konversi trx→fee (.sq-trxcalc) utk mode count
    (V2HIM ×1.600, XPAY ×1.500).
+   v1.2.0: tanpa perubahan style — field baru Unsettled/Cutoff/
+   Approved Hari Ini memakai .sq-step existing (Task 34).
    Namespace: sq-  (tidak menyentuh style modul lain)
    ============================================================ */
 
