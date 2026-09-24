@@ -850,13 +850,17 @@
     else loadBalanceBatches();
   }));
 
-  async function readRows(file){
+  async function readRows(file,opts={}){
     if(!file) throw new Error('Pilih file terlebih dahulu.');
     if(typeof XLSX==='undefined') throw new Error('Library XLSX belum termuat. Refresh halaman.');
     const buffer=await file.arrayBuffer();
-    const workbook=XLSX.read(buffer,{type:'array',cellDates:false});
+    // readRaw:true (v3.14.1) = parser teks (CSV) TIDAK mengubah nilai menyerupai tanggal
+    // menjadi sel tanggal dgn asumsi US — teks asli dipertahankan utk parser kita sendiri.
+    // Untuk XLSX binary opsi ini diabaikan (sel sudah bertipe dari file).
+    const workbook=XLSX.read(buffer,{type:'array',raw:!!opts.readRaw});
     const sheet=workbook.Sheets[workbook.SheetNames[0]];
-    return XLSX.utils.sheet_to_json(sheet,{header:1,raw:false,defval:''})
+    // jsonRaw:true = sel tanggal XLSX keluar sbg serial angka (mis. 45905) tanpa format tampilan
+    return XLSX.utils.sheet_to_json(sheet,{header:1,raw:!!opts.jsonRaw,defval:''})
       .filter(row=>row.some(cell=>String(cell??'').trim()!==''));
   }
   function money(v){
@@ -959,15 +963,42 @@
     for(const name of names){const idx=headers.indexOf(normalizeHeader(name));if(idx>=0)return idx;}
     return fallback;
   }
+  // ---- parser tanggal SETTLEMENT v2 (v3.14.1) ----
+  // Excel menampilkan tanggal sesuai format sel (mis. 5/9/25, 05-Sep-25, serial 45905) —
+  // parser lama hanya mengenali tahun 4 digit sehingga banyak file gagal terbaca.
+  // Catatan urutan baca: pass-1 readRaw (teks asli) + pass-2 jsonRaw (serial) di handler upload.
+  const XP_MONTHS={jan:1,january:1,januari:1,feb:2,february:2,februari:2,mar:3,march:3,maret:3,apr:4,april:4,may:5,mei:5,jun:6,june:6,juni:6,jul:7,july:7,juli:7,aug:8,august:8,agu:8,agt:8,agustus:8,sep:9,september:9,oct:10,october:10,okt:10,oktober:10,nov:11,november:11,dec:12,december:12,des:12,desember:12};
+  function xpIsoFromParts(y,mo,d){
+    y=Number(y);mo=Number(mo);d=Number(d);
+    if(y<100)y+=(y>=50?1900:2000);
+    if(mo<1||mo>12||d<1||d>31||y<1990||y>2100)return null;
+    return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+  function xpSerialToIso(n){
+    if(!Number.isFinite(n)||n<20000||n>80000)return null;
+    const dt=new Date(Date.UTC(1899,11,30)+Math.round(n*86400000));
+    return xpIsoFromParts(dt.getUTCFullYear(),dt.getUTCMonth()+1,dt.getUTCDate());
+  }
   function parseSheetDate(value){
-    const s=String(value ?? '').trim(); if(!s)return null; let m;
-    if((m=s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/))) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
-    if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))){
+    if(value instanceof Date)return isNaN(value)?null:xpIsoFromParts(value.getFullYear(),value.getMonth()+1,value.getDate());
+    if(typeof value==='number')return xpSerialToIso(value);
+    let s=String(value??'').trim();if(!s)return null;let m;
+    s=s.replace(/^(minggu|ahad|senin|selasa|rabu|kamis|jumat|jum'?at|sabtu|sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s*,?\s*/i,'').trim();
+    if((m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/)))return xpIsoFromParts(m[1],m[2],m[3]);
+    if((m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/))){
       const a=Number(m[1]),b=Number(m[2]);
-      if(a>12 || b<=12) return `${m[3]}-${String(b).padStart(2,'0')}-${String(a).padStart(2,'0')}`;
-      return `${m[3]}-${String(a).padStart(2,'0')}-${String(b).padStart(2,'0')}`;
+      if(a>12||b<=12)return xpIsoFromParts(m[3],b,a);
+      return xpIsoFromParts(m[3],a,b);
     }
-    if((m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/))) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+    if((m=s.match(/^(\d{1,2})[\s\-\/]([A-Za-z]{3,9})\.?(?:[\s\-\/,]+(\d{2,4}))?/))){
+      const mo=XP_MONTHS[m[2].toLowerCase()];
+      if(mo&&m[3])return xpIsoFromParts(m[3],mo,m[1]);
+    }
+    if((m=s.match(/^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?\s*,?\s*(\d{2,4})/))){
+      const mo=XP_MONTHS[m[1].toLowerCase()];
+      if(mo)return xpIsoFromParts(m[3],mo,m[2]);
+    }
+    if((m=s.match(/^(\d{4,6})(?:\.\d+)?(?:\s|$)/)))return xpSerialToIso(Number(m[1]));
     return null;
   }
   function transactionRowsFromSheet(data,fileName){
@@ -996,12 +1027,14 @@
     const located=locateHeader(data,[['SETTLEMENT','SETTLEMENT DATE'],['PARTNER ID'],['RECORD VALUE','AMOUNT','VALUE']]);
     if(!located) throw new Error(`${fileName}: header SETTLEMENT / PARTNER ID / RECORD VALUE tidak ditemukan.`);
     const H=located.headers;const sIdx=headerIndex(H,['SETTLEMENT','SETTLEMENT DATE']);const pIdx=headerIndex(H,['PARTNER ID']);const aIdx=headerIndex(H,['RECORD VALUE','AMOUNT','VALUE']);
-    const rows=[];const counts=new Map();
+    const rows=[];const counts=new Map();const samples=[];
     for(let i=located.rowIndex+1;i<data.length;i++){
-      const r=data[i]||[];const raw=String(r[sIdx]??'').trim();const d=parseSheetDate(raw);if(d)counts.set(d,(counts.get(d)||0)+1);
+      const r=data[i]||[];const raw=String(r[sIdx]??'').trim();
+      if(raw&&samples.length<3&&!samples.includes(raw))samples.push(raw.length>24?raw.slice(0,24)+'…':raw);
+      const d=parseSheetDate(raw);if(d)counts.set(d,(counts.get(d)||0)+1);
       const partner=String(r[pIdx]??'').trim();const amount=money(r[aIdx]);if(uuid(partner)&&amount>0)rows.push({rowNo:i+1,partnerId:partner,amount,settlementRaw:raw,settlementDate:d,sourceFile:fileName});
     }
-    return {rows,dateCounts:counts,headerRow:located.rowIndex+1};
+    return {rows,dateCounts:counts,headerRow:located.rowIndex+1,samples};
   }
 
   // ---------- TRANSACTION UPLOAD ----------
@@ -1044,12 +1077,26 @@
     settlementRows=[];settlementDates=[];$('settlementDateSelect').innerHTML='<option value="">Membaca...</option>';if(!files.length)return;
     status('settlementUploadStatus',`Mendeteksi header + tanggal dari ${files.length} file...`,'wait');
     try{
-      const counts=new Map();const details=[];
-      for(const file of files){const data=await readRows(file);const parsed=settlementRowsFromSheet(data,file.name);settlementRows.push(...parsed.rows);for(const [d,c] of parsed.dateCounts)counts.set(d,(counts.get(d)||0)+c);details.push(`${file.name}: ${parsed.rows.length.toLocaleString('id-ID')} rows`);}
+      const counts=new Map();const details=[];const samplesAll=[];
+      for(const file of files){
+        // Pass 1 (v3.14.1): readRaw — teks tanggal asli (CSV tak dikonversi US, XLSX pakai format sel)
+        let parsed=settlementRowsFromSheet(await readRows(file,{readRaw:true}),file.name);
+        if(!parsed.dateCounts.size){
+          // Pass 2 fallback: jsonRaw — sel tanggal XLSX keluar sbg serial angka murni (mis. 45905)
+          try{
+            const parsed2=settlementRowsFromSheet(await readRows(file,{readRaw:true,jsonRaw:true}),file.name);
+            if(parsed2.dateCounts.size>parsed.dateCounts.size)parsed=parsed2;
+          }catch(_e){}
+        }
+        settlementRows.push(...parsed.rows);
+        for(const [d,c] of parsed.dateCounts)counts.set(d,(counts.get(d)||0)+c);
+        if(parsed.samples?.length)samplesAll.push(...parsed.samples);
+        details.push(`${file.name}: ${parsed.rows.length.toLocaleString('id-ID')} rows`);
+      }
       settlementDates=[...counts.keys()].sort((a,b)=>(counts.get(b)||0)-(counts.get(a)||0));
       $('settlementDateSelect').innerHTML=settlementDates.length?settlementDates.map(d=>`<option value="${esc(d)}">${esc(d)} • ${(counts.get(d)||0).toLocaleString('id-ID')} records</option>`).join(''):'<option value="">Tanggal SETTLEMENT tidak ditemukan</option>';
       if(!settlementRows.length)throw new Error('Tidak ada PARTNER ID + amount valid pada file settlement.');
-      if(!settlementDates.length)throw new Error('Kolom SETTLEMENT ditemukan, tetapi isi tanggalnya tidak dapat dibaca.');
+      if(!settlementDates.length)throw new Error(`Kolom SETTLEMENT ditemukan, tetapi isi tanggalnya tidak dapat dibaca.${samplesAll.length?` Contoh isi kolom: ${samplesAll.slice(0,3).map(s=>`"${s}"`).join(', ')}.`:''}`);
       status('settlementUploadStatus',`${files.length} file terbaca • ${settlementRows.length.toLocaleString('id-ID')} data settlement • ${settlementDates.length} tanggal terdeteksi. ${details.join(' | ')}`,'ok');
     }catch(e){status('settlementUploadStatus',e.message,'err');}
   });
