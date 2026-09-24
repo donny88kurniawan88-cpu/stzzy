@@ -142,7 +142,8 @@
   var LKEY_HASIL = 'aura_hasil_local_v1';     // fallback hasil saat DB tak terjangkau
   var LKEY_CEK = 'aura_hasil_ceklis_v1';      // ceklis manual per tanggal (cache/fallback D1)
   var LKEY_SHIFT = 'aura_hasil_shift_v1';     // v1.6: shift terpilih (pagi/malam/all)
-  var HOKI_OFFSET = 10;                        // result sesi = tutup + 10 menit
+  var HOKI_CLOSE_MIN = 50;                     /* betclosed tiap jam menit-50 (h:50) — jadwal baru user */
+  var HOKI_OFFSET = 10;                        /* window betclosed -> result = 10 menit; result tepat :00 jam berikutnya */
 
   var DAY_UP = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
   var DAY_TITLE = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -752,19 +753,19 @@
     return 'buka';   // tanpa jam tutup -> tidak bisa ditentukan window tutup
   }
 
-  /* HOKI DRAW: betclosed tepat :00, result :10.
-     :00–:10 -> 'tutup' (BETCLOSED, menunggu result)
-     :10–:60 -> 'buka'  (result sesi sudah lewat — pasang sesi berikutnya dibuka) */
+  /* HOKI DRAW: betclosed menit :50, result tepat :00 jam berikutnya.
+     :00–:50 -> 'buka'  (result sesi terakhir sudah keluar — pasang sesi berikutnya)
+     :50–:00 -> 'tutup' (BETCLOSED, menunggu result di :00) */
   function hokiSlotStatus(now) {
     var mHour = now.m % 60;
-    if (mHour < HOKI_OFFSET) return 'tutup';
+    if (mHour >= HOKI_CLOSE_MIN) return 'tutup';
     return 'buka';
   }
 
   /* ms absolut (epoch) result berikutnya utk pasaran ini */
   function nextResultMs(it, now) {
     if (isHokiRow(it)) {
-      var addMin = HOKI_OFFSET - (now.m % 60);
+      var addMin = 60 - (now.m % 60);   /* result tepat :00 berikutnya */
       if (addMin <= 0) addMin += 60;
       return now.ms + addMin * 60000;
     }
@@ -788,12 +789,12 @@
   }
 
   /* v1.3: epoch ms BETCLOSED berikutnya utk pasaran — jam tutup dari
-     database jadwal (field tutup; fallback result). HOKI DRAW = tutup
-     tepat setiap jam :00. Hari libur pasaran dilewati otomatis. */
+     database jadwal (field tutup; fallback result). HOKI DRAW = betclosed
+     menit :50 tiap jam. Hari libur pasaran dilewati otomatis. */
   function nextBetclosedMs(it, now) {
     if (isHokiRow(it)) {
-      var addH = 60 - (now.m % 60);
-      if (addH <= 0) addH = 60;
+      var addH = HOKI_CLOSE_MIN - (now.m % 60);
+      if (addH <= 0) addH += 60;
       return now.ms + addH * 60000;
     }
     var closed = closedDaysOf(it.jadwal) || closedDaysOf(it.tutup);

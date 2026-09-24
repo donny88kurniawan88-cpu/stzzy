@@ -34,7 +34,8 @@
      STATE & KONSTANTA
      ============================================================ */
   var LKEY = 'aura_pasaran_local_v1'; // sama dgn pasaran-pro.js (sumber data sama)
-  var HOKI_RESULT_OFFSET = 10;        // result = tutup + 10 menit (00:00 -> 00:10)
+  var HOKI_CLOSE_MIN = 50;            // betclosed tiap jam menit-50 (h:50) — jadwal baru user
+  var HOKI_RESULT_OFFSET = 10;        // window betclosed -> result = 10 menit (result tepat :00 jam berikutnya)
 
   var ICON_COPY =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
@@ -259,7 +260,7 @@
   }
 
   function hokiSlotStatus(h, now) {
-    var tu = h * 60, re = h * 60 + HOKI_RESULT_OFFSET;
+    var tu = h * 60 + HOKI_CLOSE_MIN, re = (h + 1) * 60;
     if (now.m < tu) return 'buka';
     if (now.m < re) return 'tutup';
     return 'result';
@@ -289,11 +290,11 @@
           out.push({
             key: base.id + '-s' + h, no: base.no, sub: h,
             nama: base.nama, jadwal: base.jadwal,
-            tutup: pad2(h) + ':00 WIB',
-            result: pad2(h) + ':' + pad2(HOKI_RESULT_OFFSET) + ' WIB',
+            tutup: pad2(h) + ':50 WIB',
+            result: pad2((h + 1) % 24) + ':00 WIB',
             link: base.link,
             st: hokiSlotStatus(h, now), note: '',
-            hoki: true, slot: pad2(h) + ':00',
+            hoki: true, slot: pad2(h) + ':50',
             flag: ctry.flag, country: ctry.name
           });
         }
@@ -340,7 +341,7 @@
      EDISI PREDIKSI — tanggal/sesi target sebuah prediksi
      - Result SUDAH KELUAR -> otomatis geser ke draw BERIKUTNYA:
        pasaran = besok / hari-buka berikutnya; HOKI = sesi +1 jam
-       (23:00 -> besok 00:00). Disertai chip keterangan.
+       (23:50 -> besok 00:00). Disertai chip keterangan.
      - LIBUR -> draw berikutnya pada hari yang tidak tutup.
      - Tanggal manual (state.viewDate) -> semua prediksi memakai
        tanggal tersebut (HOKI tetap sesi terpilih).
@@ -360,7 +361,7 @@
         slot = (slot + 1) % 24;
         if (slot === 0) d = addDays(d, 1);
         rolled = true;
-        note = 'Result sesi ' + it.slot + ' sudah keluar \u2014 prediksi otomatis sesi ' + pad2(slot) + ':00';
+        note = 'Result sesi ' + it.slot + ' sudah keluar \u2014 prediksi otomatis sesi ' + pad2(slot) + ':50';
       }
     } else {
       var closed = closedDaysOf(it.jadwal) || closedDaysOf(it.tutup);
@@ -379,7 +380,7 @@
     return {
       seed: seed,
       label: seedToLabel(seed),
-      hokiSlot: it.hoki ? pad2(slot) + ':00' : '',
+      hokiSlot: it.hoki ? pad2(slot) + ':50' : '',
       rolled: rolled,
       note: note,
       manual: manual
@@ -800,7 +801,7 @@
     var m = ST_META[it.st] || ST_META.khusus;
     var hs = p.hokiSlot || it.slot || '';
     var namaFull = it.nama + (it.hoki ? ' ' + hs : '');
-    var jadwalNote = it.hoki ? 'Rolling tiap 1 jam \u2014 sesi ' + hs + ' WIB (tutup :' + hs.slice(0, 2) + ':00, result :' + hs.slice(0, 2) + ':' + pad2(HOKI_RESULT_OFFSET) + ' WIB)'
+    var jadwalNote = it.hoki ? 'Rolling tiap 1 jam \u2014 sesi ' + hs + ' WIB (tutup ' + hs + ', result ' + pad2((Number(hs.slice(0, 2)) + 1) % 24) + ':00 WIB)'
       : (it.note ? esc(it.note) : esc(it.jadwal));
 
     /* digit tiles */

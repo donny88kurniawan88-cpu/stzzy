@@ -12,7 +12,7 @@
      (/api/pasaran/results/sg4d|sgtoto -> field nextDraw).
    Dipertahankan:
    - Status BUKA/TUTUP/RESULT/LIBUR realtime vs jam WIB.
-   - HOKI DRAW: 24 sesi otomatis per 1 jam (tutup :00 result :10).
+   - HOKI DRAW: 24 sesi otomatis per 1 jam (tutup :50 result :00).
    - Copy pasaran & Copy All (format tab, dipindah dari Jadwal).
    - Control panel: jam WIB live, filter status, refresh, stat.
    Data sumber: GET /api/pasaran (SQLite D1, fallback lokal).
@@ -26,7 +26,8 @@
      STATE & KONSTANTA
      ============================================================ */
   var LKEY = 'aura_pasaran_local_v1'; // sama dengan pasaran-pro.js (sumber data sama)
-  var HOKI_RESULT_OFFSET = 10;        // jam result = jam tutup + 10 menit (00:00 -> 00:10)
+  var HOKI_CLOSE_MIN = 50;            // betclosed tiap jam menit-50 (h:50) — jadwal baru user
+  var HOKI_RESULT_OFFSET = 10;        // window betclosed -> result = 10 menit (result tepat :00 jam berikutnya)
 
   var ICON_COPY =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
@@ -233,7 +234,7 @@
   }
 
   function hokiSlotStatus(h, now) {
-    var tu = h * 60, re = h * 60 + HOKI_RESULT_OFFSET;
+    var tu = h * 60 + HOKI_CLOSE_MIN, re = (h + 1) * 60;
     if (now.m < tu) return 'buka';
     if (now.m < re) return 'tutup';
     return 'result';
@@ -263,11 +264,11 @@
           out.push({
             key: base.id + '-s' + h, no: base.no, sub: h,
             nama: base.nama, jadwal: base.jadwal,
-            tutup: pad2(h) + ':00 WIB',
-            result: pad2(h) + ':' + pad2(HOKI_RESULT_OFFSET) + ' WIB',
+            tutup: pad2(h) + ':50 WIB',
+            result: pad2((h + 1) % 24) + ':00 WIB',
             link: base.link,
             st: hokiSlotStatus(h, now), note: '',
-            hoki: true, slot: pad2(h) + ':00',
+            hoki: true, slot: pad2(h) + ':50',
             flag: ctry.flag, country: ctry.name
           });
         }
