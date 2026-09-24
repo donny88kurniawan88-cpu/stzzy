@@ -1,5 +1,5 @@
 /* ============================================================
-   SALDO QRIS — v1.0.0 (v3.13.0 / Task 32)
+   SALDO QRIS — v1.1.0 (v3.13.1 / Task 32b)
    4 toggle pages: V2HIM · XPAY · MINERAPAY · ORION
    - Sumber data: Google Sheet saldo QRIS via proxy worker
      GET /api/qris-saldo (header x-auth-token)
@@ -7,36 +7,56 @@
        Saldo Akhir (sheet) − Fee Tax & Transaksi − Fee Transaksi
        Pending + Transaksi Withdraw Failed + Pending Deposit
        − Saldo Dashboard  =  SALDO BERSIH
+   - Fee Tax & Transaksi: AUTO dari baris TOTAL BIAYA HARIAN
+     (baris 22, kolom E:M per gate)
+   - Fee Transaksi Pending: INPUT MANUAL utk semua page,
+     dengan auto-convert:
+       V2HIM     : input JUMLAH transaksi pending × Rp 1.600/trx
+       XPAY      : input JUMLAH transaksi pending × Rp 1.500/trx
+       MINERAPAY : input nominal biaya langsung (manual)
+       ORION     : input nominal biaya langsung (manual)
    - Nilai otomatis dari sheet (badge AUTO), nilai manual
-     (Withdraw Failed / Pending Deposit / Saldo Dashboard)
-     tersimpan di localStorage dan bisa diedit.
+     (Fee Trx Pending / Withdraw Failed / Pending Deposit /
+     Saldo Dashboard) tersimpan di localStorage dan bisa diedit.
    API global: window.SaldoQris { render, refresh, setTab, state }
    ============================================================ */
 (function () {
   'use strict';
 
-  /* ===== CONFIG PAGE (4 provider) ===== */
+  /* ===== CONFIG PAGE (4 provider) =====
+     pendingMode: 'count' = input jumlah trx pending, fee = trx × pendingRate
+                  'amount' = input nominal biaya pending langsung */
   var PAGES = [
     { key: 'v2him',     label: 'V2HIM',     icon: 'fa-shield-halved', color: '#8b5cf6', color2: '#7c3aed', grad: 'linear-gradient(135deg,#8b5cf6 0%,#6d28d9 100%)',
+      pendingMode: 'count', pendingRate: 1600,
       match: function (n) { return /V2HIM/.test(n); } },
     { key: 'xpay',      label: 'XPAY',      icon: 'fa-bolt',          color: '#06b6d4', color2: '#0891b2', grad: 'linear-gradient(135deg,#22d3ee 0%,#0891b2 100%)',
+      pendingMode: 'count', pendingRate: 1500,
       match: function (n) { return /XPAY/.test(n); } },
     { key: 'minerapay', label: 'MINERAPAY', icon: 'fa-layer-group',   color: '#10b981', color2: '#059669', grad: 'linear-gradient(135deg,#34d399 0%,#059669 100%)',
+      pendingMode: 'amount',
       match: function (n) { return /MINERAPAY/.test(n) && !/ORION/.test(n); } },
     { key: 'orion',     label: 'ORION',     icon: 'fa-star',          color: '#f59e0b', color2: '#d97706', grad: 'linear-gradient(135deg,#fbbf24 0%,#d97706 100%)',
+      pendingMode: 'amount',
       match: function (n) { return /ORION/.test(n); } }
   ];
 
   /* ===== KALKULATOR: definisi field per page (urut = urut hitung) =====
      auto: nama metric sheet (di-aggregate utk gate page) atau null=manual */
   var CALC_FIELDS = [
-    { key: 'saldoSheet',     label: 'Saldo Akhir (Spreadsheet)', op: '=',  auto: 'saldo',    hint: 'Baris SALDO >>> sheet' },
-    { key: 'feeTax',         label: 'Fee Tax & Transaksi',       op: '\u2212', auto: 'feeAll',   hint: 'TOTAL BIAYA ALL + KAS1' },
-    { key: 'feePending',     label: 'Fee Transaksi Pending',     op: '\u2212', auto: 'pendinganDocs', hint: 'TOTAL PENDINGAN DOCS' },
-    { key: 'withdrawFailed', label: 'Transaksi Withdraw Failed', op: '+',  auto: null,       hint: 'Input manual' },
-    { key: 'pendingDeposit', label: 'Pending Deposit',           op: '+',  auto: null,       hint: 'Input manual' },
-    { key: 'saldoDashboard', label: 'Saldo Dashboard',           op: '\u2212', auto: null,       hint: 'Input manual (rekonsiliasi)' }
+    { key: 'saldoSheet',     label: 'Saldo Akhir (Spreadsheet)', op: '=',  auto: 'saldo',       hint: 'Baris SALDO >>> sheet' },
+    { key: 'feeTax',         label: 'Fee Tax & Transaksi',       op: '\u2212', auto: 'biayaHarian', hint: 'TOTAL BIAYA HARIAN (baris 22 · E:M)' },
+    { key: 'feePending',     label: 'Fee Transaksi Pending',     op: '\u2212', auto: null,          hint: '' }, /* hint dinamis per page */
+    { key: 'withdrawFailed', label: 'Transaksi Withdraw Failed', op: '+',  auto: null,          hint: 'Input manual' },
+    { key: 'pendingDeposit', label: 'Pending Deposit',           op: '+',  auto: null,          hint: 'Input manual' },
+    { key: 'saldoDashboard', label: 'Saldo Dashboard',           op: '\u2212', auto: null,          hint: 'Input manual (rekonsiliasi)' }
   ];
+  /* hint + label input Fee Transaksi Pending per mode page */
+  function feePendingHint(p) {
+    return p.pendingMode === 'count'
+      ? 'Jumlah trx pending × ' + fmt(p.pendingRate) + '/trx'
+      : 'Nominal biaya — input manual';
+  }
 
   var LS_CALC = 'aura_sq_calc_v1';
   var LS_TAB = 'aura_sq_tab_v1';
@@ -79,8 +99,8 @@
     var idxs = pageIdxs(sheet, page);
     return {
       saldoSheet: sumMetric(sheet, 'saldo', idxs),
-      feeTax: sumMetric(sheet, 'biayaAll', idxs) + sumMetric(sheet, 'biayaAllKas1', idxs),
-      feePending: sumMetric(sheet, 'pendinganDocs', idxs),
+      feeTax: sumMetric(sheet, 'biayaHarian', idxs), /* TOTAL BIAYA HARIAN baris 22 E:M */
+      feePending: 0, /* manual utk semua page */
       withdrawFailed: 0,
       pendingDeposit: 0,
       saldoDashboard: 0
@@ -95,6 +115,12 @@
       var v = over[f.key] != null ? Number(over[f.key]) : auto[f.key];
       vals[f.key] = isFinite(v) ? v : 0;
     });
+    /* Fee Transaksi Pending: mode count -> input = JUMLAH trx, fee = trx × rate
+       mode amount -> input = nominal biaya langsung */
+    vals.feePendingRaw = vals.feePending;
+    if (page.pendingMode === 'count') {
+      vals.feePending = Math.round(vals.feePendingRaw * (page.pendingRate || 0));
+    }
     var result = vals.saldoSheet - vals.feeTax - vals.feePending + vals.withdrawFailed + vals.pendingDeposit - vals.saldoDashboard;
     return { auto: auto, vals: vals, result: result, overridden: Object.keys(over).length };
   }
@@ -298,6 +324,13 @@
     var c = calcValues(p); if (!c) return;
     var resVal = document.querySelector('#sqResVal');
     if (resVal) resVal.textContent = fmtRp(c.result);
+    /* chip konversi trx → fee (mode count) */
+    var tc = document.querySelector('#sqTrxCc');
+    if (tc) tc.textContent = '= Rp ' + fmt(c.vals.feePending);
+    /* stat card Fee Pending & Fee Tax ikut live (tanpa count-up) */
+    var st2 = el('sqSt2'); if (st2) st2.textContent = fmtRp(c.vals.feePending);
+    var st2s = el('sqSt2sub'); if (st2s) st2s.innerHTML = statPendingSub(p, c);
+    var st3 = el('sqSt3'); if (st3) st3.textContent = fmtRp(c.vals.feeTax);
     var resBox = document.querySelector('.sq-result');
     if (resBox) {
       resBox.classList.toggle('neg', c.result < 0);
@@ -312,7 +345,7 @@
         : '<i class="fas fa-circle-check"></i> Saldo aman (surplus ' + fmt(c.result) + ')';
     }
     var br = document.querySelector('#sqResBreak');
-    if (br) br.textContent = formulaText(c);
+    if (br) br.textContent = formulaText(c, p);
     /* badge MANUAL pada field yg diubah */
     var inp = document.activeElement;
     if (inp && inp.classList && inp.classList.contains('sq-num')) {
@@ -337,13 +370,23 @@
     inp.value = fmt(v);
   }
 
-  function formulaText(c) {
+  function formulaText(c, p) {
+    var pend = fmt(c.vals.feePending);
+    if (p && p.pendingMode === 'count') pend += ' (' + fmt(c.vals.feePendingRaw) + ' trx × ' + fmt(p.pendingRate) + ')';
     return 'Saldo Bersih = Saldo Akhir ' + fmt(c.vals.saldoSheet) +
       ' \u2212 Fee Tax & Transaksi ' + fmt(c.vals.feeTax) +
-      ' \u2212 Fee Transaksi Pending ' + fmt(c.vals.feePending) +
+      ' \u2212 Fee Transaksi Pending ' + pend +
       ' + Withdraw Failed ' + fmt(c.vals.withdrawFailed) +
       ' + Pending Deposit ' + fmt(c.vals.pendingDeposit) +
       ' \u2212 Saldo Dashboard ' + fmt(c.vals.saldoDashboard);
+  }
+
+  /* sub-label stat card Fee Transaksi Pending per mode */
+  function statPendingSub(p, c) {
+    if (p.pendingMode === 'count') {
+      return '<span class="sq-delta"><i class="fas fa-calculator"></i> ' + fmt(c.vals.feePendingRaw) + ' trx × ' + fmt(p.pendingRate) + '/trx</span> · manual';
+    }
+    return 'input manual (nominal biaya)';
   }
 
   /* ===== PAINT BODY ===== */
@@ -370,9 +413,9 @@
         '<div class="sq-card c2 anim d1"><div class="sq-card-ic" style="background:linear-gradient(135deg,#64748b,#334155)"><i class="fas fa-flag-checkered"></i></div>' +
           '<div class="sq-card-label">Saldo Awal</div><div class="sq-card-val" id="sqSt1">0</div><div class="sq-card-sub">posisi awal periode</div></div>' +
         '<div class="sq-card c3 anim d2"><div class="sq-card-ic" style="background:linear-gradient(135deg,#fb923c,#ea580c)"><i class="fas fa-hourglass-half"></i></div>' +
-          '<div class="sq-card-label">Fee Transaksi Pending</div><div class="sq-card-val" id="sqSt2">0</div><div class="sq-card-sub">TOTAL PENDINGAN DOCS</div></div>' +
+          '<div class="sq-card-label">Fee Transaksi Pending</div><div class="sq-card-val" id="sqSt2">0</div><div class="sq-card-sub" id="sqSt2sub">' + statPendingSub(p, c) + '</div></div>' +
         '<div class="sq-card c4 anim d3"><div class="sq-card-ic" style="background:linear-gradient(135deg,#f43f5e,#be123c)"><i class="fas fa-receipt"></i></div>' +
-          '<div class="sq-card-label">Fee Tax &amp; Transaksi</div><div class="sq-card-val" id="sqSt3">0</div><div class="sq-card-sub">TOTAL BIAYA ALL + KAS1</div></div>' +
+          '<div class="sq-card-label">Fee Tax &amp; Transaksi</div><div class="sq-card-val" id="sqSt3">0</div><div class="sq-card-sub">TOTAL BIAYA HARIAN (baris 22)</div></div>' +
       '</div>';
 
     /* --- kalkulator --- */
@@ -381,15 +424,20 @@
       var isAuto = f.auto != null;
       var isOver = (state.calc[p.key] || {})[f.key] != null;
       var src = isOver ? 'MANUAL' : (isAuto ? 'AUTO' : 'MANUAL');
+      /* feePending: mode count → input menampilkan JUMLAH TRX (bukan fee) */
+      var isCnt = f.key === 'feePending' && p.pendingMode === 'count';
+      var showVal = f.key === 'feePending' ? c.vals.feePendingRaw : c.vals[f.key];
+      var hint = f.key === 'feePending' ? feePendingHint(p) : f.hint;
       steps +=
-        '<div class="sq-step anim d' + Math.min(i + 1, 4) + '">' +
+        '<div class="sq-step anim d' + Math.min(i + 1, 4) + (isCnt ? ' has-trx' : '') + '">' +
           '<div class="sq-op">' + f.op + '</div>' +
           '<div class="sq-stepinfo">' +
             '<div class="sq-steplabel">' + esc(f.label) + '</div>' +
-            '<div class="sq-stepsub">' + esc(f.hint) + (f.key === 'saldoDashboard' ? ' \u2014 ' + esc(p.label) : '') + '</div>' +
+            '<div class="sq-stepsub">' + esc(hint) + (f.key === 'saldoDashboard' ? ' \u2014 ' + esc(p.label) : '') + '</div>' +
           '</div>' +
           '<span class="sq-src' + (src === 'MANUAL' ? ' man' : '') + '">' + src + '</span>' +
-          '<input class="sq-num" data-fkey="' + f.key + '" data-raw="' + c.vals[f.key] + '" value="' + fmt(c.vals[f.key]) + '" inputmode="numeric" autocomplete="off" spellcheck="false">' +
+          '<input class="sq-num" data-fkey="' + f.key + '" data-raw="' + showVal + '" value="' + fmt(showVal) + '" inputmode="numeric" autocomplete="off" spellcheck="false">' +
+          (isCnt ? '<span class="sq-trxcalc" id="sqTrxCc">= Rp ' + fmt(c.vals.feePending) + '</span>' : '') +
         '</div>';
     });
 
@@ -399,14 +447,14 @@
           '<div class="sq-calc-head"><i class="fas fa-calculator"></i> Kalkulator Saldo \u2014 ' + esc(p.label) +
             '<button class="sq-reset" data-action="sqreset" title="Kembalikan ke nilai sheet"><i class="fas fa-rotate-left"></i> Reset</button></div>' +
           steps +
-          '<div class="sq-formula"><i class="fas fa-equals"></i> <span>' + esc(formulaText(c)) + '</span></div>' +
+          '<div class="sq-formula"><i class="fas fa-equals"></i> <span>' + esc(formulaText(c, p)) + '</span></div>' +
         '</div>' +
         '<div class="sq-rescol">' +
           '<div class="sq-result' + (c.result < 0 ? ' neg' : '') + '">' +
             '<div class="sq-result-top"><span class="sq-result-label"><i class="fas fa-coins"></i> SALDO BERSIH \u2014 ' + esc(p.label) + '</span>' +
             '<span class="sq-result-chip ' + (c.result < 0 ? 'neg' : 'pos') + '" id="sqResNote">' + (c.result < 0 ? '<i class="fas fa-arrow-trend-down"></i> Saldo minus ' + fmt(Math.abs(c.result)) : '<i class="fas fa-circle-check"></i> Saldo aman (surplus ' + fmt(c.result) + ')') + '</span></div>' +
             '<div class="sq-result-val" id="sqResVal">' + fmtRp(c.result) + '</div>' +
-            '<div class="sq-result-break" id="sqResBreak">' + esc(formulaText(c)) + '</div>' +
+            '<div class="sq-result-break" id="sqResBreak">' + esc(formulaText(c, p)) + '</div>' +
             '<div class="sq-result-foot"><span class="sq-live"><span class="sq-dot2"></span> live recalculating</span><span>' + (idxs.length) + ' gate digabung</span></div>' +
           '</div>' +
           '<div class="sq-gates">' +
