@@ -1,12 +1,16 @@
 /* ============================================================
-   SALDO QRIS — v1.1.0 (v3.13.1 / Task 32b)
+   SALDO QRIS — v1.2.0 (v3.13.2 / Task 34)
    4 toggle pages: V2HIM · XPAY · MINERAPAY · ORION
    - Sumber data: Google Sheet saldo QRIS via proxy worker
      GET /api/qris-saldo (header x-auth-token)
-   - Kalkulator saldo per page:
+   - Kalkulator saldo per page (Task 34):
        Saldo Akhir (sheet) − Fee Tax & Transaksi − Fee Transaksi
-       Pending + Transaksi Withdraw Failed + Pending Deposit
+       Pending − Unsettled − Cutoff* − Approved Hari Ini
+       + Transaksi Withdraw Failed + Pending Deposit
        − Saldo Dashboard  =  SALDO BERSIH
+       (*Cutoff hanya ada di V2HIM & XPAY — MINERAPAY/ORION tanpa
+       Cutoff; nilai Unsettled/Cutoff/Approved Hari Ini seluruhnya
+       input manual dan seluruhnya MENGURANGI saldo, op −)
    - Fee Tax & Transaksi: AUTO dari baris TOTAL BIAYA HARIAN
      (baris 22, kolom E:M per gate)
    - Fee Transaksi Pending: INPUT MANUAL utk semua page,
@@ -16,8 +20,7 @@
        MINERAPAY : input nominal biaya langsung (manual)
        ORION     : input nominal biaya langsung (manual)
    - Nilai otomatis dari sheet (badge AUTO), nilai manual
-     (Fee Trx Pending / Withdraw Failed / Pending Deposit /
-     Saldo Dashboard) tersimpan di localStorage dan bisa diedit.
+     tersimpan di localStorage dan bisa diedit.
    API global: window.SaldoQris { render, refresh, setTab, state }
    ============================================================ */
 (function () {
@@ -41,16 +44,32 @@
       match: function (n) { return /ORION/.test(n); } }
   ];
 
-  /* ===== KALKULATOR: definisi field per page (urut = urut hitung) =====
-     auto: nama metric sheet (di-aggregate utk gate page) atau null=manual */
+  /* ===== KALKULATOR: definisi field (urut = urut hitung) =====
+     auto: nama metric sheet (di-aggregate utk gate page) atau null=manual
+     only: daftar page key yang menampilkan field (tanpa = semua page)
+     short: label singkat di formula breakdown
+     Task 34: Unsettled / Cutoff / Approved Hari Ini — seluruhnya
+     op MINUS (mengurangi saldo bersih); Cutoff hanya V2HIM & XPAY */
   var CALC_FIELDS = [
-    { key: 'saldoSheet',     label: 'Saldo Akhir (Spreadsheet)', op: '=',  auto: 'saldo',       hint: 'Baris SALDO >>> sheet' },
-    { key: 'feeTax',         label: 'Fee Tax & Transaksi',       op: '\u2212', auto: 'biayaHarian', hint: 'TOTAL BIAYA HARIAN (baris 22 · E:M)' },
-    { key: 'feePending',     label: 'Fee Transaksi Pending',     op: '\u2212', auto: null,          hint: '' }, /* hint dinamis per page */
-    { key: 'withdrawFailed', label: 'Transaksi Withdraw Failed', op: '+',  auto: null,          hint: 'Input manual' },
-    { key: 'pendingDeposit', label: 'Pending Deposit',           op: '+',  auto: null,          hint: 'Input manual' },
-    { key: 'saldoDashboard', label: 'Saldo Dashboard',           op: '\u2212', auto: null,          hint: 'Input manual (rekonsiliasi)' }
+    { key: 'saldoSheet',     label: 'Saldo Akhir (Spreadsheet)', short: 'Saldo Akhir',            op: '=',  auto: 'saldo',       hint: 'Baris SALDO >>> sheet' },
+    { key: 'feeTax',         label: 'Fee Tax & Transaksi',       short: 'Fee Tax & Transaksi',    op: '\u2212', auto: 'biayaHarian', hint: 'TOTAL BIAYA HARIAN (baris 22 · E:M)' },
+    { key: 'feePending',     label: 'Fee Transaksi Pending',     short: 'Fee Transaksi Pending',  op: '\u2212', auto: null,          hint: '' }, /* hint dinamis per page */
+    { key: 'unsettled',      label: 'Unsettled',                 short: 'Unsettled',              op: '\u2212', auto: null,          hint: 'Input manual — dikurangkan dari saldo' },
+    { key: 'cutoff',         label: 'Cutoff',                    short: 'Cutoff',                 op: '\u2212', auto: null,          hint: 'Input manual — dikurangkan dari saldo', only: ['v2him', 'xpay'] },
+    { key: 'approvedToday',  label: 'Approved Hari Ini',         short: 'Approved Hari Ini',      op: '\u2212', auto: null,          hint: 'Input manual — dikurangkan dari saldo' },
+    { key: 'withdrawFailed', label: 'Transaksi Withdraw Failed', short: 'Withdraw Failed',        op: '+',  auto: null,          hint: 'Input manual' },
+    { key: 'pendingDeposit', label: 'Pending Deposit',           short: 'Pending Deposit',        op: '+',  auto: null,          hint: 'Input manual' },
+    { key: 'saldoDashboard', label: 'Saldo Dashboard',           short: 'Saldo Dashboard',        op: '\u2212', auto: null,          hint: 'Input manual (rekonsiliasi)' }
   ];
+  /* field yang berlaku utk page tertentu (filter properti only) */
+  function calcFields(page) {
+    var out = [];
+    for (var i = 0; i < CALC_FIELDS.length; i++) {
+      var f = CALC_FIELDS[i];
+      if (!f.only || f.only.indexOf(page.key) !== -1) out.push(f);
+    }
+    return out;
+  }
   /* hint + label input Fee Transaksi Pending per mode page */
   function feePendingHint(p) {
     return p.pendingMode === 'count'
@@ -101,6 +120,9 @@
       saldoSheet: sumMetric(sheet, 'saldo', idxs),
       feeTax: sumMetric(sheet, 'biayaHarian', idxs), /* TOTAL BIAYA HARIAN baris 22 E:M */
       feePending: 0, /* manual utk semua page */
+      unsettled: 0,      /* Task 34 — manual */
+      cutoff: 0,         /* Task 34 — manual (hanya v2him/xpay) */
+      approvedToday: 0,  /* Task 34 — manual */
       withdrawFailed: 0,
       pendingDeposit: 0,
       saldoDashboard: 0
@@ -110,8 +132,9 @@
     var sheet = state.data && state.data.sheet; if (!sheet) return null;
     var auto = autoValues(sheet, page);
     var over = (state.calc[page.key] || {});
+    var fields = calcFields(page);
     var vals = {};
-    CALC_FIELDS.forEach(function (f) {
+    fields.forEach(function (f) {
       var v = over[f.key] != null ? Number(over[f.key]) : auto[f.key];
       vals[f.key] = isFinite(v) ? v : 0;
     });
@@ -121,7 +144,14 @@
     if (page.pendingMode === 'count') {
       vals.feePending = Math.round(vals.feePendingRaw * (page.pendingRate || 0));
     }
-    var result = vals.saldoSheet - vals.feeTax - vals.feePending + vals.withdrawFailed + vals.pendingDeposit - vals.saldoDashboard;
+    /* hasil dihitung dinamis mengikuti field page + operator masing-masing
+       (Task 34: unsettled/cutoff/approvedToday op '−' = mengurangi) */
+    var result = 0;
+    fields.forEach(function (f) {
+      if (f.op === '=') result = vals[f.key];
+      else if (f.op === '+') result += vals[f.key];
+      else result -= vals[f.key]; /* '\u2212' */
+    });
     return { auto: auto, vals: vals, result: result, overridden: Object.keys(over).length };
   }
 
@@ -371,14 +401,17 @@
   }
 
   function formulaText(c, p) {
-    var pend = fmt(c.vals.feePending);
-    if (p && p.pendingMode === 'count') pend += ' (' + fmt(c.vals.feePendingRaw) + ' trx × ' + fmt(p.pendingRate) + ')';
-    return 'Saldo Bersih = Saldo Akhir ' + fmt(c.vals.saldoSheet) +
-      ' \u2212 Fee Tax & Transaksi ' + fmt(c.vals.feeTax) +
-      ' \u2212 Fee Transaksi Pending ' + pend +
-      ' + Withdraw Failed ' + fmt(c.vals.withdrawFailed) +
-      ' + Pending Deposit ' + fmt(c.vals.pendingDeposit) +
-      ' \u2212 Saldo Dashboard ' + fmt(c.vals.saldoDashboard);
+    var parts = [];
+    calcFields(p).forEach(function (f) {
+      var v;
+      if (f.key === 'feePending') {
+        v = fmt(c.vals.feePending);
+        if (p && p.pendingMode === 'count') v += ' (' + fmt(c.vals.feePendingRaw) + ' trx × ' + fmt(p.pendingRate) + ')';
+      } else v = fmt(c.vals[f.key]);
+      if (f.op === '=') parts.push(f.short + ' ' + v);
+      else parts.push(f.op + ' ' + f.short + ' ' + v);
+    });
+    return 'Saldo Bersih = ' + parts.join(' ');
   }
 
   /* sub-label stat card Fee Transaksi Pending per mode */
@@ -420,7 +453,8 @@
 
     /* --- kalkulator --- */
     var steps = '';
-    CALC_FIELDS.forEach(function (f, i) {
+    var flds = calcFields(p);
+    flds.forEach(function (f, i) {
       var isAuto = f.auto != null;
       var isOver = (state.calc[p.key] || {})[f.key] != null;
       var src = isOver ? 'MANUAL' : (isAuto ? 'AUTO' : 'MANUAL');
