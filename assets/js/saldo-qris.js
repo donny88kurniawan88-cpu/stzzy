@@ -1,5 +1,5 @@
 /* ============================================================
-   SALDO QRIS — v1.2.0 (v3.13.2 / Task 34)
+   SALDO QRIS — v1.3.0 (v3.14.0 / Task 35)
    4 toggle pages: V2HIM · XPAY · MINERAPAY · ORION
    - Sumber data: Google Sheet saldo QRIS via proxy worker
      GET /api/qris-saldo (header x-auth-token)
@@ -19,8 +19,14 @@
        XPAY      : input JUMLAH transaksi pending × Rp 1.500/trx
        MINERAPAY : input nominal biaya langsung (manual)
        ORION     : input nominal biaya langsung (manual)
+   - v1.3.0 (Task 35): nilai input TIDAK LAGI tersimpan di
+     localStorage — tersimpan di D1 SQLite per-user via worker
+     GET/POST /api/qris-saldo-calc (debounce 700ms, chip status
+     "menyimpan…/tersimpan di DB/gagal simpan"). Data lama di
+     localStorage dimigrasikan sekali otomatis lalu dibersihkan.
+     Tab tetap persist lokal (preferensi UI, bukan data).
    - Nilai otomatis dari sheet (badge AUTO), nilai manual
-     tersimpan di localStorage dan bisa diedit.
+     bisa diedit; live re-calc tanpa re-render (fokus aman).
    API global: window.SaldoQris { render, refresh, setTab, state }
    ============================================================ */
 (function () {
@@ -51,15 +57,15 @@
      Task 34: Unsettled / Cutoff / Approved Hari Ini — seluruhnya
      op MINUS (mengurangi saldo bersih); Cutoff hanya V2HIM & XPAY */
   var CALC_FIELDS = [
-    { key: 'saldoSheet',     label: 'Saldo Akhir (Spreadsheet)', short: 'Saldo Akhir',            op: '=',  auto: 'saldo',       hint: 'Baris SALDO >>> sheet' },
-    { key: 'feeTax',         label: 'Fee Tax & Transaksi',       short: 'Fee Tax & Transaksi',    op: '\u2212', auto: 'biayaHarian', hint: 'TOTAL BIAYA HARIAN (baris 22 · E:M)' },
-    { key: 'feePending',     label: 'Fee Transaksi Pending',     short: 'Fee Transaksi Pending',  op: '\u2212', auto: null,          hint: '' }, /* hint dinamis per page */
-    { key: 'unsettled',      label: 'Unsettled',                 short: 'Unsettled',              op: '\u2212', auto: null,          hint: 'Input manual — dikurangkan dari saldo' },
-    { key: 'cutoff',         label: 'Cutoff',                    short: 'Cutoff',                 op: '\u2212', auto: null,          hint: 'Input manual — dikurangkan dari saldo', only: ['v2him', 'xpay'] },
-    { key: 'approvedToday',  label: 'Approved Hari Ini',         short: 'Approved Hari Ini',      op: '\u2212', auto: null,          hint: 'Input manual — dikurangkan dari saldo' },
-    { key: 'withdrawFailed', label: 'Transaksi Withdraw Failed', short: 'Withdraw Failed',        op: '+',  auto: null,          hint: 'Input manual' },
-    { key: 'pendingDeposit', label: 'Pending Deposit',           short: 'Pending Deposit',        op: '+',  auto: null,          hint: 'Input manual' },
-    { key: 'saldoDashboard', label: 'Saldo Dashboard',           short: 'Saldo Dashboard',        op: '\u2212', auto: null,          hint: 'Input manual (rekonsiliasi)' }
+    { key: 'saldoSheet',     label: 'Saldo Akhir (Spreadsheet)', short: 'Saldo Akhir',           op: '=',  auto: 'saldo',       hint: 'Baris SALDO >>> sheet' },
+    { key: 'feeTax',         label: 'Fee Tax & Transaksi',       short: 'Fee Tax & Transaksi',   op: '\u2212', auto: 'biayaHarian', hint: 'TOTAL BIAYA HARIAN (baris 22 · E:M)' },
+    { key: 'feePending',     label: 'Fee Transaksi Pending',     short: 'Fee Transaksi Pending', op: '\u2212', auto: null,          hint: '' }, /* hint dinamis per page */
+    { key: 'unsettled',      label: 'Unsettled',                 short: 'Unsettled',             op: '\u2212', auto: null,          hint: 'Input manual — dikurangkan dari saldo' },
+    { key: 'cutoff',         label: 'Cutoff',                    short: 'Cutoff',                op: '\u2212', auto: null,          hint: 'Input manual — dikurangkan dari saldo', only: ['v2him', 'xpay'] },
+    { key: 'approvedToday',  label: 'Approved Hari Ini',         short: 'Approved Hari Ini',     op: '\u2212', auto: null,          hint: 'Input manual — dikurangkan dari saldo' },
+    { key: 'withdrawFailed', label: 'Transaksi Withdraw Failed', short: 'Withdraw Failed',       op: '+',  auto: null,          hint: 'Input manual' },
+    { key: 'pendingDeposit', label: 'Pending Deposit',           short: 'Pending Deposit',       op: '+',  auto: null,          hint: 'Input manual' },
+    { key: 'saldoDashboard', label: 'Saldo Dashboard',           short: 'Saldo Dashboard',       op: '\u2212', auto: null,          hint: 'Input manual (rekonsiliasi)' }
   ];
   /* field yang berlaku utk page tertentu (filter properti only) */
   function calcFields(page) {
@@ -77,8 +83,8 @@
       : 'Nominal biaya — input manual';
   }
 
-  var LS_CALC = 'aura_sq_calc_v1';
   var LS_TAB = 'aura_sq_tab_v1';
+  var LS_CALC_LEGACY = 'aura_sq_calc_v1'; /* v1.3.0: legacy — dimigrasikan ke D1 lalu dihapus */
 
   var state = {
     loaded: false, loading: false,
@@ -180,7 +186,7 @@
     if (!root) return;
     state.tab = lsGet(LS_TAB, 'v2him');
     if (!PAGES.some(function (p) { return p.key === state.tab; })) state.tab = 'v2him';
-    state.calc = lsGet(LS_CALC, {});
+    if (!state.calc) state.calc = {}; /* v1.3.0: diisi dari D1 via loadCalc() */
 
     root.innerHTML =
       '<div class="sq-wrap">' +
@@ -217,11 +223,77 @@
     }
 
     moveInd();
+    loadCalc(); /* v1.3.0: ambil nilai kalkulator dari D1 (async, paint saat siap) */
     if (state.data) {
       paintBody();
       /* stale-while-revalidate: sheet lama > 2 menit -> re-sync diam-diam */
       if (!state.lastSync || (Date.now() - state.lastSync) > 120000) refresh();
     } else refresh();
+  }
+
+  /* ===== SIMPAN KE D1 (v1.3.0 / Task 35) — bukan localStorage =====
+     POST { page, values } = snapshot replace satu page (debounce 700ms);
+     chip #sqDbSync menampilkan status simpan. */
+  var saveTimer = null;
+  function setDbSync(st) {
+    var n = el('sqDbSync'); if (!n) return;
+    if (st === 'saving') { n.className = 'sq-dbsync saving'; n.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> menyimpan…'; }
+    else if (st === 'saved') { n.className = 'sq-dbsync ok'; n.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> tersimpan di DB'; }
+    else if (st === 'fail') { n.className = 'sq-dbsync bad'; n.innerHTML = '<i class="fas fa-triangle-exclamation"></i> gagal simpan'; }
+    else { n.className = 'sq-dbsync'; n.innerHTML = '<i class="fas fa-database"></i> DB'; }
+  }
+  function saveCalcNow() {
+    var pageKey = state.tab;
+    var vals = state.calc[pageKey] || {};
+    setDbSync('saving');
+    fetch('/api/qris-saldo-calc', {
+      method: 'POST',
+      headers: { 'x-auth-token': token(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ page: pageKey, values: vals })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { setDbSync(d && d.success ? 'saved' : 'fail'); })
+      .catch(function () { setDbSync('fail'); });
+  }
+  function saveCalcDebounced() {
+    setDbSync('saving');
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveCalcNow, 700);
+  }
+  function loadCalc() {
+    return fetch('/api/qris-saldo-calc', { headers: { 'x-auth-token': token() } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.success && d.values) {
+          var hasData = false;
+          Object.keys(d.values).forEach(function (k) { if (d.values[k] && Object.keys(d.values[k]).length) hasData = true; });
+          if (!hasData) return migrateLegacy();
+          state.calc = d.values;
+          if (state.data) paintBody();
+        }
+      })
+      .catch(function () { /* offline: lanjut dgn in-memory, simpan ulang saat input */ });
+  }
+  /* migrasi SEKALI: nilai lama di localStorage → D1, lalu LS dibersihkan */
+  function migrateLegacy() {
+    var legacy = lsGet(LS_CALC_LEGACY, null);
+    if (!legacy || typeof legacy !== 'object') return Promise.resolve();
+    var jobs = Object.keys(legacy)
+      .filter(function (p) { return legacy[p] && Object.keys(legacy[p]).length; })
+      .map(function (p) {
+        return fetch('/api/qris-saldo-calc', {
+          method: 'POST',
+          headers: { 'x-auth-token': token(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page: p, values: legacy[p] })
+        });
+      });
+    if (!jobs.length) { try { localStorage.removeItem(LS_CALC_LEGACY); } catch (e) {} return Promise.resolve(); }
+    return Promise.all(jobs).then(function () {
+      try { localStorage.removeItem(LS_CALC_LEGACY); } catch (e) {}
+      state.calc = legacy;
+      if (state.data) paintBody();
+      if (typeof window.showToast === 'function') window.showToast('Data kalkulator lama dimigrasikan ke database', 'success');
+    }).catch(function () {});
   }
 
   function moveInd() {
@@ -332,9 +404,9 @@
     if (a === 'sqretry') refresh();
     else if (a === 'sqreset') {
       delete state.calc[state.tab];
-      lsSet(LS_CALC, state.calc);
+      saveCalcNow(); /* v1.3.0: hapus juga nilai page ini di DB (snapshot kosong) */
       paintBody();
-      if (typeof window.showToast === 'function') window.showToast('Kalkulator dikembalikan ke nilai sheet', 'info');
+      if (typeof window.showToast === 'function') window.showToast('Kalkulator dikembalikan ke nilai sheet — data di database dihapus', 'info');
     }
   }
   function onInput(e) {
@@ -345,7 +417,7 @@
     var v = parseFloat(raw);
     var over = state.calc[state.tab] || (state.calc[state.tab] = {});
     over[key] = isFinite(v) ? v : 0;
-    lsSet(LS_CALC, state.calc);
+    saveCalcDebounced(); /* v1.3.0: simpan ke D1 (debounce) */
     recalcLive();
   }
   /* simpan fokus: hanya update hasil, TIDAK re-render input (pelajaran Task 29) */
@@ -479,7 +551,8 @@
       '<div class="sq-calcwrap">' +
         '<div class="sq-calc">' +
           '<div class="sq-calc-head"><i class="fas fa-calculator"></i> Kalkulator Saldo \u2014 ' + esc(p.label) +
-            '<button class="sq-reset" data-action="sqreset" title="Kembalikan ke nilai sheet"><i class="fas fa-rotate-left"></i> Reset</button></div>' +
+            '<button class="sq-reset" data-action="sqreset" title="Kembalikan ke nilai sheet & hapus data DB"><i class="fas fa-rotate-left"></i> Reset</button>' +
+            '<span class="sq-dbsync" id="sqDbSync" title="Nilai kalkulator tersimpan di database per-user"><i class="fas fa-database"></i> DB</span></div>' +
           steps +
           '<div class="sq-formula"><i class="fas fa-equals"></i> <span>' + esc(formulaText(c, p)) + '</span></div>' +
         '</div>' +
