@@ -508,7 +508,7 @@
   <link rel="stylesheet" href="/css/prediksi-pro.css?v=1.2.0">
   <link rel="stylesheet" href="/css/hadiah-pro.css?v=2.0.0">
   <link rel="stylesheet" href="/css/hasil-pro.css?v=1.6.0">
-  <link rel="stylesheet" href="/css/saldo-qris.css?v=1.1.0">
+  <link rel="stylesheet" href="/css/saldo-qris.css?v=1.2.0">
 </head>
 <body>
 
@@ -567,7 +567,7 @@
           Saldo Pencairan
         </div>
 
-        <!-- v3.13.1 — Saldo QRIS (4 provider V2HIM/XPAY/MINERAPAY/ORION + kalkulator: Fee Tax = TOTAL BIAYA HARIAN baris 22, Fee Trx Pending manual: V2HIM ×1600/trx, XPAY ×1500/trx, MINERAPAY/ORION nominal) -->
+        <!-- v3.13.2 — Saldo QRIS (4 provider V2HIM/XPAY/MINERAPAY/ORION + kalkulator: Fee Tax = TOTAL BIAYA HARIAN baris 22, Fee Trx Pending manual: V2HIM ×1600/trx, XPAY ×1500/trx, MINERAPAY/ORION nominal; Task 34: + Unsettled/Cutoff/Approved Hari Ini, seluruhnya minus) -->
         <div class="nav-item" data-action="loadSaldoQris" data-access-item="saldo_qris">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 9h20"/><path d="M6 14h5"/><path d="M15 14h3"/></svg>
           Saldo QRIS
@@ -761,7 +761,7 @@
         </div>
       </div>
 
-      <!-- ===== SALDO QRIS VIEW (v3.13.1 — Pro, rendered by saldo-qris.js) ===== -->
+      <!-- ===== SALDO QRIS VIEW (v3.13.2 — Pro, rendered by saldo-qris.js) ===== -->
       <div id="saldoQrisView" style="display:none;">
         <div style="text-align:center;padding:60px 20px;color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;"><i class="fas fa-spinner" style="animation:spin 1s linear infinite;margin-right:8px;"></i> Loading Saldo QRIS...</div>
       </div>
@@ -1877,7 +1877,7 @@ document.getElementById('breadcrumbPage').textContent = 'saldo pencairan';
     /* ===================================================================
        SALDO QRIS MANAGEMENT
        =================================================================== */
-    /* v3.13.1 — Saldo QRIS (Task 32b): 4 toggle pages + kalkulator, render oleh saldo-qris.js */
+    /* v3.13.2 — Saldo QRIS (Task 32b+34): 4 toggle pages + kalkulator (+ Unsettled/Cutoff/Approved Hari Ini, op minus), render oleh saldo-qris.js */
     function switchToSaldoQris() {
       hideAllViews();
       var sqV = document.getElementById('saldoQrisView'); if (sqV) sqV.style.display = 'block';
@@ -2689,6 +2689,6 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
   <script src="/js/pkperhitungan-pro.js?v=1.0.0"></script>
   <script src="/js/shio-data.js?v=1.0.0"></script>
   <script src="/js/hasil-pro.js?v=1.7.0"></script>
-  <script src="/js/saldo-qris.js?v=1.1.0"></script>
+  <script src="/js/saldo-qris.js?v=1.2.0"></script>
 </body>
 </html>
