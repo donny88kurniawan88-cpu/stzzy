@@ -943,11 +943,17 @@
     var selItem = rows.length ? rows[0] : null;
     /* banner HOKI DRAW = sesi yang sedang aktif (terakhir tutup) */
     if (selItem && selItem.hoki) {
-      var nowB = wibNow(), act = null;
+      var nowB = wibNow(), act = null, lastTu = null;
       rows.forEach(function (it) {
         var tu = parseHM(it.tutup);
-        if (tu != null && nowB.m >= tu && (act == null || tu > parseHM(act.tutup))) act = it;
+        if (tu == null) return;
+        if (nowB.m >= tu && (act == null || tu > parseHM(act.tutup))) act = it;
+        if (lastTu == null || tu > lastTu.tu) lastTu = { it: it, tu: tu };
       });
+      /* v3.14.3 — wrap tengah malam: sebelum sesi pertama (00:50) ditutup,
+         sesi terakhir yang tutupnya sudah lewat adalah 23:50 hari sebelumnya
+         (result 00:00 sudah lewat), bukan sesi 00:50 yang masih buka. */
+      if (!act && lastTu) act = lastTu.it;
       if (act) selItem = act;
     }
 
