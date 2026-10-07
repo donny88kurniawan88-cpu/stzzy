@@ -8,7 +8,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/xpay-tools/xpay-checker.css?v=3.1.0">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="/xpay-tools/xpay-checker.js?v=3.0.0" defer></script>
+  <script>window.XLSX || document.write('<script src="https:\/\/unpkg.com\/xlsx@0.18.5\/dist\/xlsx.full.min.js"><\/script>');</script>
+  <script src="/xpay-tools/xpay-checker.js?v=3.0.1" defer></script>
 </head>
 <body>
 <main class="container">
@@ -72,7 +73,7 @@
       </article>
       <article class="result-card">
         <div class="result-head"><div><h3 class="result-title">TIDAK CETAK Xpay</h3><div class="result-desc">Baris XPAY yang PARTNER ID-nya tidak ditemukan pada ORDER ID ZonaMain.</div></div>
-        <div class="result-actions"><button class="btn-secondary btn-small" data-copy="XpayMissing">COPY</button><button class="btn-secondary btn-small" data-csv="XpayMissing">CSV</button></div></div>
+        <div class="result-actions"><button class="btn-secondary btn-small" data-copy="p2mMissing">COPY</button><button class="btn-secondary btn-small" data-csv="p2mMissing">CSV</button></div></div>
         <div id="tableXpayMissing" class="table-wrap"></div>
       </article>
       <article class="result-card">

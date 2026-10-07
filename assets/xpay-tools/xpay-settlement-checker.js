@@ -39,7 +39,7 @@
     return `${d}/${m}/${y}`;
   }
 
-  function parseCSVLine(line){
+  function parseCSVLine(line, delim){
     const out=[];
     let cur='', quoted=false;
     for(let i=0;i<line.length;i++){
@@ -47,7 +47,7 @@
       if(c==='"'){
         if(quoted && line[i+1]==='"'){ cur+='"'; i++; }
         else quoted=!quoted;
-      }else if(c===',' && !quoted){
+      }else if(c===delim && !quoted){
         out.push(cur); cur='';
       }else{
         cur+=c;
@@ -57,8 +57,49 @@
     return out;
   }
 
+  // Deteksi delimiter CSV (koma / titik koma / tab) — export Excel daerah
+  // kadang memakai ';' sehingga pemisah koma membuat kolom tidak terbaca.
+  function detectDelimiter(lines){
+    let best=',',bestCount=0;
+    for(const line of lines.slice(0,10)){
+      for(const d of [',',';','\t']){
+        const c=line.split(d).length-1;
+        if(c>bestCount){bestCount=c;best=d;}
+      }
+    }
+    return best;
+  }
+
   function normalizeHeader(s){
-    return String(s || '').replace(/^\uFEFF/,'').trim().toUpperCase();
+    return String(s || '').replace(/^\uFEFF/,'').trim().toUpperCase()
+      .replace(/[_\-]+/g,' ').replace(/\s+/g,' ');
+  }
+
+  // Cari indeks kolom: judul persis dulu, lalu cadangan awalan
+  // (mis. "RECORD VALUE (IDR)" tetap terbaca sebagai RECORD VALUE).
+  function colIdx(headers, names){
+    for(const n of names){
+      const i=headers.indexOf(n);
+      if(i>=0) return i;
+    }
+    for(const n of names){
+      const i=headers.findIndex(h=>h && h.startsWith(n));
+      if(i>=0) return i;
+    }
+    return -1;
+  }
+
+  function mapColumns(headers){
+    return {
+      id:colIdx(headers,['ID','TRANSACTION ID']),
+      payment:colIdx(headers,['PAYMENT','PAYMENT TIME','PAYMENT DATE']),
+      settlement:colIdx(headers,['SETTLEMENT','SETTLEMENT DATE']),
+      value:colIdx(headers,['RECORD VALUE','VALUE','AMOUNT','NOMINAL']),
+      fee:colIdx(headers,['RECORD FEE','FEE']),
+      status:colIdx(headers,['STATUS','STATUS EXCEL']),
+      member:colIdx(headers,['MEMBER','USER ID','USERID']),
+      partner:colIdx(headers,['PARTNER ID','PATNER ID','PARTNERID','ORDER ID','ORDERID'])
+    };
   }
 
   function parseMoney(v){
@@ -81,39 +122,44 @@
 
   function parseXpay(text, fileName){
     const lines=text.replace(/\r/g,'').split('\n').filter(x=>x.trim()!=='');
-    let headerIndex=-1, headers=[];
+    const delim=detectDelimiter(lines);
+    let headerIndex=-1, headers=[], idx=null;
 
-    for(let i=0;i<Math.min(lines.length,10);i++){
-      const candidate=parseCSVLine(lines[i]).map(normalizeHeader);
-      if(candidate.includes('ID') && candidate.includes('PAYMENT') && candidate.includes('RECORD VALUE')){
+    for(let i=0;i<Math.min(lines.length,15);i++){
+      const candidate=parseCSVLine(lines[i],delim).map(normalizeHeader);
+      const mapped=mapColumns(candidate);
+      if(mapped.payment>=0 && mapped.value>=0 && mapped.fee>=0){
         headerIndex=i;
         headers=candidate;
+        idx=mapped;
         break;
       }
     }
 
-    if(headerIndex<0) throw new Error(`Header XPay tidak ditemukan di ${fileName}`);
-
-    const idx={
-      id:headers.indexOf('ID'),
-      payment:headers.indexOf('PAYMENT'),
-      settlement:headers.indexOf('SETTLEMENT'),
-      value:headers.indexOf('RECORD VALUE'),
-      fee:headers.indexOf('RECORD FEE'),
-      status:headers.indexOf('STATUS'),
-      member:headers.indexOf('MEMBER'),
-      partner:headers.indexOf('PARTNER ID')>=0 ? headers.indexOf('PARTNER ID') : headers.indexOf('PATNER ID')
-    };
-
-    if(idx.payment<0 || idx.value<0 || idx.fee<0){
-      throw new Error(`Kolom PAYMENT / RECORD VALUE / RECORD FEE tidak lengkap di ${fileName}`);
+    if(headerIndex<0){
+      throw new Error(
+        `Header XPay tidak ditemukan di ${fileName}. Kolom wajib: PAYMENT, RECORD VALUE, RECORD FEE. `+
+        `Baris pertama: "${(lines[0]||'').slice(0,80)}"`
+      );
     }
 
     const data=[];
+    let unreadable=0;
+    const samples=[];
+
     for(let i=headerIndex+1;i<lines.length;i++){
-      const a=parseCSVLine(lines[i]);
+      const a=parseCSVLine(lines[i],delim);
       const payment=(a[idx.payment] || '').trim();
       if(!payment) continue;
+
+      // Diagnostik: baris dengan tanggal PAYMENT yang gagal dibaca dihitung
+      // dan contohnya ditampilkan agar tidak bungkam lagi dilewati.
+      if(!paymentParts(payment)){
+        unreadable++;
+        if(samples.length<3 && !samples.includes(payment)){
+          samples.push(payment.length>24?payment.slice(0,24)+'…':payment);
+        }
+      }
 
       data.push({
         transactionId:idx.id>=0 ? (a[idx.id] || '').trim() : '',
@@ -127,39 +173,130 @@
         source:fileName
       });
     }
-    return data;
+
+    return {rows:data, unreadable, samples};
   }
 
-  // Mendukung:
-  // 2026-08-13T23:30:01.000+07:00
-  // 2026-08-13 23:30:01
-  function paymentParts(s){
-    const m=String(s || '').trim().match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}):(\d{2}):(\d{2})/);
-    if(!m) return null;
+  // ---- Parser tanggal v2 (v3.14.3) ----
+  // Export XPay/Excel sangat bervariasi. Semua format berikut kini didukung:
+  //   ISO        : 2026-08-13T23:30:01.000+07:00 / 2026-08-13 23:30 / 2026/8/13 23.30
+  //   US numeric : 8/13/2026 11:30:01 PM (konvensi kolom tanggal XPay — M/D/Y)
+  //   ID numeric : 13/08/2026 23:30 / 13-08-2026 23:30 / 13.08.2026
+  //   Nama bulan : 13-Aug-2026 23:30 / Aug 13, 2026 11:30 PM / 05-Sep-25
+  //   Serial     : 45905 atau 45905.5 (serial Excel, angka murni atau teks)
+  // Zona waktu pada ISO (+07:00 / Z) diabaikan — jam dipakai apa adanya,
+  // konsisten dengan logika H-1/H-2 berbasis jam lokal pada file.
+  const PC_MONTHS={jan:1,january:1,januari:1,feb:2,february:2,februari:2,mar:3,march:3,maret:3,apr:4,april:4,may:5,mei:5,jun:6,june:6,juni:6,jul:7,july:7,juli:7,aug:8,august:8,agu:8,agt:8,agustus:8,sep:9,september:9,oct:10,october:10,okt:10,oktober:10,nov:11,november:11,dec:12,december:12,des:12,desember:12};
+
+  function pcIsoDate(y,mo,d){
+    y=Number(y);mo=Number(mo);d=Number(d);
+    if(y<100) y+=(y>=50?1900:2000);
+    if(mo<1||mo>12||d<1||d>31||y<1990||y>2100) return null;
+    return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+
+  function pcSecOf(h,mi,s,meridiem){
+    let H=Number(h)||0;
+    const M=Number(mi)||0;
+    const S=Number(s)||0;
+    const ap=String(meridiem||'').trim().toLowerCase().replace('.','');
+    if(ap==='pm'&&H<12) H+=12;
+    if(ap==='am'&&H===12) H=0;
+    if(H>23||M>59||S>59) return null;
+    return H*3600+M*60+S;
+  }
+
+  function pcSerialToParts(n){
+    if(!Number.isFinite(n)||n<20000||n>80000) return null;
+    const dt=new Date(Date.UTC(1899,11,30)+Math.round(n*86400000));
     return {
-      date:m[1],
-      sec:Number(m[2])*3600 + Number(m[3])*60 + Number(m[4])
+      date:`${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`,
+      sec:dt.getUTCHours()*3600+dt.getUTCMinutes()*60+dt.getUTCSeconds()
     };
   }
 
+  function pcStripDayName(s){
+    return s.replace(/^(minggu|ahad|senin|selasa|rabu|kamis|jumat|jum'?at|sabtu|sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s*,?\s*/i,'').trim();
+  }
 
+  // Tanggal numerik ambigu: '/' mengikuti konvensi export XPay (US M/D),
+  // '-' dan '.' mengikuti format lokal ID (D/M). Salah satu > 12 selalu menang.
+  function pcNumericDate(a,b,y,sep){
+    a=Number(a);b=Number(b);
+    if(a>12&&b<=12) return pcIsoDate(y,b,a);
+    if(b>12&&a<=12) return pcIsoDate(y,a,b);
+    return sep==='/' ? pcIsoDate(y,a,b) : pcIsoDate(y,b,a);
+  }
+
+  function paymentParts(value){
+    let s=String(value ?? '').trim();
+    if(!s) return null;
+
+    // Serial Excel murni (5 digit, boleh pecahan) tanpa jam teks.
+    if(/^(\d{5})(?:\.(\d+))?$/.test(s)){
+      const parts=pcSerialToParts(Number(s));
+      if(parts) return parts;
+    }
+
+    s=pcStripDayName(s);
+    let m;
+
+    // ISO: tahun di depan, pemisah - / atau ., jam opsional dgn detik, ms, zona.
+    m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})(?:[T\s](\d{1,2})[:.](\d{1,2})(?:[:.](\d{1,2}))?(?:\.\d+)?\s*(?:AM|PM)?\s*(?:[+-]\d{2}:?\d{2}|Z)?)?/i);
+    if(m){
+      const date=pcIsoDate(m[1],m[2],m[3]);
+      if(!date) return null;
+      const sec=m[4]!=null?(pcSecOf(m[4],m[5]||0,m[6]||0)??0):0;
+      return {date,sec};
+    }
+
+    // 13-Aug-2026 23:30 / 13 Aug 26 / 05-Sep-25 (jam opsional, AM/PM opsional)
+    m=s.match(/^(\d{1,2})[\s\-\/]([A-Za-z]{3,9})\.?,?(?:[\s\-\/,]+(\d{2,4}))?(?:[T\s]+(\d{1,2})[:.](\d{1,2})(?:[:.](\d{1,2}))?(?:\s*(AM|PM))?)?/i);
+    if(m){
+      const mo=PC_MONTHS[m[2].toLowerCase()];
+      if(mo&&m[3]){
+        const date=pcIsoDate(m[3],mo,m[1]);
+        if(!date) return null;
+        const sec=m[4]!=null?(pcSecOf(m[4],m[5]||0,m[6]||0,m[7])??0):0;
+        return {date,sec};
+      }
+    }
+
+    // Aug 13, 2026 11:30 PM / August 13th, 2026
+    m=s.match(/^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?\s*,?\s*(\d{2,4})(?:[T\s,]+(\d{1,2})[:.](\d{1,2})(?:[:.](\d{1,2}))?(?:\s*(AM|PM))?)?/i);
+    if(m){
+      const mo=PC_MONTHS[m[1].toLowerCase()];
+      if(mo){
+        const date=pcIsoDate(m[3],mo,m[2]);
+        if(!date) return null;
+        const sec=m[4]!=null?(pcSecOf(m[4],m[5]||0,m[6]||0,m[7])??0):0;
+        return {date,sec};
+      }
+    }
+
+    // Numerik: 8/13/2026, 13/08/2026, 13-08-26, 13.08.2026 (jam opsional + AM/PM)
+    m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})(?:[T\s]+(\d{1,2})[:.](\d{1,2})(?:[:.](\d{1,2}))?(?:\s*(AM|PM))?)?/i);
+    if(m){
+      const sepChar=(m[0].match(/[-\/.]/)||['-'])[0];
+      const date=pcNumericDate(m[1],m[2],m[3],sepChar);
+      if(!date) return null;
+      const sec=m[4]!=null?(pcSecOf(m[4],m[5]||0,m[6]||0,m[7])??0):0;
+      return {date,sec};
+    }
+
+    return null;
+  }
+
+  // Kolom SETTLEMENT → 'YYYY-MM-DD'. Kini mewarisi seluruh format paymentParts
+  // (ISO, US M/D/Y, D-M-Y, nama bulan, serial Excel, tahun 2 digit).
   function settlementDateValue(value){
-    const s=String(value ?? '').trim();
-    if(!s) return '';
-
-    // Format: YYYY-MM-DD (ISO)
-    let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-    if(m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
-
-    // Format: M/D/YYYY (US format — XPay uses this, e.g. 9/8/2026 = Sep 8, 2026)
-    m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if(m) return `${m[3]}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
-
-    // Format: DD-MM-YYYY
-    m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
-    if(m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
-
-    return '';
+    if(value==null) return '';
+    if(typeof value==='number'){
+      const p=pcSerialToParts(value);
+      return p ? p.date : '';
+    }
+    const p=paymentParts(value);
+    return p ? p.date : '';
   }
 
   // V26: TANPA API.
@@ -369,11 +506,17 @@
     setBusy(true,'Membaca CSV...');
     try{
       let all=[];
+      let unreadTotal=0;
+      const warnSamples=[];
       for(let i=0;i<files.length;i++){
         statusEl.textContent=`Membaca ${files[i].name} (${i+1}/${files.length})...`;
         const text=await files[i].text();
         const parsed=parseXpay(text,files[i].name);
-        all=all.concat(parsed);
+        all=all.concat(parsed.rows);
+        unreadTotal+=parsed.unreadable;
+        for(const s of parsed.samples){
+          if(!warnSamples.includes(s)) warnSamples.push(s);
+        }
         await new Promise(r=>setTimeout(r,0));
       }
       csvRows=all;
@@ -382,10 +525,17 @@
       const sync=await saveRowsLocal(csvRows);
       const totalLocal=await countLocalRows();
 
-      statusEl.textContent=
+      let msg=
         `${files.length} file berhasil dimuat • ${csvRows.length.toLocaleString('id-ID')} baris transaksi • `+
         `${sync.saved.toLocaleString('id-ID')} baris disimpan lokal • Total database browser: `+
         `${totalLocal.toLocaleString('id-ID')} baris.`;
+
+      if(unreadTotal>0){
+        msg+=` ⚠ ${unreadTotal.toLocaleString('id-ID')} baris tanggal PAYMENT gagal dibaca `+
+             `(contoh: ${warnSamples.slice(0,3).join(' | ')}) dan dilewati.`;
+      }
+
+      statusEl.textContent=msg;
     }catch(err){
       csvRows=[];
       statusEl.textContent='Error: '+err.message;

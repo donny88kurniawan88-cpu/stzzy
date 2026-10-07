@@ -16,17 +16,17 @@
     xpay: {
       label: "XPAY / LEONPAY",
       aliases: {
-        userid: ["MEMBER"],
-        nominal: ["RECORD VALUE", "RECORDVALUE"],
-        orderid: ["PARTNER ID", "PATNER ID", "PARTNERID", "PATNERID"]
+        userid: ["MEMBER", "MEMBER ID", "USERNAME", "USER ID", "USERID"],
+        nominal: ["RECORD VALUE", "RECORDVALUE", "NOMINAL", "AMOUNT", "JUMLAH"],
+        orderid: ["PARTNER ID", "PATNER ID", "PARTNERID", "PATNERID", "ORDER ID", "ORDERID", "TRANSACTION ID"]
       }
     },
     zona: {
       label: "ZonaMain",
       aliases: {
-        userid: ["USER ID", "USERID"],
+        userid: ["USER ID", "USERID", "MEMBER", "USERNAME"],
         nominal: ["JUMLAH", "AMOUNT", "NOMINAL"],
-        orderid: ["ORDER ID", "ORDERID"]
+        orderid: ["ORDER ID", "ORDERID", "PARTNER ID", "PATNER ID", "TRANSACTION ID"]
       },
       optionalAliases: {
         timestamp: ["TANGGAL", "DATE", "DATETIME", "DATE TIME", "WAKTU"]
@@ -35,8 +35,8 @@
     admin: {
       label: "Coin Admin",
       aliases: {
-        userid: ["TO", "USER ID", "USERID"],
-        nominal: ["COIN", "AMOUNT", "NOMINAL"]
+        userid: ["TO", "USER ID", "USERID", "MEMBER", "TUJUAN"],
+        nominal: ["COIN", "AMOUNT", "NOMINAL", "JUMLAH"]
       },
       optionalAliases: {
         timestamp: ["DATE", "TANGGAL", "DATETIME", "DATE TIME", "WAKTU"]
@@ -171,6 +171,28 @@
     return Number.isFinite(n) ? n : 0;
   }
 
+  // Nama bulan EN + ID untuk format teks seperti 05-Sep-2025 / 5 Sep 25.
+  const XC_MONTHS = {
+    jan: 1, january: 1, januari: 1,
+    feb: 2, february: 2, februari: 2,
+    mar: 3, march: 3, maret: 3,
+    apr: 4, april: 4,
+    may: 5, mei: 5,
+    jun: 6, june: 6, juni: 6,
+    jul: 7, july: 7, juli: 7,
+    aug: 8, august: 8, agu: 8, agt: 8, agustus: 8,
+    sep: 9, september: 9,
+    oct: 10, october: 10, okt: 10, oktober: 10,
+    nov: 11, november: 11,
+    dec: 12, december: 12, des: 12, desember: 12
+  };
+
+  function xcYear(y) {
+    y = Number(y);
+    if (y < 100) y += y >= 50 ? 1900 : 2000;
+    return y;
+  }
+
   function parseDateTime(value) {
     if (value instanceof Date && !Number.isNaN(value.getTime())) {
       return value.getTime();
@@ -193,11 +215,17 @@
       }
     }
 
-    const s = String(value ?? "").trim();
+    let s = String(value ?? "").trim();
     if (!s) return null;
 
+    // Buang awalan nama hari (ID/EN): "Jumat, 5/9/2025 23:30".
+    s = s.replace(
+      /^(minggu|ahad|senin|selasa|rabu|kamis|jumat|jum'?at|sabtu|sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s*,?\s*/i,
+      ""
+    ).trim();
+
     let match = s.match(
-      /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/
+      /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/
     );
 
     if (match) {
@@ -205,25 +233,76 @@
         Number(match[1]),
         Number(match[2]) - 1,
         Number(match[3]),
-        Number(match[4]),
-        Number(match[5]),
+        Number(match[4] || 0),
+        Number(match[5] || 0),
         Number(match[6] || 0)
       ).getTime();
     }
 
     match = s.match(
-      /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/
+      /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/
     );
 
     if (match) {
+      let day = Number(match[1]);
+      let month = Number(match[2]);
+
+      // Default day-first (format ID), TETAPI jika posisi hari jelas-jelas
+      // menampung bulan (mis. 8/13/2026) balik ke urutan bulan-hari.
+      if (day <= 12 && month > 12) {
+        const swap = day;
+        day = month;
+        month = swap;
+      }
+
       return new Date(
-        Number(match[3]),
-        Number(match[2]) - 1,
-        Number(match[1]),
-        Number(match[4]),
-        Number(match[5]),
+        xcYear(match[3]),
+        month - 1,
+        day,
+        Number(match[4] || 0),
+        Number(match[5] || 0),
         Number(match[6] || 0)
       ).getTime();
+    }
+
+    // 05-Sep-2025 23:30 / 5 Sep 25 / 05-Sep-25
+    match = s.match(
+      /^(\d{1,2})[\s\/\-]([A-Za-z]{3,9})\.?,?(?:[\s\/\-,]+(\d{2,4}))?(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/
+    );
+
+    if (match) {
+      const month = XC_MONTHS[match[2].toLowerCase()];
+
+      if (month && match[3]) {
+        return new Date(
+          xcYear(match[3]),
+          month - 1,
+          Number(match[1]),
+          Number(match[4] || 0),
+          Number(match[5] || 0),
+          Number(match[6] || 0)
+        ).getTime();
+      }
+    }
+
+    // Sep 5, 2025 23:30 / September 5th, 2025
+    match = s.match(
+      /^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?\s*,?\s*(\d{2,4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/i
+    );
+
+    if (match) {
+      const month = XC_MONTHS[match[1].toLowerCase()];
+
+      if (month) {
+        return new Date(
+          xcYear(match[3]),
+          month - 1,
+          Number(match[2]),
+          Number(match[4] || 0),
+          Number(match[5] || 0),
+          Number(match[6] || 0)
+        ).getTime();
+      }
     }
 
     const fallback = Date.parse(s);
@@ -279,7 +358,17 @@
 
       for (const field of requiredFields) {
         const aliases = config.aliases[field].map(normalizeHeader);
-        const index = normalized.findIndex(h => aliases.includes(h));
+
+        // Prioritas: judul persis sama, lalu cadangan awalan
+        // (mis. "RECORD VALUE (IDR)" tetap terbaca sebagai RECORD VALUE).
+        let index = normalized.findIndex(h => aliases.includes(h));
+
+        if (index === -1) {
+          index = normalized.findIndex(
+            h => h && aliases.some(a => h.startsWith(a))
+          );
+        }
+
         if (index === -1) {
           allFound = false;
           break;
@@ -290,9 +379,17 @@
       if (allFound) return { rowIndex: r, mapping };
     }
 
+    const sampleRow = Array.isArray(matrix[0]) ? matrix[0] : [];
+    const sample = sampleRow
+      .slice(0, 8)
+      .map(h => `"${displayText(h)}"`)
+      .filter(x => x !== '""')
+      .join(", ");
+
     throw new Error(
       `Kolom wajib ${config.label} tidak ditemukan. ` +
-      `Pastikan judul kolom sesuai: ${Object.values(config.aliases).map(a => a[0]).join(", ")}.`
+      `Pastikan judul kolom sesuai: ${Object.values(config.aliases).map(a => a[0]).join(", ")}. ` +
+      `Judul terbaca di baris pertama: ${sample || "(kosong)"}.`
     );
   }
 
@@ -362,15 +459,30 @@
     };
   }
 
-  function workbookToMatrix(workbook) {
-    const sheetName = workbook.SheetNames[0];
-    if (!sheetName) throw new Error("File tidak memiliki worksheet.");
+  // Coba SEMUA worksheet (bukan hanya sheet pertama) — file Excel hasil export
+  // kadang menyimpan data di sheet kedua/ketiga.
+  function recordsFromWorkbook(workbook, type) {
+    if (!workbook.SheetNames.length) {
+      throw new Error("File tidak memiliki worksheet.");
+    }
 
-    return XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
-      header: 1,
-      raw: true,
-      defval: ""
-    });
+    const errors = [];
+
+    for (const sheetName of workbook.SheetNames) {
+      const matrix = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+        header: 1,
+        raw: true,
+        defval: ""
+      });
+
+      try {
+        return matrixToRecords(matrix, type);
+      } catch (error) {
+        errors.push(error.message);
+      }
+    }
+
+    throw new Error(errors[0] || "Tidak ada worksheet yang dapat dibaca.");
   }
 
   async function parseFile(file, type) {
@@ -385,7 +497,7 @@
       cellDates: false
     });
 
-    return matrixToRecords(workbookToMatrix(workbook), type);
+    return recordsFromWorkbook(workbook, type);
   }
 
   function parsePastedText(text, type) {
@@ -398,7 +510,7 @@
       raw: true
     });
 
-    return matrixToRecords(workbookToMatrix(workbook), type);
+    return recordsFromWorkbook(workbook, type);
   }
 
   async function loadSource(type) {
@@ -415,7 +527,7 @@
         : elements.textAdmin;
 
     const file = fileEl.files?.[0];
-    const text = textEl.value.trim();
+    const text = textEl ? textEl.value.trim() : "";
 
     if (!file && !text) {
       throw new Error(`Data ${configs[type].label} belum diisi.`);
@@ -696,7 +808,7 @@
 
   function renderP2MMissing() {
     const rows = state.results.p2mMissing;
-    if (!rows.length) return renderEmpty("tableP2MMissing");
+    if (!rows.length) return renderEmpty("tableXpayMissing");
 
     const body = rows.map((r, i) => `
       <tr>
@@ -711,7 +823,7 @@
         </td>
       </tr>`).join("");
 
-    $("tableP2MMissing").innerHTML = `
+    $("tableXpayMissing").innerHTML = `
       <table>
         <thead><tr>
           <th>NO</th><th>MEMBER</th><th>PARTNER ID</th><th class="num">RECORD VALUE</th><th>STATUS COIN ADMIN</th>
@@ -778,7 +890,7 @@
 
   function renderResults() {
     $("countZona").textContent = formatInteger(state.results.zonaMissing.length);
-    $("countP2M").textContent = formatInteger(state.results.p2mMissing.length);
+    $("countXpay").textContent = formatInteger(state.results.p2mMissing.length);
     $("countUserid").textContent = formatInteger(state.results.useridDiff.length);
     $("countCoin").textContent = formatInteger(state.results.coinMissing.length);
 
@@ -936,7 +1048,7 @@
     [
       elements.fileXpay, elements.fileZona, elements.fileAdmin,
       elements.textXpay, elements.textZona, elements.textAdmin
-    ].forEach(el => el.value = "");
+    ].filter(Boolean).forEach(el => el.value = "");
 
     setSourceStatus("xpay", "Belum ada data.");
     setSourceStatus("zona", "Belum ada data.");
@@ -947,23 +1059,29 @@
     elements.results.classList.add("hidden");
     elements.btnDownloadAll.disabled = true;
 
-    ["tableZonaMissing","tableP2MMissing","tableUseridDiff","tableCoinMissing"]
+    ["tableZonaMissing","tableXpayMissing","tableUseridDiff","tableCoinMissing"]
       .forEach(id => $(id).innerHTML = "");
   }
 
   // Saat memilih file, beri tanda dan kosongkan textarea agar sumber tidak membingungkan.
+  // Guard null: textarea tempel data boleh tidak ada di HTML — jangan biarkan
+  // init crash (dulu seluruh tombol mati karena listener tak terpasang).
   [
     ["xpay", elements.fileXpay, elements.textXpay],
     ["zona", elements.fileZona, elements.textZona],
     ["admin", elements.fileAdmin, elements.textAdmin]
   ].forEach(([type, fileEl, textEl]) => {
+    if (!fileEl) return;
+
     fileEl.addEventListener("change", () => {
       const file = fileEl.files?.[0];
       if (file) {
-        textEl.value = "";
+        if (textEl) textEl.value = "";
         setSourceStatus(type, `File dipilih: ${file.name}`);
       }
     });
+
+    if (!textEl) return;
 
     textEl.addEventListener("input", () => {
       if (textEl.value.trim()) {
