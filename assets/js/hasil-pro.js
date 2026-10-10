@@ -1,7 +1,25 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.JS v1.7.0
+   AURA.OS // HASIL-PRO.JS v1.8.1
    Modul Hasil Result (Pro) — di bawah menu Prediction Tools.
    ============================================================
+   v1.8.1 (Task 39 — urutan checklist status ikut jam betclosed):
+   - BARIS CHECKLIST STATUS URUT JAM BETCLOSED: tabel status tidak
+     lagi mengikuti urutan `no` pasaran di menu Jadwal Pasaran,
+     melainkan jam tutup (betclosed) tiap pasaran — kunci urut dibaca
+     LIVE dari data pasaran database pada SETIAP render (menu dibuka,
+     ganti chip/filter/pencarian, repaint periodik tiap 30 detik),
+     sehingga perubahan jadwal di DB (mis. BULLSEYE pindah betclosed
+     ke 12:00) langsung menyesuaikan urutan baris tanpa edit kode.
+   - HOKI DRAW (betclosed tiap jam :50) memakai menit HOKI_CLOSE_MIN
+     sebagai kunci; pasaran dengan jam tutup tak terbaca diletakkan
+     paling akhir dengan urutan DB dipertahankan. Tie-break: jam
+     result, lalu `no` DB.
+   - BONUS FIX label HOKI sisa jadwal lama: ticker berita, tile INFO
+     PASARAN & tab betclosed kini "BETCLOSED SETIAP JAM :50 / RESULT
+     SETIAP JAM :00" (sebelumnya masih :00/:10 — jadwal lama).
+   v1.8.0 (Task 37 — jadwal HOKI DRAW baru):
+   - BETCLOSED tiap jam menit :50, RESULT menit :00 — hokiSlotStatus,
+     nextBetclosedMs & nextResultMs mengikuti jadwal baru.
    v1.7.0 (Task 31 — checklist status: shift + berita + tabel tegas):
    - FILTER SHIFT DI CHECKLIST STATUS: toggle Semua/Pagi/Malam kini
      juga ada di toolbar tab status — baris tabel, chip counter &
@@ -559,6 +577,35 @@
   }
 
   /* ============================================================
+     v1.8.1 (Task 39) — KUNCI URUT CHECKLIST STATUS = JAM BETCLOSED
+     Kunci dibaca dari data pasaran yang sedang aktif (hasil fetch
+     /api/pasaran = DB) setiap kali tabel dirender, bukan disimpan —
+     perubahan jadwal di database otomatis mengubah urutan.
+       1) parseHM(it.tutup)            -> menit betclosed (utama)
+       2) HOKI DRAW (tutup "24X SEHARI") -> HOKI_CLOSE_MIN (:50)
+       3) tak terbaca                  -> paling akhir (u=1)
+     Tie-break: jam result, lalu urutan `no` DB (sort stabil).
+     ============================================================ */
+  function closeSortKeyOf(it) {
+    var m = parseHM(it && it.tutup);
+    if (m != null) return { k: m, u: 0 };
+    if (isHokiRow(it)) return { k: HOKI_CLOSE_MIN, u: 0 };   /* betclosed tiap jam :50 */
+    return { k: 0, u: 1 };                                   /* tak terbaca -> belakang */
+  }
+
+  function statusSortedPasaran() {
+    return sortedPasaran().sort(function (a, b) {
+      var ka = closeSortKeyOf(a), kb = closeSortKeyOf(b);
+      if (ka.u !== kb.u) return ka.u - kb.u;              /* terbaca dulu */
+      if (ka.k !== kb.k) return ka.k - kb.k;              /* urut jam betclosed */
+      var ra = parseHM(a && a.result), rb = parseHM(b && b.result);
+      if ((ra == null) !== (rb == null)) return ra == null ? 1 : -1;
+      if (ra != null && rb != null && ra !== rb) return ra - rb;
+      return (a.no || 0) - (b.no || 0);                   /* terakhir: urutan DB */
+    });
+  }
+
+  /* ============================================================
      GRUP FORMAT PRIZE (v1.3.0 — permintaan user)
      POOLS PRIZE 1     : pasaran cukup SATU result — kartu & copy
                          "Result : 8796" + "SHIO : Kambing" + tanggal
@@ -697,8 +744,8 @@
     var sep = '<span class="hs-ticksep">\u2726</span>';
     var parts = [];
     parts.push('<b class="hs-tickname">' + esc(it.nama) + '</b>');
-    parts.push('RESULT ' + (hoki ? 'SETIAP JAM :10' : (esc(hmOnly(it.result)) || '\u2014')));
-    parts.push('BETCLOSED ' + (hoki ? 'SETIAP JAM :00' : (esc(hmOnly(it.tutup)) || '\u2014')));
+    parts.push('RESULT ' + (hoki ? 'SETIAP JAM :00' : (esc(hmOnly(it.result)) || '\u2014')));
+    parts.push('BETCLOSED ' + (hoki ? 'SETIAP JAM :50' : (esc(hmOnly(it.tutup)) || '\u2014')));
     parts.push('JADWAL ' + esc(it.jadwal || 'SETIAP HARI'));
     parts.push('STATUS: ' + stTxt);
     var nre = nextResultMs(it, now);
@@ -1211,7 +1258,7 @@
 
   function paintStatusInto(body, zb) {
     var now = wibNow();
-    var list = sortedPasaran();
+    var list = statusSortedPasaran();   /* v1.8.1: baris urut jam betclosed (live dari DB) */
     var chips = { all: 0, buka: 0, tutup: 0, done: 0, libur: 0 };   /* v1.4 */
     var nextPend = null;   // result berikutnya yg BELUM diinput (v1.1)
     var nextAny = null;    // fallback: result terdekat apa pun
@@ -1391,8 +1438,8 @@
 
     h.push('<div class="hs-ipgrid">');
     h.push(tile('JENIS PASARAN', esc(it.jadwal || 'SETIAP HARI') + (hoki ? ' &bull; result 24x sehari' : '')));
-    h.push(tile('JAM BETCLOSED', hoki ? 'SETIAP JAM :00' : (esc(hmOnly(it.tutup)) || '\u2014'), 'mono'));
-    h.push(tile('JAM RESULT', hoki ? 'SETIAP 1 JAM (:10)' : (esc(hmOnly(it.result)) || '\u2014'), 'mono'));
+    h.push(tile('JAM BETCLOSED', hoki ? 'SETIAP JAM :50' : (esc(hmOnly(it.tutup)) || '\u2014'), 'mono'));
+    h.push(tile('JAM RESULT', hoki ? 'SETIAP 1 JAM (:00)' : (esc(hmOnly(it.result)) || '\u2014'), 'mono'));
     h.push(tile('RESULT BERIKUTNYA', nre != null ? '<b class="hs-ipcd">' + hmOfMs(nre) + '</b> <span class="hs-iptick" data-cd-ms="' + nre + '">' + fmtCountdown(nre - now.ms) + '</span>' : '\u2014', 'cd'));
     h.push(tile('BETCLOSED BERIKUTNYA', nbc != null ? '<b class="hs-ipcd">' + hmOfMs(nbc) + '</b> <span class="hs-iptick" data-cd-ms="' + nbc + '">' + fmtCountdown(nbc - now.ms) + '</span>' : '\u2014', 'cd'));
     h.push(tile('SHIFT', shTxt));
@@ -1943,7 +1990,7 @@
 
     var hoki = isHokiRow(it);
     var g = groupOf(it);
-    var bcLabel = hoki ? 'SETIAP JAM :00' : (hmOnly(it.tutup) || hmOnly(it.result) || '\u2014');
+    var bcLabel = hoki ? 'SETIAP JAM :50' : (hmOnly(it.tutup) || hmOnly(it.result) || '\u2014');
     var reLabel = hoki ? 'SETIAP 1 JAM' : (hmOnly(it.result) || '\u2014');
     var nbc = nextBetclosedMs(it, now);
     /* v1.4: status otomatis pakai ENGINE BARU — lewat jam result -> BUKA;
@@ -2541,7 +2588,14 @@
         return null;
       });
       if (!state.loaded && !state.loading) { state._enterAnim = true; refreshAll(false); }
-      else paintAll(true);
+      else {
+        paintAll(true);
+        /* v1.8.1 (Task 39): silent refetch tiap masuk menu — perubahan
+           jadwal pasaran di database (mis. betclosed BULLSEYE dipindah)
+           langsung terbaca & urutan checklist status menyesuaikan tanpa
+           reload halaman; repaint berikutnya memakai data baru */
+        refreshAll(false);
+      }
       if (!tickTimer) tickTimer = setInterval(tick, 1000);
       tick();
     },
