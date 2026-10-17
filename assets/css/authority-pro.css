@@ -2432,3 +2432,51 @@ body.in-iframe .auth-section-head { margin-bottom: 14px; }
   .auth-topbar-right .auth-status { display: none; }
   .auth-user-sub { display: none; }
 }
+
+/* ============================================================
+   v2.6 (Task 41) — VIEW 3: RESET PASSWORD USER
+   Varian teal (sidebar + section icon) + grid 2 kolom
+   daftar user & form password + baris user terpilih.
+   ============================================================ */
+.auth-side-item .asi-icon.teal {
+  color: #2dd4bf;
+  background: rgba(45, 212, 191, 0.1);
+  border-color: rgba(45, 212, 191, 0.24);
+}
+.auth-side-item.active .asi-icon.teal {
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.28), rgba(59, 130, 246, 0.2));
+  border-color: rgba(45, 212, 191, 0.42);
+  color: #5eead4;
+}
+.auth-section-icon.teal {
+  background: rgba(45, 212, 191, 0.12);
+  color: #2dd4bf;
+  border-color: rgba(45, 212, 191, 0.24);
+}
+.auth-rp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .auth-rp-grid { grid-template-columns: 1fr; }
+}
+.auth-rp-row { cursor: pointer; transition: background 0.16s ease; }
+.auth-rp-row:hover { background: rgba(255, 255, 255, 0.045); }
+.auth-rp-row.auth-rp-sel { background: rgba(45, 212, 191, 0.1); }
+.auth-rp-row.auth-rp-sel .auth-rp-dot {
+  border-color: #2dd4bf;
+  background: radial-gradient(circle, #2dd4bf 0 42%, transparent 46%);
+}
+.auth-rp-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid rgba(148, 163, 184, 0.45);
+  display: inline-block;
+  vertical-align: middle;
+  transition: all 0.16s ease;
+}
+.auth-rp-passhint-ok { color: #34d399; }
+.auth-rp-passhint-bad { color: #f87171; }
