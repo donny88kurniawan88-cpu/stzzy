@@ -1137,6 +1137,52 @@ export default {
     }
 
     // ============================================
+    // 5b. API RESET PASSWORD USER (Hanya ADMIN & MASTER)
+    //     Authority Panel -> menu "Reset Password User".
+    //     - MASTER : boleh reset password semua user
+    //     - ADMIN  : hanya boleh reset password MEMBER
+    //       (tidak bisa reset MASTER atau ADMIN lain — konsisten
+    //        dgn aturan delete/edit user)
+    //     Password tersimpan ke tabel users (database), sama seperti
+    //     alur /api/user/password & /api/login (plaintext compare).
+    // ============================================
+    if (path === '/api/users/reset-password' && request.method === 'PUT') {
+      if (!await isAdmin(request)) return Response.json({ error: 'Akses Ditolak! Hanya Admin & Master.' }, { status: 403 });
+      try {
+        const { username, newPassword } = await request.json();
+        if (!username) return Response.json({ error: 'Pilih user target terlebih dahulu' }, { status: 400 });
+        if (typeof newPassword !== 'string' || newPassword.trim().length < 4) {
+          return Response.json({ error: 'Password baru minimal 4 karakter' }, { status: 400 });
+        }
+
+        const target = await env.DB.prepare("SELECT role FROM users WHERE username = ?").bind(username).first();
+        if (!target) return Response.json({ error: 'User tidak ditemukan' }, { status: 404 });
+
+        const requesterRole = await getRequesterRole(request);
+        if (requesterRole === 'ADMIN' && target.role === 'MASTER') {
+          return Response.json({ error: 'Admin tidak dapat reset password akun MASTER! Hanya Master.' }, { status: 403 });
+        }
+        if (requesterRole === 'ADMIN' && target.role === 'ADMIN') {
+          return Response.json({ error: 'Admin tidak dapat reset password Admin lain! Hanya Master.' }, { status: 403 });
+        }
+
+        await env.DB.prepare("UPDATE users SET password = ? WHERE username = ?").bind(newPassword, username).run();
+        // Bump data_version agar sinkronisasi lintas perangkat konsisten
+        // dengan mutasi user lainnya (delete/edit access).
+        try {
+          const dvRow = await env.DB.prepare("SELECT value FROM settings WHERE key = 'data_version'").first();
+          let dv = 0;
+          if (dvRow && dvRow.value) { try { dv = parseInt(JSON.parse(dvRow.value), 10) || 0; } catch(e) { dv = parseInt(dvRow.value, 10) || 0; } }
+          dv++;
+          await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('data_version', ?)").bind(JSON.stringify(dv)).run();
+        } catch(e) {}
+        return Response.json({ success: true, message: 'Password ' + username + ' berhasil direset' });
+      } catch (err) {
+        return Response.json({ error: 'Gagal reset password' }, { status: 500 });
+      }
+    }
+
+    // ============================================
     // 6. API PUBLIC: STATUS REGISTRASI
     // ============================================
     if (path === '/api/settings/registration/public' && request.method === 'GET') {
