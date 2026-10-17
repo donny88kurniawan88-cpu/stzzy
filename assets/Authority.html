@@ -76,6 +76,15 @@
           </span>
           <span class="asi-arrow"><i class="fas fa-chevron-right"></i></span>
         </button>
+
+        <button class="auth-side-item" data-view="resetpass" id="sideResetPass">
+          <span class="asi-icon teal"><i class="fas fa-key"></i></span>
+          <span class="asi-text">
+            <span class="asi-title">Reset Password User</span>
+            <span class="asi-desc">Reset password akun dari database</span>
+          </span>
+          <span class="asi-arrow"><i class="fas fa-chevron-right"></i></span>
+        </button>
       </nav>
 
       <div class="auth-side-note" id="sideNote">
@@ -340,6 +349,89 @@
 
       </div>
 
+      <!-- ============================================================ -->
+      <!-- ============ VIEW 3: RESET PASSWORD USER (Task 41) ========= -->
+      <!-- ============================================================ -->
+      <!-- Hanya ADMIN & MASTER — tombol sidebar disembunyikan oleh
+           authority-pro.js utk role lain, dan backend menolak 403. -->
+      <div class="auth-view" id="viewResetPass">
+
+        <!-- Section header -->
+        <div class="auth-section-head">
+          <div class="auth-section-head-left">
+            <div class="auth-section-icon teal"><i class="fas fa-key"></i></div>
+            <div>
+              <div class="auth-section-title">Reset Password User</div>
+              <div class="auth-section-subtitle">Authority &middot; Reset password akun user — tersimpan langsung ke database</div>
+            </div>
+          </div>
+          <div class="auth-section-head-right">
+            <button class="auth-btn auth-btn-ghost" id="refreshResetBtn" title="Refresh daftar user">
+              <i class="fas fa-rotate"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Info akses -->
+        <div class="auth-form-hint" style="margin:0 0 14px;"><i class="fas fa-shield-halved"></i> Menu ini hanya tersedia untuk <b>ADMIN</b> &amp; <b>MASTER</b>. Admin hanya dapat mereset password user <b>MEMBER</b>; Master dapat mereset semua akun.</div>
+
+        <div class="auth-rp-grid">
+
+          <!-- Card: daftar user -->
+          <div class="auth-card">
+            <div class="auth-card-head">
+              <div class="auth-card-head-title"><i class="fas fa-users"></i> Pilih User Target</div>
+              <span class="auth-count-chip" id="rpCount" title="Jumlah user tampil"><i class="fas fa-user"></i> 0 user</span>
+            </div>
+            <div class="auth-card-head-sub" id="rpHint">Klik baris user untuk memilih target reset.</div>
+            <div style="padding:12px 16px 0;">
+              <input type="text" class="auth-input" id="rpSearch" placeholder="Cari username / role..." autocomplete="off" />
+            </div>
+            <div class="auth-table-scroll" style="max-height:420px; margin-top:12px;">
+              <table class="auth-table">
+                <thead>
+                  <tr><th style="width:44px;"></th><th>Username</th><th>Role</th><th>Status</th></tr>
+                </thead>
+                <tbody id="rpUserList">
+                  <tr class="loading-row"><td colspan="4"><i class="fas fa-spinner"></i> Memuat data user...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Card: form password baru -->
+          <div class="auth-card">
+            <div class="auth-card-head">
+              <div class="auth-card-head-title"><i class="fas fa-key"></i> Password Baru</div>
+            </div>
+            <div style="padding:16px;">
+              <div class="auth-form-group">
+                <label class="auth-form-label">User Terpilih</label>
+                <div class="auth-count-chip" id="rpTargetChip" style="display:inline-flex;"><i class="fas fa-user"></i> Belum ada user dipilih</div>
+              </div>
+              <div class="auth-form-group">
+                <label class="auth-form-label" for="rpNewPass">Password Baru</label>
+                <div style="position:relative;">
+                  <input type="password" class="auth-input" id="rpNewPass" placeholder="Minimal 4 karakter" autocomplete="new-password" style="padding-right:42px;" />
+                  <button type="button" id="rpTogglePass" title="Tampilkan / sembunyikan password" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; cursor:pointer; padding:4px;">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="auth-form-group">
+                <label class="auth-form-label" for="rpConfirmPass">Ulangi Password Baru</label>
+                <input type="password" class="auth-input" id="rpConfirmPass" placeholder="Ulangi password yang sama" autocomplete="new-password" />
+                <div class="auth-form-hint" id="rpMatchHint"><i class="fas fa-circle-info"></i> Kedua kolom password harus sama.</div>
+              </div>
+              <button type="button" class="auth-btn auth-btn-primary auth-btn-block" id="submitResetPass" disabled>
+                <i class="fas fa-key"></i> RESET PASSWORD
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <!-- No-module empty state (jika semua tab di-revoke) -->
       <div class="auth-nomodule" id="noModuleState" style="display:none;">
         <div class="auth-nomodule-icon"><i class="fas fa-shield-halved"></i></div>
@@ -477,6 +569,6 @@
   <div class="auth-toast" id="toastEl"></div>
 
   <!-- ============ EXTERNAL SCRIPT ============ -->
-  <script src="/js/authority-pro.js?v=2.6.0"></script>
+  <script src="/js/authority-pro.js?v=2.7.0"></script>
 </body>
 </html>
