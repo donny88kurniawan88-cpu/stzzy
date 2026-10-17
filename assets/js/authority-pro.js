@@ -1,10 +1,15 @@
 /* ============================================================
-   AURA.OS // AUTHORITY-PRO.JS  v2.3
+   AURA.OS // AUTHORITY-PRO.JS  v2.6
    Authority Panel logic — User management, FULL access-control
    matrix (32 keys: grup > menu > sub-menu, mengikuti struktur
    menu Dashboard), registration settings, pending approvals,
+   RESET PASSWORD USER (Task 41 — hanya ADMIN & MASTER),
    filters, toasts.
-   Pairs with authority-pro.css (AUTHORITY) v2.3
+   v2.6 BONUS FIX: loadUsers()/loadPending() awal kini dibatasi
+   permission — MEMBER dgn authority_panel tidak lagi "dipantulkan"
+   keluar Authority Panel (dulu 403 /api/users -> redirect Login ->
+   Login lempar balik ke Dashboard).
+   Pairs with authority-pro.css (AUTHORITY) v2.6
    ============================================================ */
 
 (function () {
@@ -151,12 +156,13 @@
   var usersData = [];
   /* v2.4.0 — versi UI ini ditulis ke badge #uiVer di modal Edit Access.
      Bila badge TIDAK menunjukkan versi ini = browser masih memuat file lama (cache). */
-  var UI_VERSION = '2.5.0';
+  var UI_VERSION = '2.6.0';
   var backendLegacy = false; /* true = backend terdeteksi membuang key sub-menu saat save */
   var editUsername = null;
   var currentPage = 1;
   var regisSettings = { open: true, defaultRole: 'MEMBER', requireApproval: false };
   var confirmCallback = null;
+  var rpSel = null;         /* Task 41 — username target reset password */
 
   /* ============================================================
      HELPERS
@@ -319,9 +325,11 @@
   function switchView(view) {
     var users = $('viewUsers');
     var regis = $('viewRegistration');
+    var rp    = $('viewResetPass');   /* Task 41 */
     var noMod = $('noModuleState');
     if (users) users.classList.toggle('active', view === 'users');
     if (regis) regis.classList.toggle('active', view === 'registration');
+    if (rp)    rp.classList.toggle('active', view === 'resetpass');
     if (noMod) noMod.style.display = 'none';
 
     $$('.auth-side-item').forEach(function (el) {
@@ -331,6 +339,13 @@
     if (view === 'registration') {
       loadRegisSettings();
       loadPending();
+    }
+    if (view === 'resetpass') {
+      /* daftar diambil dari usersData (sudah dimuat loadUsers);
+         bila kosong karena data belum masuk, paksa refresh —
+         hanya utk ADMIN/MASTER (member tidak pernah mencapai sini) */
+      if (rpCanUse() && !usersData.length) loadUsers();
+      else renderResetList();
     }
   }
 
@@ -357,6 +372,7 @@
         currentPage = 1;
         renderStats();
         renderTable();
+        renderResetList();   /* Task 41 — daftar reset password ikut fresh */
       })
       .catch(function () {
         if (tbody) {
@@ -369,6 +385,166 @@
         }
         showToast('Gagal memuat data user', 'error');
       });
+  }
+
+  /* ============================================================
+     Task 41 — RESET PASSWORD USER (hanya ADMIN & MASTER)
+     Daftar user dari usersData (sama sumber dgn User Management),
+     klik baris = pilih target, form password baru + konfirmasi,
+     submit -> PUT /api/users/reset-password (tersimpan ke tabel
+     users di database).
+     ============================================================ */
+  function rpCanUse() {
+    return userRole === 'ADMIN' || userRole === 'MASTER';
+  }
+
+  function renderResetList() {
+    var tbody = $('rpUserList');
+    if (!tbody) return;
+    var search = $('rpSearch');
+    var q = ((search && search.value) || '').trim().toLowerCase();
+    var list = usersData.filter(function (u) {
+      if (!q) return true;
+      return ((u.username || '') + ' ' + (u.role || '')).toLowerCase().indexOf(q) !== -1;
+    });
+
+    var chip = $('rpCount');
+    if (chip) chip.innerHTML = '<i class="fas fa-user"></i> ' + list.length + ' user';
+
+    if (!rpCanUse()) {
+      tbody.innerHTML =
+        '<tr class="empty-row"><td colspan="4"><div class="auth-empty-state">' +
+        '<i class="fas fa-lock"></i>' +
+        '<div class="empty-title">Menu ini hanya untuk ADMIN &amp; MASTER</div>' +
+        '<div class="empty-sub">Hubungi Master/Admin untuk mereset password user</div>' +
+        '</div></td></tr>';
+      return;
+    }
+    if (!list.length) {
+      tbody.innerHTML =
+        '<tr class="empty-row"><td colspan="4"><div class="auth-empty-state">' +
+        '<i class="fas fa-user-slash"></i>' +
+        '<div class="empty-title">' + (usersData.length ? 'Tidak ada user yang cocok' : 'Belum ada data user') + '</div>' +
+        '<div class="empty-sub">' + (usersData.length ? 'Coba kata kunci lain' : 'Klik Refresh untuk memuat daftar') + '</div>' +
+        '</div></td></tr>';
+      return;
+    }
+
+    var html = '';
+    list.forEach(function (u) {
+      var st = (u.status || 'ACTIVE').toUpperCase();
+      var sel = rpSel && rpSel === u.username;
+      html +=
+        '<tr class="auth-rp-row' + (sel ? ' auth-rp-sel' : '') + '" data-rp-user="' + escapeHtml(u.username) + '" title="Klik untuk pilih ' + escapeHtml(u.username) + '">' +
+          '<td><span class="auth-rp-dot"></span></td>' +
+          '<td><div class="auth-user-name">@' + escapeHtml(u.username) + '</div></td>' +
+          '<td><span class="auth-role-badge ' + (ROLE_CLASS[u.role] || '') + '">' + escapeHtml(u.role || 'MEMBER') + '</span></td>' +
+          '<td>' +
+            (st === 'PENDING'
+              ? '<span class="auth-status-pill pending"><i class="fas fa-hourglass-half"></i> PENDING</span>'
+              : '<span class="auth-status-pill active"><i class="fas fa-circle-check"></i> ACTIVE</span>') +
+          '</td>' +
+        '</tr>';
+    });
+    tbody.innerHTML = html;
+    rpSyncForm();
+  }
+
+  function selectResetUser(username) {
+    rpSel = (rpSel === username) ? null : username;   /* klik lagi = batal pilih */
+    renderResetList();
+  }
+
+  /* Sinkron chip target + validasi form (tombol enable/disable) */
+  function rpSyncForm() {
+    var chip = $('rpTargetChip');
+    if (chip) {
+      chip.innerHTML = rpSel
+        ? '<i class="fas fa-user-check" style="color:#2dd4bf;"></i> @' + escapeHtml(rpSel)
+        : '<i class="fas fa-user"></i> Belum ada user dipilih';
+    }
+    var p1 = $('rpNewPass'), p2 = $('rpConfirmPass'), btn = $('submitResetPass'), hint = $('rpMatchHint');
+    var v1 = p1 ? p1.value : '';
+    var v2 = p2 ? p2.value : '';
+    var lenOk = v1.trim().length >= 4;
+    var match = v2.length > 0 && v1 === v2;
+    if (hint) {
+      if (v2.length === 0) {
+        hint.className = 'auth-form-hint';
+        hint.innerHTML = '<i class="fas fa-circle-info"></i> Kedua kolom password harus sama.';
+      } else if (match && lenOk) {
+        hint.className = 'auth-form-hint auth-rp-passhint-ok';
+        hint.innerHTML = '<i class="fas fa-circle-check"></i> Password cocok.';
+      } else {
+        hint.className = 'auth-form-hint auth-rp-passhint-bad';
+        hint.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Password belum sama' + (v1.trim().length < 4 ? ' / minimal 4 karakter' : '') + '.';
+      }
+    }
+    if (btn) btn.disabled = !(rpSel && lenOk && match);
+  }
+
+  function rpTogglePass() {
+    var inp = $('rpNewPass'), btn = $('rpTogglePass');
+    if (!inp || !btn) return;
+    var show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.innerHTML = '<i class="fas fa-' + (show ? 'eye-slash' : 'eye') + '"></i>';
+  }
+
+  function rpClearForm() {
+    var p1 = $('rpNewPass'), p2 = $('rpConfirmPass');
+    if (p1) p1.value = '';
+    if (p2) p2.value = '';
+    rpSel = null;
+    renderResetList();
+  }
+
+  function submitResetPass() {
+    if (!rpCanUse()) { showToast('Akses ditolak! Menu ini hanya untuk Admin & Master.', 'error'); return; }
+    var p1 = $('rpNewPass'), p2 = $('rpConfirmPass');
+    var v1 = p1 ? p1.value : '', v2 = p2 ? p2.value : '';
+    if (!rpSel) { showToast('Pilih user target terlebih dahulu', 'warning'); return; }
+    if (v1.trim().length < 4) { showToast('Password baru minimal 4 karakter', 'warning'); return; }
+    if (v1 !== v2) { showToast('Kedua kolom password tidak sama', 'warning'); return; }
+
+    showConfirm({
+      icon: 'warning',
+      iconFa: 'fa-key',
+      title: 'Reset Password?',
+      desc: 'Password user akan diganti dengan password baru dan langsung tersimpan ke database.',
+      target: '@' + rpSel,
+      confirmText: 'Ya, Reset',
+      cancelText: 'Batal',
+      onConfirm: function () {
+        var btn = $('submitResetPass');
+        if (btn) btn.disabled = true;
+        fetch('/api/users/reset-password', {
+          method: 'PUT',
+          headers: { 'x-auth-token': authToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: rpSel, newPassword: v1 })
+        })
+          .then(function (res) {
+            return res.json().then(function (j) { return { status: res.status, j: j }; });
+          })
+          .then(function (r) {
+            if (r.status === 401 || r.status === 403) {
+              showToast(r.j && r.j.error ? r.j.error : 'Akses ditolak! Hanya Admin & Master.', 'error');
+              return;
+            }
+            if (r.j && r.j.success) {
+              showToast(r.j.message || ('Password ' + rpSel + ' berhasil direset'), 'success');
+              rpClearForm();
+            } else {
+              showToast((r.j && r.j.error) || 'Gagal reset password', 'error');
+              rpSyncForm();
+            }
+          })
+          .catch(function () {
+            showToast('Gagal reset password — periksa koneksi', 'error');
+            rpSyncForm();
+          });
+      }
+    });
   }
 
   /* ============================================================
@@ -1234,14 +1410,19 @@
   function applyPermissionUI() {
     var canUsers = tabAllowed('user_management');
     var canRegis = tabAllowed('registration_control');
+    /* Task 41 — Reset Password User: ROLE-GATED (bukan access flag)
+       sesuai permintaan: hanya ADMIN & MASTER */
+    var canReset = rpCanUse();
 
     var sideUsers = $('sideUsers');
     var sideRegis = $('sideRegis');
+    var sideReset = $('sideResetPass');
     if (sideUsers) sideUsers.style.display = canUsers ? '' : 'none';
     if (sideRegis) sideRegis.style.display = canRegis ? '' : 'none';
+    if (sideReset) sideReset.style.display = canReset ? '' : 'none';
 
     var noMod = $('noModuleState');
-    if (!canUsers && !canRegis) {
+    if (!canUsers && !canRegis && !canReset) {
       var shell = $('authShell');
       if (shell) shell.classList.add('all-hidden');
       if (noMod) noMod.style.display = 'flex';
@@ -1259,6 +1440,8 @@
       switchView('users');
     } else if (canRegis) {
       switchView('registration');
+    } else if (canReset) {
+      switchView('resetpass');
     }
   }
 
@@ -1346,6 +1529,32 @@
       /* Registration settings */
       $$('[data-action="saveRegis"]').forEach(function (b) { b.addEventListener('click', saveRegisSettings); });
 
+      /* Task 41 — Reset Password User */
+      var rpSearch = $('rpSearch');
+      if (rpSearch) {
+        var rpDeb;
+        rpSearch.addEventListener('input', function () {
+          clearTimeout(rpDeb);
+          rpDeb = setTimeout(renderResetList, 120);
+        });
+      }
+      var rpList = $('rpUserList');
+      if (rpList) {
+        rpList.addEventListener('click', function (e) {
+          var row = e.target.closest('[data-rp-user]');
+          if (row) selectResetUser(row.getAttribute('data-rp-user'));
+        });
+      }
+      var rpNew = $('rpNewPass'), rpConf = $('rpConfirmPass');
+      if (rpNew) rpNew.addEventListener('input', rpSyncForm);
+      if (rpConf) rpConf.addEventListener('input', rpSyncForm);
+      var rpTog = $('rpTogglePass');
+      if (rpTog) rpTog.addEventListener('click', rpTogglePass);
+      var rpSubmit = $('submitResetPass');
+      if (rpSubmit) rpSubmit.addEventListener('click', submitResetPass);
+      var rpRefresh = $('refreshResetBtn');
+      if (rpRefresh) rpRefresh.addEventListener('click', function () { loadUsers(); showToast('Daftar user di-refresh', 'info'); });
+
       /* Logout */
       $$('[data-action="logout"]').forEach(function (b) { b.addEventListener('click', logout); });
 
@@ -1389,10 +1598,16 @@
         }
       });
 
-      /* Build matrix + initial load */
+      /* Build matrix + initial load.
+         Task 41 FIX: muat data sesuai permission — dulu loadUsers()
+         dipanggil tanpa syarat sehingga MEMBER dgn authority_panel
+         (view-only) kena 403 /api/users -> redirect Login -> Login
+         lempar balik ke Dashboard (member "dipantulkan" keluar dari
+         Authority Panel). Sekarang hanya dimuat bila tab tsb tersedia
+         utk user aktif; ADMIN/MASTER selalu diizinkan backend. */
       buildPermMatrix();
-      loadUsers();
-      loadPending();
+      if (tabAllowed('user_management')) loadUsers();
+      if (tabAllowed('registration_control')) loadPending();
 
       /* v2.4.0 — badge versi UI di modal Edit Access: bukti file baru termuat */
       var verEl = $('uiVer');
@@ -1415,7 +1630,10 @@
     saveRegisSettings: saveRegisSettings,
     actRegistration:   actRegistration,
     switchView:        switchView,
-    logout:            logout
+    logout:            logout,
+    submitResetPass:   submitResetPass,
+    renderResetList:   renderResetList,
+    selectResetUser:   selectResetUser
   };
 
   window.switchView = switchView;
