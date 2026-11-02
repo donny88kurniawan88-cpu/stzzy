@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Kitatrust Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/kitatrust-tools/kitatrust-analyzer.css?v=1.0.0">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>window.XLSX || document.write('<script src="https:\/\/unpkg.com\/xlsx@0.18.5\/dist\/xlsx.full.min.js"><\/script>');</script>
+  <script src="/kitatrust-tools/kitatrust-analyzer.js?v=1.0.0" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">K</span>
+    <div class="brand-text">
+      <h1>Kitatrust Analyzer</h1>
+      <span class="brand-sub">Analisis settlement QRIS Kitatrust &mdash; v1.0.0</span>
+    </div>
+  </div>
+  <div class="privacy">&#128274; Semua data diproses lokal di browser</div>
+</header>
+
+<main class="container">
+
+  <!-- ===== SUMBER DATA ===== -->
+  <section class="upload-card">
+    <div class="upload-head">
+      <h2>Sumber Data Kitatrust</h2>
+      <p>Unggah file export transaksi Kitatrust (CSV / TSV / XLSX). Sistem mendeteksi baris judul secara otomatis,
+      menormalisasi huruf besar-kecil, spasi, dan format nominal. Kolom wajib: <b>Status, Settled, Amount, Total Payment, Reference ID</b>.</p>
+    </div>
+    <label id="dropZone" class="dropzone" for="fileKt">
+      <input id="fileKt" type="file" accept=".csv,.txt,.tsv,.xlsx,.xls" />
+      <span class="dz-icon">&#128228;</span>
+      <span class="dz-title">Tarik &amp; lepas file di sini, atau klik untuk memilih</span>
+      <span class="dz-hint">contoh: kitatrust-2026-11-01.csv</span>
+    </label>
+    <div id="statusKt" class="source-status">Belum ada data.</div>
+    <details class="paste-wrap">
+      <summary>Atau tempel data dari Excel / teks</summary>
+      <textarea id="textKt" rows="6" spellcheck="false" placeholder="Tempel baris data Kitatrust di sini (boleh langsung dari Excel, pemisah koma / titik-koma / tab didukung)..."></textarea>
+    </details>
+  </section>
+
+  <!-- ===== AKSI ===== -->
+  <section class="actions">
+    <button id="btnProcess" class="btn-primary">PROSES ANALISIS</button>
+    <button id="btnReset" class="btn-ghost">RESET</button>
+    <button id="btnDownloadAll" class="btn-xlsx" disabled>DOWNLOAD SEMUA XLSX</button>
+    <span id="globalStatus" class="global-status">Masukkan data Kitatrust untuk memulai.</span>
+  </section>
+
+  <!-- ===== STATISTIK ===== -->
+  <section id="statStrip" class="stat-strip">
+    <article class="stat-card stat-navy">
+      <span class="stat-icon">&#128202;</span>
+      <div><div class="stat-name">TOTAL TRANSAKSI</div><div id="statCount" class="stat-value">&ndash;</div></div>
+    </article>
+    <article class="stat-card stat-teal">
+      <span class="stat-icon">&#128176;</span>
+      <div><div class="stat-name">TOTAL AMOUNT</div><div id="statAmount" class="stat-value">&ndash;</div></div>
+    </article>
+    <article class="stat-card stat-green">
+      <span class="stat-icon">&#9989;</span>
+      <div><div class="stat-name">TOTAL DITERIMA</div><div id="statPayment" class="stat-value">&ndash;</div></div>
+    </article>
+    <article class="stat-card stat-amber">
+      <span class="stat-icon">&#9986;&#65039;</span>
+      <div><div class="stat-name">TOTAL FEE</div><div id="statFee" class="stat-value">&ndash;</div></div>
+    </article>
+    <div id="statSub" class="stat-sub">Menunggu data&hellip;</div>
+  </section>
+
+  <!-- ===== TEMUAN ===== -->
+  <section id="findings" class="findings hidden">
+    <h2 class="section-title">Temuan Pemeriksaan</h2>
+
+    <article class="result-card rail-amber">
+      <div class="result-head">
+        <div><h3 class="result-title">BELUM SETTLE</h3>
+          <div class="result-desc">Transaksi SUCCESS dengan flag Settled bukan TRUE (FALSE / kosong).</div></div>
+        <div class="result-actions">
+          <span id="countUnsettled" class="count-chip">0</span>
+          <button class="btn-ghost btn-small" data-copy="unsettled">COPY</button>
+          <button class="btn-ghost btn-small" data-csv="unsettled">CSV</button>
+        </div>
+      </div>
+      <div id="tableUnsettled" class="table-wrap"></div>
+    </article>
+
+    <article class="result-card rail-rose">
+      <div class="result-head">
+        <div><h3 class="result-title">STATUS BERMASALAH</h3>
+          <div class="result-desc">Baris dengan Status selain SUCCESS (FAILED / PENDING / lainnya).</div></div>
+        <div class="result-actions">
+          <span id="countFailed" class="count-chip">0</span>
+          <button class="btn-ghost btn-small" data-copy="failed">COPY</button>
+          <button class="btn-ghost btn-small" data-csv="failed">CSV</button>
+        </div>
+      </div>
+      <div id="tableFailed" class="table-wrap"></div>
+    </article>
+
+    <article class="result-card rail-violet">
+      <div class="result-head">
+        <div><h3 class="result-title">DUPLIKAT REFERENCE</h3>
+          <div class="result-desc">Reference ID atau Merchant Ref ID yang muncul lebih dari satu kali.</div></div>
+        <div class="result-actions">
+          <span id="countDup" class="count-chip">0</span>
+          <button class="btn-ghost btn-small" data-copy="duplicates">COPY</button>
+          <button class="btn-ghost btn-small" data-csv="duplicates">CSV</button>
+        </div>
+      </div>
+      <div id="tableDup" class="table-wrap"></div>
+    </article>
+
+    <article class="result-card rail-sky">
+      <div class="result-head">
+        <div><h3 class="result-title">FEE TIDAK BIASA</h3>
+          <div id="feeStd" class="result-desc">Rasio fee yang menyimpang dari fee standar yang terdeteksi.</div></div>
+        <div class="result-actions">
+          <span id="countFee" class="count-chip">0</span>
+          <button class="btn-ghost btn-small" data-copy="feeOdd">COPY</button>
+          <button class="btn-ghost btn-small" data-csv="feeOdd">CSV</button>
+        </div>
+      </div>
+      <div id="tableFee" class="table-wrap"></div>
+    </article>
+  </section>
+
+  <!-- ===== REKAP ===== -->
+  <section id="rekap" class="rekap hidden">
+    <h2 class="section-title">Rekapitulasi</h2>
+    <div class="rekap-grid">
+      <article class="result-card">
+        <div class="result-head">
+          <div><h3 class="result-title">REKAP MERCHANT</h3>
+            <div class="result-desc">Total per Merchant Name (transaksi SUCCESS).</div></div>
+          <div class="result-actions">
+            <button class="btn-ghost btn-small" data-copy="byMerchant">COPY</button>
+            <button class="btn-ghost btn-small" data-csv="byMerchant">CSV</button>
+          </div>
+        </div>
+        <div id="tableMerchant" class="table-wrap"></div>
+      </article>
+      <article class="result-card">
+        <div class="result-head">
+          <div><h3 class="result-title">REKAP TANGGAL SETTLEMENT</h3>
+            <div class="result-desc">Total per tanggal pada kolom Settled At (transaksi SUCCESS).</div></div>
+          <div class="result-actions">
+            <button class="btn-ghost btn-small" data-copy="byDate">COPY</button>
+            <button class="btn-ghost btn-small" data-csv="byDate">CSV</button>
+          </div>
+        </div>
+        <div id="tableDate" class="table-wrap"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== DETAIL ===== -->
+  <section id="detail" class="detail hidden">
+    <article class="result-card">
+      <div class="result-head">
+        <div><h3 class="result-title">DETAIL TRANSAKSI</h3>
+          <div id="detailInfo" class="result-desc">Semua baris data yang terbaca.</div></div>
+        <div class="detail-filter">
+          <input id="detailSearch" type="search" placeholder="Cari ref / RRN / merchant&hellip;" />
+          <select id="detailStatus">
+            <option value="all">Semua status</option>
+            <option value="success">SUCCESS</option>
+            <option value="bermasalah">Bermasalah</option>
+          </select>
+        </div>
+      </div>
+      <div id="tableDetail" class="table-wrap"></div>
+    </article>
+  </section>
+
+  <div class="footer-note">
+    <b>Logika yang digunakan (senada XPAY Analyzer):</b><br>
+    1. Pembacaan data &mdash; deteksi baris judul otomatis, normalisasi header, dukungan CSV / TSV / titik-koma / XLSX multi-sheet.<br>
+    2. BELUM SETTLE = transaksi SUCCESS dengan flag Settled &ne; TRUE.<br>
+    3. STATUS BERMASALAH = Status selain SUCCESS.<br>
+    4. DUPLIKAT REFERENCE = Reference ID / Merchant Ref ID muncul lebih dari satu kali.<br>
+    5. FEE TIDAK BIASA = fee per transaksi menyimpang dari rasio fee yang paling sering muncul.<br>
+    6. REKAP = total per merchant dan per tanggal Settled At; angka RRN hasil notasi ilmiah Excel (mis. 6.11019E+11) dikembalikan ke bentuk penuh.
+  </div>
+</main>
+</body>
+</html>
