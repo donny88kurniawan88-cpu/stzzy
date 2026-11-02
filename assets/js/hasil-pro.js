@@ -1,7 +1,30 @@
 /* ============================================================
-   AURA.OS // HASIL-PRO.JS v1.8.1
+   AURA.OS // HASIL-PRO.JS v1.8.3
    Modul Hasil Result (Pro) — di bawah menu Prediction Tools.
    ============================================================
+   v1.8.3 (Task 42 — crosscheck betclosed durasi > 24 jam):
+   - DURASI MANUAL > 24 JAM AKHIRNYA TERHITUNG (laporan user:
+     "CROSSCHECK BETCLOSED tidak dapat menghitung waktu > 24 jam,
+     misalnya 31:10"): input "31:10" (31 jam 10 menit) dulu DITOLAK
+     karena parser bcParseInput menganggapnya jam dinding (guard
+     hh > 23), dan cabang menit-murni yang terkecuali justru
+     dipangkas diam-diam oleh bcStart (clamp ke 24 jam). Kini
+     durasi manual diperlakukan sebagai DURASI penuh — boleh lintas
+     hari, dijalankan utuh hingga batas 7 hari (168:00:00); lebih
+     dari itu DITOLAK dengan pesan jelas (bukan dipangkas diam).
+   - TARGET MANUAL & status "berakhir ..." kini menampilkan nama
+     hari ("14:30 WIB • Senin") bila target jatuh di tanggal WIB
+     yang lain — crosscheck durasi lintas hari terbaca sekali lihat.
+   v1.8.2 (Task 40 — countdown pasaran ber-hari-libur beku):
+   - COUNTDOWN SINGAPORE (DAN SEMUA PASARAN BER-HARI-LIBUR) HIDUP
+     LAGI: nextResultMs & nextBetclosedMs dulu hanya melompat ke hari
+     berikutnya bila "hari ini libur" — bila hari ini BUKA tetapi jam
+     result/betclosed sudah lewat, kunci hari (k) tetap 0 sehingga
+     target countdown menunjuk jam hari ini yang sudah lewat dan
+     fmtCountdown membekukan tampilan di 00:00:00 (laporan user:
+     SINGAPORE Sabtu setelah 17:45 WIB; PCSO juga kena setelah 20:10).
+     Kini cabang "sudah lewat -> hari buka berikutnya" berlaku juga
+     untuk pasaran ber-hari-libur (SINGAPORE, PCSO, MAGNUM4D dsb).
    v1.8.1 (Task 39 — urutan checklist status ikut jam betclosed):
    - BARIS CHECKLIST STATUS URUT JAM BETCLOSED: tabel status tidak
      lagi mengikuti urutan `no` pasaran di menu Jadwal Pasaran,
@@ -452,6 +475,12 @@
      ============================================================ */
   function pad2(n) { return ('0' + n).slice(-2); }
 
+  /* v1.8.3 (Task 42): pad jam minimal 2 digit TANPA memotong — pad2
+     memakai slice(-2) sehingga jam >= 100 terpotong (168 -> "68");
+     dipakai fmtCountdown & fmtDelta utk durasi manual lintas hari
+     (cap 7 hari = 168 jam) dan countdown target pasaran mingguan */
+  function pad2h(n) { return n < 10 ? '0' + n : String(n); }
+
   /* Bagian tanggal-jam WIB (UTC+7) dari epoch ms */
   function wibParts(ms) {
     var d = new Date(ms + 7 * 3600000);
@@ -820,14 +849,19 @@
     var tu = parseHM(it.tutup), re = parseHM(it.result);
     var target = (re != null) ? re : (tu != null ? tu : null);
     if (target == null) return null;
+    /* v1.8.2: urutan kondisi diperbaiki — pasaran ber-hari-libur
+       (SINGAPORE, PCSO, dll) yang hari ini BUKA dan jam targetnya sudah
+       lewat wajib melompat ke hari buka berikutnya. Dulu cabang
+       "sudah lewat -> besok" tidak pernah tercapai utk pasaran ber-libur
+       (tertelan if (closed)) sehingga countdown beku 00:00:00 setelah
+       jam result lewat. */
     var k = 0;
-    if (closed) {
-      /* hari ini libur -> mulai besok */
-      if (closed.indexOf(now.day) !== -1) k = 1;
+    if (closed && closed.indexOf(now.day) !== -1) {
+      k = 1;   /* hari ini libur -> mulai besok */
     } else if (now.m < target) {
-      k = 0;
+      k = 0;   /* hari ini buka, belum jam result */
     } else {
-      k = 1;
+      k = 1;   /* hari ini buka, jam result sudah lewat -> hari buka berikutnya */
     }
     if (closed) {
       for (var guard = 0; guard < 8 && closed.indexOf((now.day + k) % 7) !== -1; guard++) k++;
@@ -848,11 +882,14 @@
     var tu = parseHM(it.tutup), re = parseHM(it.result);
     var target = (tu != null) ? tu : re;
     if (target == null) return null;
+    /* v1.8.2: sama dgn nextResultMs — "jam tutup sudah lewat hari ini"
+       kini juga berlaku utk pasaran ber-hari-libur (dulu countdown
+       betclosed beku 00:00:00 setelah jam tutup lewat). */
     var k = 0;
-    if (closed) {
-      if (closed.indexOf(now.day) !== -1) k = 1;
+    if (closed && closed.indexOf(now.day) !== -1) {
+      k = 1;   /* hari ini libur -> mulai besok */
     } else if (now.m >= target) {
-      k = 1;
+      k = 1;   /* hari ini buka, jam tutup sudah lewat -> hari buka berikutnya */
     }
     if (closed) {
       for (var guard = 0; guard < 8 && closed.indexOf((now.day + k) % 7) !== -1; guard++) k++;
@@ -865,7 +902,7 @@
     if (msLeft < 0) msLeft = 0;
     var tot = Math.floor(msLeft / 1000);
     var h = Math.floor(tot / 3600), m = Math.floor((tot % 3600) / 60), s = tot % 60;
-    return pad2(h) + ':' + pad2(m) + ':' + pad2(s);
+    return pad2h(h) + ':' + pad2(m) + ':' + pad2(s);   /* v1.8.3: pad2h — jam >= 100 tak terpotong */
   }
 
   function fmtClock(p) {
@@ -1293,7 +1330,7 @@
     var bukaCount = chips.buka;   /* v1.4: stat "Status Buka" realtime */
     var nextShow = nextPend || nextAny;
     var nextLabel = nextShow
-      ? '<b class="hs-next-jam">' + hmOfMs(nextShow.at) + '</b> <span class="hs-next-cd">' + fmtCountdown(nextShow.at - now.ms).slice(0, 5) + '</span> &bull; ' + esc(nextShow.nama)
+      ? '<b class="hs-next-jam">' + hmOfMs(nextShow.at) + '</b> <span class="hs-next-cd">' + fmtCountdown(nextShow.at - now.ms).split(':').slice(0, 2).join(':') + '</span> &bull; ' + esc(nextShow.nama)
       : '&mdash;';
     /* v1.7: sub-label stat Total menunjukkan scope shift aktif */
     var scopeSub = state.shift === 'all' ? 'dari menu Jadwal Pasaran' : SHIFT_LABEL[state.shift];
@@ -2030,7 +2067,7 @@
       '<div class="hs-bck">MANUAL \u2014 CROSSCHECK BETCLOSED</div>' +
       '<div class="hs-bcmeta">Hitungan mundur diinput manual, lalu disilangkan dengan jam betclosed dari database jadwal \u2014 deteksi perubahan jadwal dalam sekali lihat.</div>' +
       '<div class="hs-bcinputrow">' +
-        '<input class="hs-bcinput" data-bc-manual type="text" placeholder="30 (menit) atau 1:30 (1 jam 30 mnt)" value="' + esc(state.bc.input || '') + '">' +
+        '<input class="hs-bcinput" data-bc-manual type="text" placeholder="30 (menit) atau 1:30 / 31:10 (jam:menit)" value="' + esc(state.bc.input || '') + '">' +
         '<div class="hs-bcquick">' +
           [1, 5, 10, 15, 30].map(function (m) { return '<button type="button" class="hs-chip" data-action="bcquick" data-min="' + m + '">+' + m + 'm</button>'; }).join('') +
         '</div>' +
@@ -2041,7 +2078,7 @@
         '<button type="button" class="hs-btn hs-ghost" data-action="bcreset">Reset</button>' +
       '</div>' +
       '<div class="hs-bcdisplay manual' + (tm.done ? ' flash' : '') + '"><span data-bc-display>' + fmtCountdown(manLeft) + '</span></div>' +
-      '<div class="hs-bctarget" data-bc-status>' + (tm.running ? 'berjalan \u2014 berakhir ' + hmOfMs(tm.endAt) : (tm.done ? 'WAKTU HABIS' : (tm.paused ? 'dijeda \u2014 klik Lanjut untuk meneruskan' : 'isi durasi lalu klik Mulai'))) + '</div>' +
+      '<div class="hs-bctarget" data-bc-status>' + (tm.running ? 'berjalan \u2014 berakhir ' + bcEndLabel(tm.endAt, now.ms) : (tm.done ? 'WAKTU HABIS' : (tm.paused ? 'dijeda \u2014 klik Lanjut untuk meneruskan' : 'isi durasi lalu klik Mulai'))) + '</div>' +
       '<div class="hs-bccmp">' +
         '<div class="hs-bcrow"><span>Target Manual</span><b data-bc-man-target>\u2014</b></div>' +
         '<div class="hs-bcrow"><span>Betclosed Database</span><b data-bc-db-target>\u2014</b></div>' +
@@ -2064,6 +2101,9 @@
      & arah selisih — untuk mendeteksi perubahan jadwal.
      ============================================================ */
   var BC_TOL_MS = 60000;   /* toleransi "sesuai": ±1 menit */
+  /* v1.8.3 (Task 42): durasi manual maksimal 7 hari — batas wajar
+     crosscheck (gap betclosed terjauh antar pasaran < 8 hari) */
+  var BC_MAX_MS = 7 * 24 * 3600000;
 
   function bcSelItem() {
     var sel = state.bc.sel;
@@ -2077,7 +2117,16 @@
     var sign = ms >= 0 ? '+' : '\u2212';
     var tot = Math.floor(Math.abs(ms) / 1000);
     var h = Math.floor(tot / 3600), m = Math.floor((tot % 3600) / 60), s = tot % 60;
-    return sign + pad2(h) + ':' + pad2(m) + ':' + pad2(s);
+    return sign + pad2h(h) + ':' + pad2(m) + ':' + pad2(s);   /* v1.8.3: pad2h — selisih >= 100 jam tak terpotong */
+  }
+
+  /* v1.8.3 (Task 42): epoch ms -> "HH:MM WIB" + " • <HARI>" bila
+     target jatuh di tanggal kalender WIB yang lain (durasi manual
+     > 24 jam) — konsisten dgn label target panel OTOMATIS */
+  function bcEndLabel(ms, nowMs) {
+    var pe = wibParts(ms), pn = wibParts(nowMs);
+    var hm = hmOfMs(ms);
+    return (pe.d !== pn.d || pe.mo !== pn.mo) ? hm + ' \u2022 ' + DAY_TITLE[pe.day] : hm;
   }
 
   function bcVerdictData(now) {
@@ -2111,7 +2160,7 @@
     var man = q('[data-bc-man-target]', v);
     var dbt = q('[data-bc-db-target]', v);
     var dbc = q('[data-bc-dbcd]', v);
-    if (man) man.textContent = tm.endAt > 0 ? hmOfMs(tm.endAt) : '\u2014';
+    if (man) man.textContent = tm.endAt > 0 ? bcEndLabel(tm.endAt, now.ms) : '\u2014';
     if (dbt) dbt.textContent = db != null ? hmOfMs(db) : '\u2014';
     if (dbc) {
       if (db == null) dbc.textContent = '\u2014';
@@ -2135,10 +2184,14 @@
   function bcParseInput() {
     var raw = String(state.bc.input || '').trim();
     if (!raw) return null;
-    var m = raw.match(/^(\d{1,2})\s*[:.,]\s*(\d{1,2})$/);   /* H:MM */
+    /* v1.8.3 (Task 42): durasi manual = DURASI, bukan jam dinding —
+       jam boleh > 24 ("31:10" = 31 jam 10 menit, lintas hari); dulu
+       guard hh > 23 menolaknya sehingga crosscheck tak bisa dipakai
+       utk durasi > 24 jam. Menit tetap maks 59. */
+    var m = raw.match(/^(\d{1,3})\s*[:.,]\s*(\d{1,2})$/);   /* H:MM (jam bebas) */
     if (m) {
       var hh = parseInt(m[1], 10), mm = parseInt(m[2], 10);
-      if (mm > 59 || hh > 23) return null;
+      if (mm > 59) return null;
       return (hh * 60 + mm) * 60000;
     }
     if (/^\d{1,4}$/.test(raw)) return parseInt(raw, 10) * 60000;   /* menit */
@@ -2149,8 +2202,12 @@
     var tm = state.bc.timer;
     if (tm.running) return;
     var ms = (tm.paused && tm.leftMs > 0) ? tm.leftMs : bcParseInput();
-    if (ms == null || ms <= 0) { toast('Isi durasi dulu \u2014 contoh: 30 (menit) atau 1:30 (1 jam 30 menit)', 'warning'); return; }
-    if (ms > 24 * 3600000) ms = 24 * 3600000;
+    if (ms == null || ms <= 0) { toast('Isi durasi dulu \u2014 contoh: 30 (menit) atau 31:10 (31 jam 10 menit)', 'warning'); return; }
+    /* v1.8.3 (Task 42): dulu durasi > 24 jam DIPANGKAS diam-diam ke
+       24 jam ("1870" menit = 31:10 tampil 24:00:00 — menyesatkan);
+       kini dijalankan utuh, hanya > 7 hari yang ditolak dengan
+       pesan jelas agar crosscheck tetap bermakna */
+    if (ms > BC_MAX_MS) { toast('Durasi maksimal 168:00:00 (7 hari) \u2014 perkecil durasi', 'warning'); return; }
     tm.endAt = Date.now() + ms;
     tm.total = ms;
     tm.running = true; tm.paused = false; tm.done = false;
@@ -2179,7 +2236,7 @@
     if (!(mins > 0)) return;
     var tm = state.bc.timer;
     var base = tm.running ? Math.max(0, tm.endAt - Date.now()) : (tm.paused ? tm.leftMs : 0);
-    var ms = Math.min(24 * 3600000, base + mins * 60000);
+    var ms = Math.min(BC_MAX_MS, base + mins * 60000);   /* v1.8.3: cap 7 hari (dulu 24 jam) */
     tm.endAt = Date.now() + ms;
     tm.total = ms;
     tm.running = true; tm.paused = false; tm.done = false;
@@ -2606,6 +2663,8 @@
     ensureShioData: ensureShioData,
     /* v1.4 helper test/E2E: nextBetclosedMs dr epoch ms bebas */
     _bcTestNext: function (it, ms) { var p = wibParts(ms); p.ms = ms; return nextBetclosedMs(it, p); },
+    /* v1.8.3 helper test/E2E: parse durasi manual (Task 42) */
+    _bcParseInput: function (t) { var s = state.bc.input; state.bc.input = t; var r = bcParseInput(); state.bc.input = s; return r; },
     /* v1.5 helper test/E2E: batas digit pasaran */
     _digitMaxOf: function (nama) { return digitMaxOf({ nama: nama }); },
     /* v1.6 helper test/E2E: shift pasaran dari nama+jam result/tutup */
