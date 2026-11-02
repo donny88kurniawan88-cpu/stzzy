@@ -584,7 +584,8 @@
             <div class="submenu-item" data-access-item="xpay_analyzer" data-action="xpayChecker"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>XPAY Analyzer</div>
             <div class="submenu-item" data-access-item="xpay_settlement" data-action="xpayFull"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>XPAY Settlement</div>
             <div class="submenu-item" data-access-item="settlement_checker" data-action="xpaySettlementChecker"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Settlement Checker</div>
-            <div class="submenu-item" data-access-item="mnpay_analyzer" data-action="comingSoon"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>MNPAY Analyzer</div>
+            <!-- v3.14.8 — MNPAY Analyzer -> Kitatrust Analyzer (access key mnpay_analyzer tetap agar akses role lama tidak hilang; worker tidak berubah) -->
+        <div class="submenu-item" data-access-item="mnpay_analyzer" data-action="kitatrustAnalyzer"><svg class="sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Kitatrust Analyzer</div>
           </div>
         </div>
 
@@ -964,6 +965,13 @@
         </div>
       </div>
 
+      <!-- ===== KITATRUST ANALYZER VIEW (inline iframe) — v3.14.8: logic senada XPAY Analyzer, tema terang, format Kitatrust (Status/Settled/Amount/Total Payment/Reference ID/Settled At, RRN notasi ilmiah diperbaiki) ===== -->
+      <div id="kitatrustView" style="display:none;">
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#eef2f7; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/kitatrust-tools/kitatrust-analyzer.html?v=1.0.0" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="Kitatrust Analyzer"></iframe>
+        </div>
+      </div>
+
       <!-- ===== EDIT BUKTI VIEW (inline iframe — no sandbox, allow all scripts+watermark) ===== -->
       <div id="editBuktiView" style="display:none;">
         <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
@@ -981,7 +989,7 @@
       <!-- ===== AUTHORITY PANEL VIEW (inline iframe) ===== -->
       <div id="authorityView" style="display:none;">
         <div style="width:100%; margin-top:14px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
-          <iframe src="/Authority.html?v=2.6.0" style="width:100%; height:calc(100vh - 130px); border:none; display:block;" title="Authority Panel - Access Control"></iframe>
+          <iframe src="/Authority.html?v=2.6.1" style="width:100%; height:calc(100vh - 130px); border:none; display:block;" title="Authority Panel - Access Control"></iframe>
         </div>
       </div>
 
@@ -1573,6 +1581,9 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
         case 'xpaySettlementChecker':
           switchToXpaySettlement();
           break;
+        case 'kitatrustAnalyzer':
+          switchToKitatrust();
+          break;
         case 'editBukti':
           switchToEditBukti();
           break;
@@ -1623,6 +1634,7 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       var xcv = document.getElementById('xpayCheckerView'); if (xcv) xcv.style.display = 'none';
       var xfv = document.getElementById('xpayFullView'); if (xfv) xfv.style.display = 'none';
       var xsv = document.getElementById('xpaySettlementView'); if (xsv) xsv.style.display = 'none';
+      var ktv = document.getElementById('kitatrustView'); if (ktv) ktv.style.display = 'none';
       var ebv = document.getElementById('editBuktiView'); if (ebv) ebv.style.display = 'none';
       var pgV = document.getElementById('pgReportView'); if (pgV) pgV.style.display = 'none';
       var autV = document.getElementById('authorityView'); if (autV) autV.style.display = 'none';
@@ -1779,6 +1791,16 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       currentView = 'xpaySettlement';
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
       addTerminalLog('Switched to Settlement Checker view');
+    }
+
+    /* === KITATRUST ANALYZER (v3.14.8) === */
+    function switchToKitatrust() {
+      hideAllViews();
+      var ktv = document.getElementById('kitatrustView'); if (ktv) ktv.style.display = 'block';
+      document.getElementById('breadcrumbPage').textContent = 'Kitatrust Analyzer';
+      currentView = 'kitatrust';
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      addTerminalLog('Switched to Kitatrust Analyzer view');
     }
 
     /* === EDIT BUKTI === */
@@ -2676,7 +2698,7 @@ document.getElementById('breadcrumbPage').textContent = 'IP Whitelist';
     // Also check immediately on page load
     setTimeout(_checkUserExistsInDatabase, 2000);
   </script>
-  <script src="/js/dashboard-pro.js?v=3.3.0"></script>
+  <script src="/js/dashboard-pro.js?v=3.3.1"></script>
   <script src="/js/myevent-pro.js?v=1.2.0"></script>
   <script src="/js/setting-pro.js?v=1.0.0"></script>
   <script src="/js/keepmemo-pro.js?v=2.0.0"></script>
