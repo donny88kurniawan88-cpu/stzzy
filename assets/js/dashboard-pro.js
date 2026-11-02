@@ -112,12 +112,13 @@
       { cat: 'workspace', color: 'blue',   icon: 'fa-building-columns',  name: 'Bank Processor', desc: 'Formatter & validator rekening bank',  badge: 'live',  badgeText: 'v2.0.0',   access: 'bank_processor',    href: '/Bank.html' },
       // OPERATIONAL
       { cat: 'operational', color: 'orange', icon: 'fa-money-bill-trend-up', name: 'Saldo Pencairan', desc: 'Monitor rekening & pencairan saldo', badge: 'live',    badgeText: 'v1.0.0',   access: 'saldo_pencairan',   action: 'loadPencairan' },
-      { cat: 'operational', color: 'green',  icon: 'fa-wallet',              name: 'Saldo QRIS',      desc: 'Saldo QRIS 4 provider + kalkulator saldo bersih', badge: 'live', badgeText: 'v1.0.0', access: 'saldo_qris', action: 'loadSaldoQris' },
+      { cat: 'operational', color: 'green',  icon: 'fa-wallet',              name: 'Saldo QRIS',      desc: 'Saldo QRIS 4 provider + kalkulator saldo bersih', badge: 'live', badgeText: 'v1.3.0', access: 'saldo_qris', action: 'loadSaldoQris' },
       { cat: 'operational', color: 'pink',   icon: 'fa-magnifying-glass-chart', name: 'P2M Analyzer', desc: 'P2M vs Zonamain vs Report analysis',  badge: 'live',    badgeText: 'v2.0.0',   access: 'p2m_analyzer',      action: 'analyzer' },
       { cat: 'operational', color: 'purple', icon: 'fa-satellite-dish',  name: 'XPAY Analyzer',      desc: 'XPAY transaction analyzer engine',     badge: 'live',       badgeText: 'v2.0.0',   access: 'xpay_analyzer',     action: 'xpayChecker' },
       { cat: 'operational', color: 'orange', icon: 'fa-file-invoice-dollar', name: 'XPAY Settlement', desc: 'XPAY settlement reconciliation',     badge: 'live',    badgeText: 'v2.0.0',   access: 'xpay_settlement',   action: 'xpayFull' },
       { cat: 'operational', color: 'teal',   icon: 'fa-clipboard-check', name: 'Settlement Checker', desc: 'Cek settlement per tanggal',          badge: 'live',       badgeText: 'v1.0.0',   access: 'settlement_checker', action: 'xpaySettlementChecker' },
-      { cat: 'operational', color: 'purple', icon: 'fa-chart-bar',       name: 'MNPAY Analyzer',     desc: 'MNPAY payment flow analyzer',          badge: 'soon',       badgeText: 'Soon',     access: 'mnpay_analyzer',    action: 'comingSoon' },
+      /* v3.14.8 — MNPAY Analyzer -> Kitatrust Analyzer (access key mnpay_analyzer tetap) */
+      { cat: 'operational', color: 'teal',   icon: 'fa-chart-bar',       name: 'Kitatrust Analyzer',  desc: 'Kitatrust QRIS settlement analyzer',   badge: 'live',       badgeText: 'v1.0.0',   access: 'mnpay_analyzer',    action: 'kitatrustAnalyzer' },
       { cat: 'operational', color: 'blue',   icon: 'fa-book-open',       name: 'Syair Database',     desc: 'Access shio prediction engine',        badge: 'live',       badgeText: 'v2.1.0',   access: 'syair_database',    href: '/Syair.html' },
       { cat: 'operational', color: 'purple', icon: 'fa-brain',           name: 'AI Prediction',      desc: 'Neural probability calculation',       badge: 'live',       badgeText: 'v3.0.0',   access: 'ai_prediction',     href: '/Prediksi.html' },
       { cat: 'operational', color: 'red',    icon: 'fa-fire-flame-curved', name: 'Gas Slot Engine',  desc: 'AI Slot Gacor Predictor System',       badge: 'info',       badgeText: 'v1.0.0',   access: 'gas_slot_engine',   action: 'appInfo' },
@@ -186,6 +187,7 @@
         xpayChecker:              'switchToXpayChecker',
         xpayFull:                 'switchToXpayFull',
         xpaySettlementChecker:    'switchToXpaySettlement',
+        kitatrustAnalyzer:        'switchToKitatrust',
         editBukti:                'switchToEditBukti',
         apiKey:                   'switchToApiKey',
         ipWhitelist:              'switchToIpWhitelist',

@@ -81,7 +81,7 @@
           { key: 'xpay_analyzer',      label: 'XPAY Analyzer',      icon: 'fa-satellite-dish' },
           { key: 'xpay_settlement',    label: 'XPAY Settlement',    icon: 'fa-file-invoice-dollar' },
           { key: 'settlement_checker', label: 'Settlement Checker', icon: 'fa-clipboard-check' },
-          { key: 'mnpay_analyzer',     label: 'MNPAY Analyzer',     icon: 'fa-chart-bar' }
+          { key: 'mnpay_analyzer',     label: 'Kitatrust Analyzer', icon: 'fa-chart-bar' }
         ] },
         { key: 'prediction_tools', label: 'Prediction Tools', icon: 'fa-clock', children: [
           { key: 'syair_database',  label: 'Syair Database',  icon: 'fa-book-open' },
@@ -156,7 +156,7 @@
   var usersData = [];
   /* v2.4.0 — versi UI ini ditulis ke badge #uiVer di modal Edit Access.
      Bila badge TIDAK menunjukkan versi ini = browser masih memuat file lama (cache). */
-  var UI_VERSION = '2.6.0';
+  var UI_VERSION = '2.6.1';
   var backendLegacy = false; /* true = backend terdeteksi membuang key sub-menu saat save */
   var editUsername = null;
   var currentPage = 1;
