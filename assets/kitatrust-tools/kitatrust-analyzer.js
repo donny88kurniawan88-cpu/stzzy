@@ -1,1154 +1,746 @@
-/* ============================================================
-   KITATRUST ANALYZER v1.0.0 (Task 43 — v3.14.8)
-   ------------------------------------------------------------
-   Logic senada XPAY Analyzer (assets/xpay-tools/xpay-checker.js):
-   import file -> deteksi baris judul via alias -> normalisasi ->
-   analisis -> kartu ringkasan + tabel temuan -> COPY / CSV / XLSX.
-   Yang berbeda: tampilan (tema terang) + format data Kitatrust
-   (Status, Settled, Created At, Paid At, Merchant Group Name,
-   Merchant Name, RRN, Amount, Total Payment, Reference ID,
-   Merchant Ref ID, Settled At — tanggal M/D/YYYY, RRN bisa
-   notasi ilmiah Excel seperti 6.11019E+11).
+    /* ============================================================
+       KITATRUST ANALYZER v2.0.0 (Task 43 r2 — v3.14.9)
+       Logic 1:1 dengan analyzer-tools / P2M Analyzer (Data
+       Comparison Analyzer): 3 sumber data (Kitatrust vs Zonamain
+       vs Report) + filter + difference analysis + balance analysis
+       + export 8 format. TEMA = DASHBOARD AURA.OS (gelap).
+       Satu-satunya perbedaan dari analyzer.js: slot pertama
+       memakai parser format export Kitatrust (parseKitatrust),
+       Zonamain & Report tidak berubah. BONUS FIX v3.14.9: injeksi
+       tombol Export (8 format) yang diwarisi analyzer-tools tidak
+       pernah muncul (insertBefore ke induk yang salah) — diperbaiki
+       di sini DAN di analyzer-tools v1.0.3.
+       Nama elemen/internal (p2m*, dst.) sengaja diwarisi dari
+       analyzer-tools agar logic identik dan mudah dibandingkan.
+       ============================================================ */
+    /* BOOT GUARD — authToken dari localStorage (dulu: variabel tak didefinisikan
+       menyebabkan ReferenceError yang mematikan SELURUH script analyzer) */
+    var authToken = null;
+    try { authToken = localStorage.getItem('aura_auth_token') || null; } catch (e) { authToken = null; }
+    (function () {
+      var ue = document.getElementById('userEmail');
+      if (ue) ue.textContent = (authToken || 'user') + '@aura.os';
+    })();
 
-   Tabel hasil:
-   1. BELUM SETTLE        : SUCCESS tapi flag Settled != TRUE
-   2. STATUS BERMASALAH   : Status selain SUCCESS
-   3. DUPLIKAT REFERENCE  : Reference ID / Merchant Ref ID ganda
-   4. FEE TIDAK BIASA     : fee menyimpang dari rasio mayoritas
-   5. REKAP MERCHANT      : total per Merchant Name
-   6. REKAP TANGGAL       : total per tanggal Settled At
-   + DETAIL TRANSAKSI (filter pencarian & status)
+    let p2mData = [], zonaData = [], reportData = [], filteredOutData = [];
 
-   Semua pemrosesan lokal di browser. Helper murni diekspos ke
-   window.KitatrustAnalyzer untuk pengujian otomatis.
-   ============================================================ */
-(() => {
-  "use strict";
-
-  const KTA_VERSION = "1.0.0";
-  const DETAIL_MAX = 300;
-
-  const state = {
-    file: null,
-    parsed: [],
-    results: null,
-    filter: { q: "", status: "all" }
-  };
-
-  /* ===== ALIAS KOLOM (dinormalisasi via normalizeHeader) =====
-     Sengaja EXACT-match saja: "Settled" vs "Settled At" berbahaya
-     bila pakai pencocokan prefix (prefix "SETTLED" akan menangkap
-     kolom "SETTLED AT"). Format export Kitatrust tetap, jadi
-     exact-match + normalisasi spasi/huruf sudah cukup dan aman. */
-  const KT_FIELDS = {
-    required: {
-      status:       ["STATUS"],
-      settled:      ["SETTLED", "IS SETTLED"],
-      amount:       ["AMOUNT", "NOMINAL"],
-      totalPayment: ["TOTAL PAYMENT", "TOTALPAYMENT", "TOTAL PAYEMENT"],
-      referenceId:  ["REFERENCE ID", "REFERENCEID", "REF ID", "REFID"]
-    },
-    optional: {
-      createdAt:     ["CREATED AT", "CREATEDAT", "CREATED DATE"],
-      paidAt:        ["PAID AT", "PAIDAT", "PAID DATE"],
-      merchantGroup: ["MERCHANT GROUP NAME", "MERCHANT GROUP", "MERCHANTGROUPNAME"],
-      merchantName:  ["MERCHANT NAME", "MERCHANTNAME"],
-      rrn:           ["RRN", "RRN NUMBER"],
-      merchantRefId: ["MERCHANT REF ID", "MERCHANTREFID", "MERCHANT REFERENCE ID"],
-      settledAt:     ["SETTLED AT", "SETTLEDAT", "SETTLEMENT DATE", "SETTLEMENT AT"]
+    // 1. SMART LINE SPLITTER
+    function splitSmart(line, delimiter) {
+      let result = [], current = '', inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        let char = line[i], next = line[i+1] || '';
+        if (char === '"') { if (inQuotes && next === '"') { current += '"'; i++; } else { inQuotes = !inQuotes; } }
+        else if (char === delimiter && !inQuotes) { result.push(current.trim()); current = ''; }
+        else { current += char; }
+      }
+      result.push(current.trim());
+      return result;
     }
-  };
 
-  const resultMeta = {
-    unsettled: {
-      filename: "KITATRUST_BELUM_SETTLE.csv",
-      sheet: "BELUM SETTLE",
-      headers: ["CREATED AT", "MERCHANT", "RRN", "AMOUNT", "TOTAL PAYMENT", "REFERENCE ID", "KETERANGAN"],
-      fields: ["createdAt", "merchantLabel", "rrn", "amount", "totalPayment", "referenceId", "note"]
-    },
-    failed: {
-      filename: "KITATRUST_STATUS_BERMASALAH.csv",
-      sheet: "STATUS BERMASALAH",
-      headers: ["CREATED AT", "STATUS", "MERCHANT", "RRN", "AMOUNT", "TOTAL PAYMENT", "REFERENCE ID"],
-      fields: ["createdAt", "status", "merchantLabel", "rrn", "amount", "totalPayment", "referenceId"]
-    },
-    duplicates: {
-      filename: "KITATRUST_DUPLIKAT_REFERENCE.csv",
-      sheet: "DUPLIKAT REFERENCE",
-      headers: ["CREATED AT", "MERCHANT", "AMOUNT", "TOTAL PAYMENT", "REFERENCE ID", "MERCHANT REF ID", "KETERANGAN"],
-      fields: ["createdAt", "merchantLabel", "amount", "totalPayment", "referenceId", "merchantRefId", "dupNote"]
-    },
-    feeOdd: {
-      filename: "KITATRUST_FEE_TIDAK_BIASA.csv",
-      sheet: "FEE TIDAK BIASA",
-      headers: ["CREATED AT", "MERCHANT", "RRN", "AMOUNT", "TOTAL PAYMENT", "FEE", "FEE PERSEN", "STANDAR PERSEN"],
-      fields: ["createdAt", "merchantLabel", "rrn", "amount", "totalPayment", "fee", "feePctLabel", "stdPctLabel"]
-    },
-    byMerchant: {
-      filename: "KITATRUST_REKAP_MERCHANT.csv",
-      sheet: "REKAP MERCHANT",
-      headers: ["MERCHANT", "TRANSAKSI", "TOTAL AMOUNT", "TOTAL DITERIMA", "TOTAL FEE"],
-      fields: ["label", "count", "amount", "payment", "fee"]
-    },
-    byDate: {
-      filename: "KITATRUST_REKAP_TANGGAL.csv",
-      sheet: "REKAP TANGGAL",
-      headers: ["TANGGAL SETTLEMENT", "TRANSAKSI", "TOTAL AMOUNT", "TOTAL DITERIMA", "TOTAL FEE"],
-      fields: ["label", "count", "amount", "payment", "fee"]
+    // 2. PARSER NOMINAL
+    const MAX_DAILY_DEPOSIT = 1000000000; 
+
+    function parseNumP2M(val) {
+      if (!val) return 0;
+      let s = String(val).trim();
+      let parts = s.split(/[.,]/);
+      s = parts[0]; 
+      let cleaned = s.replace(/[^\d-]/g, '');
+      let num = parseInt(cleaned, 10);
+      if (isNaN(num)) return 0;
+      if (num > MAX_DAILY_DEPOSIT) return 0; 
+      return num;
     }
-  };
 
-  /* ================= HELPER MURNI ================= */
+    function parseNumZona(val) {
+      if (!val) return 0;
+      let s = String(val).trim().replace(/Rp\.?/gi, '').replace(/[\(\)]/g, '').replace(/\s/g, '').trim();
+      let isNeg = s.startsWith('-');
+      if (isNeg) s = s.substring(1).trim();
+      
+      let lastComma = s.lastIndexOf(',');
+      let lastDot = s.lastIndexOf('.');
+      if (lastComma > -1 && lastDot > -1) {
+        if (lastComma > lastDot) { s = s.replace(/\./g, '').replace(',', '.'); } else { s = s.replace(/,/g, ''); }
+      } else if (lastComma > -1) {
+        let afterComma = s.substring(lastComma + 1);
+        if (afterComma.length <= 2 && afterComma !== '00') s = s.replace(',', '.');
+        else s = s.replace(/,/g, ''); 
+      } else if (lastDot > -1) {
+        let afterDot = s.substring(lastDot + 1);
+        if (afterDot.length <= 2 && afterDot !== '00') { /* Titik desimal */ }
+        else s = s.replace(/\./g, ''); 
+      }
+      
+      let num = parseFloat(s);
+      if (isNaN(num)) return 0;
+      num = Math.round(num);
+      if (isNeg) num = -num;
+      if (Math.abs(num) > MAX_DAILY_DEPOSIT) return 0; 
+      return num;
+    }
 
-  function normalizeHeader(value) {
-    return String(value == null ? "" : value)
-      .replace(/^\uFEFF/, "")
-      .trim()
-      .toUpperCase()
-      .replace(/[_\-]+/g, " ")
-      .replace(/\s+/g, " ")
-      .replace(/[^A-Z0-9 ]/g, "");
-  }
+    function cleanId(val) { if (!val) return ''; return String(val).replace(/['"]/g, '').trim(); }
 
-  function normalizeText(value) {
-    return String(value == null ? "" : value)
-      .replace(/^\uFEFF/, "")
-      .trim()
-      .toLowerCase();
-  }
+    function formatRp(n) { return new Intl.NumberFormat('id-ID').format(n || 0); }
 
-  function displayText(value) {
-    return String(value == null ? "" : value).replace(/^\uFEFF/, "").trim();
-  }
+    // 3. UI HELPERS (guard elemen agar tidak TypeError bila overlay/toast belum ada)
+    function showToast(msg, type) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      t.className = 'toast show ' + type;
+      t.textContent = msg;
+      setTimeout(() => t.classList.remove('show'), 3500);
+    }
 
-  /* Nominal: dukung "27000", "27.000", "27,000.5", "Rp 27.000" —
-     logika sama dengan XPAY (pemisah terakhir dianggap desimal). */
-  function parseNominal(value) {
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-
-    let s = String(value == null ? "" : value)
-      .trim()
-      .replace(/\s+/g, "")
-      .replace(/rp/gi, "")
-      .replace(/[^\d,.\-]/g, "");
-
-    if (!s || s === "-") return 0;
-
-    const hasComma = s.indexOf(",") !== -1;
-    const hasDot = s.indexOf(".") !== -1;
-
-    if (hasComma && hasDot) {
-      if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
-        s = s.replace(/\./g, "").replace(",", ".");
+    function showLoading(show) {
+      const ov = document.getElementById('loadingOverlay');
+      const bar = document.getElementById('loadingProgress');
+      if (ov) ov.style.display = show ? 'flex' : 'none';
+      if (!bar) return;
+      if (show) {
+        let p = 0;
+        const iv = setInterval(() => {
+          p = Math.min(p + Math.random() * 25, 90);
+          bar.style.width = p + '%';
+          if (p >= 90) clearInterval(iv);
+        }, 200);
       } else {
-        s = s.replace(/,/g, "");
-      }
-    } else if (hasComma) {
-      const parts = s.split(",");
-      const last = parts[parts.length - 1];
-      if (parts.length > 2 || last.length === 3) {
-        s = parts.join("");
-      } else if (last.length <= 2) {
-        s = parts.slice(0, -1).join("") + "." + last;
-      } else {
-        s = parts.join("");
-      }
-    } else if (hasDot) {
-      const parts = s.split(".");
-      const last = parts[parts.length - 1];
-      if (parts.length > 2 || last.length === 3) {
-        s = parts.join("");
+        bar.style.width = '100%';
       }
     }
 
-    const n = Number(s);
-    return Number.isFinite(n) ? n : 0;
-  }
+    // 4. FILE UPLOAD HANDLER — SUPPORT SEMUA FORMAT
+    const EXCEL_EXT = ['xlsx', 'xls', 'xlsm', 'xlsb'];
 
-  const KT_MONTHS = {
-    jan: 1, january: 1, januari: 1,
-    feb: 2, february: 2, februari: 2,
-    mar: 3, march: 3, maret: 3,
-    apr: 4, april: 4,
-    may: 5, mei: 5,
-    jun: 6, june: 6, juni: 6,
-    jul: 7, july: 7, juli: 7,
-    aug: 8, august: 8, agu: 8, agt: 8, agustus: 8,
-    sep: 9, september: 9,
-    oct: 10, october: 10, okt: 10, oktober: 10,
-    nov: 11, november: 11,
-    dec: 12, december: 12, des: 12, desember: 12
-  };
-
-  function ktYear(y) {
-    y = Number(y);
-    if (y < 100) y += y >= 50 ? 1900 : 2000;
-    return y;
-  }
-
-  /* Tanggal Kitatrust berformat US M/D/YYYY (contoh resmi user:
-     11/1/2026 23:50 dibuat, 11/2/2026 5:36 settle = D+1).
-     DEFAULT bulan-lebih-dulu; bila angka pertama jelas > 12
-     (mis. 13/11/2026) balik ke hari-lebih-dulu. */
-  function ktParseDateTime(value) {
-    if (value instanceof Date && !Number.isNaN(value.getTime())) {
-      return value.getTime();
+    function getExt(name) {
+      return (name.split('.').pop() || '').toLowerCase();
     }
 
-    if (typeof value === "number" && Number.isFinite(value) && value > 20000) {
-      if (typeof window !== "undefined" && window.XLSX && window.XLSX.SSF && window.XLSX.SSF.parse_date_code) {
-        const parsed = window.XLSX.SSF.parse_date_code(value);
-        if (parsed) {
-          return new Date(
-            parsed.y, parsed.m - 1, parsed.d,
-            parsed.H || 0, parsed.M || 0, Math.floor(parsed.S || 0)
-          ).getTime();
-        }
-      }
-      return null;
-    }
+    function handleFileUpload(inputElement, type) {
+      const file = inputElement.files[0];
+      if (!file) return;
+      const ext = getExt(file.name);
 
-    let s = String(value == null ? "" : value).trim();
-    if (!s) return null;
-
-    s = s.replace(
-      /^(minggu|ahad|senin|selasa|rabu|kamis|jumat|jum'?at|sabtu|sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s*,?\s*/i,
-      ""
-    ).trim();
-
-    // ISO yyyy-mm-dd (dengan /) — tidak ambigu.
-    let match = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
-    if (match) {
-      return new Date(
-        Number(match[1]), Number(match[2]) - 1, Number(match[3]),
-        Number(match[4] || 0), Number(match[5] || 0), Number(match[6] || 0)
-      ).getTime();
-    }
-
-    // M/D/YYYY (default Kitatrust) — dengan pengaman hari > 12.
-    match = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
-    if (match) {
-      let a = Number(match[1]);
-      let b = Number(match[2]);
-      let month = a;
-      let day = b;
-      if (a > 12 && b <= 12) { month = b; day = a; }
-      return new Date(
-        ktYear(match[3]), month - 1, day,
-        Number(match[4] || 0), Number(match[5] || 0), Number(match[6] || 0)
-      ).getTime();
-    }
-
-    // 05-Sep-2025 23:30 / 5 Sep 25
-    match = s.match(/^(\d{1,2})[\s\/\-]([A-Za-z]{3,9})\.?,?(?:[\s\/\-,]+(\d{2,4}))?(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
-    if (match) {
-      const month = KT_MONTHS[match[2].toLowerCase()];
-      if (month && match[3]) {
-        return new Date(
-          ktYear(match[3]), month - 1, Number(match[1]),
-          Number(match[4] || 0), Number(match[5] || 0), Number(match[6] || 0)
-        ).getTime();
-      }
-    }
-
-    // Sep 5, 2025 23:30
-    match = s.match(/^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?\s*,?\s*(\d{2,4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/i);
-    if (match) {
-      const month = KT_MONTHS[match[1].toLowerCase()];
-      if (month) {
-        return new Date(
-          ktYear(match[3]), month - 1, Number(match[2]),
-          Number(match[4] || 0), Number(match[5] || 0), Number(match[6] || 0)
-        ).getTime();
-      }
-    }
-
-    const fallback = Date.parse(s);
-    return Number.isNaN(fallback) ? null : fallback;
-  }
-
-  /* RRN sering rusak oleh Excel menjadi notasi ilmiah.
-     "6.11019E+11" -> "611019000000"; "1trg2ol03714" tetap. */
-  function ktRrnDisplay(value) {
-    if (typeof value === "number" && Number.isFinite(value)) {
-      return String(Math.round(value));
-    }
-    const s = displayText(value);
-    if (/^[+-]?\d+(?:\.\d+)?[eE]\+\d+$/.test(s)) {
-      const n = Number(s);
-      if (Number.isFinite(n)) return String(Math.round(n));
-    }
-    return s;
-  }
-
-  function ktParseBool(value) {
-    const s = normalizeText(value);
-    if (s === "true" || s === "1" || s === "yes" || s === "ya") return true;
-    if (s === "false" || s === "0" || s === "no" || s === "tidak") return false;
-    return null;
-  }
-
-  function round2(n) {
-    return Math.round(n * 100) / 100;
-  }
-
-  /* ===== CSV/TSV SENDERI (quote-aware + deteksi pemisah) ===== */
-
-  function countOutsideQuotes(line, delim) {
-    let inQuote = false;
-    let count = 0;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') { inQuote = !inQuote; continue; }
-      if (!inQuote && ch === delim) count++;
-    }
-    return count;
-  }
-
-  function detectDelimiter(text) {
-    const sample = String(text || "").replace(/^\uFEFF/, "").slice(0, 8000);
-    const lines = sample.split(/\r?\n/).filter(l => l.trim()).slice(0, 20);
-    const candidates = [",", ";", "\t", "|"];
-    let best = ",";
-    let bestScore = -1;
-
-    for (const d of candidates) {
-      const counts = lines.map(l => countOutsideQuotes(l, d));
-      const max = Math.max.apply(null, counts.concat([0]));
-      if (max <= 0) continue;
-      const consistent = counts.filter(c => c === max).length / counts.length;
-      const score = max * consistent;
-      if (score > bestScore) { bestScore = score; best = d; }
-    }
-    return best;
-  }
-
-  function splitDelimitedLine(line, delim) {
-    const out = [];
-    let cur = "";
-    let inQuote = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQuote && line[i + 1] === '"') { cur += '"'; i++; }
-        else { inQuote = !inQuote; }
-        continue;
-      }
-      if (!inQuote && ch === delim) { out.push(cur); cur = ""; continue; }
-      cur += ch;
-    }
-    out.push(cur);
-    return out;
-  }
-
-  function splitDelimited(text) {
-    const clean = String(text == null ? "" : text).replace(/^\uFEFF/, "");
-    const delim = detectDelimiter(clean);
-    const lines = clean.split(/\r?\n/);
-    while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
-    return lines.map(line => splitDelimitedLine(line, delim));
-  }
-
-  /* ================= PEMBACAAN DATA ================= */
-
-  function findHeaderRow(matrix) {
-    const maxScan = Math.min(matrix.length, 50);
-    const required = KT_FIELDS.required;
-
-    for (let r = 0; r < maxScan; r++) {
-      const row = Array.isArray(matrix[r]) ? matrix[r] : [];
-      const normalized = row.map(normalizeHeader);
-      const mapping = {};
-      let allFound = true;
-
-      for (const field of Object.keys(required)) {
-        const aliases = required[field].map(normalizeHeader);
-        const index = normalized.findIndex(h => h && aliases.indexOf(h) !== -1);
-        if (index === -1) { allFound = false; break; }
-        mapping[field] = index;
-      }
-
-      if (allFound) {
-        // Kolom opsional dipetakan bila ada.
-        for (const field of Object.keys(KT_FIELDS.optional)) {
-          const aliases = KT_FIELDS.optional[field].map(normalizeHeader);
-          const idx = normalized.findIndex(h => h && aliases.indexOf(h) !== -1);
-          mapping[field] = idx; // -1 bila tidak ada
-        }
-        return { rowIndex: r, mapping };
-      }
-    }
-
-    const sampleRow = Array.isArray(matrix[0]) ? matrix[0] : [];
-    const sample = sampleRow.slice(0, 8)
-      .map(h => `"${displayText(h)}"`)
-      .filter(x => x !== '""')
-      .join(", ");
-
-    throw new Error(
-      "Kolom wajib Kitatrust tidak ditemukan. Pastikan judul kolom mencakup: " +
-      "Status, Settled, Amount, Total Payment, Reference ID. " +
-      "Judul terbaca di baris pertama: " + (sample || "(kosong)") + "."
-    );
-  }
-
-  function matrixToRecords(matrix) {
-    const { rowIndex, mapping } = findHeaderRow(matrix);
-    const records = [];
-
-    for (let r = rowIndex + 1; r < matrix.length; r++) {
-      const row = Array.isArray(matrix[r]) ? matrix[r] : [];
-      const at = i => (typeof i === "number" && i >= 0 ? row[i] : "");
-
-      const statusRaw = at(mapping.status);
-      const settledRaw = at(mapping.settled);
-      const amount = parseNominal(at(mapping.amount));
-      const totalPayment = parseNominal(at(mapping.totalPayment));
-      const referenceRaw = at(mapping.referenceId);
-      const rrnRaw = at(mapping.rrn);
-      const merchantRefRaw = at(mapping.merchantRefId);
-
-      const referenceId = displayText(referenceRaw);
-      const merchantRefId = displayText(merchantRefRaw);
-      const rrn = ktRrnDisplay(rrnRaw);
-
-      // Baris tanpa identitas transaksi (footer TOTAL / baris kosong) dilewati.
-      if (!normalizeText(referenceId) && !normalizeText(merchantRefId) && !normalizeText(rrn)) continue;
-
-      const createdAtRaw = at(mapping.createdAt);
-      const paidAtRaw = at(mapping.paidAt);
-      const settledAtRaw = at(mapping.settledAt);
-      const merchantGroup = displayText(at(mapping.merchantGroup));
-      const merchantName = displayText(at(mapping.merchantName));
-
-      const fee = amount - totalPayment;
-
-      records.push({
-        status: displayText(statusRaw).toUpperCase() || "(KOSONG)",
-        statusNorm: normalizeText(statusRaw),
-        settled: displayText(settledRaw).toUpperCase(),
-        settledBool: ktParseBool(settledRaw),
-        createdAt: displayText(createdAtRaw),
-        createdAtMs: ktParseDateTime(createdAtRaw),
-        paidAt: displayText(paidAtRaw),
-        paidAtMs: ktParseDateTime(paidAtRaw),
-        merchantGroup,
-        merchantName,
-        merchantKey: normalizeText(merchantName),
-        rrn,
-        amount,
-        totalPayment,
-        fee,
-        feePct: amount > 0 ? round2(fee / amount * 100) : null,
-        referenceId,
-        refKey: normalizeText(referenceId),
-        merchantRefId,
-        merchantRefKey: normalizeText(merchantRefId),
-        settledAt: displayText(settledAtRaw),
-        settledAtMs: ktParseDateTime(settledAtRaw),
-        sourceRow: r + 1
-      });
-    }
-
-    return { records, headerRow: rowIndex + 1, mapping };
-  }
-
-  // Coba SEMUA worksheet — export Excel kadang menyimpan data di sheet kedua.
-  function recordsFromWorkbook(workbook) {
-    if (!workbook.SheetNames.length) throw new Error("File tidak memiliki worksheet.");
-    const errors = [];
-    for (const sheetName of workbook.SheetNames) {
-      const matrix = window.XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
-        header: 1, raw: true, defval: ""
-      });
-      try {
-        return matrixToRecords(matrix);
-      } catch (error) {
-        errors.push(error.message);
-      }
-    }
-    throw new Error(errors[0] || "Tidak ada worksheet yang dapat dibaca.");
-  }
-
-  async function parseFile(file) {
-    const name = String(file.name || "").toLowerCase();
-
-    if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
-      if (!window.XLSX) {
-        throw new Error("Library pembaca Excel gagal dimuat. Pastikan internet aktif saat membuka halaman.");
-      }
-      const buffer = await file.arrayBuffer();
-      const workbook = window.XLSX.read(buffer, { type: "array", raw: true, cellDates: false });
-      return recordsFromWorkbook(workbook);
-    }
-
-    // CSV / TSV / TXT — parser sendiri (quote-aware, deteksi pemisah).
-    const text = await file.text();
-    return matrixToRecords(splitDelimited(text));
-  }
-
-  function parsePastedText(text) {
-    if (!String(text || "").trim()) throw new Error("Data tempelan kosong.");
-    return matrixToRecords(splitDelimited(text));
-  }
-
-  /* ================= ANALISIS (MURNI) ================= */
-
-  function ktFmtDateLabel(ms) {
-    const d = new Date(ms);
-    return d.getDate() + "/" + (d.getMonth() + 1) + "/" + d.getFullYear();
-  }
-
-  function computeResults(records) {
-    const successRows = records.filter(r => r.statusNorm === "success");
-    const settledRows = successRows.filter(r => r.settledBool === true);
-
-    const sum = (rows, key) => rows.reduce((s, r) => s + (r[key] || 0), 0);
-
-    const totals = {
-      count: records.length,
-      successCount: successRows.length,
-      settledCount: settledRows.length,
-      amount: sum(successRows, "amount"),
-      payment: sum(successRows, "totalPayment")
-    };
-    totals.fee = totals.amount - totals.payment;
-    totals.feePct = totals.amount > 0 ? round2(totals.fee / totals.amount * 100) : null;
-
-    const merchantLabelOf = r => r.merchantName || r.merchantGroup || "(TANPA MERCHANT)";
-
-    /* --- 1. BELUM SETTLE --- */
-    const unsettled = successRows
-      .filter(r => r.settledBool !== true)
-      .map(r => ({
-        createdAt: r.createdAt,
-        merchantLabel: merchantLabelOf(r),
-        rrn: r.rrn,
-        amount: r.amount,
-        totalPayment: r.totalPayment,
-        referenceId: r.referenceId,
-        note: r.settledBool === false ? "Flag Settled FALSE" : "Flag Settled kosong / tidak dikenal",
-        _ts: r.createdAtMs,
-        _row: r.sourceRow
-      }))
-      .sort((a, b) => ((a._ts == null ? Infinity : a._ts) - (b._ts == null ? Infinity : b._ts)) || (a._row - b._row))
-      .map(({ _ts, _row, ...rest }) => rest);
-
-    /* --- 2. STATUS BERMASALAH --- */
-    const failed = records
-      .filter(r => r.statusNorm && r.statusNorm !== "success")
-      .map(r => ({
-        createdAt: r.createdAt,
-        status: r.status,
-        merchantLabel: merchantLabelOf(r),
-        rrn: r.rrn,
-        amount: r.amount,
-        totalPayment: r.totalPayment,
-        referenceId: r.referenceId,
-        _ts: r.createdAtMs,
-        _row: r.sourceRow
-      }))
-      .sort((a, b) => ((a._ts == null ? Infinity : a._ts) - (b._ts == null ? Infinity : b._ts)) || (a._row - b._row))
-      .map(({ _ts, _row, ...rest }) => rest);
-
-    /* --- 3. DUPLIKAT REFERENCE --- */
-    const refCount = new Map();
-    const mrefCount = new Map();
-    for (const r of records) {
-      if (r.refKey) refCount.set(r.refKey, (refCount.get(r.refKey) || 0) + 1);
-      if (r.merchantRefKey) mrefCount.set(r.merchantRefKey, (mrefCount.get(r.merchantRefKey) || 0) + 1);
-    }
-    const duplicates = records
-      .filter(r => (r.refKey && refCount.get(r.refKey) > 1) || (r.merchantRefKey && mrefCount.get(r.merchantRefKey) > 1))
-      .map(r => {
-        const parts = [];
-        if (r.refKey && refCount.get(r.refKey) > 1) parts.push("Reference ID muncul " + refCount.get(r.refKey) + "x");
-        if (r.merchantRefKey && mrefCount.get(r.merchantRefKey) > 1) parts.push("Merchant Ref ID muncul " + mrefCount.get(r.merchantRefKey) + "x");
-        return {
-          createdAt: r.createdAt,
-          merchantLabel: merchantLabelOf(r),
-          amount: r.amount,
-          totalPayment: r.totalPayment,
-          referenceId: r.referenceId,
-          merchantRefId: r.merchantRefId,
-          dupNote: parts.join(" + "),
-          _ts: r.createdAtMs,
-          _row: r.sourceRow
+      // ROUTE 1: FILE EXCEL → parse via SheetJS
+      if (EXCEL_EXT.includes(ext)) {
+        if (typeof XLSX === 'undefined') return showToast('Library Excel belum termuat', 'error');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const wb = XLSX.read(e.target.result, { type: 'array' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+            const text = rows.map(r => r.join('\t')).join('\n').trim();
+            finishUpload(type, text, file, 'Excel');
+          } catch (err) {
+            showToast('Gagal membaca Excel: ' + err.message, 'error');
+          }
         };
-      })
-      .sort((a, b) => ((a._ts == null ? Infinity : a._ts) - (b._ts == null ? Infinity : b._ts)) || (a._row - b._row))
-      .map(({ _ts, _row, ...rest }) => rest);
-
-    /* --- 4. FEE TIDAK BIASA --- */
-    const pctCount = new Map();
-    for (const r of successRows) {
-      if (r.feePct !== null) pctCount.set(r.feePct, (pctCount.get(r.feePct) || 0) + 1);
-    }
-    let stdPct = null;
-    let stdN = 0;
-    pctCount.forEach((n, pct) => {
-      if (n > stdN) { stdN = n; stdPct = pct; }
-    });
-    const feeOdd = stdPct === null ? [] : successRows
-      .filter(r => r.feePct !== null && r.feePct !== stdPct)
-      .map(r => ({
-        createdAt: r.createdAt,
-        merchantLabel: merchantLabelOf(r),
-        rrn: r.rrn,
-        amount: r.amount,
-        totalPayment: r.totalPayment,
-        fee: r.fee,
-        feePctLabel: r.feePct + "%",
-        stdPctLabel: stdPct + "%",
-        _ts: r.createdAtMs,
-        _row: r.sourceRow
-      }))
-      .sort((a, b) => ((a._ts == null ? Infinity : a._ts) - (b._ts == null ? Infinity : b._ts)) || (a._row - b._row))
-      .map(({ _ts, _row, ...rest }) => rest);
-
-    /* --- 5. REKAP MERCHANT --- */
-    const merchMap = new Map();
-    for (const r of successRows) {
-      const key = r.merchantKey || r.merchantGroup.toLowerCase() || "(tanpa merchant)";
-      const cur = merchMap.get(key) || { label: merchantLabelOf(r), count: 0, amount: 0, payment: 0, fee: 0 };
-      cur.count += 1;
-      cur.amount += r.amount;
-      cur.payment += r.totalPayment;
-      cur.fee += r.fee;
-      merchMap.set(key, cur);
-    }
-    const byMerchant = Array.from(merchMap.values())
-      .sort((a, b) => b.amount - a.amount || a.label.localeCompare(b.label));
-
-    /* --- 6. REKAP TANGGAL SETTLEMENT --- */
-    const dateMap = new Map();
-    for (const r of successRows) {
-      const key = Number.isFinite(r.settledAtMs) ? "d" + ktFmtDateLabel(r.settledAtMs) : "zz-belum";
-      const label = Number.isFinite(r.settledAtMs) ? ktFmtDateLabel(r.settledAtMs) : "BELUM SETTLE";
-      const cur = dateMap.get(key) || { label, count: 0, amount: 0, payment: 0, fee: 0 };
-      cur.count += 1;
-      cur.amount += r.amount;
-      cur.payment += r.totalPayment;
-      cur.fee += r.fee;
-      dateMap.set(key, cur);
-    }
-    const byDate = Array.from(dateMap.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(entry => entry[1]);
-
-    return {
-      totals,
-      feeStd: { pct: stdPct, count: stdN },
-      unsettled,
-      failed,
-      duplicates,
-      feeOdd,
-      byMerchant,
-      byDate
-    };
-  }
-
-  /* ================= FORMAT TAMPILAN ================= */
-
-  function formatNumber(value) {
-    const n = Number(value || 0);
-    const hasDecimal = Math.abs(n - Math.round(n)) > 1e-9;
-    return new Intl.NumberFormat("id-ID", {
-      minimumFractionDigits: hasDecimal ? 2 : 0,
-      maximumFractionDigits: 2
-    }).format(n);
-  }
-
-  function formatInteger(value) {
-    return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(value || 0);
-  }
-
-  function formatPct(p) {
-    const n = Number(p);
-    if (p === null || p === undefined || !Number.isFinite(n)) return "\u2013";
-    return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(n) + "%";
-  }
-
-  function escapeHtml(value) {
-    return String(value == null ? "" : value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
-
-  const $ = id => document.getElementById(id);
-
-  function setSourceStatus(message, statusClass) {
-    const el = $("statusKt");
-    if (el) { el.className = ("source-status " + (statusClass || "")).trim(); el.textContent = message; }
-  }
-
-  function setGlobalStatus(message, isError) {
-    const el = $("globalStatus");
-    if (el) { el.textContent = message; el.style.color = isError ? "#be123c" : ""; }
-  }
-
-  /* ================= RENDER ================= */
-
-  function statusPill(status) {
-    const s = String(status || "").toUpperCase();
-    if (s === "SUCCESS") return '<span class="pill pill-success">SUCCESS</span>';
-    if (!s || s === "(KOSONG)") return '<span class="pill pill-muted">(kosong)</span>';
-    return '<span class="pill pill-fail">' + escapeHtml(s) + "</span>";
-  }
-
-  function settledPill(record) {
-    if (record.settledBool === true) return '<span class="pill pill-settled">TRUE</span>';
-    if (record.settledBool === false) return '<span class="pill pill-fail">FALSE</span>';
-    return '<span class="pill pill-muted">' + escapeHtml(record.settled || "(kosong)") + "</span>";
-  }
-
-  function renderTable(containerId, headers, rowsHtml, emptyKind) {
-    const el = $(containerId);
-    if (!el) return;
-    if (!rowsHtml || !rowsHtml.length) {
-      el.innerHTML = '<div class="' + (emptyKind === "ok" ? "empty-ok" : "empty") + '">' +
-        (emptyKind === "ok" ? "Tidak ada temuan \u2014 kondisi aman." : "Tidak ada data.") + "</div>";
-      return;
-    }
-    el.innerHTML =
-      "<table><thead><tr>" +
-      headers.map(h => '<th' + (h.num ? ' class="num"' : "") + ">" + h.label + "</th>").join("") +
-      '</tr></thead><tbody>' + rowsHtml.join("") + "</tbody></table>";
-  }
-
-  function renderFindings() {
-    const R = state.results;
-
-    renderTable("tableUnsettled",
-      [{ label: "NO" }, { label: "CREATED AT" }, { label: "MERCHANT" }, { label: "RRN" },
-       { label: "AMOUNT", num: true }, { label: "DITERIMA", num: true }, { label: "REFERENCE ID" }, { label: "KETERANGAN" }],
-      R.unsettled.map((r, i) =>
-        "<tr><td>" + (i + 1) + "</td><td>" + escapeHtml(r.createdAt) + "</td><td>" + escapeHtml(r.merchantLabel) +
-        '</td><td class="mono">' + escapeHtml(r.rrn) + '</td><td class="num">' + formatNumber(r.amount) +
-        '</td><td class="num">' + formatNumber(r.totalPayment) + '</td><td><span class="ref-cell" title="' +
-        escapeHtml(r.referenceId) + '">' + escapeHtml(r.referenceId) + "</span></td><td>" + escapeHtml(r.note) + "</td></tr>"
-      ), "ok");
-
-    renderTable("tableFailed",
-      [{ label: "NO" }, { label: "CREATED AT" }, { label: "STATUS" }, { label: "MERCHANT" }, { label: "RRN" },
-       { label: "AMOUNT", num: true }, { label: "DITERIMA", num: true }, { label: "REFERENCE ID" }],
-      R.failed.map((r, i) =>
-        "<tr><td>" + (i + 1) + "</td><td>" + escapeHtml(r.createdAt) + "</td><td>" + statusPill(r.status) +
-        "</td><td>" + escapeHtml(r.merchantLabel) + '</td><td class="mono">' + escapeHtml(r.rrn) +
-        '</td><td class="num">' + formatNumber(r.amount) + '</td><td class="num">' + formatNumber(r.totalPayment) +
-        '</td><td><span class="ref-cell" title="' + escapeHtml(r.referenceId) + '">' + escapeHtml(r.referenceId) + "</span></td></tr>"
-      ), "ok");
-
-    renderTable("tableDup",
-      [{ label: "NO" }, { label: "CREATED AT" }, { label: "MERCHANT" }, { label: "AMOUNT", num: true },
-       { label: "DITERIMA", num: true }, { label: "REFERENCE ID" }, { label: "MERCHANT REF ID" }, { label: "KETERANGAN" }],
-      R.duplicates.map((r, i) =>
-        "<tr><td>" + (i + 1) + "</td><td>" + escapeHtml(r.createdAt) + "</td><td>" + escapeHtml(r.merchantLabel) +
-        '</td><td class="num">' + formatNumber(r.amount) + '</td><td class="num">' + formatNumber(r.totalPayment) +
-        '</td><td><span class="ref-cell" title="' + escapeHtml(r.referenceId) + '">' + escapeHtml(r.referenceId) +
-        '</span></td><td><span class="ref-cell" title="' + escapeHtml(r.merchantRefId) + '">' + escapeHtml(r.merchantRefId) +
-        "</span></td><td>" + escapeHtml(r.dupNote) + "</td></tr>"
-      ), "ok");
-
-    renderTable("tableFee",
-      [{ label: "NO" }, { label: "CREATED AT" }, { label: "MERCHANT" }, { label: "RRN" },
-       { label: "AMOUNT", num: true }, { label: "DITERIMA", num: true }, { label: "FEE", num: true },
-       { label: "FEE %", num: true }, { label: "STANDAR %", num: true }],
-      R.feeOdd.map((r, i) =>
-        "<tr><td>" + (i + 1) + "</td><td>" + escapeHtml(r.createdAt) + "</td><td>" + escapeHtml(r.merchantLabel) +
-        '</td><td class="mono">' + escapeHtml(r.rrn) + '</td><td class="num">' + formatNumber(r.amount) +
-        '</td><td class="num">' + formatNumber(r.totalPayment) + '</td><td class="num">' + formatNumber(r.fee) +
-        '</td><td class="num fee-odd">' + escapeHtml(r.feePctLabel) + '</td><td class="num fee-std">' +
-        escapeHtml(r.stdPctLabel) + "</td></tr>"
-      ), "ok");
-  }
-
-  function renderRekap() {
-    const R = state.results;
-
-    renderTable("tableMerchant",
-      [{ label: "MERCHANT" }, { label: "TRANSAKSI", num: true }, { label: "TOTAL AMOUNT", num: true },
-       { label: "TOTAL DITERIMA", num: true }, { label: "TOTAL FEE", num: true }],
-      R.byMerchant.map(r =>
-        "<tr><td>" + escapeHtml(r.label) + '</td><td class="num">' + formatInteger(r.count) +
-        '</td><td class="num">' + formatNumber(r.amount) + '</td><td class="num">' + formatNumber(r.payment) +
-        '</td><td class="num">' + formatNumber(r.fee) + "</td></tr>"
-      ));
-
-    renderTable("tableDate",
-      [{ label: "TANGGAL SETTLEMENT" }, { label: "TRANSAKSI", num: true }, { label: "TOTAL AMOUNT", num: true },
-       { label: "TOTAL DITERIMA", num: true }, { label: "TOTAL FEE", num: true }],
-      R.byDate.map(r =>
-        "<tr><td>" + escapeHtml(r.label) + '</td><td class="num">' + formatInteger(r.count) +
-        '</td><td class="num">' + formatNumber(r.amount) + '</td><td class="num">' + formatNumber(r.payment) +
-        '</td><td class="num">' + formatNumber(r.fee) + "</td></tr>"
-      ));
-  }
-
-  function detailFiltered() {
-    const q = state.filter.q.trim().toLowerCase();
-    const statusMode = state.filter.status;
-    return state.parsed.filter(r => {
-      if (statusMode === "success" && r.statusNorm !== "success") return false;
-      if (statusMode === "bermasalah" && r.statusNorm === "success") return false;
-      if (!q) return true;
-      return (
-        r.referenceId.toLowerCase().indexOf(q) !== -1 ||
-        r.merchantRefId.toLowerCase().indexOf(q) !== -1 ||
-        r.rrn.toLowerCase().indexOf(q) !== -1 ||
-        r.merchantName.toLowerCase().indexOf(q) !== -1 ||
-        r.merchantGroup.toLowerCase().indexOf(q) !== -1 ||
-        r.status.toLowerCase().indexOf(q) !== -1
-      );
-    });
-  }
-
-  function renderDetail() {
-    const rows = detailFiltered();
-    const capped = rows.slice(0, DETAIL_MAX);
-    const info = $("detailInfo");
-    if (info) {
-      info.textContent = "Menampilkan " + formatInteger(capped.length) + " dari " +
-        formatInteger(rows.length) + " baris" +
-        (rows.length > DETAIL_MAX ? " (dibatasi " + DETAIL_MAX + " baris \u2014 gunakan pencarian)" : "") +
-        " \u2022 total data terbaca: " + formatInteger(state.parsed.length) + ".";
-    }
-
-    renderTable("tableDetail",
-      [{ label: "NO" }, { label: "CREATED AT" }, { label: "STATUS" }, { label: "SETTLED" },
-       { label: "MERCHANT" }, { label: "RRN" }, { label: "AMOUNT", num: true },
-       { label: "DITERIMA", num: true }, { label: "FEE", num: true }, { label: "SETTLED AT" }, { label: "REFERENCE ID" }],
-      capped.map((r, i) =>
-        "<tr><td>" + (i + 1) + "</td><td>" + escapeHtml(r.createdAt) + "</td><td>" + statusPill(r.status) +
-        "</td><td>" + settledPill(r) + "</td><td>" + escapeHtml(r.merchantName || r.merchantGroup || "-") +
-        '</td><td class="mono">' + escapeHtml(r.rrn) + '</td><td class="num">' + formatNumber(r.amount) +
-        '</td><td class="num">' + formatNumber(r.totalPayment) + '</td><td class="num">' + formatNumber(r.fee) +
-        "</td><td>" + escapeHtml(r.settledAt || "-") + '</td><td><span class="ref-cell" title="' +
-        escapeHtml(r.referenceId) + '">' + escapeHtml(r.referenceId) + "</span></td></tr>"
-      ));
-  }
-
-  function renderResults() {
-    const R = state.results;
-    const T = R.totals;
-
-    $("statCount").textContent = formatInteger(T.count);
-    $("statAmount").textContent = formatNumber(T.amount);
-    $("statPayment").textContent = formatNumber(T.payment);
-    $("statFee").textContent = formatNumber(T.fee);
-    $("statSub").textContent =
-      formatInteger(T.successCount) + " SUCCESS \u2022 " + formatInteger(T.settledCount) +
-      " settled \u2022 " + formatInteger(R.failed.length) + " bermasalah \u2022 fee tercatat " +
-      formatPct(T.feePct) + " dari amount";
-
-    $("countUnsettled").textContent = formatInteger(R.unsettled.length);
-    $("countFailed").textContent = formatInteger(R.failed.length);
-    $("countDup").textContent = formatInteger(R.duplicates.length);
-    $("countFee").textContent = formatInteger(R.feeOdd.length);
-
-    const feeStdEl = $("feeStd");
-    if (feeStdEl) {
-      feeStdEl.textContent = R.feeStd.pct === null
-        ? "Rasio fee standar belum terdeteksi (tidak ada transaksi SUCCESS dengan amount > 0)."
-        : "Rasio fee yang menyimpang dari fee standar terdeteksi " + formatPct(R.feeStd.pct) +
-          " (dari " + formatInteger(R.feeStd.count) + " transaksi).";
-    }
-
-    renderFindings();
-    renderRekap();
-    renderDetail();
-
-    $("findings").classList.remove("hidden");
-    $("rekap").classList.remove("hidden");
-    $("detail").classList.remove("hidden");
-    $("btnDownloadAll").disabled = false;
-  }
-
-  /* ================= EXPORT (COPY / CSV / XLSX) ================= */
-
-  function rawExportRows(key) {
-    const meta = resultMeta[key];
-    return state.results[key].map(row => {
-      const output = {};
-      meta.headers.forEach((header, i) => { output[header] = row[meta.fields[i]]; });
-      return output;
-    });
-  }
-
-  function tsvForResult(key) {
-    const meta = resultMeta[key];
-    const lines = [meta.headers.join("\t")];
-    for (const row of state.results[key]) {
-      lines.push(meta.fields.map(f => {
-        const v = row[f];
-        return typeof v === "number" ? String(v) : String(v == null ? "" : v);
-      }).join("\t"));
-    }
-    return lines.join("\n");
-  }
-
-  async function copyResult(key, button) {
-    const text = tsvForResult(key);
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (e) {
-      const temp = document.createElement("textarea");
-      temp.value = text;
-      document.body.appendChild(temp);
-      temp.select();
-      document.execCommand("copy");
-      temp.remove();
-    }
-    const old = button.textContent;
-    button.textContent = "TERSALIN";
-    setTimeout(() => { button.textContent = old; }, 1200);
-  }
-
-  function csvEscape(value) {
-    return '"' + String(value == null ? "" : value).replace(/"/g, '""') + '"';
-  }
-
-  function downloadCsv(key) {
-    const meta = resultMeta[key];
-    const lines = [meta.headers.map(csvEscape).join(",")];
-    for (const row of rawExportRows(key)) {
-      lines.push(meta.headers.map(h => csvEscape(row[h])).join(","));
-    }
-    const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = meta.filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  function ringkasanRows() {
-    const R = state.results;
-    const T = R.totals;
-    return [
-      ["METRIK", "NILAI"],
-      ["Total transaksi", T.count],
-      ["Status SUCCESS", T.successCount],
-      ["Settled TRUE", T.settledCount],
-      ["Total amount (SUCCESS)", T.amount],
-      ["Total diterima (SUCCESS)", T.payment],
-      ["Total fee (SUCCESS)", T.fee],
-      ["Fee tercatat (%)", T.feePct == null ? "-" : T.feePct],
-      ["Fee standar terdeteksi (%)", R.feeStd.pct == null ? "-" : R.feeStd.pct],
-      ["Belum settle", R.unsettled.length],
-      ["Status bermasalah", R.failed.length],
-      ["Duplikat reference", R.duplicates.length],
-      ["Fee tidak biasa", R.feeOdd.length]
-    ];
-  }
-
-  function downloadAllXlsx() {
-    if (!window.XLSX) { alert("Library Excel belum tersedia."); return; }
-    if (!state.results) return;
-
-    const workbook = window.XLSX.utils.book_new();
-
-    const ringkasan = window.XLSX.utils.aoa_to_sheet(ringkasanRows());
-    ringkasan["!cols"] = [{ wch: 30 }, { wch: 22 }];
-    window.XLSX.utils.book_append_sheet(workbook, ringkasan, "RINGKASAN");
-
-    for (const key of Object.keys(resultMeta)) {
-      const meta = resultMeta[key];
-      const data = rawExportRows(key);
-      const worksheet = window.XLSX.utils.json_to_sheet(data, { header: meta.headers });
-      worksheet["!cols"] = meta.headers.map(h => ({ wch: Math.max(14, Math.min(52, h.length + 10)) }));
-      window.XLSX.utils.book_append_sheet(workbook, worksheet, meta.sheet.substring(0, 31));
-    }
-
-    window.XLSX.writeFile(workbook, "HASIL_ANALISIS_KITATRUST.xlsx");
-  }
-
-  /* ================= ALUR UTAMA ================= */
-
-  async function processAll() {
-    const btn = $("btnProcess");
-    const fileEl = $("fileKt");
-    const textEl = $("textKt");
-
-    const file = fileEl && fileEl.files && fileEl.files[0];
-    const text = textEl ? textEl.value.trim() : "";
-
-    if (!file && !text) {
-      setGlobalStatus("Belum ada data \u2014 pilih file atau tempel data Kitatrust dulu.", true);
-      return;
-    }
-
-    btn.disabled = true;
-    $("btnDownloadAll").disabled = true;
-    $("findings").classList.add("hidden");
-    $("rekap").classList.add("hidden");
-    $("detail").classList.add("hidden");
-    setGlobalStatus("Membaca dan menghitung data...");
-
-    try {
-      const parsed = file ? await parseFile(file) : parsePastedText(text);
-      state.parsed = parsed.records;
-
-      if (!state.parsed.length) {
-        throw new Error("Tidak ada baris data yang terbaca dari sumber. Pastikan file berisi transaksi di bawah baris judul.");
+        reader.readAsArrayBuffer(file);
+        return;
       }
 
-      const nominalTotal = state.parsed.reduce((s, r) => s + r.amount, 0);
-      const sourceName = file ? file.name : "data tempelan";
-      setSourceStatus(
-        sourceName + ": " + formatInteger(state.parsed.length) + " baris, total amount " +
-        formatNumber(nominalTotal) + ". Header di baris " + parsed.headerRow + ".",
-        "ok"
-      );
+      // ROUTE 2: JSON → convert ke tab-delimited
+      if (ext === 'json') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const arr = JSON.parse(e.target.result);
+            if (!Array.isArray(arr) || !arr.length) throw new Error('JSON bukan array data');
+            const headers = Object.keys(arr[0]);
+            const lines = [headers.join('\t')];
+            arr.forEach(o => lines.push(headers.map(h => o[h] ?? '').join('\t')));
+            finishUpload(type, lines.join('\n'), file, 'JSON');
+          } catch (err) {
+            showToast('Gagal membaca JSON: ' + err.message, 'error');
+          }
+        };
+        reader.readAsText(file);
+        return;
+      }
 
-      state.results = computeResults(state.parsed);
-      renderResults();
+      // ROUTE 3: HTML table
+      if (ext === 'html' || ext === 'htm') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const doc = new DOMParser().parseFromString(e.target.result, 'text/html');
+            const table = doc.querySelector('table');
+            if (!table) throw new Error('Tidak ada <table> di file HTML');
+            const lines = [...table.querySelectorAll('tr')].map(tr =>
+              [...tr.querySelectorAll('th,td')].map(td => td.textContent.trim()).join('\t')
+            );
+            finishUpload(type, lines.join('\n'), file, 'HTML');
+          } catch (err) {
+            showToast('Gagal membaca HTML: ' + err.message, 'error');
+          }
+        };
+        reader.readAsText(file);
+        return;
+      }
 
-      const temuan = state.results.unsettled.length + state.results.failed.length +
-        state.results.duplicates.length + state.results.feeOdd.length;
-      setGlobalStatus("Selesai. " + formatInteger(state.parsed.length) + " transaksi dianalisis, " +
-        formatInteger(temuan) + " baris temuan.");
-    } catch (error) {
-      console.error(error);
-      setSourceStatus(error.message || "Gagal membaca data.", "err");
-      setGlobalStatus(error.message || "Terjadi kesalahan saat memproses data.", true);
-    } finally {
-      btn.disabled = false;
+      // ROUTE 4 (DEFAULT): txt / csv / tsv / dat / prn / xml / lainnya
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result.replace(/^\uFEFF/, '').trim();
+        finishUpload(type, text, file, ext.toUpperCase() || 'TXT');
+      };
+      reader.readAsText(file);
     }
-  }
 
-  function resetAll() {
-    state.file = null;
-    state.parsed = [];
-    state.results = null;
-    state.filter = { q: "", status: "all" };
+    // Pemrosesan akhir setelah file jadi text
+    function finishUpload(type, text, file, srcLabel) {
+      if (type === 'p2m') { p2mData = parseKitatrust(text); document.getElementById('p2mCount').textContent = p2mData.length + ' lines'; }
+      else if (type === 'zona') { zonaData = parseZonamain(text); document.getElementById('zonaCount').textContent = zonaData.length + ' lines'; }
+      else if (type === 'report') { reportData = parseReport(text); document.getElementById('reportCount').textContent = reportData.length + ' lines'; }
+      showFileInfo(type, file);
+      const count = type === 'p2m' ? p2mData.length : type === 'zona' ? zonaData.length : reportData.length;
+      showToast(file.name + ' [' + srcLabel + '] loaded — ' + count + ' lines', count > 0 ? 'success' : 'warning');
+      if (count === 0) showToast('File terbaca tapi 0 baris — cek format kolom/header', 'warning');
+    }
 
-    const fileEl = $("fileKt");
-    const textEl = $("textKt");
-    if (fileEl) fileEl.value = "";
-    if (textEl) textEl.value = "";
-    const search = $("detailSearch");
-    const statusSel = $("detailStatus");
-    if (search) search.value = "";
-    if (statusSel) statusSel.value = "all";
+    function showFileInfo(type, file) {
+      document.getElementById(type + 'FileInfo').style.display = 'block';
+      document.getElementById(type + 'FileName').textContent = file.name;
+      document.getElementById(type + 'FileDate').textContent = new Date().toLocaleDateString('id-ID');
+      document.getElementById(type + 'FileSize').textContent = (file.size / 1024).toFixed(2) + ' KB';
+    }
 
-    setSourceStatus("Belum ada data.", "");
-    setGlobalStatus("Masukkan data Kitatrust untuk memulai.");
-    $("findings").classList.add("hidden");
-    $("rekap").classList.add("hidden");
-    $("detail").classList.add("hidden");
-    $("btnDownloadAll").disabled = true;
-  }
-
-  /* ================= WIRING (HANYA DI BROWSER) ================= */
-
-  function onFilePicked(file) {
-    const textEl = $("textKt");
-    if (textEl) textEl.value = "";
-    state.file = file || null;
-    setSourceStatus(file ? "File dipilih: " + file.name : "Belum ada data.", "");
-  }
-
-  function initDom() {
-    const fileEl = $("fileKt");
-    const textEl = $("textKt");
-    const dropZone = $("dropZone");
-    if (!fileEl || !$("btnProcess")) return;
-
-    fileEl.addEventListener("change", () => {
-      const f = fileEl.files && fileEl.files[0];
-      if (f) onFilePicked(f);
-    });
-
-    if (dropZone) {
-      ["dragenter", "dragover"].forEach(ev =>
-        dropZone.addEventListener(ev, e => {
-          e.preventDefault();
-          e.stopPropagation();
-          dropZone.classList.add("dragover");
-        })
-      );
-      ["dragleave", "drop"].forEach(ev =>
-        dropZone.addEventListener(ev, e => {
-          e.preventDefault();
-          e.stopPropagation();
-          dropZone.classList.remove("dragover");
-        })
-      );
-      dropZone.addEventListener("drop", e => {
-        const dt = e.dataTransfer;
-        if (dt && dt.files && dt.files.length) {
-          try { fileEl.files = dt.files; } catch (err) { /* beberapa browser lama */ }
-          onFilePicked(dt.files[0]);
+    // 5. FILE PARSERS
+    /* PARSER KITATRUST (v2.0.0) — format export resmi Kitatrust (contoh resmi user):
+       Status, Settled, Created At, Paid At, Merchant Group Name, Merchant Name,
+       RRN, Amount, Total Payment, Reference ID, Merchant Ref ID, Settled At.
+       Mapping ke model analisis (alur sama seperti P2M):
+         Reference ID = Order ID   | Amount = Nominal | Total Payment = Net
+         Merchant Name = User ID   | Paid At = Tanggal (fallback: Created At -> Settled At)
+         RRN = UUID (teks apa adanya, notasi ilmiah Excel tidak diubah)
+       Fee dihitung = Amount - Total Payment (hanya info, tidak dipakai
+       dalam analisis — sama seperti P2M). Baris tanpa Reference ID dan
+       nominal 0 diabaikan. Semua baris dihitung (tanpa filter status),
+       konsisten dengan perilaku analyzer-tools. */
+    function parseKitatrust(text) {
+      const lines = text.split('\n');
+      let data = [], headers = [], startIdx = 0, delimiter = ',';
+      for (let i = 0; i < Math.min(10, lines.length); i++) {
+        let line = lines[i].trim(); if(!line) continue;
+        let tabC = (line.match(/\t/g) || []).length, comC = (line.match(/,/g) || []).length, pipC = (line.match(/\|/g) || []).length, semC = (line.match(/;/g) || []).length;
+        delimiter = comC >= tabC && comC >= pipC && comC >= semC ? ',' : (tabC >= pipC && tabC >= semC ? '\t' : (semC >= pipC ? ';' : '|'));
+        let cols = splitSmart(line, delimiter), low = cols.map(c => c.toLowerCase().replace(/\uFEFF/g, '').trim());
+        if (low.includes('reference id') && low.includes('amount')) { headers = low; startIdx = i + 1; break; }
+      }
+      if (headers.length === 0) return data;
+      for (let i = startIdx; i < lines.length; i++) {
+        let line = lines[i].trim(); if(!line) continue;
+        let cols = splitSmart(line, delimiter);
+        let r = { orderId:'', nominal:0, fee:0, net:0, userId:'', date:'', uuid:'', group:'', status:'', settled:'' };
+        let dCreated = '', dSettled = '';
+        for(let j=0; j<headers.length; j++) {
+          let h=headers[j], v=cols[j]||'';
+          if(h.includes('reference id')) r.orderId=cleanId(v);
+          else if(h.includes('amount')) r.nominal=parseNumP2M(v);
+          else if(h.includes('total payment')) r.net=parseNumP2M(v);
+          else if(h.includes('paid at')) r.date=v.trim();
+          else if(h.includes('created at')) dCreated=v.trim();
+          else if(h.includes('settled at')) dSettled=v.trim();
+          else if(h.includes('merchant name')) r.userId=cleanId(v);
+          else if(h.includes('merchant group')) r.group=cleanId(v);
+          else if(h.includes('rrn')) r.uuid=cleanId(v);
+          else if(h === 'status') r.status=cleanId(v);
+          else if(h === 'settled') r.settled=cleanId(v);
         }
-      });
+        if (!r.date) r.date = dCreated || dSettled;
+        if (r.nominal > 0 && r.net > 0 && r.net < r.nominal) r.fee = r.nominal - r.net;
+        if(r.orderId || r.nominal>0) data.push(r);
+      }
+      return data;
     }
 
-    if (textEl) {
-      textEl.addEventListener("input", () => {
-        if (textEl.value.trim()) {
-          fileEl.value = "";
-          state.file = null;
-          setSourceStatus("Menggunakan data tempelan.", "");
+    function parseZonamain(text) {
+      const lines = text.split('\n');
+      let data = [], headers = [], startIdx = 0, delimiter = '|';
+      for (let i = 0; i < Math.min(20, lines.length); i++) {
+        let line = lines[i].trim(); if(!line) continue;
+        let tabC = (line.match(/\t/g) || []).length, comC = (line.match(/,/g) || []).length, pipC = (line.match(/\|/g) || []).length;
+        delimiter = pipC >= tabC && pipC >= comC ? '|' : (tabC >= comC ? '\t' : ',');
+        let cols = splitSmart(line, delimiter).map(c => c.toLowerCase().replace(/\uFEFF/g, '').trim());
+        if (cols.includes('tanggal') || cols.includes('order id')) { headers = cols; startIdx = i + 1; break; }
+      }
+      if(headers.length === 0) return [];
+      for (let i = startIdx; i < lines.length; i++) {
+        let line = lines[i].trim(); 
+        if(!line || line.startsWith('*') || line.toLowerCase().startsWith('head') || line.toLowerCase().includes('jumlah') || line.toLowerCase().includes('ppn')) continue; 
+        let cols = splitSmart(line, delimiter);
+        let r = { orderId:'', nominal:0, fee:0, net:0, userId:'', date:'', uuid:'' };
+        for(let j=0; j<headers.length; j++) {
+          let h=headers[j], v=cols[j]||'';
+          if(h.includes('tanggal') || h.includes('date')) r.date=v;
+          else if(h.includes('order id')) r.orderId=cleanId(v);
+          else if(h.includes('rrn')) r.uuid=cleanId(v);
+          else if(h.includes('user id') || h === 'user') r.userId=cleanId(v);
+          else if(h.includes('jumlah') || (h.includes('amount') && !h.includes('fee'))) r.nominal=parseNumZona(v);
+          else if(h.includes('ppn') || h.includes('fee')) r.fee=parseNumZona(v);
+          else if(h.includes('total') || h.includes('net')) r.net=parseNumZona(v);
         }
+        if(r.orderId || r.nominal>0) data.push(r);
+      }
+      return data;
+    }
+
+    function parseReport(text) {
+      const lines = text.split('\n');
+      let data = [], headers = [], startIdx = 0, delimiter = '|';
+      for (let i = 0; i < Math.min(10, lines.length); i++) {
+        let line = lines[i].trim(); if(!line) continue;
+        let tabC = (line.match(/\t/g) || []).length, comC = (line.match(/,/g) || []).length, pipC = (line.match(/\|/g) || []).length;
+        delimiter = pipC >= tabC && pipC >= comC ? '|' : (tabC >= comC ? '\t' : ',');
+        let cols = splitSmart(line, delimiter).map(c => c.toLowerCase().replace(/\uFEFF/g, '').trim());
+        if (cols.includes('date') && (cols.includes('info') || cols.includes('coin'))) { headers = cols; startIdx = i + 1; break; }
+      }
+      
+      let coinIndex = -1, userIndex = -1, dateIndex = -1;
+      for(let j=0; j<headers.length; j++) {
+        let h = headers[j];
+        if (h === 'coin') coinIndex = j; 
+        else if (h === 'to' || h.includes('user1')) userIndex = j;
+        else if (h.includes('date')) dateIndex = j;
+      }
+
+      if (coinIndex === -1 && headers.length >= 5) {
+        dateIndex = 0; userIndex = 2; coinIndex = 4;
+      }
+
+      for (let i = startIdx; i < lines.length; i++) {
+        let line = lines[i].trim(); if(!line) continue;
+        let cols = splitSmart(line, delimiter);
+        let r = { userId:'', nominal:0, date:'', user1:'' };
+        
+        if (dateIndex !== -1 && cols[dateIndex]) r.date = cols[dateIndex];
+        if (userIndex !== -1 && cols[userIndex]) r.user1 = cleanId(cols[userIndex]);
+        if (coinIndex !== -1 && cols[coinIndex]) r.nominal = parseNumZona(cols[coinIndex]); 
+        
+        r.userId = r.user1;
+        if(r.userId || r.nominal!==0) data.push(r);
+      }
+      return data;
+    }
+
+    // 6. COPY DATA FUNCTION
+    function copyData(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el || !el.value.trim()) return showToast('No data to copy', 'warning');
+      el.select();
+      el.setSelectionRange(0, 999999);
+      navigator.clipboard ? navigator.clipboard.writeText(el.value).then(() => showToast('Data copied to clipboard!', 'success')).catch(() => fallbackCopy(el)) : fallbackCopy(el);
+    }
+    function fallbackCopy(el) { document.execCommand('copy'); showToast('Data copied to clipboard!', 'success'); }
+
+    // 7. FILTER & ANALYZE LOGIC
+    function toggleFilter() {
+      const isOn = document.getElementById('filterToggle').checked;
+      document.getElementById('filterStatus').textContent = isOn ? 'Filter: ON' : 'Filter: OFF';
+      document.getElementById('filterStatus').style.background = isOn ? 'rgba(16, 185, 129, 0.15)' : 'var(--accent-warning-light)';
+      document.getElementById('filterStatus').style.color = isOn ? 'var(--accent-success)' : 'var(--accent-warning)';
+    }
+
+    function applyFilters(data) {
+      const isFilterOn = document.getElementById('filterToggle').checked;
+      if (!isFilterOn) return { filtered: data, excluded: [] };
+      const excludePhones = document.getElementById('filterPhoneNumbers').checked;
+      const excludeMonths = document.getElementById('filterMonthPattern').checked;
+      const customExcl = document.getElementById('customExclusions').value.trim().split('\n').map(e=>e.trim().toLowerCase()).filter(e=>e);
+      const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+      const filtered = [], excluded = [];
+      data.forEach(item => {
+        let exc = false; const id = (item.userId || '').toLowerCase();
+        if (excludePhones && /^0\d+/.test(id)) exc = true;
+        if (excludeMonths && months.some(m => id.includes(m))) exc = true;
+        if (customExcl.includes(id)) exc = true;
+        exc ? excluded.push(item) : filtered.push(item);
       });
+      return { filtered, excluded };
     }
 
-    $("btnProcess").addEventListener("click", processAll);
-    $("btnReset").addEventListener("click", resetAll);
-    $("btnDownloadAll").addEventListener("click", downloadAllXlsx);
-
-    const search = $("detailSearch");
-    if (search) search.addEventListener("input", () => {
-      state.filter.q = search.value;
-      renderDetail();
-    });
-
-    const statusSel = $("detailStatus");
-    if (statusSel) statusSel.addEventListener("change", () => {
-      state.filter.status = statusSel.value;
-      renderDetail();
-    });
-
-    document.addEventListener("click", event => {
-      const target = event.target;
-      if (!target || !target.dataset) return;
-      if (target.dataset.copy) copyResult(target.dataset.copy, target);
-      if (target.dataset.csv) downloadCsv(target.dataset.csv);
-    });
-  }
-
-  if (typeof document !== "undefined") {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initDom);
-    } else {
-      initDom();
+    function testFilter() {
+      if (p2mData.length === 0) return showToast('Upload Kitatrust first', 'warning');
+      const res = applyFilters(p2mData);
+      document.getElementById('filterPreview').style.display = 'block';
+      document.getElementById('previewTotal').textContent = p2mData.length;
+      document.getElementById('previewFiltered').textContent = res.excluded.length;
+      document.getElementById('previewRemaining').textContent = res.filtered.length;
     }
-  }
 
-  /* Helper murni diekspos untuk pengujian otomatis & debugging. */
-  if (typeof window !== "undefined") {
-    window.KitatrustAnalyzer = {
-      version: KTA_VERSION,
-      detailMax: DETAIL_MAX,
-      normalizeHeader,
-      normalizeText,
-      displayText,
-      parseNominal,
-      ktParseDateTime,
-      ktRrnDisplay,
-      ktParseBool,
-      detectDelimiter,
-      splitDelimited,
-      matrixToRecords,
-      computeResults,
-      resultMeta
+    function clearFilter() {
+      document.getElementById('filterPhoneNumbers').checked = true;
+      document.getElementById('filterMonthPattern').checked = true;
+      document.getElementById('customExclusions').value = '';
+      document.getElementById('filterToggle').checked = false;
+      toggleFilter(); document.getElementById('filterPreview').style.display = 'none';
+    }
+
+    function clearAllFiles() {
+      p2mData = []; zonaData = []; reportData = []; filteredOutData = [];
+      document.getElementById('p2mCount').textContent = '0 lines';
+      document.getElementById('zonaCount').textContent = '0 lines';
+      document.getElementById('reportCount').textContent = '0 lines';
+      document.getElementById('p2mFileInfo').style.display = 'none';
+      document.getElementById('zonaFileInfo').style.display = 'none';
+      document.getElementById('reportFileInfo').style.display = 'none';
+      document.getElementById('analysisSection').style.display = 'none';
+      document.getElementById('resultsSection').style.display = 'none';
+      showToast('All files cleared!', 'success');
+    }
+
+    // 8. MAIN ANALYZE FUNCTION
+    function processUploadedFiles() {
+      if (p2mData.length === 0 && zonaData.length === 0 && reportData.length === 0) return showToast('Upload files first', 'error');
+      showLoading(true);
+      setTimeout(() => {
+        try {
+          const p2mRes = applyFilters(p2mData);
+          const activeP2M = p2mRes.filtered; filteredOutData = p2mRes.excluded;
+
+          let totalP2M = p2mData.reduce((s,i) => s+i.nominal, 0);
+          let totalZona = zonaData.reduce((s,i) => s+i.nominal, 0);
+          let totalReport = reportData.reduce((s,i) => s+i.nominal, 0);
+
+          document.getElementById('overallP2M').textContent = formatRp(totalP2M);
+          document.getElementById('overallReport').textContent = formatRp(totalReport);
+          document.getElementById('overallDifference').textContent = formatRp(totalP2M - totalReport);
+
+          const p2mIds = new Set(activeP2M.filter(d=>d.orderId).map(d => d.orderId.toLowerCase()));
+          const zonaIds = new Set(zonaData.filter(d=>d.orderId).map(d => d.orderId.toLowerCase()));
+          
+          let p2mNotZona = activeP2M.filter(d => d.orderId && !zonaIds.has(d.orderId.toLowerCase()));
+          let zonaNotP2M = zonaData.filter(d => d.orderId && !p2mIds.has(d.orderId.toLowerCase()));
+          let nomP2MNotZona = p2mNotZona.reduce((s,i) => s+i.nominal, 0);
+          let nomZonaNotP2M = zonaNotP2M.reduce((s,i) => s+i.nominal, 0);
+
+          document.getElementById('p2mTotal').textContent = formatRp(totalP2M);
+          document.getElementById('reportTotal').textContent = formatRp(totalReport);
+          document.getElementById('calculatedDiff').textContent = formatRp(totalP2M - totalReport);
+          document.getElementById('diffP2MReportValue').textContent = formatRp(totalP2M - totalReport);
+
+          document.getElementById('p2mMissingCount').textContent = p2mNotZona.length;
+          document.getElementById('p2mMissingNominal').textContent = '+' + formatRp(nomP2MNotZona);
+          document.getElementById('p2mMissingValue').textContent = '+' + formatRp(nomP2MNotZona);
+
+          document.getElementById('zonaMissingCount').textContent = zonaNotP2M.length;
+          document.getElementById('zonaMissingNominal').textContent = '-' + formatRp(nomZonaNotP2M);
+          document.getElementById('zonaMissingValue').textContent = '-' + formatRp(nomZonaNotP2M);
+
+          let actualDiff = nomP2MNotZona - nomZonaNotP2M;
+          document.getElementById('expectedDiff').textContent = formatRp(totalP2M - totalZona);
+          document.getElementById('actualDiff').textContent = formatRp(actualDiff);
+          document.getElementById('balanceStatus').textContent = actualDiff === 0 ? 'BALANCED' : 'IMBALANCE';
+          document.getElementById('balanceStatus').style.color = actualDiff === 0 ? 'var(--accent-success)' : 'var(--accent-danger)';
+          document.getElementById('balanceResult').textContent = actualDiff === 0 ? 'Balanced ✓' : 'Imbalance ✗';
+          document.getElementById('balanceResult').style.color = actualDiff === 0 ? 'var(--accent-success)' : 'var(--accent-danger)';
+
+          document.getElementById('p2mNotZona').value = p2mNotZona.map(d => `${d.date || '-'}\t${d.orderId || '-'}\t${d.userId || '-'}\t${formatRp(d.nominal)}`).join('\n');
+          document.getElementById('p2mNotZonaBadge').textContent = p2mNotZona.length;
+          document.getElementById('p2mNotZonaTotal').textContent = '+' + formatRp(nomP2MNotZona);
+
+          document.getElementById('zonaNotP2M').value = zonaNotP2M.map(d => `${d.date || '-'}\t${d.orderId || '-'}\t${d.userId || '-'}\t${formatRp(d.nominal)}`).join('\n');
+          document.getElementById('zonaNotP2MBadge').textContent = zonaNotP2M.length;
+          document.getElementById('zonaNotP2MTotal').textContent = '-' + formatRp(nomZonaNotP2M);
+
+          // USER DIFF (ZONAMAIN X REPORT)
+          const zonaUserSums = new Map();
+          zonaData.forEach(item => {
+            const id = (item.userId || '').toLowerCase().trim();
+            if (id) zonaUserSums.set(id, (zonaUserSums.get(id) || 0) + item.nominal);
+          });
+
+          const reportUserSums = new Map();
+          reportData.forEach(item => {
+            const id = (item.userId || '').toLowerCase().trim();
+            if (id) reportUserSums.set(id, (reportUserSums.get(id) || 0) + item.nominal);
+          });
+
+          const allUserIdsZR = new Set([...zonaUserSums.keys(), ...reportUserSums.keys()]);
+          let diffZonaReportLines = [], nomDiffZonaReport = 0, countZonaReportDiff = 0;
+          allUserIdsZR.forEach(id => {
+            const z = zonaUserSums.get(id) || 0;
+            const r = reportUserSums.get(id) || 0;
+            if (z !== r) {
+              diffZonaReportLines.push(`${id}\t${formatRp(z)}\t${formatRp(r)}\t${formatRp(z - r)}`);
+              nomDiffZonaReport += (z - r); countZonaReportDiff++;
+            }
+          });
+          document.getElementById('diffZonaReport').value = diffZonaReportLines.join('\n');
+          document.getElementById('diffZonaReportBadge').textContent = countZonaReportDiff;
+          document.getElementById('diffZonaReportTotal').textContent = formatRp(nomDiffZonaReport);
+
+          // USER DIFF (KITATRUST X REPORT)
+          const p2mUserSums = new Map();
+          activeP2M.forEach(item => {
+            const id = (item.userId || '').toLowerCase().trim();
+            if (id) p2mUserSums.set(id, (p2mUserSums.get(id) || 0) + item.nominal);
+          });
+
+          const allUserIdsPR = new Set([...p2mUserSums.keys(), ...reportUserSums.keys()]);
+          let diffP2MReportLines = [], nomDiffP2MReport = 0, countP2MReportDiff = 0;
+          allUserIdsPR.forEach(id => {
+            const p = p2mUserSums.get(id) || 0;
+            const r = reportUserSums.get(id) || 0;
+            if (p !== r) {
+              diffP2MReportLines.push(`${id}\t${formatRp(p)}\t${formatRp(r)}\t${formatRp(p - r)}`);
+              nomDiffP2MReport += (p - r); countP2MReportDiff++;
+            }
+          });
+          document.getElementById('diffP2MReport').value = diffP2MReportLines.join('\n');
+          document.getElementById('diffP2MReportBadge').textContent = countP2MReportDiff;
+          document.getElementById('diffP2MReportTotal').textContent = formatRp(totalP2M - totalReport);
+
+          // FILTERED DATA
+          if (filteredOutData.length > 0) {
+            document.getElementById('filteredData').value = filteredOutData.map(d => `${d.date || '-'}\t${d.orderId || '-'}\t${d.userId || '-'}\t${formatRp(d.nominal)}`).join('\n');
+            document.getElementById('filteredBadge').textContent = filteredOutData.length;
+            document.getElementById('filteredTotal').textContent = '-' + formatRp(filteredOutData.reduce((s,i) => s+i.nominal, 0));
+            document.getElementById('filteredDataCard').style.display = 'flex';
+          } else {
+            document.getElementById('filteredDataCard').style.display = 'none';
+          }
+
+          document.getElementById('analysisSection').style.display = 'block';
+          document.getElementById('resultsSection').style.display = 'block';
+          showLoading(false);
+          showToast('Analysis complete!', 'success');
+        } catch (err) {
+          showLoading(false);
+          showToast('Error: ' + err.message, 'error');
+        }
+      }, 400);
+    }
+
+    // 9. EXPORT MODULE — SEMUA FORMAT FILE
+    const EXPORT_FORMATS = [
+      { key: 'xlsx', label: 'Excel (.xlsx)',  icon: 'fa-file-excel' },
+      { key: 'csv',  label: 'CSV (.csv)',     icon: 'fa-file-csv' },
+      { key: 'tsv',  label: 'TSV (.tsv)',     icon: 'fa-table-cells' },
+      { key: 'json', label: 'JSON (.json)',   icon: 'fa-code' },
+      { key: 'xml',  label: 'XML (.xml)',     icon: 'fa-file-code' },
+      { key: 'html', label: 'HTML (.html)',   icon: 'fa-html5' },
+      { key: 'txt',  label: 'Text (.txt)',    icon: 'fa-file-lines' },
+      { key: 'pdf',  label: 'PDF (.pdf)',     icon: 'fa-file-pdf' }
+    ];
+
+    const EXPORT_HEADERS = {
+      p2mNotZona:      ['Date', 'Order ID', 'User ID', 'Nominal'],
+      zonaNotP2M:      ['Date', 'Order ID', 'User ID', 'Nominal'],
+      diffZonaReport:  ['User ID', 'Zona Total', 'Report Total', 'Difference'],
+      diffP2MReport:   ['User ID', 'Kitatrust Total', 'Report Total', 'Difference'],
+      filteredData:    ['Date', 'Order ID', 'User ID', 'Nominal']
     };
-  }
-})();
+
+    const exportTitles = {};
+
+    function stamp() {
+      const d = new Date(), p = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+    }
+
+    function safeName(t) {
+      return String(t).replace(/[❌✗✓\/\\?%*:|"<>\x00-\x1f]/g, '').replace(/\s+/g, '_');
+    }
+
+    function getExportRows(elementId) {
+      const el = document.getElementById(elementId);
+      const raw = (el ? el.value : '').trim();
+      if (!raw) return null;
+      return raw.split('\n').map(line => line.split('\t').map(c => c.trim()));
+    }
+
+    function headersFor(id, firstRow) {
+      const h = EXPORT_HEADERS[id];
+      return (h && h.length === firstRow.length) ? h : firstRow.map((_, i) => 'Column ' + (i + 1));
+    }
+
+    function toNumber(cell) {
+      const s = String(cell);
+      if (!/\d/.test(s)) return cell;
+      const n = parseInt(s.replace(/[^\d-]/g, ''), 10);
+      return isNaN(n) ? cell : n;
+    }
+
+    function downloadFile(content, filename, mime) {
+      const blob = new Blob(['\uFEFF' + content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+    }
+
+    function fmtDelim(rows, headers, delim) {
+      const esc = v => { v = String(v); return (delim === ',' && /[",\n]/.test(v)) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+      return [headers, ...rows].map(r => r.map(esc).join(delim)).join('\n');
+    }
+
+    function fmtJSON(rows, headers) {
+      return JSON.stringify(rows.map(r => {
+        const o = {};
+        headers.forEach((h, i) => o[h] = (i === headers.length - 1) ? toNumber(r[i]) : r[i]);
+        return o;
+      }), null, 2);
+    }
+
+    function fmtXML(rows, headers) {
+      const esc = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const tg = h => h.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const items = rows.map(r => '  <row>\n' + headers.map((h, i) => `    <${tg(h)}>${esc(r[i])}</${tg(h)}>`).join('\n') + '\n  </row>').join('\n');
+      return `<?xml version="1.0" encoding="UTF-8"?>\n<data>\n${items}\n</data>`;
+    }
+
+    function fmtHTML(rows, headers, title) {
+      const th = headers.map(h => `<th>${h}</th>`).join('');
+      const tr = rows.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('');
+      return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>body{font-family:'Inter',Arial;background:#0a0a0f;color:#f1f5f9;padding:40px}h1{color:#3b82f6;font-family:'JetBrains Mono',monospace}table{border-collapse:collapse;width:100%;margin-top:20px}th{background:#1a1a24;color:#3b82f6;padding:10px;text-align:left;border-bottom:2px solid #6366f1}td{padding:8px 10px;border-bottom:1px solid #1a1a24}tr:hover{background:#1a1a24}</style></head><body><h1>AURA.OS — ${title}</h1><p>Generated: ${new Date().toLocaleString('id-ID')}</p><table><tr>${th}</tr>${tr}</table></body></html>`;
+    }
+
+    function buildSheetAOA(elementId) {
+      const rows = getExportRows(elementId);
+      if (!rows) return null;
+      const headers = headersFor(elementId, rows[0]);
+      const body = rows.map(r => r.map((c, i) => (i === r.length - 1) ? toNumber(c) : c));
+      return [headers, ...body];
+    }
+
+    function exportXLSX(elementId, title) {
+      if (typeof XLSX === 'undefined') return showToast('Library Excel gagal dimuat — coba CSV', 'error');
+      const aoa = buildSheetAOA(elementId);
+      if (!aoa) return showToast('No data to export', 'warning');
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = aoa[0].map(() => ({ wch: 20 }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Data');
+      XLSX.writeFile(wb, `AURA_${safeName(title)}_${stamp()}.xlsx`);
+      showToast('Excel berhasil diexport!', 'success');
+    }
+
+    function exportPDF(elementId, title) {
+      if (!window.jspdf) return showToast('Library PDF gagal dimuat', 'error');
+      const rows = getExportRows(elementId);
+      if (!rows) return showToast('No data to export', 'warning');
+      const headers = headersFor(elementId, rows[0]);
+      const body = rows.map(r => r.map((c, i) => (i === r.length - 1) ? toNumber(c) : c));
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      doc.setFontSize(16); doc.setTextColor(59, 102, 241);
+      doc.text('AURA.OS — ' + title, 40, 40);
+      doc.setFontSize(9); doc.setTextColor(130);
+      doc.text('Generated: ' + new Date().toLocaleString('id-ID'), 40, 58);
+      doc.autoTable({
+        head: [headers], body, startY: 75,
+        styles: { fontSize: 8, cellPadding: 4 },
+        headStyles: { fillColor: [59, 102, 241], textColor: 255 },
+        alternateRowStyles: { fillColor: [241, 243, 250] }
+      });
+      doc.save(`AURA_${safeName(title)}_${stamp()}.pdf`);
+      showToast('PDF berhasil diexport!', 'success');
+    }
+
+    function exportData(elementId, format) {
+      const title = exportTitles[elementId] || elementId;
+      const rows = getExportRows(elementId);
+      if (!rows) return showToast('No data to export', 'warning');
+      const headers = headersFor(elementId, rows[0]);
+      const base = `AURA_${safeName(title)}_${stamp()}`;
+
+      switch (format) {
+        case 'xlsx': exportXLSX(elementId, title); break;
+        case 'pdf':  exportPDF(elementId, title); break;
+        case 'csv':  downloadFile(fmtDelim(rows, headers, ','),  base + '.csv',  'text/csv;charset=utf-8'); showToast('CSV exported!', 'success'); break;
+        case 'tsv':  downloadFile(fmtDelim(rows, headers, '\t'), base + '.tsv', 'text/tab-separated-values;charset=utf-8'); showToast('TSV exported!', 'success'); break;
+        case 'txt':  downloadFile([headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\n'), base + '.txt', 'text/plain;charset=utf-8'); showToast('TXT exported!', 'success'); break;
+        case 'json': downloadFile(fmtJSON(rows, headers), base + '.json', 'application/json'); showToast('JSON exported!', 'success'); break;
+        case 'xml':  downloadFile(fmtXML(rows, headers),  base + '.xml',  'application/xml');  showToast('XML exported!', 'success'); break;
+        case 'html': downloadFile(fmtHTML(rows, headers, title), base + '.html', 'text/html;charset=utf-8'); showToast('HTML exported!', 'success'); break;
+      }
+    }
+
+    function exportAllXLSX() {
+      if (typeof XLSX === 'undefined') return showToast('Library Excel gagal dimuat', 'error');
+      const cards = [...document.querySelectorAll('.result-card')].filter(c => {
+        if (c.id === 'filteredDataCard' && c.style.display === 'none') return false;
+        const ta = c.querySelector('textarea.result-field');
+        return ta && ta.value.trim();
+      });
+      if (!cards.length) return showToast('Belum ada hasil — jalankan Analyze dulu', 'warning');
+
+      const wb = XLSX.utils.book_new();
+      const summary = [
+        ['AURA.OS — Data Comparison Analyzer'],
+        ['Generated', new Date().toLocaleString('id-ID')],
+        [],
+        ['Metric', 'Value'],
+        ['Total Kitatrust', document.getElementById('overallP2M').textContent],
+        ['Total Report', document.getElementById('overallReport').textContent],
+        ['Overall Difference', document.getElementById('overallDifference').textContent]
+      ];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), 'Summary');
+
+      cards.forEach(c => {
+        const id = c.querySelector('textarea.result-field').id;
+        const aoa = buildSheetAOA(id);
+        if (!aoa) return;
+        const name = (exportTitles[id] || id).replace(/[❌✗✓\/\\?%*:\[\]"<>]/g, '').trim().substring(0, 28) || 'Data';
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), name);
+      });
+
+      XLSX.writeFile(wb, `AURA_Analyzer_Full_${stamp()}.xlsx`);
+      showToast('Semua hasil diexport (multi-sheet)!', 'success');
+    }
+
+    // ===== AUTO-INJECT TOMBOL EXPORT =====
+    function injectExportUI() {
+      document.querySelectorAll('.result-card').forEach(card => {
+        const ta = card.querySelector('textarea.result-field');
+        const header = card.querySelector('.result-header');
+        if (!ta || !header) return;
+
+        exportTitles[ta.id] = (card.querySelector('.result-title')?.textContent || ta.id).trim();
+
+        const wrap = document.createElement('div');
+        wrap.className = 'export-wrap';
+        wrap.innerHTML = `
+          <button class="copy-btn export-toggle"><i class="fas fa-download"></i> Export</button>
+          <div class="export-menu">
+            ${EXPORT_FORMATS.map(f => `<button onclick="exportData('${ta.id}','${f.key}')"><i class="fas ${f.icon}"></i> ${f.label}</button>`).join('')}
+          </div>`;
+        const copyBtn = header.querySelector('.copy-btn');
+        /* FIX (ikut v3.14.9): .copy-btn bukan anak
+           langsung dari .result-header (ada pembungkus flex di dalamnya) ->
+           insertBefore(header, copyBtn) melempar error dan tombol Export
+           tidak pernah muncul. Sisipkan ke induk langsung dari copyBtn. */
+        const exportParent = copyBtn ? copyBtn.parentNode : header;
+        exportParent.insertBefore(wrap, copyBtn);
+
+        wrap.querySelector('.export-toggle').addEventListener('click', e => {
+          e.stopPropagation();
+          const menu = wrap.querySelector('.export-menu');
+          document.querySelectorAll('.export-menu.open').forEach(m => { if (m !== menu) m.classList.remove('open'); });
+          menu.classList.toggle('open');
+        });
+      });
+
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.export-menu.open').forEach(m => m.classList.remove('open'));
+      });
+    }
+    document.addEventListener('DOMContentLoaded', injectExportUI);
+
+    /* ===== TEST HOOK (v2.0.0) — dipakai unit test & E2E otomatis ===== */
+    window.KitatrustAnalyzer = {
+      version: '2.0.0',
+      parseKitatrust: parseKitatrust,
+      parseZonamain: parseZonamain,
+      parseReport: parseReport,
+      setKitatrustData: function (text) {
+        p2mData = parseKitatrust(text);
+        document.getElementById('p2mCount').textContent = p2mData.length + ' lines';
+        return p2mData.length;
+      },
+      counts: function () { return { kt: p2mData.length, zona: zonaData.length, report: reportData.length }; }
+    };
