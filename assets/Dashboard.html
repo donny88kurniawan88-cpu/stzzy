@@ -940,7 +940,7 @@
       <!-- ===== P2M ANALYZER VIEW (inline iframe) ===== -->
       <div id="analyzerView" style="display:none;">
         <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
-          <iframe src="/analyzer-tools/analyzer.html?v=1.0.2" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="P2M Data Analyzer"></iframe>
+          <iframe src="/analyzer-tools/analyzer.html?v=1.0.3" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="P2M Data Analyzer"></iframe>
         </div>
       </div>
 
@@ -965,10 +965,10 @@
         </div>
       </div>
 
-      <!-- ===== KITATRUST ANALYZER VIEW (inline iframe) — v3.14.8: logic senada XPAY Analyzer, tema terang, format Kitatrust (Status/Settled/Amount/Total Payment/Reference ID/Settled At, RRN notasi ilmiah diperbaiki) ===== -->
+      <!-- ===== KITATRUST ANALYZER VIEW (inline iframe) — v3.14.9: logic = analyzer-tools/P2M Analyzer (Kitatrust Data vs Zonamain Data vs Report Data, format Zona & Report tetap sama), TEMA DASHBOARD, parser format Kitatrust (Reference ID/Amount/Total Payment/Paid At/Merchant Name) ===== -->
       <div id="kitatrustView" style="display:none;">
-        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#eef2f7; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
-          <iframe src="/kitatrust-tools/kitatrust-analyzer.html?v=1.0.0" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="Kitatrust Analyzer"></iframe>
+        <div style="width:100%; margin-top:22px; border-radius:24px; overflow:hidden; background:#0a0a0f; box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06);">
+          <iframe src="/kitatrust-tools/kitatrust-analyzer.html?v=2.0.0" style="width:100%; height:calc(100vh - 140px); border:none; display:block;" title="Kitatrust Analyzer"></iframe>
         </div>
       </div>
 
@@ -1793,7 +1793,7 @@ document.getElementById('breadcrumbPage').textContent = 'profil';
       addTerminalLog('Switched to Settlement Checker view');
     }
 
-    /* === KITATRUST ANALYZER (v3.14.8) === */
+    /* === KITATRUST ANALYZER (v3.14.9) === */
     function switchToKitatrust() {
       hideAllViews();
       var ktv = document.getElementById('kitatrustView'); if (ktv) ktv.style.display = 'block';
